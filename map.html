@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- keep your fixed layout intent -->
+  <meta name="viewport" content="width=1112, height=800, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+  <title>Team Path Planner</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Supabase JS v2 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
+
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        window.location.href = "index.html";
+      } else {
+        const userInfo = document.getElementById("user-info");
+        if (userInfo && session.user?.email) {
+          userInfo.textContent = "Logged in as: " + session.user.email;
+        }
+        const chip = document.getElementById("user-chip");
+        const emailEl = document.getElementById("user-email");
+        const tagEl = document.getElementById("user-tag");
+        if (chip && emailEl && tagEl && session.user?.email) {
+          emailEl.textContent = session.user.email;
+          tagEl.textContent = session.user.email.split("@")[0];
+        }
+      }
+    });
+
+    function logout() {
+      client.auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+  </script>
+
+  <style>
+    :root{
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .72);
+      --line: rgba(255,255,255,.10);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
+
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+      --radius-lg: 18px;
+      --radius: 14px;
+
+      --main-w: 1112px;
+      --main-h: 800px;
+
+      --sidebar-w: 320px;
+      --map-w: 792px; /* 1112 - 320 */
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{
+      margin:0; padding:0;
+      width:100vw; height:100vh;
+      overflow:hidden;
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+
+    /* main fixed canvas frame */
+    #main{
+      width: var(--main-w);
+      height: var(--main-h);
+      display:flex;
+      overflow:hidden;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.22);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      position: relative;
+    }
+
+    /* map area */
+    #map-container{
+      width: var(--map-w);
+      height: 100%;
+      position: relative;
+      background: rgba(0,0,0,.35);
+      border-right: 1px solid rgba(255,255,255,.06);
+      overflow:hidden;
+    }
+
+    #map{
+      width:100%;
+      height:100%;
+      background-size: auto 100%;
+      background-position:center;
+      background-repeat:no-repeat;
+      position: relative;
+      touch-action: none;
+    }
+
+    #maskCanvas{
+      position:absolute;
+      top:0; left:0;
+      z-index:10;
+      pointer-events:none;
+    }
+
+    canvas{
+      position:absolute;
+      top:0; left:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+    }
+
+    /* unit */
+    .unit{
+      position:absolute;
+      width:30px; height:30px;
+      background: rgba(255,255,255,.10);
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .unit img{
+      width:100%; height:100%;
+      border-radius:999px;
+      box-shadow: 0 0 12px 2px rgba(255,255,255,0.35);
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(0,0,0,.35);
+    }
+    .unit-label{
+      position:absolute;
+      top:-18px; left:50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(0,0,0,.55);
+      color: rgba(244,246,255,.92);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      white-space:nowrap;
+    }
+    .reset-btn{
+      position:absolute;
+      bottom:-20px; left:50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.92);
+      color:#000;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border: none;
+      border-radius: 8px;
+      cursor:pointer;
+    }
+
+    /* right sidebar controls */
+    #sidebar{
+      width: var(--sidebar-w);
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      padding: 12px;
+      background: rgba(14, 18, 28, .70);
+      border-left: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+
+    /* header block inside sidebar */
+    .side-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 10px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      margin-bottom: 10px;
+    }
+    .side-title{
+      min-width:0;
+    }
+    .side-title h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing:.6px;
+      color: var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .side-title p{
+      margin: 4px 0 0 0;
+      font-size: .78rem;
+      color: var(--muted);
+      font-weight: 700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .userchip{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      max-width: 150px;
+    }
+    .avatar{
+      width:26px;height:26px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,189,89,.28), rgba(77,211,255,.18));
+      border: 1px solid rgba(255,255,255,.12);
+      flex:0 0 auto;
+    }
+    .usertext{min-width:0}
+    .usertext b{
+      display:block;
+      font-family: Orbitron, sans-serif;
+      font-size:.84rem;
+      color: var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .usertext span{
+      display:block;
+      font-size:.72rem;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* team icons grid */
+    .icon-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      justify-items:center;
+      padding: 8px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      margin-bottom: 10px;
+    }
+
+    .team-icon{
+      width: 50px;
+      height: 55px;
+      border-radius: 12px;
+      cursor:pointer;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      object-fit: cover;
+    }
+    .team-icon:hover{
+      outline: 2px solid rgba(255,189,89,.35);
+      outline-offset: 2px;
+    }
+
+    /* controls panel scroll */
+    #controls{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      overflow-y:auto;
+      padding-right: 6px;
+    }
+    #controls::-webkit-scrollbar{ width:10px; }
+    #controls::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.10); border-radius: 10px; }
+    #controls::-webkit-scrollbar-track{ background: transparent; }
+
+    /* shared control styles */
+    #controls button, #map-select{
+      width: 100%;
+      padding: 10px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: rgba(244,246,255,.90);
+      cursor:pointer;
+      transition: .18s ease;
+    }
+    #controls button:hover, #map-select:hover{
+      background: rgba(0,0,0,.30);
+      border-color: rgba(77,211,255,.22);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+    }
+
+    /* Fix: dropdown list (options) not white-on-white */
+    #map-select{
+      background: rgba(0,0,0,.28);
+      color: rgba(244,246,255,.92);
+    }
+    
+    #map-select option,
+    #map-select optgroup{
+      background: #0e111a;   /* dark dropdown */
+      color: rgba(244,246,255,.92);
+    }
+    
+    /* Optional: cleaner focus */
+    #map-select:focus{
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.30);
+    }
+
+    #controls button:active{
+      transform: scale(.99);
+    }
+
+    /* primary button feel */
+    #controls button{
+      border-color: rgba(255,189,89,.22);
+    }
+    #controls button:hover{
+      border-color: rgba(255,189,89,.28);
+      box-shadow: 0 0 0 3px rgba(255,189,89,.10);
+    }
+
+    /* special toggles */
+    #realtime-toggle-btn{
+      border-color: rgba(77,211,255,.28);
+    }
+    #realtime-toggle-btn.active{
+      background: rgba(77,211,255,.18);
+      border-color: rgba(77,211,255,.40);
+      color: rgba(244,246,255,.92);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+    }
+
+    #draw-circle.active{
+      background: rgba(0,255,255,.18);
+      border-color: rgba(0,255,255,.42);
+      color: rgba(244,246,255,.95);
+      box-shadow: 0 0 0 3px rgba(0,255,255,.10);
+    }
+
+    /* row buttons */
+    .button-row{
+      display:flex;
+      gap: 8px;
+    }
+    .button-row button{
+      flex:1;
+      white-space:nowrap;
+    }
+
+    #import-file{ display:none; }
+
+    /* notes */
+    .note{
+      position:absolute;
+      background: rgba(255,255,255,.92);
+      color: #000;
+      border: 1px solid rgba(0,0,0,.28);
+      border-radius: 10px;
+      max-width: 220px;
+      overflow:hidden;
+      box-shadow: 0 14px 40px rgba(0,0,0,.45);
+      user-select: text; /* allow editing */
+    }
+    .drag-handle{
+      background: rgba(0,0,0,.12);
+      padding: 4px 8px;
+      font-weight: 1000;
+      cursor: grab;
+      user-select:none;
+    }
+    .note div[contenteditable]{
+      padding: 6px 8px;
+      min-height: 20px;
+      outline:none;
+      font-size: 12px;
+      line-height: 1.2rem;
+    }
+
+    /* footer user info */
+    #user-info{
+      font-size: .78rem;
+      text-align:center;
+      margin-top: 10px;
+      color: rgba(170,177,197,.85);
+      user-select:text;
+    }
+  </style>
+</head>
+
+<body>
+<div id="main">
+  <div id="map-container">
+    <div id="map">
+      <canvas id="maskCanvas"></canvas>
+      <canvas id="pathCanvas"></canvas>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div class="side-head">
+      <div class="side-title">
+        <h1>Path Planner</h1>
+        <p>Draw paths • Circles • Notes</p>
+      </div>
+      <div class="userchip" id="user-chip" title="Signed in">
+        <div class="avatar"></div>
+        <div class="usertext">
+          <b id="user-tag">Player</b>
+          <span id="user-email">loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="icon-grid" id="teamIcons"></div>
+
+    <div id="controls">
+      <select id="map-select">
+        <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
+        <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
+        <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
+        <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
+        <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
+        <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
+
+        <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="CS">Bermuda-CS</option>
+        <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="CS">Purgatory-CS</option>
+        <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="CS">Alpine-CS</option>
+        <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="CS">Kalahari-CS</option>
+        <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="CS">NeXTerra-CS</option>
+        <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="CS">Solara-CS</option>
+      </select>
+
+      <button id="realtime-toggle-btn">Real-time: ON</button>
+
+      <div class="button-row">
+        <button id="draw-circle">Draw Circle</button>
+        <button id="note-mode">Add Note</button>
+      </div>
+
+      <button id="undo-btn">Undo</button>
+      <button id="reset-all-btn">Reset All</button>
+
+      <div class="button-row">
+        <button id="export-btn">Export</button>
+        <button onclick="document.getElementById('import-file').click()">Import</button>
+      </div>
+
+      <input type="file" id="import-file" accept=".json" />
+
+      <div class="button-row">
+        <button onclick="location.href='dashboard.html'">← Dashboard</button>
+        <button onclick="location.href='team_settings.html'">Team Settings</button>
+      </div>
+
+      <button onclick="logout()">Logout</button>
+
+      <p id="user-info">Checking login...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const map = document.getElementById("map");
+const canvas = document.getElementById("pathCanvas");
+const ctx = canvas.getContext("2d");
+const teamPaths = {}, teamIcons = {}, undoStacks = {}, circles = [], historyStack = [];
+let selectedIcon = null, activeTeam = null;
+let drawCircleMode = false, noteMode = false;
+let resizingCircle = null, draggingCircle = null;
+let isResizing = false, isDragging = false;
+const notes = [];
+
+const teamColors = [
+  "#FF0000", "#00FF00", "#00FFFF", "#FFFF00", "#FF00FF", "#FFA500",
+  "#00BFFF", "#FF69B4", "#7FFF00", "#FF4500", "#00FF7F", "#1E90FF",
+  "#FFD700", "#ADFF2F", "#FF1493", "#40E0D0", "#FF6347", "#87CEEB"
+];
+
+const mapSelect = document.getElementById("map-select");
+map.style.backgroundImage = `url('${mapSelect.value}')`;
+
+const default_circles_data = {
+  "https://i.imgur.com/V6iUHaA.jpeg": [  // Bermuda
+    { r: 30, x: 350, y: 557.5, color: "#ff0000" },
+    { r: 30, x: 393, y: 682.5, color: "#ff0000" },
+    { r: 30, x: 722, y: 387.5, color: "#ff0000" },
+    { r: 30, x: 265, y: 495.5, color: "#ff0000" },
+    { r: 30, x: 411, y: 236,   color: "#ff0000" },
+    { r: 30, x: 103, y: 284.5, color: "#ff0000" },
+    { r: 30, x: 572, y: 239,   color: "#ff0000" },
+    { r: 30, x: 352, y: 358.5, color: "#ff0000" },
+    { r: 30, x: 239, y: 294.5, color: "#ff0000" },
+    { r: 30, x: 694, y: 630.5, color: "#ff0000" },
+    { r: 30, x: 103, y: 588.5, color: "#ff0000" },
+    { r: 30, x: 444, y: 558.5, color: "#ff0000" },
+    { r: 30, x: 457, y: 416.5, color: "#ff0000" },
+    { r: 30, x: 318, y: 124.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/IX1oY9Z.jpeg": [  // Solara
+    { r: 30, x: 326, y: 518.5, color: "#ff0000" },
+    { r: 30, x: 412, y: 711.5, color: "#ff0000" },
+    { r: 30, x: 74,  y: 339.5, color: "#ff0000" },
+    { r: 30, x: 662, y: 695.5, color: "#ff0000" },
+    { r: 30, x: 290, y: 339.5, color: "#ff0000" },
+    { r: 30, x: 617, y: 149.5, color: "#ff0000" },
+    { r: 30, x: 734, y: 524.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/x5he05R.jpeg": [  // NeXTerra
+    { r: 30, x: 344, y: 158.5, color: "#ff0000" },
+    { r: 30, x: 108, y: 279.5, color: "#ff0000" },
+    { r: 30, x: 587, y: 581.5, color: "#ff0000" },
+    { r: 30, x: 447, y: 640.5, color: "#ff0000" },
+    { r: 30, x: 132, y: 620.5, color: "#ff0000" },
+    { r: 30, x: 637, y: 394.5, color: "#ff0000" },
+    { r: 30, x: 290, y: 383.5, color: "#ff0000" },
+    { r: 30, x: 512, y: 373.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/48O1Jf8.jpeg": [  // Alpine
+    { r: 30, x: 718, y: 340.5, color: "#ff0000" },
+    { r: 30, x: 151, y: 189.5, color: "#ff0000" },
+    { r: 30, x: 381, y: 294.5, color: "#ff0000" },
+    { r: 30, x: 484, y: 624.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/4Yz12P9.jpeg": [  // Kalahari
+    { r: 30, x: 655, y: 439.5, color: "#ff0000" },
+    { r: 30, x: 637, y: 612.5, color: "#ff0000" },
+    { r: 30, x: 196, y: 634.5, color: "#ff0000" },
+    { r: 30, x: 471, y: 496.5, color: "#ff0000" },
+    { r: 30, x: 359, y: 155.5, color: "#ff0000" },
+    { r: 30, x: 219, y: 308.5, color: "#ff0000" },
+    { r: 30, x: 588, y: 159.5, color: "#ff0000" }
+  ]
+};
+
+mapSelect.addEventListener("change", () => {
+  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+  const mapURL = selectedOption.value;
+  const mode = selectedOption.dataset.mode || "";
+
+  map.style.backgroundImage = `url('${mapURL}')`;
+
+  if (mode === "CS" && circles.length === 0 && default_circles_data[mapURL]) {
+    circles.push(...default_circles_data[mapURL]);
+    drawPaths();
+  }
+
+  if (mode === "CS") {
+    drawOverlayMask(circles);
+  } else {
+    document.getElementById("maskCanvas").style.display = "none";
+  }
+
+  saveMapState();
+});
+
+// Team icons — load from Supabase teams_pathplanner
+async function loadTeamIcons() {
+  const grid = document.getElementById("teamIcons");
+  grid.innerHTML = "";
+
+  const { data, error } = await client
+    .from("teams_pathplanner")
+    .select("id, team_name, team_tag, logo_url")
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("❌ Failed to load teams:", error);
+    const msg = document.createElement("p");
+    msg.textContent = "Failed to load teams.";
+    msg.style.fontSize = "0.8rem";
+    msg.style.color = "#aaa";
+    msg.style.gridColumn = "1 / -1";
+    grid.appendChild(msg);
+    return;
+  }
+
+  if (!data || !data.length) {
+    const msg = document.createElement("p");
+    msg.textContent = "No teams configured. Go to Team Settings to add some.";
+    msg.style.fontSize = "0.8rem";
+    msg.style.color = "#aaa";
+    msg.style.gridColumn = "1 / -1";
+    grid.appendChild(msg);
+    return;
+  }
+
+  data.slice(0, teamColors.length).forEach((team, i) => {
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.alignItems = "center";
+
+    const img = document.createElement("img");
+    img.src = team.logo_url;
+    img.alt = team.team_name || team.team_tag || `Team ${i + 1}`;
+    img.className = "team-icon";
+
+    const teamId = "team" + (i + 1);
+    img.dataset.id = teamId;
+    img.dataset.teamTag = team.team_tag || "";
+    img.dataset.teamName = team.team_name || "";
+    img.dataset.teamDbId = team.id;
+    img.title = `${team.team_name || "Team"} (${team.team_tag || "TAG"})`;
+
+    img.onclick = () => selectedIcon = img;
+
+    const colorBar = document.createElement("div");
+    colorBar.style.width = "60%";
+    colorBar.style.height = "6px";
+    colorBar.style.marginTop = "6px";
+    colorBar.style.borderRadius = "999px";
+    colorBar.style.backgroundColor = teamColors[i] || "#fff";
+    colorBar.style.boxShadow = "0 8px 18px rgba(0,0,0,.35)";
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(colorBar);
+    grid.appendChild(wrapper);
+  });
+}
+
+// Draw Circle Mode Toggle
+document.getElementById("draw-circle").onclick = () => {
+  drawCircleMode = !drawCircleMode;
+  const btn = document.getElementById("draw-circle");
+  btn.textContent = drawCircleMode ? "Circle Mode: ON" : "Draw Circle";
+  btn.classList.toggle("active", drawCircleMode);
+};
+
+// Note Mode Toggle
+document.getElementById("note-mode").onclick = () => {
+  noteMode = !noteMode;
+  document.getElementById("note-mode").textContent = noteMode ? "Click on Map to Add Note" : "Add Note";
+};
+
+// Get click/touch coordinates relative to map
+function getCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  return {
+    x: (touch.clientX - rect.left) * scaleX,
+    y: (touch.clientY - rect.top) * scaleY
+  };
+}
+
+function createNote(x, y, text) {
+  const noteDiv = document.createElement("div");
+  noteDiv.className = "note";
+  noteDiv.style.left = `${x}px`;
+  noteDiv.style.top = `${y}px`;
+
+  const handle = document.createElement("div");
+  handle.className = "drag-handle";
+  handle.textContent = "☰";
+
+  const content = document.createElement("div");
+  content.textContent = text;
+  content.contentEditable = true;
+
+  noteDiv.appendChild(handle);
+  noteDiv.appendChild(content);
+  map.appendChild(noteDiv);
+
+  historyStack.push({ type: "note", element: noteDiv });
+  notes.push({ x, y, text });
+
+  let offsetX = 0, offsetY = 0, isDraggingNote = false;
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = map.getBoundingClientRect();
+    offsetX = touch.clientX - rect.left - noteDiv.offsetLeft;
+    offsetY = touch.clientY - rect.top - noteDiv.offsetTop;
+    isDraggingNote = true;
+  };
+
+  const moveDrag = (e) => {
+    if (!isDraggingNote) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = map.getBoundingClientRect();
+    const newX = touch.clientX - rect.left - offsetX;
+    const newY = touch.clientY - rect.top - offsetY;
+    noteDiv.style.left = `${newX}px`;
+    noteDiv.style.top = `${newY}px`;
+  };
+
+  const endDrag = () => isDraggingNote = false;
+
+  handle.addEventListener("mousedown", e => {
+    e.stopPropagation();
+    e.preventDefault();
+    startDrag(e);
+  });
+
+  handle.addEventListener("touchstart", e => {
+    e.stopPropagation();
+    e.preventDefault();
+    startDrag(e);
+  }, { passive: false });
+
+  window.addEventListener("mousemove", moveDrag);
+  window.addEventListener("touchmove", moveDrag, { passive: false });
+  window.addEventListener("mouseup", endDrag);
+  window.addEventListener("touchend", endDrag);
+}
+
+// Map click handler
+map.addEventListener("click", e => {
+  // ✅ prevent accidental path actions while interacting with notes
+  if (e.target?.closest && e.target.closest(".note")) return;
+
+  const { x, y } = getCoords(e);
+
+  if (noteMode) {
+    const text = prompt("Enter note:");
+    if (!text) return;
+    createNote(x, y, text);
+    noteMode = false;
+    document.getElementById("note-mode").textContent = "Add Note";
+    saveMapState();
+    return;
+  }
+
+  if (drawCircleMode) {
+    circles.push({ x, y, r: 30, color: "#00ffff" });
+    historyStack.push({ type: "circle" });
+    drawPaths();
+    saveMapState();
+    return;
+  }
+
+  if (selectedIcon) {
+    const id = selectedIcon.dataset.id;
+    if (teamIcons[id]) return;
+
+    const div = document.createElement("div");
+    div.className = "unit";
+    div.style.left = `${x - 15}px`;
+    div.style.top = `${y - 15}px`;
+
+    const img = selectedIcon.cloneNode(true);
+    img.style.width = img.style.height = "30px";
+
+    const label = document.createElement("div");
+    label.className = "unit-label";
+    const teamTag = selectedIcon.dataset.teamTag || id;
+    label.textContent = teamTag;
+
+    const reset = document.createElement("button");
+    reset.className = "reset-btn";
+    reset.textContent = "Reset";
+    reset.onclick = ev => {
+      ev.stopPropagation();
+      div.remove();
+      delete teamPaths[id];
+      delete teamIcons[id];
+      delete undoStacks[id];
+      drawPaths();
+      saveMapState();
+    };
+
+    div.append(img, label, reset);
+    map.appendChild(div);
+    div.onclick = () => activeTeam = id;
+
+    teamPaths[id] = [{ x, y }];
+    teamIcons[id] = div;
+    undoStacks[id] = [];
+    activeTeam = id;
+    selectedIcon = null;
+    historyStack.push({ type: "line", team: id });
+    drawPaths();
+    saveMapState();
+  } else if (activeTeam) {
+    undoStacks[activeTeam].push([...teamPaths[activeTeam]]);
+    teamPaths[activeTeam].push({ x, y });
+    historyStack.push({ type: "line", team: activeTeam });
+    drawPaths();
+    saveMapState();
+  }
+});
+
+// Helpers for resizing and dragging circles
+function findCircleForResize(pt) {
+  for (let i = circles.length - 1; i >= 0; i--) {
+    const c = circles[i];
+    const dist = Math.hypot(c.x - pt.x, c.y - pt.y);
+    if (Math.abs(dist - c.r) < 12) return c;
+  }
+  return null;
+}
+
+function findCircleForDrag(pt) {
+  for (let i = circles.length - 1; i >= 0; i--) {
+    const c = circles[i];
+    const dist = Math.hypot(c.x - pt.x, c.y - pt.y);
+    if (dist < c.r) return c;
+  }
+  return null;
+}
+
+function startTouch(e) {
+  // ✅ ignore touches on notes/handles/content
+  if (e.target?.closest && e.target.closest(".note")) return;
+
+  const pt = getCoords(e);
+
+  resizingCircle = findCircleForResize(pt);
+  if (resizingCircle) {
+    isResizing = true;
+  } else {
+    draggingCircle = findCircleForDrag(pt);
+    if (draggingCircle) isDragging = true;
+  }
+}
+
+function moveTouch(e) {
+  if (!isDragging && !isResizing) return;
+  const { x, y } = getCoords(e);
+
+  if (resizingCircle && isResizing) {
+    resizingCircle.r = Math.max(10, Math.hypot(x - resizingCircle.x, y - resizingCircle.y));
+  } else if (draggingCircle && isDragging) {
+    draggingCircle.x = x;
+    draggingCircle.y = y;
+  }
+
+  drawPaths();
+}
+
+function endTouch() {
+  if (isDragging || isResizing) {
+    saveMapState();
+  }
+  resizingCircle = draggingCircle = null;
+  isResizing = isDragging = false;
+}
+
+// Add touch + mouse listeners
+["mousedown", "touchstart"].forEach(evt => map.addEventListener(evt, startTouch));
+["mousemove", "touchmove"].forEach(evt => map.addEventListener(evt, moveTouch));
+["mouseup", "touchend", "touchcancel"].forEach(evt => map.addEventListener(evt, endTouch));
+
+// Undo button
+document.getElementById("undo-btn").onclick = () => {
+  const last = historyStack.pop();
+  if (!last) return;
+
+  if (last.type === "circle") {
+    circles.pop();
+  } else if (last.type === "line") {
+    const path = teamPaths[last.team];
+    if (path) {
+      path.pop();
+      if (path.length === 0) {
+        delete teamPaths[last.team];
+        const icon = teamIcons[last.team];
+        if (icon) icon.remove();
+        delete teamIcons[last.team];
+      }
+    }
+  } else if (last.type === "note" && last.element) {
+    last.element.remove();
+    const index = notes.findIndex(n =>
+      parseInt(n.x) === parseInt(last.element.style.left) &&
+      parseInt(n.y) === parseInt(last.element.style.top)
+    );
+    if (index !== -1) notes.splice(index, 1);
+  }
+
+  drawPaths();
+  saveMapState();
+};
+
+// Reset all
+document.getElementById("reset-all-btn").onclick = () => {
+  if (!confirm("Reset all?")) return;
+
+  document.querySelectorAll("#map .unit").forEach(unit => unit.remove());
+  Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+  Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+  Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
+
+  circles.length = 0;
+  notes.length = 0;
+  document.querySelectorAll(".note").forEach(n => n.remove());
+  activeTeam = selectedIcon = null;
+  drawPaths();
+  console.log('🧹 Reset all local state; saving to DB...');
+  saveMapState();
+};
+
+// Export JSON
+document.getElementById("export-btn").onclick = () => {
+  const data = {
+    map: mapSelect.value,
+    paths: teamPaths,
+    circles,
+    notes
+  };
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "team-paths.json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// Import JSON
+document.getElementById("import-file").onchange = function () {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = JSON.parse(e.target.result);
+    if (data.map) {
+      mapSelect.value = data.map;
+      map.style.backgroundImage = `url('${data.map}')`;
+    }
+
+    [teamPaths, teamIcons, undoStacks].forEach(obj => Object.keys(obj).forEach(k => delete obj[k]));
+    Object.values(teamIcons).forEach(div => div.remove());
+    circles.length = 0;
+    document.querySelectorAll(".note").forEach(n => n.remove());
+    notes.length = 0;
+
+    Object.entries(data.paths || {}).forEach(([id, points]) => {
+      const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+      if (!icon || !points.length) return;
+      const first = points[0];
+      const div = document.createElement("div");
+      div.className = "unit";
+      div.style.left = `${first.x - 15}px`;
+      div.style.top = `${first.y - 15}px`;
+
+      const img = icon.cloneNode(true);
+      img.style.width = img.style.height = "30px";
+
+      const label = document.createElement("div");
+      label.className = "unit-label";
+      const teamTag = icon?.dataset.teamTag || id;
+      label.textContent = teamTag;
+
+      const reset = document.createElement("button");
+      reset.className = "reset-btn";
+      reset.textContent = "Reset";
+      reset.onclick = ev => {
+        ev.stopPropagation();
+        div.remove();
+        delete teamPaths[id];
+        delete teamIcons[id];
+        delete undoStacks[id];
+        drawPaths();
+        saveMapState();
+      };
+
+      div.append(img, label, reset);
+      map.appendChild(div);
+      div.onclick = () => activeTeam = id;
+      teamPaths[id] = points;
+      undoStacks[id] = [];
+      teamIcons[id] = div;
+    });
+
+    data.circles?.forEach(c => circles.push(c));
+
+    if (data.notes) {
+      data.notes.forEach(n => {
+        createNote(n.x, n.y, n.text);
+      });
+    }
+
+    drawPaths();
+    saveMapState();
+  };
+  reader.readAsText(file);
+};
+
+// Drawing functions
+function drawArrow(from, to, color) {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const angle = Math.atan2(dy, dx);
+  ctx.beginPath();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.lineTo(to.x - 10 * Math.cos(angle - Math.PI / 6), to.y - 10 * Math.sin(angle - Math.PI / 6));
+  ctx.moveTo(to.x, to.y);
+  ctx.lineTo(to.x - 10 * Math.cos(angle + Math.PI / 6), to.y - 10 * Math.sin(angle + Math.PI / 6));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+}
+
+function drawPaths() {
+  canvas.width = map.clientWidth;
+  canvas.height = map.clientHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let c of circles) {
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
+    ctx.strokeStyle = c.color;
+    ctx.setLineDash([3, 1]);
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(c.x + c.r, c.y, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = c.color;
+    ctx.fill();
+  }
+
+  for (let id in teamPaths) {
+    const path = teamPaths[id];
+    const i = parseInt(id.replace("team", "")) - 1;
+    const color = teamColors[i] || "#fff";
+    for (let j = 0; j < path.length - 1; j++) {
+      drawArrow(path[j], path[j + 1], color);
+    }
+  }
+}
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = map.clientWidth * dpr;
+  canvas.height = map.clientHeight * dpr;
+  canvas.style.width = map.clientWidth + "px";
+  canvas.style.height = map.clientHeight + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawPaths();
+  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+  if (selectedOption?.dataset.mode === "CS") {
+    drawOverlayMask(circles);
+  }
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+let mapState = {
+  map: mapSelect.value,
+  paths: {},
+  circles: [],
+  notes: []
+};
+let realtimeEnabled = true;
+let realtimeChannel = null;
+
+// Load map state from Supabase (single row id=1 with maybeSingle)
+async function loadMapState() {
+  console.log('🔄 Attempting to load map state...');
+  const { data, error } = await client
+    .from('map')
+    .select('state')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('❌ Failed to load map state:', error);
+    return;
+  }
+
+  if (!data || !data.state) {
+    console.log('ℹ️ No map row yet, creating default state');
+    mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
+    applyMapState(mapState);
+    await saveMapState();
+    return;
+  }
+
+  mapState = data.state;
+  console.log('✅ Loaded state:', mapState);
+  applyMapState(mapState);
+}
+
+// Save map state to Supabase using upsert on id=1
+async function saveMapState() {
+  mapState = {
+    map: mapSelect.value,
+    paths: teamPaths,
+    circles,
+    notes
+  };
+
+  console.log('💾 saveMapState sending:', mapState);
+
+  const { data, error } = await client
+    .from('map')
+    .upsert({
+      id: 1,
+      state: mapState,
+      updated_at: new Date().toISOString()
+    })
+    .select();
+
+  console.log('💾 saveMapState result:', { data, error });
+
+  if (error) console.error('❌ Failed to save map state:', error);
+  else console.log('✅ Map state saved → public.map');
+}
+
+// Apply state to UI
+function applyMapState(state) {
+  mapSelect.value = state.map || mapSelect.value;
+  map.style.backgroundImage = `url('${mapSelect.value}')`;
+
+  [teamPaths, teamIcons, undoStacks].forEach(obj => Object.keys(obj).forEach(k => delete obj[k]));
+  Object.values(teamIcons).forEach(div => div.remove());
+  circles.length = 0;
+  notes.length = 0;
+  document.querySelectorAll(".note").forEach(n => n.remove());
+
+  Object.entries(state.paths || {}).forEach(([id, points]) => {
+    const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+    if (!icon || !points.length) return;
+    const first = points[0];
+
+    const div = document.createElement("div");
+    div.className = "unit";
+    div.style.left = `${first.x - 15}px`;
+    div.style.top = `${first.y - 15}px`;
+
+    const img = icon.cloneNode(true);
+    img.style.width = img.style.height = "30px";
+
+    const label = document.createElement("div");
+    label.className = "unit-label";
+    const teamTag = icon?.dataset.teamTag || id;
+    label.textContent = teamTag;
+
+    const reset = document.createElement("button");
+    reset.className = "reset-btn";
+    reset.textContent = "Reset";
+    reset.onclick = ev => {
+      ev.stopPropagation();
+      div.remove();
+      delete teamPaths[id];
+      delete teamIcons[id];
+      delete undoStacks[id];
+      drawPaths();
+      saveMapState();
+    };
+
+    div.append(img, label, reset);
+    map.appendChild(div);
+    div.onclick = () => activeTeam = id;
+
+    teamPaths[id] = points;
+    undoStacks[id] = [];
+    teamIcons[id] = div;
+  });
+
+  (state.circles || []).forEach(c => circles.push(c));
+  (state.notes || []).forEach(n => createNote(n.x, n.y, n.text));
+
+  drawPaths();
+
+  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+  if (selectedOption?.dataset.mode === "CS") {
+    drawOverlayMask(circles);
+  } else {
+    document.getElementById("maskCanvas").style.display = "none";
+  }
+}
+
+// Realtime handler
+function handleMapChange(payload) {
+  console.log('📡 map change:', payload);
+
+  if (!realtimeEnabled) {
+    console.log('⏹️ Realtime is OFF on this client, ignoring.');
+    return;
+  }
+
+  const row = payload.new;
+  if (!row || row.id !== 1) {
+    console.log('⏹️ Change is not for id=1, ignoring.');
+    return;
+  }
+
+  console.log('🔄 Real-time update applied from DB');
+  applyMapState(row.state || {});
+}
+
+// Call load on page load + realtime toggle
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadTeamIcons();
+  await loadMapState();
+  enableRealtime();
+
+  const realtimeBtn = document.getElementById("realtime-toggle-btn");
+  realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+  realtimeBtn.classList.toggle("active", realtimeEnabled);
+
+  realtimeBtn.onclick = async () => {
+    realtimeEnabled = !realtimeEnabled;
+    realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+    realtimeBtn.classList.toggle("active", realtimeEnabled);
+
+    if (realtimeEnabled) await enableRealtime();
+    else await disableRealtime();
+  };
+});
+
+async function enableRealtime() {
+  if (realtimeChannel) return;
+
+  realtimeChannel = client
+    .channel('public:map')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map' }, handleMapChange)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'map' }, handleMapChange);
+
+  const { error } = await realtimeChannel.subscribe();
+  if (error) console.error("❌ Error subscribing to real-time:", error.message);
+  else console.log("✅ Real-time subscription active for public.map");
+}
+
+async function disableRealtime() {
+  if (realtimeChannel) {
+    console.log("⏹️ Attempting to remove real-time channel...");
+    const result = await client.removeChannel(realtimeChannel);
+    console.log("⏹️ Channel removal result:", result);
+    realtimeChannel = null;
+  }
+}
+
+function drawOverlayMask(circlesToReveal) {
+  const maskCanvas = document.getElementById("maskCanvas");
+  const ctx2 = maskCanvas.getContext("2d");
+
+  maskCanvas.style.display = "block";
+
+  const dpr = window.devicePixelRatio || 1;
+  maskCanvas.width = map.clientWidth * dpr;
+  maskCanvas.height = map.clientHeight * dpr;
+  maskCanvas.style.width = map.clientWidth + "px";
+  maskCanvas.style.height = map.clientHeight + "px";
+  ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ctx2.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+  ctx2.fillStyle = "rgba(0, 0, 0, 0.75)";
+  ctx2.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+  ctx2.globalCompositeOperation = "destination-out";
+  circlesToReveal.forEach(c => {
+    ctx2.beginPath();
+    ctx2.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
+    ctx2.fill();
+  });
+
+  ctx2.globalCompositeOperation = "source-over";
+}
+
+// Quick manual tests from the browser console
+window.testMapWrite = async () => {
+  const { data, error } = await client
+    .from('map')
+    .upsert({
+      id: 1,
+      state: { test: 'hello', at: new Date().toISOString() },
+      updated_at: new Date().toISOString()
+    })
+    .select();
+  console.log('🧪 testMapWrite result:', { data, error });
+};
+
+window.testMapRead = async () => {
+  const { data, error } = await client.from('map').select('*');
+  console.log('🧪 testMapRead result:', { data, error });
+};
+</script>
+
+</body>
+</html>
