@@ -1,0 +1,307 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Split View</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.08);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
+
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+
+      --header-h:72px;
+      --divider-w:10px;
+      --min-pane:240px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow:hidden;
+    }
+
+    body::before, body::after{
+      content:"";
+      position:fixed;
+      inset:auto auto 0 0;
+      width:520px; height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform: translate(-45%, -35%);
+      pointer-events:none;
+    }
+    body::after{
+      inset: -120px 0 auto auto;
+      width:420px; height:420px;
+      border:10px solid rgba(77,211,255,.10);
+      transform: translate(38%, 0%);
+    }
+
+    /* Full-bleed layout (NO side margins) */
+    .app{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding: 12px 0 0 0;  /* ✅ no left/right padding */
+      margin:0;            /* ✅ no centering */
+      max-width:none;      /* ✅ allow full width */
+    }
+
+    /* Topbar (full width) */
+    .topbar{
+      height:var(--header-h);
+      margin: 0 12px; /* keep only a small topbar inset; remove if you want absolute edge */
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex:0 0 auto;
+    }
+
+    .title{display:flex; flex-direction:column; min-width:0; gap:2px;}
+    .title h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing:.6px;
+      color: var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-shadow: 0 0 18px rgba(255,189,89,.14);
+    }
+    .title small{
+      color: var(--muted);
+      font-weight:700;
+      font-size:.78rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .actions{display:flex; align-items:center; gap:10px; flex:0 0 auto}
+    .btn{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
+      cursor:pointer;
+      font-weight:900;
+      font-size:.82rem;
+      transition:.2s ease;
+      white-space:nowrap;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      height: 42px;
+      gap:8px;
+    }
+    .btn:hover{
+      background: rgba(0,0,0,.28);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+      transform: translateY(-1px);
+    }
+    .btn:active{transform: translateY(0px);}
+
+    .btn.brand{
+      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
+      border-color: rgba(255,189,89,.20);
+      color: rgba(244,246,255,.94);
+    }
+    .btn.brand:hover{
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.28);
+    }
+
+    /* Workspace goes edge-to-edge */
+    .workspace{
+      flex:1;
+      min-height:0;
+      width:100%;
+      border-top: 1px solid rgba(255,255,255,.06);
+      background: var(--panel2);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+      display:flex;
+      border-radius: 0;     /* ✅ no rounding so it hits the edges */
+      border-left: 0;
+      border-right: 0;
+      border-bottom: 0;
+    }
+
+    iframe{
+      height:100%;
+      border:0;
+      background: transparent;
+      width:100%;
+    }
+    .left{flex:0 0 50%}
+    .right{flex:0 0 50%}
+
+    .divider{
+      width:var(--divider-w);
+      cursor:col-resize;
+      position:relative;
+      background:
+        linear-gradient(180deg, rgba(255,189,89,.75), rgba(77,211,255,.55));
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.06);
+    }
+    .divider::before{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width:28px; height:62px;
+      transform:translate(-50%,-50%);
+      border-radius:999px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    }
+    .divider::after{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width:10px; height:34px;
+      transform:translate(-50%,-50%);
+      border-radius:999px;
+      background: rgba(255,255,255,.10);
+      box-shadow:
+        0 -10px 0 rgba(255,255,255,.08),
+        0  10px 0 rgba(255,255,255,.08);
+      opacity:.95;
+    }
+    .divider.dragging{filter:brightness(1.12)}
+
+    /* Optional: if you want the header also to touch edges, uncomment:
+    .topbar{ margin:0; border-radius:0; border-left:0; border-right:0; }
+    */
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="title">
+        <h1>Split View</h1>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="dashboard.html">← Back to Dashboard</a>
+        <button class="btn brand" id="resetSplitBtn" type="button">Reset Split</button>
+      </div>
+    </header>
+
+    <div class="workspace" id="workspace">
+      <iframe class="left"  id="paneLeft"  src="character.html" title="Characters"></iframe>
+      <div class="divider"  id="divider"   title="Drag to resize (double-click to reset)"></div>
+      <iframe class="right" id="paneRight" src="pet.html"    title="Pets"></iframe>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const divider = document.getElementById('divider');
+      const work    = document.getElementById('workspace');
+      const left    = document.getElementById('paneLeft');
+      const right   = document.getElementById('paneRight');
+      const reset   = document.getElementById('resetSplitBtn');
+
+      const DIV_W = parseInt(getComputedStyle(divider).width, 10) || 10;
+      const MIN   = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--min-pane'), 10) || 240;
+
+      const storeKey = 'ff_split_ratio_v2';
+      let isDragging = false;
+      let leftRatio  = parseFloat(localStorage.getItem(storeKey) || '0.50');
+
+      function applyWidthsByRatio(ratio){
+        const rect = work.getBoundingClientRect();
+        const total = rect.width;
+
+        const leftW  = Math.max(MIN, Math.min(total - DIV_W - MIN, Math.round(total * ratio)));
+        const rightW = total - DIV_W - leftW;
+
+        left.style.flex  = `0 0 ${leftW}px`;
+        right.style.flex = `0 0 ${rightW}px`;
+      }
+
+      function startDrag(e){
+        isDragging = true;
+        divider.classList.add('dragging');
+        divider.setPointerCapture?.(e.pointerId);
+      }
+
+      function onDrag(e){
+        if(!isDragging) return;
+        const rect = work.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        x = Math.max(MIN, Math.min(x, rect.width - DIV_W - MIN));
+        leftRatio = x / rect.width;
+        applyWidthsByRatio(leftRatio);
+      }
+
+      function stopDrag(){
+        if(!isDragging) return;
+        isDragging = false;
+        divider.classList.remove('dragging');
+        localStorage.setItem(storeKey, String(leftRatio));
+      }
+
+      function resetSplit(){
+        leftRatio = 0.50;
+        applyWidthsByRatio(leftRatio);
+        localStorage.setItem(storeKey, String(leftRatio));
+      }
+
+      divider.addEventListener('pointerdown', startDrag);
+      window.addEventListener('pointermove', onDrag);
+      window.addEventListener('pointerup', stopDrag);
+      window.addEventListener('pointercancel', stopDrag);
+
+      reset.addEventListener('click', resetSplit);
+      divider.addEventListener('dblclick', resetSplit);
+      window.addEventListener('resize', () => applyWidthsByRatio(leftRatio));
+
+      applyWidthsByRatio(leftRatio);
+    })();
+  </script>
+
+</body>
+</html>
