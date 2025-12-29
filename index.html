@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Free Fire Caster</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0e0e0e, #1a1a1a);
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-image: url('https://i.imgur.com/A6d9AYt.png');
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 0;
+    }
+
+    form {
+      position: relative;
+      z-index: 1;
+      background: #1f1f1f;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255, 189, 89, 0.2);
+      width: 320px;
+      text-align: center;
+    }
+
+    h2 {
+      font-family: 'Orbitron', sans-serif;
+      color: #ffbd59;
+      margin-bottom: 20px;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    .input-group {
+      width: 260px;
+      margin: 10px auto;
+      position: relative;
+    }
+
+    .password-wrapper {
+      position: relative;
+      width: 260px;
+      margin: 10px auto;
+    }
+    
+    .password-wrapper input {
+      padding-right: 40px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #ffbd59;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #2a2a2a;
+      color: #fff;
+      font-size: 1rem;
+      display: block;
+      box-sizing: border-box;
+    }
+    
+    button[type="submit"] {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #ffbd59;
+      color: #0e0e0e;
+      font-size: 1rem;
+      display: block;
+      box-sizing: border-box;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #ffcf7f;
+    }
+
+    #error {
+      color: #ff4d4d;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
+    #success {
+      color: #66ff88;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
+    footer {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      color: #888;
+      font-size: 0.85rem;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  
+  <form id="login-form">
+    <h2>Free Fire Caster</h2>
+    <input type="email" id="email" placeholder="Email" class="input-group" required />
+
+    <div class="password-wrapper input-group">
+      <input type="password" id="password" placeholder="Password" required />
+      <span class="toggle-password" onclick="togglePassword()">
+        <i class="fas fa-eye"></i>
+      </span>
+    </div>
+    
+    <button type="submit" class="input-group">Login</button>
+
+    <p id="error"></p>
+    <p id="success"></p>
+  </form>
+ 
+  <footer>
+    Free Fire Caster © 2025 — Neptune Version One
+  </footer>
+
+  <script>
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorEl = document.getElementById("error");
+      const successEl = document.getElementById("success");
+
+      console.log("Attempting login with:", email);
+
+      try {
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        console.log("Login result:", data, error);
+
+        if (error) {
+          errorEl.textContent = "Authentication failed: " + error.message;
+          successEl.textContent = "";
+        } else {
+          errorEl.textContent = "";
+          successEl.textContent = "Welcome, " + data.user.email + "! Redirecting...";
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 1200);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        errorEl.textContent = "Something went wrong.";
+        successEl.textContent = "";
+      }
+    });
+
+    function togglePassword() {
+    const passwordInput = document.getElementById("password");
+    const icon = document.querySelector(".password-wrapper .toggle-password i");
+  
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+      icon.classList.remove("fa-eye");
+      icon.classList.add("fa-eye-slash");
+    } else {
+      passwordInput.type = "password";
+      icon.classList.remove("fa-eye-slash");
+      icon.classList.add("fa-eye");
+    }
+  }
+
+  </script>
+</body>
+</html>
