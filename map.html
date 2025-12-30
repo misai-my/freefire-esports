@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
 
-  <!-- keep your fixed layout intent -->
-  <meta name="viewport" content="width=1112, height=800, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <!-- ✅ single, mobile-friendly viewport (remove the duplicate fixed-width one) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
   <title>Team Path Planner</title>
 
@@ -68,13 +67,15 @@
 
       --sidebar-w: 320px;
       --map-w: 792px; /* 1112 - 320 */
+
+      --unit: 30px; /* ✅ used by JS for positioning */
     }
 
     *{ box-sizing:border-box; }
     html, body{
       margin:0; padding:0;
-      width:100vw; height:100vh;
-      overflow:hidden;
+      width:100%;
+      height:100%;
       font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
       color: var(--ink);
       background:
@@ -83,6 +84,7 @@
         radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
         linear-gradient(180deg, var(--bg), var(--bg2));
 
+      /* desktop: center fixed canvas */
       display:flex;
       align-items:center;
       justify-content:center;
@@ -91,9 +93,11 @@
       -webkit-user-select:none;
       -webkit-tap-highlight-color: transparent;
       user-select:none;
+
+      overflow:hidden;
     }
 
-    /* main fixed canvas frame */
+    /* ✅ main fixed canvas frame (desktop/tablet) */
     #main{
       width: var(--main-w);
       height: var(--main-h);
@@ -121,11 +125,12 @@
     #map{
       width:100%;
       height:100%;
-      background-size: auto 100%;
+      /* ✅ make mapping consistent across sizes */
+      background-size: 100% 100%;
       background-position:center;
       background-repeat:no-repeat;
       position: relative;
-      touch-action: none;
+      touch-action: none; /* map should not scroll while drawing */
     }
 
     #maskCanvas{
@@ -146,18 +151,21 @@
     /* unit */
     .unit{
       position:absolute;
-      width:30px; height:30px;
+      width: var(--unit);
+      height: var(--unit);
       background: rgba(255,255,255,.10);
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.14);
       box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
     .unit img{
-      width:100%; height:100%;
+      width:100%;
+      height:100%;
       border-radius:999px;
       box-shadow: 0 0 12px 2px rgba(255,255,255,0.35);
       border: 1px solid rgba(255,255,255,.22);
       background: rgba(0,0,0,.35);
+      object-fit: cover;
     }
     .unit-label{
       position:absolute;
@@ -212,9 +220,7 @@
       border: 1px solid rgba(255,255,255,.10);
       margin-bottom: 10px;
     }
-    .side-title{
-      min-width:0;
-    }
+    .side-title{ min-width:0; }
     .side-title h1{
       margin:0;
       font-family: Orbitron, sans-serif;
@@ -270,7 +276,7 @@
       text-overflow:ellipsis;
     }
 
-    /* team icons grid */
+    /* team icons grid (desktop) */
     .icon-grid{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -306,6 +312,7 @@
       gap: 8px;
       overflow-y:auto;
       padding-right: 6px;
+      padding-bottom: env(safe-area-inset-bottom);
     }
     #controls::-webkit-scrollbar{ width:10px; }
     #controls::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.10); border-radius: 10px; }
@@ -330,42 +337,32 @@
       box-shadow: 0 0 0 3px rgba(77,211,255,.10);
     }
 
-    /* Fix: dropdown list (options) not white-on-white */
     #map-select{
       background: rgba(0,0,0,.28);
       color: rgba(244,246,255,.92);
     }
-    
     #map-select option,
     #map-select optgroup{
-      background: #0e111a;   /* dark dropdown */
+      background: #0e111a;
       color: rgba(244,246,255,.92);
     }
-    
-    /* Optional: cleaner focus */
     #map-select:focus{
       outline: none;
       box-shadow: 0 0 0 3px rgba(255,189,89,.12);
       border-color: rgba(255,189,89,.30);
     }
 
-    #controls button:active{
-      transform: scale(.99);
-    }
+    #controls button:active{ transform: scale(.99); }
 
     /* primary button feel */
-    #controls button{
-      border-color: rgba(255,189,89,.22);
-    }
+    #controls button{ border-color: rgba(255,189,89,.22); }
     #controls button:hover{
       border-color: rgba(255,189,89,.28);
       box-shadow: 0 0 0 3px rgba(255,189,89,.10);
     }
 
     /* special toggles */
-    #realtime-toggle-btn{
-      border-color: rgba(77,211,255,.28);
-    }
+    #realtime-toggle-btn{ border-color: rgba(77,211,255,.28); }
     #realtime-toggle-btn.active{
       background: rgba(77,211,255,.18);
       border-color: rgba(77,211,255,.40);
@@ -381,14 +378,8 @@
     }
 
     /* row buttons */
-    .button-row{
-      display:flex;
-      gap: 8px;
-    }
-    .button-row button{
-      flex:1;
-      white-space:nowrap;
-    }
+    .button-row{ display:flex; gap: 8px; }
+    .button-row button{ flex:1; white-space:nowrap; }
 
     #import-file{ display:none; }
 
@@ -402,18 +393,19 @@
       max-width: 220px;
       overflow:hidden;
       box-shadow: 0 14px 40px rgba(0,0,0,.45);
-      user-select: text; /* allow editing */
+      user-select: text;
     }
     .drag-handle{
       background: rgba(0,0,0,.12);
-      padding: 4px 8px;
+      padding: 6px 10px;
       font-weight: 1000;
       cursor: grab;
       user-select:none;
+      touch-action:none;
     }
     .note div[contenteditable]{
-      padding: 6px 8px;
-      min-height: 20px;
+      padding: 8px 10px;
+      min-height: 22px;
       outline:none;
       font-size: 12px;
       line-height: 1.2rem;
@@ -426,6 +418,72 @@
       margin-top: 10px;
       color: rgba(170,177,197,.85);
       user-select:text;
+    }
+
+    /* ✅ Mobile layout: stack map + sidebar, larger touch targets, horizontal team scroller */
+    @media (max-width: 980px){
+      html, body{
+        overflow:hidden;
+        align-items:stretch;
+        justify-content:stretch;
+      }
+      :root{
+        --unit: 34px;
+      }
+      #main{
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        flex-direction: column;
+      }
+      #map-container{
+        width: 100%;
+        height: 56vh;
+        border-right: 0;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+      }
+      #sidebar{
+        width: 100%;
+        height: 44vh;
+        border-left: 0;
+        padding: 10px;
+      }
+
+      .side-head{
+        padding: 10px;
+      }
+      .side-title h1{ font-size: 1.0rem; }
+      .side-title p{ font-size: .80rem; }
+
+      /* team icons become swipe row */
+      .icon-grid{
+        display:flex;
+        gap: 10px;
+        overflow-x:auto;
+        justify-content:flex-start;
+        align-items:flex-start;
+        padding: 10px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .icon-grid > div{
+        flex: 0 0 auto;
+      }
+      .team-icon{
+        width: 56px;
+        height: 60px;
+        border-radius: 14px;
+      }
+
+      #controls button, #map-select{
+        font-size: 14px;
+        padding: 12px 12px;
+        border-radius: 14px;
+        min-height: 44px; /* tap size */
+      }
+
+      .userchip{ max-width: 170px; }
+      .usertext b{ font-size: .88rem; }
+      .usertext span{ font-size: .74rem; }
     }
   </style>
 </head>
@@ -499,12 +557,42 @@
 const map = document.getElementById("map");
 const canvas = document.getElementById("pathCanvas");
 const ctx = canvas.getContext("2d");
+
+/**
+ * ✅ Base coordinate system
+ * Keep all saved data in a stable "base map size" so desktop ↔ mobile stays aligned.
+ * Desktop map area is 792x800 (from your layout).
+ */
+const BASE_W = 792;
+const BASE_H = 800;
+
+function getScale(){
+  return {
+    sx: map.clientWidth / BASE_W,
+    sy: map.clientHeight / BASE_H
+  };
+}
+function baseToScreen(pt){
+  const { sx, sy } = getScale();
+  return { x: pt.x * sx, y: pt.y * sy };
+}
+function screenToBase(pt){
+  const { sx, sy } = getScale();
+  return { x: pt.x / sx, y: pt.y / sy };
+}
+function getUnitSize(){
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--unit').trim();
+  const n = parseFloat(v.replace('px',''));
+  return Number.isFinite(n) ? n : 30;
+}
+
+// data
 const teamPaths = {}, teamIcons = {}, undoStacks = {}, circles = [], historyStack = [];
 let selectedIcon = null, activeTeam = null;
 let drawCircleMode = false, noteMode = false;
 let resizingCircle = null, draggingCircle = null;
 let isResizing = false, isDragging = false;
-const notes = [];
+const notes = []; // {x,y,text}
 
 const teamColors = [
   "#FF0000", "#00FF00", "#00FFFF", "#FFFF00", "#FF00FF", "#FFA500",
@@ -515,8 +603,12 @@ const teamColors = [
 const mapSelect = document.getElementById("map-select");
 map.style.backgroundImage = `url('${mapSelect.value}')`;
 
+// ✅ Prevent “tap after drag” from creating points on mobile
+let suppressClickUntil = 0;
+
+// Default circles remain in BASE coords
 const default_circles_data = {
-  "https://i.imgur.com/V6iUHaA.jpeg": [  // Bermuda
+  "https://i.imgur.com/V6iUHaA.jpeg": [
     { r: 30, x: 350, y: 557.5, color: "#ff0000" },
     { r: 30, x: 393, y: 682.5, color: "#ff0000" },
     { r: 30, x: 722, y: 387.5, color: "#ff0000" },
@@ -532,7 +624,7 @@ const default_circles_data = {
     { r: 30, x: 457, y: 416.5, color: "#ff0000" },
     { r: 30, x: 318, y: 124.5, color: "#ff0000" }
   ],
-  "https://i.imgur.com/IX1oY9Z.jpeg": [  // Solara
+  "https://i.imgur.com/IX1oY9Z.jpeg": [
     { r: 30, x: 326, y: 518.5, color: "#ff0000" },
     { r: 30, x: 412, y: 711.5, color: "#ff0000" },
     { r: 30, x: 74,  y: 339.5, color: "#ff0000" },
@@ -541,7 +633,7 @@ const default_circles_data = {
     { r: 30, x: 617, y: 149.5, color: "#ff0000" },
     { r: 30, x: 734, y: 524.5, color: "#ff0000" }
   ],
-  "https://i.imgur.com/x5he05R.jpeg": [  // NeXTerra
+  "https://i.imgur.com/x5he05R.jpeg": [
     { r: 30, x: 344, y: 158.5, color: "#ff0000" },
     { r: 30, x: 108, y: 279.5, color: "#ff0000" },
     { r: 30, x: 587, y: 581.5, color: "#ff0000" },
@@ -551,13 +643,13 @@ const default_circles_data = {
     { r: 30, x: 290, y: 383.5, color: "#ff0000" },
     { r: 30, x: 512, y: 373.5, color: "#ff0000" }
   ],
-  "https://i.imgur.com/48O1Jf8.jpeg": [  // Alpine
+  "https://i.imgur.com/48O1Jf8.jpeg": [
     { r: 30, x: 718, y: 340.5, color: "#ff0000" },
     { r: 30, x: 151, y: 189.5, color: "#ff0000" },
     { r: 30, x: 381, y: 294.5, color: "#ff0000" },
     { r: 30, x: 484, y: 624.5, color: "#ff0000" }
   ],
-  "https://i.imgur.com/4Yz12P9.jpeg": [  // Kalahari
+  "https://i.imgur.com/4Yz12P9.jpeg": [
     { r: 30, x: 655, y: 439.5, color: "#ff0000" },
     { r: 30, x: 637, y: 612.5, color: "#ff0000" },
     { r: 30, x: 196, y: 634.5, color: "#ff0000" },
@@ -577,7 +669,8 @@ mapSelect.addEventListener("change", () => {
 
   if (mode === "CS" && circles.length === 0 && default_circles_data[mapURL]) {
     circles.push(...default_circles_data[mapURL]);
-    drawPaths();
+    resizeCanvas();
+    saveMapState();
   }
 
   if (mode === "CS") {
@@ -668,43 +761,48 @@ document.getElementById("note-mode").onclick = () => {
   document.getElementById("note-mode").textContent = noteMode ? "Click on Map to Add Note" : "Add Note";
 };
 
-// Get click/touch coordinates relative to map
-function getCoords(e) {
-  const rect = canvas.getBoundingClientRect();
+// ✅ Get touch/click coordinates in BASE coords (stable across devices)
+function getCoordsBase(e) {
+  const rect = map.getBoundingClientRect();
   const touch = e.touches ? e.touches[0] : e;
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-
+  const relX = (touch.clientX - rect.left) / rect.width;
+  const relY = (touch.clientY - rect.top) / rect.height;
   return {
-    x: (touch.clientX - rect.left) * scaleX,
-    y: (touch.clientY - rect.top) * scaleY
+    x: Math.max(0, Math.min(BASE_W, relX * BASE_W)),
+    y: Math.max(0, Math.min(BASE_H, relY * BASE_H))
   };
 }
 
-function createNote(x, y, text) {
+function createNote(xBase, yBase, text, opts = { recordHistory: true }) {
   const noteDiv = document.createElement("div");
   noteDiv.className = "note";
-  noteDiv.style.left = `${x}px`;
-  noteDiv.style.top = `${y}px`;
+
+  const idx = notes.length;
+  noteDiv.dataset.noteIdx = String(idx);
+  notes.push({ x: xBase, y: yBase, text: text || "" });
+
+  const p = baseToScreen({ x: xBase, y: yBase });
+  noteDiv.style.left = `${p.x}px`;
+  noteDiv.style.top = `${p.y}px`;
 
   const handle = document.createElement("div");
   handle.className = "drag-handle";
   handle.textContent = "☰";
 
   const content = document.createElement("div");
-  content.textContent = text;
+  content.textContent = text || "";
   content.contentEditable = true;
 
   noteDiv.appendChild(handle);
   noteDiv.appendChild(content);
   map.appendChild(noteDiv);
 
-  historyStack.push({ type: "note", element: noteDiv });
-  notes.push({ x, y, text });
+  if (opts?.recordHistory) historyStack.push({ type: "note", element: noteDiv });
 
   let offsetX = 0, offsetY = 0, isDraggingNote = false;
 
   const startDrag = (e) => {
+    e.stopPropagation();
     e.preventDefault();
     const touch = e.touches ? e.touches[0] : e;
     const rect = map.getBoundingClientRect();
@@ -715,27 +813,30 @@ function createNote(x, y, text) {
 
   const moveDrag = (e) => {
     if (!isDraggingNote) return;
+    e.preventDefault();
     const touch = e.touches ? e.touches[0] : e;
     const rect = map.getBoundingClientRect();
     const newX = touch.clientX - rect.left - offsetX;
     const newY = touch.clientY - rect.top - offsetY;
     noteDiv.style.left = `${newX}px`;
     noteDiv.style.top = `${newY}px`;
+
+    const i = Number(noteDiv.dataset.noteIdx);
+    if (Number.isFinite(i) && notes[i]) {
+      const { sx, sy } = getScale();
+      notes[i].x = newX / sx;
+      notes[i].y = newY / sy;
+      notes[i].text = content.textContent || "";
+    }
   };
 
-  const endDrag = () => isDraggingNote = false;
+  const endDrag = () => {
+    if (isDraggingNote) saveMapState();
+    isDraggingNote = false;
+  };
 
-  handle.addEventListener("mousedown", e => {
-    e.stopPropagation();
-    e.preventDefault();
-    startDrag(e);
-  });
-
-  handle.addEventListener("touchstart", e => {
-    e.stopPropagation();
-    e.preventDefault();
-    startDrag(e);
-  }, { passive: false });
+  handle.addEventListener("mousedown", startDrag);
+  handle.addEventListener("touchstart", startDrag, { passive: false });
 
   window.addEventListener("mousemove", moveDrag);
   window.addEventListener("touchmove", moveDrag, { passive: false });
@@ -743,17 +844,58 @@ function createNote(x, y, text) {
   window.addEventListener("touchend", endDrag);
 }
 
-// Map click handler
+function syncNotesFromDOM(){
+  document.querySelectorAll(".note").forEach(noteDiv => {
+    const i = Number(noteDiv.dataset.noteIdx);
+    if (!Number.isFinite(i) || !notes[i]) return;
+
+    const { sx, sy } = getScale();
+    const left = parseFloat(noteDiv.style.left || "0");
+    const top = parseFloat(noteDiv.style.top || "0");
+    notes[i].x = left / sx;
+    notes[i].y = top / sy;
+    notes[i].text = noteDiv.querySelector('[contenteditable]')?.textContent || notes[i].text || "";
+  });
+}
+
+// ✅ Reposition DOM overlays on resize (units + notes)
+function relayoutOverlays(){
+  const unitSize = getUnitSize();
+
+  // units (use first path point as anchor)
+  Object.keys(teamIcons).forEach(id => {
+    const div = teamIcons[id];
+    const path = teamPaths[id];
+    if (!div || !path || !path.length) return;
+    const p = baseToScreen(path[0]);
+    div.style.left = `${p.x - unitSize/2}px`;
+    div.style.top = `${p.y - unitSize/2}px`;
+    div.querySelector("img")?.style && (div.querySelector("img").style.width = div.querySelector("img").style.height = `${unitSize}px`);
+  });
+
+  // notes
+  document.querySelectorAll(".note").forEach(noteDiv => {
+    const i = Number(noteDiv.dataset.noteIdx);
+    if (!Number.isFinite(i) || !notes[i]) return;
+    const p = baseToScreen({ x: notes[i].x, y: notes[i].y });
+    noteDiv.style.left = `${p.x}px`;
+    noteDiv.style.top = `${p.y}px`;
+  });
+}
+
+// Map click handler (BASE coords)
 map.addEventListener("click", e => {
-  // ✅ prevent accidental path actions while interacting with notes
+  if (Date.now() < suppressClickUntil) return;
+
+  // prevent accidental path actions while interacting with notes
   if (e.target?.closest && e.target.closest(".note")) return;
 
-  const { x, y } = getCoords(e);
+  const { x, y } = getCoordsBase(e);
 
   if (noteMode) {
     const text = prompt("Enter note:");
     if (!text) return;
-    createNote(x, y, text);
+    createNote(x, y, text, { recordHistory: true });
     noteMode = false;
     document.getElementById("note-mode").textContent = "Add Note";
     saveMapState();
@@ -763,7 +905,7 @@ map.addEventListener("click", e => {
   if (drawCircleMode) {
     circles.push({ x, y, r: 30, color: "#00ffff" });
     historyStack.push({ type: "circle" });
-    drawPaths();
+    resizeCanvas();
     saveMapState();
     return;
   }
@@ -772,13 +914,16 @@ map.addEventListener("click", e => {
     const id = selectedIcon.dataset.id;
     if (teamIcons[id]) return;
 
+    const unitSize = getUnitSize();
+    const p = baseToScreen({ x, y });
+
     const div = document.createElement("div");
     div.className = "unit";
-    div.style.left = `${x - 15}px`;
-    div.style.top = `${y - 15}px`;
+    div.style.left = `${p.x - unitSize/2}px`;
+    div.style.top = `${p.y - unitSize/2}px`;
 
     const img = selectedIcon.cloneNode(true);
-    img.style.width = img.style.height = "30px";
+    img.style.width = img.style.height = `${unitSize}px`;
 
     const label = document.createElement("div");
     label.className = "unit-label";
@@ -794,7 +939,7 @@ map.addEventListener("click", e => {
       delete teamPaths[id];
       delete teamIcons[id];
       delete undoStacks[id];
-      drawPaths();
+      resizeCanvas();
       saveMapState();
     };
 
@@ -802,24 +947,25 @@ map.addEventListener("click", e => {
     map.appendChild(div);
     div.onclick = () => activeTeam = id;
 
-    teamPaths[id] = [{ x, y }];
+    teamPaths[id] = [{ x, y }];   // ✅ store BASE coords
     teamIcons[id] = div;
     undoStacks[id] = [];
     activeTeam = id;
     selectedIcon = null;
     historyStack.push({ type: "line", team: id });
-    drawPaths();
+
+    resizeCanvas();
     saveMapState();
   } else if (activeTeam) {
     undoStacks[activeTeam].push([...teamPaths[activeTeam]]);
-    teamPaths[activeTeam].push({ x, y });
+    teamPaths[activeTeam].push({ x, y }); // ✅ BASE coords
     historyStack.push({ type: "line", team: activeTeam });
-    drawPaths();
+    resizeCanvas();
     saveMapState();
   }
 });
 
-// Helpers for resizing and dragging circles
+// Helpers for resizing and dragging circles (BASE coords)
 function findCircleForResize(pt) {
   for (let i = circles.length - 1; i >= 0; i--) {
     const c = circles[i];
@@ -838,11 +984,16 @@ function findCircleForDrag(pt) {
   return null;
 }
 
+let didMoveDrag = false;
+
 function startTouch(e) {
-  // ✅ ignore touches on notes/handles/content
+  // ignore touches on notes
   if (e.target?.closest && e.target.closest(".note")) return;
 
-  const pt = getCoords(e);
+  if (e.type.startsWith("touch")) e.preventDefault();
+
+  didMoveDrag = false;
+  const pt = getCoordsBase(e);
 
   resizingCircle = findCircleForResize(pt);
   if (resizingCircle) {
@@ -855,7 +1006,10 @@ function startTouch(e) {
 
 function moveTouch(e) {
   if (!isDragging && !isResizing) return;
-  const { x, y } = getCoords(e);
+  if (e.type.startsWith("touch")) e.preventDefault();
+
+  didMoveDrag = true;
+  const { x, y } = getCoordsBase(e);
 
   if (resizingCircle && isResizing) {
     resizingCircle.r = Math.max(10, Math.hypot(x - resizingCircle.x, y - resizingCircle.y));
@@ -864,21 +1018,28 @@ function moveTouch(e) {
     draggingCircle.y = y;
   }
 
-  drawPaths();
+  resizeCanvas();
 }
 
 function endTouch() {
   if (isDragging || isResizing) {
     saveMapState();
   }
+
+  if (didMoveDrag) suppressClickUntil = Date.now() + 260;
+
   resizingCircle = draggingCircle = null;
   isResizing = isDragging = false;
 }
 
-// Add touch + mouse listeners
-["mousedown", "touchstart"].forEach(evt => map.addEventListener(evt, startTouch));
-["mousemove", "touchmove"].forEach(evt => map.addEventListener(evt, moveTouch));
-["mouseup", "touchend", "touchcancel"].forEach(evt => map.addEventListener(evt, endTouch));
+map.addEventListener("mousedown", startTouch);
+map.addEventListener("mousemove", moveTouch);
+window.addEventListener("mouseup", endTouch);
+
+map.addEventListener("touchstart", startTouch, { passive: false });
+map.addEventListener("touchmove", moveTouch, { passive: false });
+map.addEventListener("touchend", endTouch, { passive: true });
+map.addEventListener("touchcancel", endTouch, { passive: true });
 
 // Undo button
 document.getElementById("undo-btn").onclick = () => {
@@ -899,15 +1060,12 @@ document.getElementById("undo-btn").onclick = () => {
       }
     }
   } else if (last.type === "note" && last.element) {
+    const idx = Number(last.element.dataset.noteIdx);
     last.element.remove();
-    const index = notes.findIndex(n =>
-      parseInt(n.x) === parseInt(last.element.style.left) &&
-      parseInt(n.y) === parseInt(last.element.style.top)
-    );
-    if (index !== -1) notes.splice(index, 1);
+    if (Number.isFinite(idx) && notes[idx]) notes[idx] = null;
   }
 
-  drawPaths();
+  resizeCanvas();
   saveMapState();
 };
 
@@ -921,16 +1079,21 @@ document.getElementById("reset-all-btn").onclick = () => {
   Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
 
   circles.length = 0;
-  notes.length = 0;
+  historyStack.length = 0;
+
+  // clear notes
   document.querySelectorAll(".note").forEach(n => n.remove());
+  notes.length = 0;
+
   activeTeam = selectedIcon = null;
-  drawPaths();
-  console.log('🧹 Reset all local state; saving to DB...');
+
+  resizeCanvas();
   saveMapState();
 };
 
-// Export JSON
+// Export JSON (BASE coords)
 document.getElementById("export-btn").onclick = () => {
+  syncNotesFromDOM();
   const data = {
     map: mapSelect.value,
     paths: teamPaths,
@@ -946,40 +1109,47 @@ document.getElementById("export-btn").onclick = () => {
   URL.revokeObjectURL(url);
 };
 
-// Import JSON
+// Import JSON (expects BASE coords)
 document.getElementById("import-file").onchange = function () {
   const file = this.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const data = JSON.parse(e.target.result);
+
     if (data.map) {
       mapSelect.value = data.map;
       map.style.backgroundImage = `url('${data.map}')`;
     }
 
-    [teamPaths, teamIcons, undoStacks].forEach(obj => Object.keys(obj).forEach(k => delete obj[k]));
-    Object.values(teamIcons).forEach(div => div.remove());
+    // clear
+    Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+    Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
+    Object.keys(teamIcons).forEach(k => { teamIcons[k]?.remove(); delete teamIcons[k]; });
     circles.length = 0;
     document.querySelectorAll(".note").forEach(n => n.remove());
     notes.length = 0;
 
+    // restore paths
     Object.entries(data.paths || {}).forEach(([id, points]) => {
       const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
       if (!icon || !points.length) return;
+
+      const unitSize = getUnitSize();
       const first = points[0];
+      const p = baseToScreen(first);
+
       const div = document.createElement("div");
       div.className = "unit";
-      div.style.left = `${first.x - 15}px`;
-      div.style.top = `${first.y - 15}px`;
+      div.style.left = `${p.x - unitSize/2}px`;
+      div.style.top = `${p.y - unitSize/2}px`;
 
       const img = icon.cloneNode(true);
-      img.style.width = img.style.height = "30px";
+      img.style.width = img.style.height = `${unitSize}px`;
 
       const label = document.createElement("div");
       label.className = "unit-label";
-      const teamTag = icon?.dataset.teamTag || id;
-      label.textContent = teamTag;
+      label.textContent = icon.dataset.teamTag || id;
 
       const reset = document.createElement("button");
       reset.className = "reset-btn";
@@ -990,68 +1160,84 @@ document.getElementById("import-file").onchange = function () {
         delete teamPaths[id];
         delete teamIcons[id];
         delete undoStacks[id];
-        drawPaths();
+        resizeCanvas();
         saveMapState();
       };
 
       div.append(img, label, reset);
       map.appendChild(div);
       div.onclick = () => activeTeam = id;
+
       teamPaths[id] = points;
       undoStacks[id] = [];
       teamIcons[id] = div;
     });
 
-    data.circles?.forEach(c => circles.push(c));
+    (data.circles || []).forEach(c => circles.push(c));
 
     if (data.notes) {
-      data.notes.forEach(n => {
-        createNote(n.x, n.y, n.text);
-      });
+      data.notes.forEach(n => createNote(n.x, n.y, n.text, { recordHistory: false }));
     }
 
-    drawPaths();
+    resizeCanvas();
     saveMapState();
   };
   reader.readAsText(file);
 };
 
-// Drawing functions
-function drawArrow(from, to, color) {
-  const dx = to.x - from.x, dy = to.y - from.y;
+// Drawing
+function drawArrow(fromBase, toBase, color) {
+  const a = baseToScreen(fromBase);
+  const b = baseToScreen(toBase);
+
+  const dx = b.x - a.x, dy = b.y - a.y;
   const angle = Math.atan2(dy, dx);
+
   ctx.beginPath();
   ctx.shadowColor = color;
   ctx.shadowBlur = 6;
-  ctx.moveTo(from.x, from.y);
-  ctx.lineTo(to.x, to.y);
-  ctx.lineTo(to.x - 10 * Math.cos(angle - Math.PI / 6), to.y - 10 * Math.sin(angle - Math.PI / 6));
-  ctx.moveTo(to.x, to.y);
-  ctx.lineTo(to.x - 10 * Math.cos(angle + Math.PI / 6), to.y - 10 * Math.sin(angle + Math.PI / 6));
+
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+
+  ctx.lineTo(b.x - 10 * Math.cos(angle - Math.PI / 6), b.y - 10 * Math.sin(angle - Math.PI / 6));
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x - 10 * Math.cos(angle + Math.PI / 6), b.y - 10 * Math.sin(angle + Math.PI / 6));
+
   ctx.strokeStyle = color;
   ctx.lineWidth = 4;
   ctx.stroke();
 }
 
 function drawPaths() {
-  canvas.width = map.clientWidth;
-  canvas.height = map.clientHeight;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const w = map.clientWidth;
+  const h = map.clientHeight;
+  ctx.clearRect(0, 0, w, h);
 
+  const { sx, sy } = getScale();
+
+  // circles (draw as ellipse if sx != sy)
   for (let c of circles) {
+    const cx = c.x * sx;
+    const cy = c.y * sy;
+    const rx = c.r * sx;
+    const ry = c.r * sy;
+
     ctx.beginPath();
-    ctx.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
     ctx.strokeStyle = c.color;
     ctx.setLineDash([3, 1]);
     ctx.lineWidth = 5;
     ctx.stroke();
     ctx.setLineDash([]);
+
     ctx.beginPath();
-    ctx.arc(c.x + c.r, c.y, 4, 0, 2 * Math.PI);
+    ctx.arc(cx + rx, cy, 4, 0, 2 * Math.PI);
     ctx.fillStyle = c.color;
     ctx.fill();
   }
 
+  // paths
   for (let id in teamPaths) {
     const path = teamPaths[id];
     const i = parseInt(id.replace("team", "")) - 1;
@@ -1069,27 +1255,24 @@ function resizeCanvas() {
   canvas.style.width = map.clientWidth + "px";
   canvas.style.height = map.clientHeight + "px";
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawPaths();
-  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
-  if (selectedOption?.dataset.mode === "CS") {
-    drawOverlayMask(circles);
-  }
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
 
-let mapState = {
-  map: mapSelect.value,
-  paths: {},
-  circles: [],
-  notes: []
-};
+  drawPaths();
+  relayoutOverlays();
+
+  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+  if (selectedOption?.dataset.mode === "CS") drawOverlayMask(circles);
+  else document.getElementById("maskCanvas").style.display = "none";
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+// Supabase state
+let mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
 let realtimeEnabled = true;
 let realtimeChannel = null;
 
-// Load map state from Supabase (single row id=1 with maybeSingle)
+// Load map state
 async function loadMapState() {
-  console.log('🔄 Attempting to load map state...');
   const { data, error } = await client
     .from('map')
     .select('state')
@@ -1102,7 +1285,6 @@ async function loadMapState() {
   }
 
   if (!data || !data.state) {
-    console.log('ℹ️ No map row yet, creating default state');
     mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
     applyMapState(mapState);
     await saveMapState();
@@ -1110,34 +1292,29 @@ async function loadMapState() {
   }
 
   mapState = data.state;
-  console.log('✅ Loaded state:', mapState);
   applyMapState(mapState);
 }
 
-// Save map state to Supabase using upsert on id=1
+// Save map state
 async function saveMapState() {
+  syncNotesFromDOM();
+
   mapState = {
     map: mapSelect.value,
     paths: teamPaths,
     circles,
-    notes
+    notes: (notes || []).filter(Boolean)
   };
 
-  console.log('💾 saveMapState sending:', mapState);
-
-  const { data, error } = await client
+  const { error } = await client
     .from('map')
     .upsert({
       id: 1,
       state: mapState,
       updated_at: new Date().toISOString()
-    })
-    .select();
-
-  console.log('💾 saveMapState result:', { data, error });
+    });
 
   if (error) console.error('❌ Failed to save map state:', error);
-  else console.log('✅ Map state saved → public.map');
 }
 
 // Apply state to UI
@@ -1145,29 +1322,35 @@ function applyMapState(state) {
   mapSelect.value = state.map || mapSelect.value;
   map.style.backgroundImage = `url('${mapSelect.value}')`;
 
-  [teamPaths, teamIcons, undoStacks].forEach(obj => Object.keys(obj).forEach(k => delete obj[k]));
-  Object.values(teamIcons).forEach(div => div.remove());
+  // clear
+  Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+  Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
+  Object.keys(teamIcons).forEach(k => { teamIcons[k]?.remove(); delete teamIcons[k]; });
   circles.length = 0;
-  notes.length = 0;
   document.querySelectorAll(".note").forEach(n => n.remove());
+  notes.length = 0;
+  historyStack.length = 0;
 
+  // restore paths
   Object.entries(state.paths || {}).forEach(([id, points]) => {
     const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
     if (!icon || !points.length) return;
+
+    const unitSize = getUnitSize();
     const first = points[0];
+    const p = baseToScreen(first);
 
     const div = document.createElement("div");
     div.className = "unit";
-    div.style.left = `${first.x - 15}px`;
-    div.style.top = `${first.y - 15}px`;
+    div.style.left = `${p.x - unitSize/2}px`;
+    div.style.top = `${p.y - unitSize/2}px`;
 
     const img = icon.cloneNode(true);
-    img.style.width = img.style.height = "30px";
+    img.style.width = img.style.height = `${unitSize}px`;
 
     const label = document.createElement("div");
     label.className = "unit-label";
-    const teamTag = icon?.dataset.teamTag || id;
-    label.textContent = teamTag;
+    label.textContent = icon.dataset.teamTag || id;
 
     const reset = document.createElement("button");
     reset.className = "reset-btn";
@@ -1178,7 +1361,7 @@ function applyMapState(state) {
       delete teamPaths[id];
       delete teamIcons[id];
       delete undoStacks[id];
-      drawPaths();
+      resizeCanvas();
       saveMapState();
     };
 
@@ -1192,38 +1375,24 @@ function applyMapState(state) {
   });
 
   (state.circles || []).forEach(c => circles.push(c));
-  (state.notes || []).forEach(n => createNote(n.x, n.y, n.text));
+  (state.notes || []).filter(Boolean).forEach(n => createNote(n.x, n.y, n.text, { recordHistory: false }));
 
-  drawPaths();
+  resizeCanvas();
 
   const selectedOption = mapSelect.options[mapSelect.selectedIndex];
-  if (selectedOption?.dataset.mode === "CS") {
-    drawOverlayMask(circles);
-  } else {
-    document.getElementById("maskCanvas").style.display = "none";
-  }
+  if (selectedOption?.dataset.mode === "CS") drawOverlayMask(circles);
+  else document.getElementById("maskCanvas").style.display = "none";
 }
 
 // Realtime handler
 function handleMapChange(payload) {
-  console.log('📡 map change:', payload);
-
-  if (!realtimeEnabled) {
-    console.log('⏹️ Realtime is OFF on this client, ignoring.');
-    return;
-  }
-
+  if (!realtimeEnabled) return;
   const row = payload.new;
-  if (!row || row.id !== 1) {
-    console.log('⏹️ Change is not for id=1, ignoring.');
-    return;
-  }
-
-  console.log('🔄 Real-time update applied from DB');
+  if (!row || row.id !== 1) return;
   applyMapState(row.state || {});
 }
 
-// Call load on page load + realtime toggle
+// Init
 window.addEventListener("DOMContentLoaded", async () => {
   await loadTeamIcons();
   await loadMapState();
@@ -1241,6 +1410,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (realtimeEnabled) await enableRealtime();
     else await disableRealtime();
   };
+
+  resizeCanvas();
 });
 
 async function enableRealtime() {
@@ -1253,14 +1424,11 @@ async function enableRealtime() {
 
   const { error } = await realtimeChannel.subscribe();
   if (error) console.error("❌ Error subscribing to real-time:", error.message);
-  else console.log("✅ Real-time subscription active for public.map");
 }
 
 async function disableRealtime() {
   if (realtimeChannel) {
-    console.log("⏹️ Attempting to remove real-time channel...");
-    const result = await client.removeChannel(realtimeChannel);
-    console.log("⏹️ Channel removal result:", result);
+    await client.removeChannel(realtimeChannel);
     realtimeChannel = null;
   }
 }
@@ -1278,37 +1446,25 @@ function drawOverlayMask(circlesToReveal) {
   maskCanvas.style.height = map.clientHeight + "px";
   ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  ctx2.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+  ctx2.clearRect(0, 0, map.clientWidth, map.clientHeight);
   ctx2.fillStyle = "rgba(0, 0, 0, 0.75)";
-  ctx2.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+  ctx2.fillRect(0, 0, map.clientWidth, map.clientHeight);
+
+  const { sx, sy } = getScale();
 
   ctx2.globalCompositeOperation = "destination-out";
   circlesToReveal.forEach(c => {
+    const cx = c.x * sx;
+    const cy = c.y * sy;
+    const rx = c.r * sx;
+    const ry = c.r * sy;
+
     ctx2.beginPath();
-    ctx2.arc(c.x, c.y, c.r, 0, 2 * Math.PI);
+    ctx2.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
     ctx2.fill();
   });
-
   ctx2.globalCompositeOperation = "source-over";
 }
-
-// Quick manual tests from the browser console
-window.testMapWrite = async () => {
-  const { data, error } = await client
-    .from('map')
-    .upsert({
-      id: 1,
-      state: { test: 'hello', at: new Date().toISOString() },
-      updated_at: new Date().toISOString()
-    })
-    .select();
-  console.log('🧪 testMapWrite result:', { data, error });
-};
-
-window.testMapRead = async () => {
-  const { data, error } = await client.from('map').select('*');
-  console.log('🧪 testMapRead result:', { data, error });
-};
 </script>
 
 </body>
