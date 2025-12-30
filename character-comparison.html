@@ -38,6 +38,7 @@
 
       --danger:#ff6b6b;
       --ok:#71d083;
+      color-scheme: dark;
     }
 
     *{box-sizing:border-box}
@@ -80,6 +81,12 @@
     }
     select option{ background:#0b1020; color:var(--ink); }
 
+    :focus-visible{
+      outline: 2px solid rgba(77,211,255,.65);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+
     /* Layout */
     .app{
       min-height: 100vh;
@@ -89,6 +96,24 @@
       max-width: 1440px;
       margin: 0 auto;
       align-items:flex-start;
+      position:relative;
+    }
+
+    /* ✅ Mobile drawer overlay */
+    .sb-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 999;
+    }
+    .sb-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
     }
 
     /* Sidebar */
@@ -108,6 +133,7 @@
       height: calc(100vh - 36px);
       transition: width .18s ease;
       flex:0 0 auto;
+      z-index: 1000;
     }
     .sidebar.collapsed{ width: var(--sb-w-collapsed); }
 
@@ -149,6 +175,27 @@
       overflow:hidden;
       text-overflow:ellipsis;
       max-width: 150px;
+    }
+
+    .nav-search{
+      padding: 12px;
+      padding-top: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .nav-search input{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .9rem;
+    }
+    .nav-search input::placeholder{color: rgba(170,177,197,.75)}
+    .nav-search input:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
 
     .nav{
@@ -211,6 +258,7 @@
       gap:0;
       padding:10px 8px;
     }
+    .sidebar.collapsed .nav-search{display:none;}
 
     .sidebar-note{
       font-size:.75rem;
@@ -265,6 +313,7 @@
       align-items:center;
       gap:10px;
       flex:0 0 auto;
+      min-width: 0;
     }
 
     .userchip{
@@ -295,7 +344,14 @@
       text-overflow: ellipsis;
       max-width: 170px;
     }
-    .usertext span{display:block; font-size:.78rem; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .usertext span{
+      display:block;
+      font-size:.78rem;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
     .logout{
       color: rgba(255,255,255,.70);
@@ -379,6 +435,7 @@
       justify-content:center;
       gap:8px;
       -webkit-tap-highlight-color: transparent;
+      user-select:none;
     }
     .btn:hover{
       background: rgba(0,0,0,.28);
@@ -411,6 +468,28 @@
       color: rgba(244,246,255,.92);
     }
     .muted{color: var(--muted);}
+
+    /* Controls row inside card */
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 10px;
+    }
+    .controls-left{
+      color: var(--muted);
+      font-weight:800;
+      font-size:.9rem;
+    }
+    .controls-right{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
 
     /* Player grid */
     .player-grid{
@@ -626,7 +705,7 @@
       display:none;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      z-index: 1400;
       padding: 18px;
     }
     .modal.show{display:flex;}
@@ -788,10 +867,9 @@
     .toast .t-dot{width:10px;height:10px;border-radius:50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(255,255,255,.06);}
 
     /* ============================================================
-       ✅ MOBILE OPTIMIZATION (match the Character Gallery behavior)
+       ✅ MOBILE OPTIMIZATION (drawer sidebar + edge-to-edge)
        ============================================================ */
     @media (max-width: 980px){
-      .sidebar{display:none;}
       body::before, body::after{display:none;}
 
       .app{
@@ -802,6 +880,21 @@
         margin: 0;
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
+
+      /* Sidebar becomes drawer (not hidden) */
+      .sidebar{
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sb-w);
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-110%);
+        transition: transform .18s ease;
+        z-index: 1000;
+      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: var(--sb-w); } /* no collapsed mode on mobile */
 
       .topbar{
         top: env(safe-area-inset-top);
@@ -814,15 +907,25 @@
         z-index: 50;
       }
 
-      /* hide sidebar toggle since sidebar is hidden */
-      #sbToggle{display:none;}
-
       .usertext span{display:none;}
       .usertext b{max-width: 52vw; font-size: .88rem;}
 
       .hero{height: 120px;}
       .hero-content{left:12px;right:12px;bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
+
+      .controls-left{width:100%;}
+      .controls-right{
+        width:100%;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        justify-content: stretch;
+      }
+      .controls-right .btn{width:100%; padding: 11px 10px; border-radius: 14px;}
+      .controls-right .btn.danger{grid-column: 1 / -1;} /* reset full width */
+
+      .player-grid{gap: 12px;}
 
       .modal{
         align-items:flex-end;
@@ -835,13 +938,23 @@
         border-radius: 18px;
       }
     }
+
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .icon-btn:hover{transform:none}
+      .slot-btn:hover{transform:none}
+      .pick:hover{transform:none}
+    }
   </style>
 </head>
 
 <body>
+  <!-- ✅ overlay for mobile drawer -->
+  <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
+
   <div class="app">
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
       <div class="brand">
         <div class="brand-left">
           <div class="logo">FF</div>
@@ -850,6 +963,10 @@
             <small class="muted">Caster Dashboard</small>
           </div>
         </div>
+      </div>
+
+      <div class="nav-search">
+        <input id="navSearch" type="text" placeholder="Search menu..." autocomplete="off" />
       </div>
 
       <nav class="nav" id="nav">
@@ -897,7 +1014,10 @@
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <!-- ✅ same toggle behavior as new sidebar:
+             - desktop: collapse sidebar
+             - mobile: open/close drawer -->
+        <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
           <svg viewBox="0 0 24 24" fill="none">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -926,11 +1046,9 @@
         </div>
 
         <div class="card-inner">
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom: 10px;">
-            <div class="muted" style="font-weight:800; font-size:.9rem;">
-              Pick 1 active + 3 passives per player
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="controls">
+            <div class="controls-left">Pick 1 active + 3 passives per player</div>
+            <div class="controls-right">
               <a class="btn" href="dashboard.html">← Dashboard</a>
               <a class="btn" href="character.html">← Character Gallery</a>
               <button class="btn brand" id="compareBtn" type="button">Compare</button>
@@ -956,7 +1074,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pick a Character">
       <div class="modal-top">
         <b id="modalTitle">Pick Character</b>
-        <button class="icon-btn" id="modalCloseBtn" aria-label="Close" title="Close">
+        <button class="icon-btn" id="modalCloseBtn" aria-label="Close" title="Close" type="button">
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -1000,7 +1118,7 @@
     }
 
     async function logout(){
-      await client.auth.signOut();
+      try{ await client.auth.signOut(); }catch(_){}
       window.location.href = "index.html";
     }
 
@@ -1019,34 +1137,81 @@
     }
 
     /***********************
-     * Sidebar collapse + active nav
+     * ✅ New Sidebar behavior (desktop collapse / mobile drawer)
      ***********************/
+    const CFG = Object.freeze({
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
+    });
+
     const sidebar = document.getElementById('sidebar');
+    const sbToggle = document.getElementById('sbToggle');
+    const sbTogglePath = document.getElementById('sbTogglePath');
+    const sbOverlay = document.getElementById('sbOverlay');
+    const mobileMQ = window.matchMedia('(max-width: 980px)');
 
-    (function initSidebarCollapse(){
-      const key = 'ff_sidebar_collapsed_v1';
-      const saved = localStorage.getItem(key);
-      if (saved === '1') sidebar.classList.add('collapsed');
+    function isMobile(){ return mobileMQ.matches; }
 
-      const btn = document.getElementById('sbToggle');
-      const path = document.getElementById('sbTogglePath');
-
-      function syncIcon(){
-        if (!path) return;
-        path.setAttribute('d', sidebar.classList.contains('collapsed')
+    function setToggleIcon(){
+      if (!sbTogglePath) return;
+      if (isMobile()){
+        // hamburger
+        sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
+      }else{
+        // chevron swap based on collapsed state
+        sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
           ? 'M10 7l5 5-5 5'
           : 'M14 7l-5 5 5 5'
         );
       }
-      syncIcon();
+    }
 
-      btn?.addEventListener('click', () => {
+    function openDrawer(){
+      sidebar.classList.add('open');
+      sbOverlay.classList.add('show');
+      sbOverlay.setAttribute('aria-hidden','false');
+    }
+    function closeDrawer(){
+      sidebar.classList.remove('open');
+      sbOverlay.classList.remove('show');
+      sbOverlay.setAttribute('aria-hidden','true');
+    }
+
+    function toggleSidebar(){
+      if (isMobile()){
+        sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+      }else{
         sidebar.classList.toggle('collapsed');
-        localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
-        syncIcon();
-      });
-    })();
+        localStorage.setItem(CFG.SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+      }
+      setToggleIcon();
+    }
 
+    function syncSidebarMode(){
+      if (isMobile()){
+        sidebar.classList.remove('collapsed'); // drawer only
+        closeDrawer();
+      }else{
+        const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
+        sidebar.classList.toggle('collapsed', saved === '1');
+        closeDrawer();
+      }
+      setToggleIcon();
+    }
+
+    sbToggle?.addEventListener('click', toggleSidebar);
+    sbOverlay?.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
+    });
+
+    // Close drawer after clicking a nav item (mobile)
+    document.querySelectorAll('#nav .nav-item').forEach(a => {
+      a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
+    });
+
+    mobileMQ.addEventListener?.('change', syncSidebarMode);
+
+    // active nav
     (function setActiveNav(){
       const here = (location.pathname.split('/').pop() || 'character-comparison.html').toLowerCase();
       document.querySelectorAll('.nav-item').forEach(a => {
@@ -1054,6 +1219,15 @@
         a.classList.toggle('active', page === here);
       });
     })();
+
+    // sidebar nav search
+    document.getElementById('navSearch')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = (a.textContent || '').toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
 
     document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1202,7 +1376,6 @@
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
 
-      // focus search
       setTimeout(() => modalInput.focus(), 0);
     }
 
@@ -1264,7 +1437,6 @@
       const nm = tidy(charObj?.name);
       if (!nm) return;
 
-      // prevent duplicates inside the same player loadout
       const exists = selections[currentPlayer].some(s => s && keyName(s.name) === keyName(nm));
       if (exists){
         toast(`Already picked for Player ${currentPlayer+1}. Choose a different one.`);
@@ -1283,13 +1455,11 @@
       closeModal();
     }
 
-    // modal events
     document.getElementById('modalCloseBtn')?.addEventListener('click', closeModal);
     document.getElementById('modalCloseBtn2')?.addEventListener('click', closeModal);
 
     modalInput?.addEventListener('input', () => {
-      const isActiveSlot = currentSlot === 0;
-      const needType = isActiveSlot ? 'Active' : 'Passive';
+      const needType = (currentSlot === 0) ? 'Active' : 'Passive';
       renderModalGrid(needType, modalInput.value);
     });
 
@@ -1436,6 +1606,8 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      syncSidebarMode(); // ✅ applies correct sidebar mode on load
+
       const session = await ensureSession();
       if (!session) return;
 
