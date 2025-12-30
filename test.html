@@ -2,23 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- ✅ mobile-safe area + notch support -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Character Skills</title>
+
+  <!-- ✅ Single viewport (mobile-friendly) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+  <title>Team Path Planner</title>
 
   <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
+
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        window.location.href = "index.html";
+      } else {
+        const userInfo = document.getElementById("user-info");
+        if (userInfo && session.user?.email) userInfo.textContent = "Logged in as: " + session.user.email;
+
+        const chip = document.getElementById("user-chip");
+        const emailEl = document.getElementById("user-email");
+        const tagEl = document.getElementById("user-tag");
+        if (chip && emailEl && tagEl && session.user?.email) {
+          emailEl.textContent = session.user.email;
+          tagEl.textContent = session.user.email.split("@")[0];
+        }
+      }
+    });
+
+    function logout() {
+      client.auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+  </script>
 
   <style>
     :root{
       --bg:#07090f;
       --bg2:#0b1020;
       --panel: rgba(20, 26, 38, .72);
-      --panel2: rgba(14, 18, 28, .70);
-      --line: rgba(255,255,255,.08);
+      --panel2: rgba(14, 18, 28, .72);
+      --line: rgba(255,255,255,.10);
       --ink:#f4f6ff;
       --muted:#aab1c5;
 
@@ -26,1388 +57,1509 @@
       --brand2:#ff7733;
       --accent:#4dd3ff;
 
-      --radius:16px;
-      --radius-lg:22px;
       --shadow: 0 22px 70px rgba(0,0,0,.55);
+      --radius-lg: 18px;
+      --radius: 14px;
 
-      --sb-w: 260px;
-      --sb-w-collapsed: 82px;
+      /* desktop/ipad fixed canvas */
+      --main-w: 1112px;
+      --main-h: 800px;
 
-      --skill-active:#4dd3ff;
-      --skill-passive:#ff59c7;
+      --sidebar-w: 320px;
+      --map-w: 792px; /* 1112 - 320 */
+
+      --unit: 30px;
     }
 
-    *{box-sizing:border-box}
-    html,body{min-height:100%}
-    body{
-      margin:0;
+    *{ box-sizing:border-box; }
+    html, body{
+      margin:0; padding:0;
+      width:100vw; height:100vh;
+      overflow:hidden;
       font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
-      color:var(--ink);
+      color: var(--ink);
       background:
         radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
         radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
         radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
         linear-gradient(180deg, var(--bg), var(--bg2));
-      overflow-x:hidden;
-      overflow-y:auto;
-    }
 
-    body::before, body::after{
-      content:"";
-      position:fixed;
-      inset:auto auto 0 0;
-      width:520px; height:520px;
-      border-radius:50%;
-      border:10px solid rgba(77,211,255,.14);
-      transform: translate(-45%, -35%);
-      filter: blur(.2px);
-      pointer-events:none;
-    }
-    body::after{
-      inset: -120px 0 auto auto;
-      width:420px; height:420px;
-      border:10px solid rgba(77,211,255,.10);
-      transform: translate(38%, 0%);
-    }
-
-    a{color:inherit}
-    select{
-      color-scheme: dark;
-      background: rgba(0,0,0,.28);
-      color: var(--ink);
-    }
-    select option{ background:#0b1020; color:var(--ink); }
-
-    /* Layout */
-    .app{
-      min-height: 100vh;
       display:flex;
-      gap:18px;
-      padding:18px;
-      max-width: 1440px;
-      margin: 0 auto;
-      align-items:flex-start;
+      align-items:center;
+      justify-content:center;
+
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
     }
 
-    /* Sidebar */
-    .sidebar{
-      width: var(--sb-w);
-      background: var(--panel2);
-      border: 1px solid var(--line);
+    /* main fixed canvas frame (desktop/tablet) */
+    #main{
+      width: var(--main-w);
+      height: var(--main-h);
+      display:flex;
+      overflow:hidden;
       border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.22);
       box-shadow: var(--shadow);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
+      position: relative;
+    }
+
+    /* map area */
+    #map-container{
+      width: var(--map-w);
+      height: 100%;
+      position: relative;
+      background: rgba(0,0,0,.35);
+      border-right: 1px solid rgba(255,255,255,.06);
       overflow:hidden;
+    }
+
+    #map{
+      width:100%;
+      height:100%;
+      /* ✅ critical for perfect sync: no cropping, consistent image geometry */
+      background-size: contain;
+      background-position:center;
+      background-repeat:no-repeat;
+      position: relative;
+      touch-action: none;
+    }
+
+    #maskCanvas, #pathCanvas{
+      position:absolute;
+      top:0; left:0;
+      width:100%;
+      height:100%;
+    }
+    #maskCanvas{ z-index:10; pointer-events:none; }
+    #pathCanvas{ z-index:9; pointer-events:none; }
+
+    /* unit */
+    .unit{
+      position:absolute;
+      width: var(--unit);
+      height: var(--unit);
+      background: rgba(255,255,255,.10);
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .unit img{
+      width:100%; height:100%;
+      border-radius:999px;
+      box-shadow: 0 0 12px 2px rgba(255,255,255,0.35);
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(0,0,0,.35);
+    }
+    .unit-label{
+      position:absolute;
+      top:-18px; left:50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(0,0,0,.55);
+      color: rgba(244,246,255,.92);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      white-space:nowrap;
+      pointer-events:none;
+    }
+    .reset-btn{
+      position:absolute;
+      bottom:-20px; left:50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.92);
+      color:#000;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border: none;
+      border-radius: 8px;
+      cursor:pointer;
+    }
+
+    /* right sidebar controls */
+    #sidebar{
+      width: var(--sidebar-w);
+      height: 100%;
       display:flex;
       flex-direction:column;
-      position: sticky;
-      top: 18px;
-      height: calc(100vh - 36px);
-      transition: width .18s ease;
-      flex:0 0 auto;
+      padding: 12px;
+      background: rgba(14, 18, 28, .70);
+      border-left: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
     }
-    .sidebar.collapsed{ width: var(--sb-w-collapsed); }
 
-    .brand{
+    /* header block inside sidebar */
+    .side-head{
       display:flex;
       align-items:center;
+      justify-content:space-between;
       gap:10px;
-      padding:16px 16px 10px 16px;
-      border-bottom: 1px solid var(--line);
+      padding: 10px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      margin-bottom: 10px;
     }
-    .brand-left{display:flex;align-items:center;gap:10px;min-width:0;}
-    .logo{
-      width:36px;height:36px;border-radius:12px;
-      background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
-      border:1px solid rgba(255,255,255,.10);
-      display:grid;place-items:center;
-      font-family: Orbitron, sans-serif;
-      letter-spacing:.5px;
-      color:var(--brand);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      flex:0 0 auto;
-    }
-    .brand h1{
+    .side-title{ min-width:0; }
+    .side-title h1{
       margin:0;
       font-family: Orbitron, sans-serif;
       font-size: 1.05rem;
       letter-spacing:.6px;
+      color: var(--brand);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width: 150px;
     }
-    .brand small{
-      display:block;
+    .side-title p{
+      margin: 4px 0 0 0;
+      font-size: .78rem;
       color: var(--muted);
-      font-size:.78rem;
-      margin-top:2px;
+      font-weight: 700;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width: 150px;
     }
-
-    .nav{
-      padding: 12px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      overflow:auto;
-    }
-    .nav::-webkit-scrollbar{width:10px}
-    .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
-    .nav::-webkit-scrollbar-track{background: transparent}
-
-    .nav-item{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 10px;
-      border-radius: 12px;
-      border:1px solid transparent;
-      color: var(--muted);
-      text-decoration:none;
-      transition: .2s ease;
-      cursor:pointer;
-      min-width:0;
-    }
-    .nav-item:hover{
-      background: rgba(255,255,255,.05);
-      border-color: rgba(255,255,255,.08);
-      color: var(--ink);
-    }
-    .nav-item.active{
-      background: linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
-      border-color: rgba(255,189,89,.22);
-      color: var(--ink);
-    }
-    .nav-ico{
-      width:26px;height:26px;border-radius:10px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.08);
-      display:grid;place-items:center;
-      flex: 0 0 auto;
-    }
-    .nav-ico svg{width:14px;height:14px;opacity:.9}
-    .nav-label{
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      min-width:0;
-    }
-
-    .sidebar.collapsed .brand h1,
-    .sidebar.collapsed .brand small,
-    .sidebar.collapsed .nav-label{display:none;}
-    .sidebar.collapsed .brand{justify-content:center;}
-    .sidebar.collapsed .brand-left{justify-content:center;}
-    .sidebar.collapsed .nav-item{
-      justify-content:center;
-      gap:0;
-      padding:10px 8px;
-    }
-
-    /* Main */
-    .main{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      min-width: 0;
-      gap: 14px;
-    }
-
-    /* Topbar */
-    .topbar{
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      padding: 12px 14px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      position: sticky;
-      top: 18px;
-      z-index: 20;
-    }
-    .search{
-      flex:1;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding: 10px 12px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      min-width: 0;
-    }
-    .search input{
-      width:100%;
-      background: transparent;
-      border:0;
-      outline:none;
-      color: var(--ink);
-      font-size: .95rem;
-    }
-    .search input::placeholder{color: rgba(170,177,197,.75)}
-
-    .top-actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex:0 0 auto;
-    }
-
-    .icon-btn{
-      width:42px;height:42px;border-radius:14px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      display:grid;place-items:center;
-      cursor:pointer;
-      transition:.2s ease;
-      color: var(--ink);
-      flex:0 0 auto;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
-    .icon-btn svg{width:18px;height:18px;opacity:.92}
 
     .userchip{
       display:flex;
       align-items:center;
-      gap:10px;
-      padding: 8px 10px;
+      gap:8px;
+      padding: 6px 8px;
       border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      max-width: 260px;
-      min-width: 0;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      max-width: 150px;
     }
     .avatar{
-      width:28px;height:28px;border-radius:10px;
-      background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
-      border:1px solid rgba(255,255,255,.10);
+      width:26px;height:26px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,189,89,.28), rgba(77,211,255,.18));
+      border: 1px solid rgba(255,255,255,.12);
       flex:0 0 auto;
     }
     .usertext{min-width:0}
     .usertext b{
       display:block;
-      font-size:.92rem;
       font-family: Orbitron, sans-serif;
-      color:var(--brand);
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      max-width: 170px;
-    }
-    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
-
-    .logout{
-      color: rgba(255,255,255,.70);
-      text-decoration:none;
-      font-size:.85rem;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      transition:.2s ease;
-      cursor:pointer;
-      white-space:nowrap;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .logout:hover{
-      border-color: rgba(255,77,77,.35);
-      color: #ff8d8d;
-      box-shadow: 0 0 0 3px rgba(255,77,77,.10);
-    }
-
-    /* Cards */
-    .card{
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      overflow:hidden;
-    }
-    .card-inner{padding:14px}
-
-    .hero{
-      position:relative;
-      height: 150px;
-      border-bottom: 1px solid var(--line);
-      background:
-        linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.10)),
-        url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
-    }
-    .hero::after{
-      content:"";
-      position:absolute; inset:0;
-      background: radial-gradient(420px 220px at 55% 45%, rgba(255,189,89,.16), transparent 60%);
-      pointer-events:none;
-    }
-    .hero-content{
-      position:absolute;
-      left:16px; right:16px; bottom:14px;
-      display:flex;
-      align-items:flex-end;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .hero-title h2{
-      font-family: Orbitron, sans-serif;
-      font-size: 1.45rem;
+      font-size:.84rem;
       color: var(--brand);
-      text-shadow: 0 0 18px rgba(255,189,89,.20);
-      margin:0;
       white-space:nowrap;
       overflow:hidden;
-      text-overflow: ellipsis;
+      text-overflow:ellipsis;
+    }
+    .usertext span{
+      display:block;
+      font-size:.72rem;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    /* Controls */
-    .controls{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
+    /* team icons grid */
+    .icon-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      justify-items:center;
+      padding: 8px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
       margin-bottom: 10px;
     }
-    .controls-left{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      min-width:0;
-    }
-    .controls-right{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
 
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      color: rgba(244,246,255,.86);
-      font-weight:800;
-      font-size:.82rem;
-      white-space:nowrap;
-    }
-    .dot{
-      width:9px;height:9px;border-radius:50%;
-      display:inline-block;
-      box-shadow: 0 0 0 3px rgba(255,255,255,.06);
-    }
-    .dot.active{ background: var(--skill-active); }
-    .dot.passive{ background: var(--skill-passive); }
-    .dot.meta{ background: var(--brand); }
-
-    .btn{
-      padding: 9px 12px;
+    .team-icon{
+      width: 50px;
+      height: 55px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.20);
-      color: rgba(244,246,255,.88);
       cursor:pointer;
-      font-weight:900;
-      font-size:.82rem;
-      transition:.2s ease;
-      white-space:nowrap;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:hover{
-      background: rgba(0,0,0,.28);
-      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
-      border-color: rgba(77,211,255,.22);
-    }
-    .btn.brand{
-      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
-      border-color: rgba(255,189,89,.20);
-    }
-    .btn.brand:hover{
-      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
-      border-color: rgba(255,189,89,.28);
-    }
-
-    .section-title{
-      margin: 16px 0 10px 0;
-      font-family: Orbitron, sans-serif;
-      letter-spacing:.4px;
-      font-size: 1.02rem;
-      color: rgba(244,246,255,.92);
-    }
-    .section-title .hint{
-      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
-      color: var(--muted);
-      font-weight:700;
-      font-size: .82rem;
-      margin-left: 8px;
-      letter-spacing: 0;
-    }
-
-    /* Grids */
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 12px;
-    }
-
-    /* Character card */
-    .char-card{
-      position:relative;
-      padding: 10px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.09);
-      cursor:pointer;
-      transition:.18s ease;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      min-width:0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .char-card:hover{
-      background: rgba(255,255,255,.08);
-      transform: translateY(-1px);
-      border-color: rgba(255,189,89,.18);
-    }
-
-    .char-thumb{
-      width:100%;
-      aspect-ratio: 3 / 4;
-      border-radius: 14px;
       background: rgba(0,0,0,.18);
-      border: 2px solid rgba(255,255,255,.10);
-      overflow:hidden;
-      display:grid;
-      place-items:center;
-      position:relative;
-    }
-
-    .char-thumb img{
-      width:100%;
-      height:100%;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
       object-fit: cover;
-      object-position: top center;
-      display:block;
-      background: rgba(255,255,255,.02);
+    }
+    .team-icon:hover{
+      outline: 2px solid rgba(255,189,89,.35);
+      outline-offset: 2px;
     }
 
-    .char-card.active-skill .char-thumb{ border-color: rgba(77,211,255,.95); }
-    .char-card.passive-skill .char-thumb{ border-color: rgba(255,89,199,.95); }
-
-    .meta-dot{
-      position:absolute;
-      top:10px; right:10px;
-      width:10px; height:10px;
-      border-radius:50%;
-      background: var(--brand);
-      box-shadow: 0 0 0 3px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.22);
-      display:none;
-    }
-    .char-card.is-meta .meta-dot{ display:block; }
-
-    .char-name{
-      font-size:.82rem;
-      font-weight:900;
-      color: rgba(244,246,255,.92);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      text-align:center;
-      padding: 0 2px;
-    }
-
-    /* Overview by Role */
-    .role-wrap{
+    /* controls panel scroll */
+    #controls{
+      flex:1;
       display:flex;
       flex-direction:column;
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .role-group{
-      border-radius: 18px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow:hidden;
-    }
-    .role-head{
-      padding: 12px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    .role-head b{
-      font-family: Orbitron, sans-serif;
-      letter-spacing:.4px;
-      color: var(--brand);
-      font-size: .95rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .role-head span{
-      color: var(--muted);
-      font-size:.78rem;
-      font-weight:700;
-      white-space:nowrap;
-    }
-    .role-grid{
-      padding: 12px;
-      display:flex;
-      flex-wrap:wrap;
       gap: 8px;
-      justify-content:flex-start;
+      overflow-y:auto;
+      padding-right: 6px;
     }
-    .mini{
-      width: 72px;
-      display:flex;
-      flex-direction:column;
-      gap: 6px;
-      align-items:center;
-      cursor:pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .mini .mini-thumb{
-      width:72px;
-      height:96px;
+    #controls::-webkit-scrollbar{ width:10px; }
+    #controls::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.10); border-radius: 10px; }
+    #controls::-webkit-scrollbar-track{ background: transparent; }
+
+    /* shared control styles */
+    #controls button, #map-select{
+      width: 100%;
+      padding: 10px 10px;
+      font-weight: 900;
+      font-size: 12px;
       border-radius: 12px;
-      overflow:hidden;
-      border:2px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-    }
-    .mini.active-skill .mini-thumb{ border-color: rgba(77,211,255,.95); }
-    .mini.passive-skill .mini-thumb{ border-color: rgba(255,89,199,.95); }
-    .mini .mini-thumb img{
-      width:100%; height:100%;
-      object-fit:cover;
-      object-position: top center;
-      display:block;
-    }
-    .mini .mini-name{
-      font-size:.72rem;
-      color: rgba(244,246,255,.80);
-      text-align:center;
-      line-height: 1.05rem;
-      word-break: break-word;
-    }
-
-    /* Modal */
-    .modal{
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.62);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding: 18px;
-      z-index: 1000;
-    }
-    .modal.show{display:flex;}
-
-    .modal-card{
-      width: min(560px, 100%);
-      background: rgba(14, 18, 28, .92);
       border: 1px solid rgba(255,255,255,.10);
-      border-radius: 22px;
-      box-shadow: 0 26px 80px rgba(0,0,0,.65);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      max-height: 88vh;
+      background: rgba(0,0,0,.22);
+      color: rgba(244,246,255,.90);
+      cursor:pointer;
+      transition: .18s ease;
+    }
+    #controls button:hover, #map-select:hover{
+      background: rgba(0,0,0,.30);
+      border-color: rgba(77,211,255,.22);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
     }
 
-    .modal-top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding: 14px 14px 10px 14px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    .modal-top h3{
-      margin:0;
-      font-family: Orbitron, sans-serif;
-      letter-spacing:.6px;
-      color: var(--brand);
-      font-size: 1.15rem;
-      line-height: 1.25rem;
-    }
-    .modal-top p{
-      margin:6px 0 0 0;
-      color: var(--muted);
-      font-size:.82rem;
-      font-weight:700;
-      letter-spacing:.2px;
-      white-space:normal;
-    }
-
-    .modal-body{
-      padding: 12px 14px 14px 14px;
-      display:flex;
-      flex-direction:column;
-      gap: 10px;
-      justify-content:flex-start;
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .badge-row{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin: 0;
-      padding: 0;
-    }
-
-    .info-block{
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 10px 12px;
-    }
-    .info-block b{
-      display:block;
-      margin:0 0 6px 0;
+    /* dropdown */
+    #map-select{
+      background: rgba(0,0,0,.28);
       color: rgba(244,246,255,.92);
-      font-size: .92rem;
-      font-weight:900;
     }
-    .info-block .txt{
-      margin:0;
-      color: rgba(244,246,255,.86);
-      font-size: .92rem;
-      line-height: 1.28rem;
-      white-space: normal;
+    #map-select option, #map-select optgroup{
+      background: #0e111a;
+      color: rgba(244,246,255,.92);
     }
-
-    .empty-msg{
-      grid-column: 1 / -1;
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px dashed rgba(255,255,255,.12);
-      background: rgba(0,0,0,.16);
-      color: var(--muted);
-      font-weight: 800;
-      text-align: center;
+    #map-select:focus{
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.30);
     }
 
-    /* ============================================================
-       ✅ MOBILE OPTIMIZATION (no layout breaking on desktop)
-       ============================================================ */
-    @media (max-width: 980px){
-      /* hide sidebar completely on mobile */
-      .sidebar{display:none;}
+    #controls button:active{ transform: scale(.99); }
 
-      /* reduce background decorations for perf */
-      body::before, body::after{display:none;}
+    #controls button{ border-color: rgba(255,189,89,.22); }
+    #controls button:hover{
+      border-color: rgba(255,189,89,.28);
+      box-shadow: 0 0 0 3px rgba(255,189,89,.10);
+    }
 
-      .app{
-        padding: 10px;
-        gap: 12px;
-        flex-direction: column;
-        max-width: 100%;
-        margin: 0;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom));
-      }
+    #realtime-toggle-btn{ border-color: rgba(77,211,255,.28); }
+    #realtime-toggle-btn.active{
+      background: rgba(77,211,255,.18);
+      border-color: rgba(77,211,255,.40);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+    }
 
-      /* topbar becomes full-width sticky strip */
-      .topbar{
-        top: env(safe-area-inset-top);
+    #draw-circle.active{
+      background: rgba(0,255,255,.18);
+      border-color: rgba(0,255,255,.42);
+      box-shadow: 0 0 0 3px rgba(0,255,255,.10);
+    }
+
+    .button-row{ display:flex; gap: 8px; }
+    .button-row button{ flex:1; white-space:nowrap; }
+
+    #import-file{ display:none; }
+
+    /* notes */
+    .note{
+      position:absolute;
+      background: rgba(255,255,255,.92);
+      color: #000;
+      border: 1px solid rgba(0,0,0,.28);
+      border-radius: 10px;
+      max-width: 220px;
+      overflow:hidden;
+      box-shadow: 0 14px 40px rgba(0,0,0,.45);
+      user-select: text;
+    }
+    .drag-handle{
+      background: rgba(0,0,0,.12);
+      padding: 4px 8px;
+      font-weight: 1000;
+      cursor: grab;
+      user-select:none;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+    }
+    .note div[contenteditable]{
+      padding: 6px 8px;
+      min-height: 20px;
+      outline:none;
+      font-size: 12px;
+      line-height: 1.2rem;
+      white-space: pre-wrap;
+    }
+
+    /* footer user info */
+    #user-info{
+      font-size: .78rem;
+      text-align:center;
+      margin-top: 10px;
+      color: rgba(170,177,197,.85);
+      user-select:text;
+    }
+
+    /* ✅ Mobile optimization */
+    @media (max-width: 900px){
+      html, body{ overflow:auto; }
+      #main{
+        width: 100vw;
+        height: 100vh;
         border-radius: 0;
-        border-left: 0;
+        flex-direction: column;
+      }
+      #map-container{
+        width: 100%;
+        height: 58vh;
         border-right: 0;
-        margin: -10px -10px 0 -10px;  /* edge-to-edge */
-        padding: 10px 10px;
-        flex-wrap: wrap;
-        gap: 10px;
-        z-index: 50;
+        border-bottom: 1px solid rgba(255,255,255,.06);
       }
-
-      /* no sidebar toggle on mobile */
-      #sbToggle{display:none;}
-
-      /* search = full width first row */
-      .search{
+      #sidebar{
         width: 100%;
-        flex: 1 1 100%;
-        order: 1;
-        padding: 11px 12px;
+        height: 42vh;
       }
-      .search input{font-size: 1rem;}
-
-      /* actions row */
-      .top-actions{
-        width: 100%;
-        order: 2;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      /* compact userchip (keep identity, reduce vertical space) */
-      .userchip{
-        flex: 1;
-        max-width: none;
-        padding: 7px 9px;
-      }
-      .usertext span{display:none;}
-      .usertext b{
-        max-width: 52vw;
-        font-size: .88rem;
-      }
-      .logout{
-        padding: 9px 10px;
-        font-size: .85rem;
-      }
-
-      /* hero shorter */
-      .hero{height: 120px;}
-      .hero-content{left:12px;right:12px;bottom:12px;}
-      .hero-title h2{font-size: 1.18rem;}
-
-      /* controls: chips scroll horizontally, buttons stack nicely */
-      .controls{gap: 10px;}
-      .controls-left{
-        width: 100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 2px;
-      }
-      .controls-left::-webkit-scrollbar{display:none;}
-      .controls-right{
-        width: 100%;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        align-items: stretch;
-      }
-      /* make the meta toggle pill take full width */
-      .controls-right .pill{
-        grid-column: 1 / -1;
-        width: 100%;
-        justify-content: space-between;
-      }
-      /* dashboard + compare become two buttons side-by-side */
-      .controls-right a.btn{
-        width: 100%;
-        padding: 11px 10px;
-        border-radius: 14px;
-      }
-
-      /* card padding tighter */
-      .card-inner{padding: 12px;}
-    }
-
-    @media (max-width: 560px){
-      /* smaller card grid = more efficient */
-      .grid{
-        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-        gap: 10px;
-      }
-      .char-card{padding: 8px; border-radius: 14px;}
-      .char-thumb{border-radius: 12px;}
-      .char-name{font-size: .75rem;}
-
-      /* role minis tighter */
-      .role-grid{padding: 10px; gap: 8px;}
-      .mini{width: 64px;}
-      .mini .mini-thumb{width: 64px; height: 86px; border-radius: 12px;}
-      .mini .mini-name{font-size: .70rem;}
-
-      /* bottom sheet style modal */
-      .modal{
-        align-items:flex-end;
-        padding: 10px;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom));
-      }
-      .modal-card{
-        width: 100%;
-        max-height: 92vh;
-        border-radius: 18px;
-      }
-      .modal-top{padding: 12px;}
-      .modal-top h3{font-size: 1.05rem;}
+      .icon-grid{ grid-template-columns: repeat(6, 1fr); }
+      :root{ --unit: 34px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-left">
-          <div class="logo">FF</div>
-          <div class="brand-text">
-            <h1>Free Fire</h1>
-            <small class="muted">Caster Dashboard</small>
-          </div>
-        </div>
-      </div>
-
-      <nav class="nav" id="nav">
-        <a class="nav-item" href="dashboard.html" data-page="dashboard.html" title="Dashboard">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </span>
-          <span class="nav-label">Dashboard</span>
-        </a>
-
-        <a class="nav-item active" href="character.html" data-page="character.html" title="Character Skills">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Character Skills</span>
-        </a>
-
-        <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Pets</span>
-        </a>
-
-        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Weapons</span>
-        </a>
-
-        <a class="nav-item" href="map.html" data-page="map.html" title="Map">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6 4 8v14l6-2 4 2 6-2V6l-6 2-4-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Map</span>
-        </a>
-
-        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Split View</span>
-        </a>
-      </nav>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="main">
-      <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-
-        <div class="search">
-          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85">
-            <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input id="searchInput" placeholder="Search characters (name / role / skill)..." />
-        </div>
-
-        <div class="top-actions">
-          <div class="userchip">
-            <div class="avatar"></div>
-            <div class="usertext">
-              <b id="gamertag">PlayerOne</b>
-              <span id="userEmail" class="muted">loading…</span>
-            </div>
-          </div>
-
-          <a class="logout" href="#" id="logoutBtn">Logout</a>
-        </div>
-      </header>
-
-      <section class="card">
-        <div class="hero">
-          <div class="hero-content">
-            <div class="hero-title">
-              <h2>Character Gallery</h2>
-            </div>
-          </div>
-        </div>
-
-        <div class="card-inner">
-          <div class="controls">
-            <div class="controls-left">
-              <span class="pill"><span class="dot active"></span>Active Skill</span>
-              <span class="pill"><span class="dot passive"></span>Passive Skill</span>
-              <span class="pill"><span class="dot meta"></span>Meta</span>
-              <span class="pill" id="searchCountPill" style="display:none;"></span>
-            </div>
-
-            <div class="controls-right">
-              <span class="pill" style="border-color: rgba(255,189,89,.18)">
-                Show Meta For:
-                <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
-              </span>
-              <a class="btn" href="dashboard.html">← Dashboard</a>
-              <a class="btn" href="character-comparison.html">Compare</a>
-            </div>
-          </div>
-
-          <div class="section-title" id="metaTitle">Meta Characters <span class="hint" id="metaHint">(Battle Royale)</span></div>
-          <div class="grid" id="metaGrid"></div>
-
-          <div class="section-title" style="margin-top:18px;">Non-Meta Characters</div>
-          <div class="grid" id="nonMetaGrid"></div>
-
-          <div class="section-title" style="margin-top:22px;">Overview by Role</div>
-          <div class="role-wrap" id="compactByRole"></div>
-
-          <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
-            Free Fire Caster © 2025 — Neptune
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- Info Modal (Popup) -->
-  <div class="modal" id="infoModal" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Character Info">
-      <div class="modal-top">
-        <div style="min-width:0">
-          <h3 id="infoName">—</h3>
-          <p id="infoSub">—</p>
-        </div>
-        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="badge-row" id="infoBadges"></div>
-
-        <div class="info-block">
-          <b id="infoSkillTitle">Skill: —</b>
-          <p class="txt" id="infoSkillDesc">—</p>
-        </div>
-
-        <div class="info-block">
-          <b>Role</b>
-          <p class="txt" id="infoRole">—</p>
-        </div>
-      </div>
+<div id="main">
+  <div id="map-container">
+    <div id="map">
+      <canvas id="maskCanvas"></canvas>
+      <canvas id="pathCanvas"></canvas>
     </div>
   </div>
 
-  <script>
-    /***********************
-     * Supabase Auth
-     ***********************/
-    const client = supabase.createClient(
-      'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
-    );
+  <div id="sidebar">
+    <div class="side-head">
+      <div class="side-title">
+        <h1>Path Planner</h1>
+        <p>Draw paths • Circles • Notes</p>
+      </div>
+      <div class="userchip" id="user-chip" title="Signed in">
+        <div class="avatar"></div>
+        <div class="usertext">
+          <b id="user-tag">Player</b>
+          <span id="user-email">loading…</span>
+        </div>
+      </div>
+    </div>
 
-    async function ensureSession(){
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) {
-        window.location.href = "index.html";
-        return null;
+    <div class="icon-grid" id="teamIcons"></div>
+
+    <div id="controls">
+      <select id="map-select">
+        <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
+        <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
+        <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
+        <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
+        <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
+        <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
+      </select>
+
+      <button id="realtime-toggle-btn">Real-time: ON</button>
+
+      <div class="button-row">
+        <button id="draw-circle">Draw Circle</button>
+        <button id="note-mode">Add Note</button>
+      </div>
+
+      <button id="undo-btn">Undo</button>
+      <button id="reset-all-btn">Reset All</button>
+
+      <div class="button-row">
+        <button id="export-btn">Export</button>
+        <button onclick="document.getElementById('import-file').click()">Import</button>
+      </div>
+
+      <input type="file" id="import-file" accept=".json" />
+
+      <div class="button-row">
+        <button onclick="location.href='dashboard.html'">← Dashboard</button>
+        <button onclick="location.href='team_settings.html'">Team Settings</button>
+      </div>
+
+      <button onclick="logout()">Logout</button>
+
+      <p id="user-info">Checking login...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * ✅ PERFECT SYNC MODEL
+ * - Store everything as normalized coords in image space:
+ *    x,y in [0..1] relative to the actual rendered image box (contain+centered)
+ *    r in [0..1] as fraction of min(imageWidth,imageHeight)
+ * - Convert pointer->norm and norm->px per device
+ */
+
+const map = document.getElementById("map");
+const canvas = document.getElementById("pathCanvas");
+const ctx = canvas.getContext("2d");
+const maskCanvas = document.getElementById("maskCanvas");
+
+const teamPaths = {};   // teamId => [{x:0..1,y:0..1}, ...]
+const teamIcons = {};   // teamId => DOM
+const undoStacks = {};  // teamId => stack of snapshots (optional)
+
+let selectedIcon = null;
+let activeTeam = null;
+
+let drawCircleMode = false;
+let noteMode = false;
+
+let resizingCircle = null;
+let draggingCircle = null;
+let isResizing = false;
+let isDragging = false;
+
+const notes = [];       // [{id,x,y,text}]
+let noteIdCounter = 1;
+
+const teamColors = [
+  "#FF0000", "#00FF00", "#00FFFF", "#FFFF00", "#FF00FF", "#FFA500",
+  "#00BFFF", "#FF69B4", "#7FFF00", "#FF4500", "#00FF7F", "#1E90FF",
+  "#FFD700", "#ADFF2F", "#FF1493", "#40E0D0", "#FF6347", "#87CEEB"
+];
+
+const historyStack = []; // {type:'circle'|'line'|'note', team?, noteId?}
+
+const mapSelect = document.getElementById("map-select");
+
+/* --- image natural size probe (for contain math) --- */
+let mapNatural = { w: 1, h: 1 };
+const mapProbe = new Image();
+let _mapReadyResolve = null;
+let mapReadyPromise = Promise.resolve();
+
+function ensureMapReady(url){
+  map.style.backgroundImage = `url('${url}')`;
+
+  mapReadyPromise = new Promise(res => {
+    _mapReadyResolve = res;
+    mapProbe.onload = () => {
+      mapNatural.w = mapProbe.naturalWidth || 1;
+      mapNatural.h = mapProbe.naturalHeight || 1;
+      _mapReadyResolve?.();
+      _mapReadyResolve = null;
+      resizeCanvas();
+      repositionAll();
+      drawPaths();
+      // mask redraw if needed
+      const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+      if (selectedOption?.dataset.mode === "CS") drawOverlayMask(circles);
+      else maskCanvas.style.display = "none";
+    };
+    mapProbe.onerror = () => {
+      _mapReadyResolve?.();
+      _mapReadyResolve = null;
+      resizeCanvas();
+      repositionAll();
+      drawPaths();
+    };
+    mapProbe.src = url + (url.includes('?') ? '&' : '?') + 'probe=' + Date.now();
+  });
+
+  return mapReadyPromise;
+}
+
+/* --- contain box math --- */
+function clamp01(n){ return Math.max(0, Math.min(1, n)); }
+
+function getImageBox(){
+  const rect = map.getBoundingClientRect();
+  const cw = rect.width, ch = rect.height;
+  const iw = mapNatural.w, ih = mapNatural.h;
+
+  const s = Math.min(cw / iw, ch / ih);  // contain
+  const dw = iw * s, dh = ih * s;
+  const ox = (cw - dw) / 2;
+  const oy = (ch - dh) / 2;
+
+  return { rect, ox, oy, dw, dh };
+}
+
+/* pointer -> normalized image coords */
+function pointerToNorm(e){
+  const p = e.touches ? e.touches[0] : e;
+  const b = getImageBox();
+
+  const nx = (p.clientX - b.rect.left - b.ox) / b.dw;
+  const ny = (p.clientY - b.rect.top  - b.oy) / b.dh;
+
+  return { x: clamp01(nx), y: clamp01(ny) };
+}
+
+/* normalized -> px inside map element */
+function normToPx(n){
+  const b = getImageBox();
+  return { x: b.ox + n.x * b.dw, y: b.oy + n.y * b.dh };
+}
+
+/* px (inside map element) -> normalized */
+function pxToNorm(px){
+  const b = getImageBox();
+  return {
+    x: clamp01((px.x - b.ox) / b.dw),
+    y: clamp01((px.y - b.oy) / b.dh)
+  };
+}
+
+/* --- circles stored normalized --- */
+const circles = []; // [{x,y,r,color}] where r is fraction of min(dw,dh)
+
+/* Legacy base (your old fixed map area) for migration */
+const LEGACY_BASE = { w: 792, h: 800, min: 792 };
+
+/* default circles (legacy px) */
+const default_circles_data_legacy = {
+  "https://i.imgur.com/V6iUHaA.jpeg": [
+    { r: 30, x: 350, y: 557.5, color: "#ff0000" },
+    { r: 30, x: 393, y: 682.5, color: "#ff0000" },
+    { r: 30, x: 722, y: 387.5, color: "#ff0000" },
+    { r: 30, x: 265, y: 495.5, color: "#ff0000" },
+    { r: 30, x: 411, y: 236,   color: "#ff0000" },
+    { r: 30, x: 103, y: 284.5, color: "#ff0000" },
+    { r: 30, x: 572, y: 239,   color: "#ff0000" },
+    { r: 30, x: 352, y: 358.5, color: "#ff0000" },
+    { r: 30, x: 239, y: 294.5, color: "#ff0000" },
+    { r: 30, x: 694, y: 630.5, color: "#ff0000" },
+    { r: 30, x: 103, y: 588.5, color: "#ff0000" },
+    { r: 30, x: 444, y: 558.5, color: "#ff0000" },
+    { r: 30, x: 457, y: 416.5, color: "#ff0000" },
+    { r: 30, x: 318, y: 124.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/IX1oY9Z.jpeg": [
+    { r: 30, x: 326, y: 518.5, color: "#ff0000" },
+    { r: 30, x: 412, y: 711.5, color: "#ff0000" },
+    { r: 30, x: 74,  y: 339.5, color: "#ff0000" },
+    { r: 30, x: 662, y: 695.5, color: "#ff0000" },
+    { r: 30, x: 290, y: 339.5, color: "#ff0000" },
+    { r: 30, x: 617, y: 149.5, color: "#ff0000" },
+    { r: 30, x: 734, y: 524.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/x5he05R.jpeg": [
+    { r: 30, x: 344, y: 158.5, color: "#ff0000" },
+    { r: 30, x: 108, y: 279.5, color: "#ff0000" },
+    { r: 30, x: 587, y: 581.5, color: "#ff0000" },
+    { r: 30, x: 447, y: 640.5, color: "#ff0000" },
+    { r: 30, x: 132, y: 620.5, color: "#ff0000" },
+    { r: 30, x: 637, y: 394.5, color: "#ff0000" },
+    { r: 30, x: 290, y: 383.5, color: "#ff0000" },
+    { r: 30, x: 512, y: 373.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/48O1Jf8.jpeg": [
+    { r: 30, x: 718, y: 340.5, color: "#ff0000" },
+    { r: 30, x: 151, y: 189.5, color: "#ff0000" },
+    { r: 30, x: 381, y: 294.5, color: "#ff0000" },
+    { r: 30, x: 484, y: 624.5, color: "#ff0000" }
+  ],
+  "https://i.imgur.com/4Yz12P9.jpeg": [
+    { r: 30, x: 655, y: 439.5, color: "#ff0000" },
+    { r: 30, x: 637, y: 612.5, color: "#ff0000" },
+    { r: 30, x: 196, y: 634.5, color: "#ff0000" },
+    { r: 30, x: 471, y: 496.5, color: "#ff0000" },
+    { r: 30, x: 359, y: 155.5, color: "#ff0000" },
+    { r: 30, x: 219, y: 308.5, color: "#ff0000" },
+    { r: 30, x: 588, y: 159.5, color: "#ff0000" }
+  ]
+};
+
+function legacyCircleToNorm(c){
+  return {
+    x: clamp01((c.x ?? 0) / LEGACY_BASE.w),
+    y: clamp01((c.y ?? 0) / LEGACY_BASE.h),
+    r: clamp01((c.r ?? 0) / LEGACY_BASE.min),
+    color: c.color || "#00ffff"
+  };
+}
+
+function maybeMigrateState(state){
+  // If it already looks normalized, leave it.
+  const migrated = structuredClone(state || {});
+  migrated.paths = migrated.paths || {};
+  migrated.circles = Array.isArray(migrated.circles) ? migrated.circles : [];
+  migrated.notes = Array.isArray(migrated.notes) ? migrated.notes : [];
+
+  // paths
+  for (const [teamId, pts] of Object.entries(migrated.paths)){
+    if (!Array.isArray(pts)) { migrated.paths[teamId] = []; continue; }
+    migrated.paths[teamId] = pts.map(p => {
+      const x = Number(p?.x), y = Number(p?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return { x:0, y:0 };
+      if (x > 1.5 || y > 1.5) return { x: clamp01(x / LEGACY_BASE.w), y: clamp01(y / LEGACY_BASE.h) };
+      return { x: clamp01(x), y: clamp01(y) };
+    });
+  }
+
+  // circles
+  migrated.circles = migrated.circles.map(c => {
+    const x = Number(c?.x), y = Number(c?.y), r = Number(c?.r);
+    if ([x,y,r].some(v => !Number.isFinite(v))) return { x:0.5, y:0.5, r:0.04, color:c?.color||"#00ffff" };
+    if (x > 1.5 || y > 1.5 || r > 1.5) return legacyCircleToNorm(c);
+    return { x: clamp01(x), y: clamp01(y), r: clamp01(r), color: c?.color || "#00ffff" };
+  });
+
+  // notes
+  migrated.notes = migrated.notes.map(n => {
+    const x = Number(n?.x), y = Number(n?.y);
+    const id = n?.id || ("n" + Math.random().toString(16).slice(2));
+    const text = (n?.text ?? '').toString();
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return { id, x:0.5, y:0.5, text };
+    if (x > 1.5 || y > 1.5) return { id, x: clamp01(x / LEGACY_BASE.w), y: clamp01(y / LEGACY_BASE.h), text };
+    return { id, x: clamp01(x), y: clamp01(y), text };
+  });
+
+  return migrated;
+}
+
+/* --- team icons from Supabase --- */
+async function loadTeamIcons() {
+  const grid = document.getElementById("teamIcons");
+  grid.innerHTML = "";
+
+  const { data, error } = await client
+    .from("teams_pathplanner")
+    .select("id, team_name, team_tag, logo_url")
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("❌ Failed to load teams:", error);
+    const msg = document.createElement("p");
+    msg.textContent = "Failed to load teams.";
+    msg.style.fontSize = "0.8rem";
+    msg.style.color = "#aaa";
+    msg.style.gridColumn = "1 / -1";
+    grid.appendChild(msg);
+    return;
+  }
+
+  if (!data || !data.length) {
+    const msg = document.createElement("p");
+    msg.textContent = "No teams configured. Go to Team Settings to add some.";
+    msg.style.fontSize = "0.8rem";
+    msg.style.color = "#aaa";
+    msg.style.gridColumn = "1 / -1";
+    grid.appendChild(msg);
+    return;
+  }
+
+  data.slice(0, teamColors.length).forEach((team, i) => {
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.alignItems = "center";
+
+    const img = document.createElement("img");
+    img.src = team.logo_url;
+    img.alt = team.team_name || team.team_tag || `Team ${i + 1}`;
+    img.className = "team-icon";
+
+    const teamId = "team" + (i + 1);
+    img.dataset.id = teamId;
+    img.dataset.teamTag = team.team_tag || "";
+    img.dataset.teamName = team.team_name || "";
+    img.dataset.teamDbId = team.id;
+    img.title = `${team.team_name || "Team"} (${team.team_tag || "TAG"})`;
+
+    img.onclick = () => selectedIcon = img;
+
+    const colorBar = document.createElement("div");
+    colorBar.style.width = "60%";
+    colorBar.style.height = "6px";
+    colorBar.style.marginTop = "6px";
+    colorBar.style.borderRadius = "999px";
+    colorBar.style.backgroundColor = teamColors[i] || "#fff";
+    colorBar.style.boxShadow = "0 8px 18px rgba(0,0,0,.35)";
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(colorBar);
+    grid.appendChild(wrapper);
+  });
+}
+
+/* --- view repositioning (units + notes) --- */
+function repositionAll(){
+  // units
+  for (const [teamId, div] of Object.entries(teamIcons)){
+    const pts = teamPaths[teamId];
+    if (!div || !pts || !pts.length) continue;
+    const p = normToPx(pts[0]);
+    const w = div.offsetWidth || 30;
+    const h = div.offsetHeight || 30;
+    div.style.left = `${p.x - w/2}px`;
+    div.style.top  = `${p.y - h/2}px`;
+  }
+
+  // notes
+  document.querySelectorAll(".note").forEach(noteDiv => {
+    const id = noteDiv.dataset.noteId;
+    const n = notes.find(x => x.id === id);
+    if (!n) return;
+    const p = normToPx({ x:n.x, y:n.y });
+    noteDiv.style.left = `${p.x}px`;
+    noteDiv.style.top  = `${p.y}px`;
+  });
+}
+
+/* --- circles / drawing --- */
+function drawArrow(fromN, toN, color) {
+  const a = normToPx(fromN);
+  const b = normToPx(toN);
+
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const angle = Math.atan2(dy, dx);
+
+  ctx.beginPath();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.lineTo(b.x - 10 * Math.cos(angle - Math.PI / 6), b.y - 10 * Math.sin(angle - Math.PI / 6));
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x - 10 * Math.cos(angle + Math.PI / 6), b.y - 10 * Math.sin(angle + Math.PI / 6));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+}
+
+function drawPaths() {
+  // canvas already sized via resizeCanvas()
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const b = getImageBox();
+  const minDim = Math.min(b.dw, b.dh);
+
+  // circles
+  for (let c of circles) {
+    const p = normToPx(c);
+    const rPx = (c.r || 0) * minDim;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rPx, 0, 2 * Math.PI);
+    ctx.strokeStyle = c.color || "#00ffff";
+    ctx.setLineDash([3, 1]);
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // handle
+    ctx.beginPath();
+    ctx.arc(p.x + rPx, p.y, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = c.color || "#00ffff";
+    ctx.fill();
+  }
+
+  // paths
+  for (let id in teamPaths) {
+    const path = teamPaths[id];
+    if (!path || path.length < 2) continue;
+    const i = parseInt(id.replace("team", "")) - 1;
+    const color = teamColors[i] || "#fff";
+    for (let j = 0; j < path.length - 1; j++) {
+      drawArrow(path[j], path[j + 1], color);
+    }
+  }
+}
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = map.clientWidth;
+  const h = map.clientHeight;
+
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  maskCanvas.width = Math.floor(w * dpr);
+  maskCanvas.height = Math.floor(h * dpr);
+  maskCanvas.style.width = w + "px";
+  maskCanvas.style.height = h + "px";
+
+  drawPaths();
+}
+
+window.addEventListener("resize", () => {
+  resizeCanvas();
+  repositionAll();
+});
+
+/* --- notes --- */
+function upsertNoteModel(id, x, y, text){
+  const idx = notes.findIndex(n => n.id === id);
+  if (idx === -1) notes.push({ id, x, y, text: text || "" });
+  else {
+    notes[idx].x = x;
+    notes[idx].y = y;
+    if (typeof text === "string") notes[idx].text = text;
+  }
+}
+
+function createNoteAtNorm(n, text) {
+  const id = "note_" + (noteIdCounter++);
+  const p = normToPx(n);
+
+  const noteDiv = document.createElement("div");
+  noteDiv.className = "note";
+  noteDiv.dataset.noteId = id;
+  noteDiv.style.left = `${p.x}px`;
+  noteDiv.style.top = `${p.y}px`;
+
+  const handle = document.createElement("div");
+  handle.className = "drag-handle";
+  handle.innerHTML = `<span>☰</span><span style="opacity:.6;font-size:11px;">note</span>`;
+
+  const content = document.createElement("div");
+  content.textContent = text || "";
+  content.contentEditable = true;
+
+  noteDiv.appendChild(handle);
+  noteDiv.appendChild(content);
+  map.appendChild(noteDiv);
+
+  upsertNoteModel(id, n.x, n.y, text || "");
+  historyStack.push({ type: "note", noteId: id });
+
+  // update text -> model (debounced)
+  let tmr = null;
+  content.addEventListener("input", () => {
+    clearTimeout(tmr);
+    tmr = setTimeout(() => {
+      const model = notes.find(x => x.id === id);
+      if (model) model.text = content.textContent || "";
+      saveMapState();
+    }, 350);
+  });
+
+  // drag logic
+  let offsetX = 0, offsetY = 0, dragging = false;
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = map.getBoundingClientRect();
+    offsetX = touch.clientX - rect.left - noteDiv.offsetLeft;
+    offsetY = touch.clientY - rect.top - noteDiv.offsetTop;
+    dragging = true;
+  };
+
+  const moveDrag = (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = map.getBoundingClientRect();
+    const newX = touch.clientX - rect.left - offsetX;
+    const newY = touch.clientY - rect.top - offsetY;
+    noteDiv.style.left = `${newX}px`;
+    noteDiv.style.top = `${newY}px`;
+
+    // update model continuously (so realtime save works if you want)
+    const nn = pxToNorm({ x:newX, y:newY });
+    upsertNoteModel(id, nn.x, nn.y);
+  };
+
+  const endDrag = () => {
+    if (!dragging) return;
+    dragging = false;
+    saveMapState();
+  };
+
+  handle.addEventListener("mousedown", (e) => { e.stopPropagation(); startDrag(e); });
+  handle.addEventListener("touchstart", (e) => { e.stopPropagation(); startDrag(e); }, { passive:false });
+
+  window.addEventListener("mousemove", moveDrag);
+  window.addEventListener("touchmove", moveDrag, { passive:false });
+  window.addEventListener("mouseup", endDrag);
+  window.addEventListener("touchend", endDrag);
+  window.addEventListener("touchcancel", endDrag);
+
+  return id;
+}
+
+/* --- circle drag/resize helpers (in PX for stable thresholds) --- */
+function findCircleForResize(ptPx) {
+  const b = getImageBox();
+  const minDim = Math.min(b.dw, b.dh);
+
+  for (let i = circles.length - 1; i >= 0; i--) {
+    const c = circles[i];
+    const cp = normToPx(c);
+    const rPx = (c.r || 0) * minDim;
+    const dist = Math.hypot(cp.x - ptPx.x, cp.y - ptPx.y);
+    if (Math.abs(dist - rPx) < 12) return c;
+  }
+  return null;
+}
+
+function findCircleForDrag(ptPx) {
+  const b = getImageBox();
+  const minDim = Math.min(b.dw, b.dh);
+
+  for (let i = circles.length - 1; i >= 0; i--) {
+    const c = circles[i];
+    const cp = normToPx(c);
+    const rPx = (c.r || 0) * minDim;
+    const dist = Math.hypot(cp.x - ptPx.x, cp.y - ptPx.y);
+    if (dist < rPx) return c;
+  }
+  return null;
+}
+
+/* --- modes --- */
+document.getElementById("draw-circle").onclick = () => {
+  drawCircleMode = !drawCircleMode;
+  const btn = document.getElementById("draw-circle");
+  btn.textContent = drawCircleMode ? "Circle Mode: ON" : "Draw Circle";
+  btn.classList.toggle("active", drawCircleMode);
+
+  // turning on circle mode should disable note mode for clarity
+  if (drawCircleMode && noteMode) {
+    noteMode = false;
+    document.getElementById("note-mode").textContent = "Add Note";
+  }
+};
+
+document.getElementById("note-mode").onclick = () => {
+  noteMode = !noteMode;
+  document.getElementById("note-mode").textContent = noteMode ? "Click on Map to Add Note" : "Add Note";
+  if (noteMode && drawCircleMode) {
+    drawCircleMode = false;
+    const btn = document.getElementById("draw-circle");
+    btn.textContent = "Draw Circle";
+    btn.classList.remove("active");
+  }
+};
+
+/* --- map click (use normalized coords) --- */
+map.addEventListener("click", async (e) => {
+  // ignore clicks on notes
+  if (e.target?.closest && e.target.closest(".note")) return;
+
+  // make sure image box is ready
+  await mapReadyPromise;
+
+  const n = pointerToNorm(e);
+
+  if (noteMode) {
+    const text = prompt("Enter note:");
+    if (!text) return;
+    createNoteAtNorm(n, text);
+    noteMode = false;
+    document.getElementById("note-mode").textContent = "Add Note";
+    saveMapState();
+    return;
+  }
+
+  if (drawCircleMode) {
+    circles.push({ x:n.x, y:n.y, r:0.038, color:"#00ffff" }); // ~30px on old 792-min
+    historyStack.push({ type: "circle" });
+    drawPaths();
+    saveMapState();
+    return;
+  }
+
+  if (selectedIcon) {
+    const id = selectedIcon.dataset.id;
+    if (teamIcons[id]) return;
+
+    const div = document.createElement("div");
+    div.className = "unit";
+    div.dataset.teamId = id;
+
+    const img = selectedIcon.cloneNode(true);
+    img.style.width = img.style.height = "100%";
+
+    const label = document.createElement("div");
+    label.className = "unit-label";
+    label.textContent = selectedIcon.dataset.teamTag || id;
+
+    const reset = document.createElement("button");
+    reset.className = "reset-btn";
+    reset.textContent = "Reset";
+    reset.onclick = ev => {
+      ev.stopPropagation();
+      div.remove();
+      delete teamPaths[id];
+      delete teamIcons[id];
+      delete undoStacks[id];
+      drawPaths();
+      saveMapState();
+    };
+
+    div.append(img, label, reset);
+    map.appendChild(div);
+    div.onclick = () => activeTeam = id;
+
+    teamPaths[id] = [n];
+    teamIcons[id] = div;
+    undoStacks[id] = [];
+    activeTeam = id;
+    selectedIcon = null;
+
+    historyStack.push({ type: "line", team: id });
+
+    repositionAll();
+    drawPaths();
+    saveMapState();
+  } else if (activeTeam) {
+    undoStacks[activeTeam].push(structuredClone(teamPaths[activeTeam] || []));
+    teamPaths[activeTeam].push(n);
+    historyStack.push({ type: "line", team: activeTeam });
+    drawPaths();
+    saveMapState();
+  }
+});
+
+/* --- circle resize/drag interactions --- */
+function startTouch(e) {
+  if (e.target?.closest && e.target.closest(".note")) return;
+  e.preventDefault();
+
+  const nn = pointerToNorm(e);
+  const ptPx = normToPx(nn);
+
+  resizingCircle = findCircleForResize(ptPx);
+  if (resizingCircle) {
+    isResizing = true;
+  } else {
+    draggingCircle = findCircleForDrag(ptPx);
+    if (draggingCircle) isDragging = true;
+  }
+}
+
+function moveTouch(e) {
+  if (!isDragging && !isResizing) return;
+  e.preventDefault();
+
+  const b = getImageBox();
+  const minDim = Math.min(b.dw, b.dh);
+
+  const nn = pointerToNorm(e);
+  const ptPx = normToPx(nn);
+
+  if (resizingCircle && isResizing) {
+    const cp = normToPx(resizingCircle);
+    const distPx = Math.hypot(ptPx.x - cp.x, ptPx.y - cp.y);
+    resizingCircle.r = clamp01(distPx / Math.max(1, minDim));
+  } else if (draggingCircle && isDragging) {
+    draggingCircle.x = nn.x;
+    draggingCircle.y = nn.y;
+  }
+
+  drawPaths();
+}
+
+function endTouch() {
+  if (isDragging || isResizing) saveMapState();
+  resizingCircle = draggingCircle = null;
+  isResizing = isDragging = false;
+}
+
+map.addEventListener("mousedown", startTouch);
+map.addEventListener("mousemove", moveTouch);
+window.addEventListener("mouseup", endTouch);
+
+map.addEventListener("touchstart", startTouch, { passive:false });
+map.addEventListener("touchmove", moveTouch, { passive:false });
+window.addEventListener("touchend", endTouch, { passive:false });
+window.addEventListener("touchcancel", endTouch, { passive:false });
+
+/* --- undo/reset/export/import --- */
+document.getElementById("undo-btn").onclick = () => {
+  const last = historyStack.pop();
+  if (!last) return;
+
+  if (last.type === "circle") {
+    circles.pop();
+  } else if (last.type === "line") {
+    const path = teamPaths[last.team];
+    if (path) {
+      path.pop();
+      if (path.length === 0) {
+        delete teamPaths[last.team];
+        const icon = teamIcons[last.team];
+        if (icon) icon.remove();
+        delete teamIcons[last.team];
       }
-      return session;
     }
-
-    async function logout(){
-      await client.auth.signOut();
-      window.location.href = "index.html";
-    }
-
-    /***********************
-     * Sidebar collapse + active nav
-     ***********************/
-    const sidebar = document.getElementById('sidebar');
-
-    (function initSidebarCollapse(){
-      const key = 'ff_sidebar_collapsed_v1';
-      const saved = localStorage.getItem(key);
-      if (saved === '1') sidebar.classList.add('collapsed');
-
-      const btn = document.getElementById('sbToggle');
-      const path = document.getElementById('sbTogglePath');
-
-      function syncIcon(){
-        if (!path) return;
-        path.setAttribute('d', sidebar.classList.contains('collapsed')
-          ? 'M10 7l5 5-5 5'
-          : 'M14 7l-5 5 5 5'
-        );
-      }
-      syncIcon();
-
-      btn?.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
-        syncIcon();
-      });
-    })();
-
-    (function setActiveNav(){
-      const here = (location.pathname.split('/').pop() || 'character.html').toLowerCase();
-      document.querySelectorAll('.nav-item').forEach(a => {
-        const page = (a.getAttribute('data-page') || '').toLowerCase();
-        a.classList.toggle('active', page === here);
-      });
-    })();
-
-    /***********************
-     * Character Data + Rendering
-     ***********************/
-    const CHAR_URL = 'https://misai-my.github.io/freefire-esports/character.json';
-    let allCharacters = [];
-    let currentMetaMode = 'meta'; // default BR
-    let currentSearchTerm = '';
-
-    const metaGrid = document.getElementById('metaGrid');
-    const nonMetaGrid = document.getElementById('nonMetaGrid');
-    const compactByRole = document.getElementById('compactByRole');
-    const metaTitle = document.getElementById('metaTitle');
-    const metaHint = document.getElementById('metaHint');
-    const toggleModeBtn = document.getElementById('toggleModeBtn');
-    const searchCountPill = document.getElementById('searchCountPill');
-
-    function safeText(v){ return (v ?? '').toString(); }
-
-    function tidy(v){
-      return safeText(v)
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        .replace(/\s*\n+\s*/g, ' ')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-    }
-
-    function isPassive(c){
-      return tidy(c?.skill_type).toLowerCase() === 'passive';
-    }
-
-    function isMeta(c){
-      return tidy(c?.[currentMetaMode] || 'no').toLowerCase() === 'yes';
-    }
-
-    function modeLabel(){
-      return currentMetaMode === 'meta' ? 'BR' : 'CS';
-    }
-
-    function setModeUI(){
-      const isBR = currentMetaMode === 'meta';
-      toggleModeBtn.textContent = isBR ? 'Battle Royale' : 'Clash Squad';
-      metaTitle.textContent = 'Meta Characters';
-      metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
-    }
-
-    function makeSearchBlob(c){
-      const parts = [
-        tidy(c?.name),
-        tidy(c?.role),
-        tidy(c?.skill_type),
-        tidy(c?.skill),
-        tidy(c?.description)
-      ].filter(Boolean);
-      return parts.join(' ').toLowerCase();
-    }
-
-    function ensureEmptyMsg(grid){
-      let msg = grid.querySelector('.empty-msg');
-      if (!msg){
-        msg = document.createElement('div');
-        msg.className = 'empty-msg';
-        msg.textContent = 'No matches.';
-        grid.appendChild(msg);
-      }
-      return msg;
-    }
-
-    function makeCard(c){
-      const card = document.createElement('div');
-      const passive = isPassive(c);
-      const meta = isMeta(c);
-
-      card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '');
-      card.setAttribute('tabindex','0');
-      card.dataset.search = makeSearchBlob(c);
-
-      const thumb = document.createElement('div');
-      thumb.className = 'char-thumb';
-
-      const img = document.createElement('img');
-      img.src = c.image_url || '';
-      img.alt = tidy(c.name) || 'Character';
-      img.loading = 'lazy';
-      img.referrerPolicy = 'no-referrer';
-
-      const metaDot = document.createElement('span');
-      metaDot.className = 'meta-dot';
-
-      thumb.appendChild(img);
-      thumb.appendChild(metaDot);
-
-      const name = document.createElement('div');
-      name.className = 'char-name';
-      name.textContent = tidy(c.name) || '—';
-
-      card.appendChild(thumb);
-      card.appendChild(name);
-
-      card.addEventListener('click', () => openInfo(c, meta));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openInfo(c, meta);
-        }
-      });
-
-      return card;
-    }
-
-    function applyCharacterSearch(term){
-      const q = (term || '').toLowerCase().trim();
-
-      const allCards = [
-        ...metaGrid.querySelectorAll('.char-card'),
-        ...nonMetaGrid.querySelectorAll('.char-card')
-      ];
-
-      let visibleCards = 0;
-      allCards.forEach(el => {
-        const hit = !q || (el.dataset.search || '').includes(q);
-        el.style.display = hit ? '' : 'none';
-        if (hit) visibleCards++;
-      });
-
-      const metaVisible = [...metaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
-      const nonMetaVisible = [...nonMetaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
-      ensureEmptyMsg(metaGrid).style.display = metaVisible ? 'none' : '';
-      ensureEmptyMsg(nonMetaGrid).style.display = nonMetaVisible ? 'none' : '';
-
-      document.querySelectorAll('#compactByRole .role-group').forEach(group => {
-        const minis = [...group.querySelectorAll('.mini')];
-        let groupHits = 0;
-
-        minis.forEach(mini => {
-          const blob = mini.dataset.search || '';
-          const hit = !q || blob.includes(q);
-          mini.style.display = hit ? '' : 'none';
-          if (hit) groupHits++;
-        });
-
-        group.style.display = groupHits ? '' : 'none';
-      });
-
-      if (q) {
-        searchCountPill.style.display = '';
-        searchCountPill.textContent = `Showing: ${visibleCards} match${visibleCards===1?'':'es'}`;
-      } else {
-        searchCountPill.style.display = 'none';
-        searchCountPill.textContent = '';
-        document.querySelectorAll('#compactByRole .role-group').forEach(g => g.style.display = '');
-      }
-    }
-
-    function renderGrids(){
-      metaGrid.innerHTML = '';
-      nonMetaGrid.innerHTML = '';
-      compactByRole.innerHTML = '';
-
-      const chars = Array.isArray(allCharacters) ? allCharacters.slice() : [];
-      chars.sort((a,b) => tidy(a?.name).localeCompare(tidy(b?.name)));
-
-      const metas = [];
-      const nonmetas = [];
-      for (const c of chars){
-        (isMeta(c) ? metas : nonmetas).push(c);
-      }
-
-      metas.forEach(c => metaGrid.appendChild(makeCard(c)));
-      nonmetas.forEach(c => nonMetaGrid.appendChild(makeCard(c)));
-
-      const roleGroups = {};
-      for (const c of chars){
-        const role = tidy(c.role) || 'Other';
-        if (!roleGroups[role]) roleGroups[role] = [];
-        roleGroups[role].push(c);
-      }
-
-      const roles = Object.keys(roleGroups).sort((a,b) => a.localeCompare(b));
-      roles.forEach(role => {
-        const group = document.createElement('div');
-        group.className = 'role-group';
-
-        const head = document.createElement('div');
-        head.className = 'role-head';
-
-        const left = document.createElement('b');
-        left.textContent = role;
-
-        const right = document.createElement('span');
-        right.textContent = `${roleGroups[role].length} char${roleGroups[role].length===1?'':'s'}`;
-
-        head.appendChild(left);
-        head.appendChild(right);
-
-        const rg = document.createElement('div');
-        rg.className = 'role-grid';
-
-        roleGroups[role].forEach(c => {
-          const passive = isPassive(c);
-
-          const mini = document.createElement('div');
-          mini.className = 'mini ' + (passive ? 'passive-skill' : 'active-skill');
-          mini.dataset.search = makeSearchBlob(c);
-
-          const mt = document.createElement('div');
-          mt.className = 'mini-thumb';
-
-          const img = document.createElement('img');
-          img.src = c.image_url || '';
-          img.alt = tidy(c.name) || 'Character';
-          img.loading = 'lazy';
-          img.referrerPolicy = 'no-referrer';
-
-          mt.appendChild(img);
-
-          const mn = document.createElement('div');
-          mn.className = 'mini-name';
-          mn.textContent = tidy(c.name) || '—';
-
-          mini.appendChild(mt);
-          mini.appendChild(mn);
-
-          mini.addEventListener('click', () => openInfo(c, isMeta(c)));
-          rg.appendChild(mini);
-        });
-
-        group.appendChild(head);
-        group.appendChild(rg);
-        compactByRole.appendChild(group);
-      });
-
-      applyCharacterSearch(currentSearchTerm);
-    }
-
-    async function loadCharacters(){
-      metaGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
-      nonMetaGrid.innerHTML = '';
-      const res = await fetch(CHAR_URL, { cache: 'no-store' });
-      const data = await res.json();
-      allCharacters = Array.isArray(data) ? data : [];
-      renderGrids();
-    }
-
-    /***********************
-     * Popup (Modal)
-     ***********************/
-    const infoModal = document.getElementById('infoModal');
-    const infoClose = document.getElementById('infoClose');
-    const infoName = document.getElementById('infoName');
-    const infoSub = document.getElementById('infoSub');
-    const infoBadges = document.getElementById('infoBadges');
-    const infoSkillTitle = document.getElementById('infoSkillTitle');
-    const infoSkillDesc = document.getElementById('infoSkillDesc');
-    const infoRole = document.getElementById('infoRole');
-
-    function badgeDot(cls, label){
-      const el = document.createElement('span');
-      el.className = 'pill';
-      const d = document.createElement('span');
-      d.className = 'dot ' + cls;
-      el.appendChild(d);
-      el.appendChild(document.createTextNode(label));
-      return el;
-    }
-
-    function openInfo(c, metaFlag){
-      const name = tidy(c?.name) || '—';
-      const role = tidy(c?.role) || 'N/A';
-      const st = tidy(c?.skill_type) || '—';
-      const skill = tidy(c?.skill) || '—';
-      const desc = tidy(c?.description) || '—';
-
-      infoName.textContent = name;
-
-      const chips = [];
-      if (role && role !== 'N/A') chips.push(role.toUpperCase());
-      if (metaFlag) chips.push('META');
-      chips.push(modeLabel());
-      if (st) chips.push(st);
-      infoSub.textContent = chips.join(' • ');
-
-      infoBadges.innerHTML = '';
-      infoBadges.appendChild(badgeDot(isPassive(c) ? 'passive' : 'active', isPassive(c) ? 'Passive Skill' : 'Active Skill'));
-      if (metaFlag) infoBadges.appendChild(badgeDot('meta', 'Meta'));
-
-      infoSkillTitle.textContent = 'Skill: ' + (skill || '—');
-      infoSkillDesc.textContent = (st ? (st + ' — ') : '') + (desc || '—');
-      infoRole.textContent = role;
-
-      infoModal.classList.add('show');
-      infoModal.setAttribute('aria-hidden','false');
-    }
-
-    function closeInfo(){
-      infoModal.classList.remove('show');
-      infoModal.setAttribute('aria-hidden','true');
-    }
-
-    infoClose?.addEventListener('click', closeInfo);
-    infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo(); });
-
-    /***********************
-     * Meta mode toggle
-     ***********************/
-    toggleModeBtn?.addEventListener('click', () => {
-      currentMetaMode = (currentMetaMode === 'meta') ? 'cs_meta' : 'meta';
-      setModeUI();
-      renderGrids();
+  } else if (last.type === "note") {
+    const id = last.noteId;
+    const el = document.querySelector(`.note[data-note-id="${id}"]`) || document.querySelector(`.note[data-noteid="${id}"]`);
+    if (el) el.remove();
+    const idx = notes.findIndex(n => n.id === id);
+    if (idx !== -1) notes.splice(idx, 1);
+  }
+
+  drawPaths();
+  saveMapState();
+};
+
+document.getElementById("reset-all-btn").onclick = () => {
+  if (!confirm("Reset all?")) return;
+
+  document.querySelectorAll("#map .unit").forEach(unit => unit.remove());
+  for (const k of Object.keys(teamPaths)) delete teamPaths[k];
+  for (const k of Object.keys(teamIcons)) delete teamIcons[k];
+  for (const k of Object.keys(undoStacks)) delete undoStacks[k];
+
+  circles.length = 0;
+
+  notes.length = 0;
+  document.querySelectorAll(".note").forEach(n => n.remove());
+
+  activeTeam = selectedIcon = null;
+
+  drawPaths();
+  saveMapState();
+};
+
+document.getElementById("export-btn").onclick = () => {
+  const data = {
+    map: mapSelect.value,
+    paths: teamPaths,
+    circles,
+    notes
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "team-paths.json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById("import-file").onchange = function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const raw = JSON.parse(e.target.result || "{}");
+    const migrated = maybeMigrateState(raw);
+
+    // apply + save
+    await applyMapState(migrated);
+    await saveMapState();
+  };
+  reader.readAsText(file);
+};
+
+/* --- map change --- */
+mapSelect.addEventListener("change", async () => {
+  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+  const mapURL = selectedOption.value;
+  const mode = selectedOption.dataset.mode || "";
+
+  await ensureMapReady(mapURL);
+
+  // optional: seed default circles if you later tag mode="CS"
+  if (mode === "CS" && circles.length === 0 && default_circles_data_legacy[mapURL]) {
+    const seeded = default_circles_data_legacy[mapURL].map(legacyCircleToNorm);
+    circles.push(...seeded);
+    drawPaths();
+  }
+
+  if (mode === "CS") drawOverlayMask(circles);
+  else maskCanvas.style.display = "none";
+
+  saveMapState();
+});
+
+/* --- Supabase map state (normalized) --- */
+let mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
+let realtimeEnabled = true;
+let realtimeChannel = null;
+
+async function loadMapState() {
+  const { data, error } = await client
+    .from('map')
+    .select('state')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('❌ Failed to load map state:', error);
+    return;
+  }
+
+  if (!data || !data.state) {
+    mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
+    await applyMapState(mapState);
+    await saveMapState();
+    return;
+  }
+
+  mapState = maybeMigrateState(data.state);
+  await applyMapState(mapState);
+}
+
+async function saveMapState() {
+  mapState = {
+    map: mapSelect.value,
+    paths: teamPaths,
+    circles,
+    notes
+  };
+
+  const { error } = await client
+    .from('map')
+    .upsert({
+      id: 1,
+      state: mapState,
+      updated_at: new Date().toISOString()
     });
 
-    /***********************
-     * Search filter
-     ***********************/
-    const topSearch = document.getElementById('searchInput');
-    topSearch?.addEventListener('input', (e) => {
-      currentSearchTerm = (e.target.value || '');
-      applyCharacterSearch(currentSearchTerm);
+  if (error) console.error('❌ Failed to save map state:', error);
+}
+
+/* Apply state to UI */
+async function applyMapState(state) {
+  const s = maybeMigrateState(state || {});
+
+  const url = s.map || mapSelect.value;
+  mapSelect.value = url;
+  await ensureMapReady(url);
+
+  // clear UI + models
+  document.querySelectorAll("#map .unit").forEach(u => u.remove());
+  document.querySelectorAll(".note").forEach(n => n.remove());
+
+  for (const k of Object.keys(teamPaths)) delete teamPaths[k];
+  for (const k of Object.keys(teamIcons)) delete teamIcons[k];
+  for (const k of Object.keys(undoStacks)) delete undoStacks[k];
+  circles.length = 0;
+  notes.length = 0;
+
+  // restore paths + units
+  for (const [id, points] of Object.entries(s.paths || {})) {
+    if (!Array.isArray(points) || !points.length) continue;
+
+    const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+    if (!icon) continue;
+
+    const div = document.createElement("div");
+    div.className = "unit";
+    div.dataset.teamId = id;
+
+    const img = icon.cloneNode(true);
+    img.style.width = img.style.height = "100%";
+
+    const label = document.createElement("div");
+    label.className = "unit-label";
+    label.textContent = icon.dataset.teamTag || id;
+
+    const reset = document.createElement("button");
+    reset.className = "reset-btn";
+    reset.textContent = "Reset";
+    reset.onclick = ev => {
+      ev.stopPropagation();
+      div.remove();
+      delete teamPaths[id];
+      delete teamIcons[id];
+      delete undoStacks[id];
+      drawPaths();
+      saveMapState();
+    };
+
+    div.append(img, label, reset);
+    map.appendChild(div);
+    div.onclick = () => activeTeam = id;
+
+    teamPaths[id] = points.map(p => ({ x: clamp01(p.x), y: clamp01(p.y) }));
+    undoStacks[id] = [];
+    teamIcons[id] = div;
+  }
+
+  // circles
+  (s.circles || []).forEach(c => circles.push({
+    x: clamp01(c.x), y: clamp01(c.y), r: clamp01(c.r), color: c.color || "#00ffff"
+  }));
+
+  // notes
+  (s.notes || []).forEach(n => {
+    const id = n.id || ("note_" + (noteIdCounter++));
+    noteIdCounter++;
+    upsertNoteModel(id, clamp01(n.x), clamp01(n.y), (n.text ?? "").toString());
+
+    const p = normToPx({ x: clamp01(n.x), y: clamp01(n.y) });
+    const noteDiv = document.createElement("div");
+    noteDiv.className = "note";
+    noteDiv.dataset.noteId = id;
+    noteDiv.style.left = `${p.x}px`;
+    noteDiv.style.top  = `${p.y}px`;
+
+    const handle = document.createElement("div");
+    handle.className = "drag-handle";
+    handle.innerHTML = `<span>☰</span><span style="opacity:.6;font-size:11px;">note</span>`;
+
+    const content = document.createElement("div");
+    content.textContent = (n.text ?? "").toString();
+    content.contentEditable = true;
+
+    noteDiv.appendChild(handle);
+    noteDiv.appendChild(content);
+    map.appendChild(noteDiv);
+
+    // text sync
+    let tmr = null;
+    content.addEventListener("input", () => {
+      clearTimeout(tmr);
+      tmr = setTimeout(() => {
+        const model = notes.find(x => x.id === id);
+        if (model) model.text = content.textContent || "";
+        saveMapState();
+      }, 350);
     });
 
-    /***********************
-     * Init
-     ***********************/
-    window.addEventListener('DOMContentLoaded', async () => {
-      const session = await ensureSession();
-      if (!session) return;
+    // drag
+    let offsetX = 0, offsetY = 0, dragging = false;
 
-      const email = session.user?.email || '';
-      document.getElementById('userEmail').textContent = email || 'signed in';
-      const username = email ? email.split('@')[0] : 'PlayerOne';
-      document.getElementById('gamertag').textContent = username;
+    const startDrag = (e) => {
+      e.preventDefault();
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = map.getBoundingClientRect();
+      offsetX = touch.clientX - rect.left - noteDiv.offsetLeft;
+      offsetY = touch.clientY - rect.top - noteDiv.offsetTop;
+      dragging = true;
+    };
 
-      document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        logout();
-      });
+    const moveDrag = (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = map.getBoundingClientRect();
+      const newX = touch.clientX - rect.left - offsetX;
+      const newY = touch.clientY - rect.top - offsetY;
+      noteDiv.style.left = `${newX}px`;
+      noteDiv.style.top  = `${newY}px`;
 
-      setModeUI();
-      await loadCharacters();
-    });
-  </script>
+      const nn = pxToNorm({ x:newX, y:newY });
+      upsertNoteModel(id, nn.x, nn.y);
+    };
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      saveMapState();
+    };
+
+    handle.addEventListener("mousedown", (e) => { e.stopPropagation(); startDrag(e); });
+    handle.addEventListener("touchstart", (e) => { e.stopPropagation(); startDrag(e); }, { passive:false });
+
+    window.addEventListener("mousemove", moveDrag);
+    window.addEventListener("touchmove", moveDrag, { passive:false });
+    window.addEventListener("mouseup", endDrag);
+    window.addEventListener("touchend", endDrag);
+    window.addEventListener("touchcancel", endDrag);
+  });
+
+  repositionAll();
+  drawPaths();
+
+  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
+  if (selectedOption?.dataset.mode === "CS") drawOverlayMask(circles);
+  else maskCanvas.style.display = "none";
+}
+
+/* Realtime handler */
+function handleMapChange(payload) {
+  if (!realtimeEnabled) return;
+  const row = payload.new;
+  if (!row || row.id !== 1) return;
+  applyMapState(row.state || {});
+}
+
+async function enableRealtime() {
+  if (realtimeChannel) return;
+
+  realtimeChannel = client
+    .channel('public:map')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map' }, handleMapChange)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'map' }, handleMapChange);
+
+  const { error } = await realtimeChannel.subscribe();
+  if (error) console.error("❌ Error subscribing to real-time:", error.message);
+}
+
+async function disableRealtime() {
+  if (realtimeChannel) {
+    await client.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+}
+
+/* mask (normalized circles) */
+function drawOverlayMask(circlesToReveal) {
+  const ctx2 = maskCanvas.getContext("2d");
+  maskCanvas.style.display = "block";
+
+  const dpr = window.devicePixelRatio || 1;
+  const w = map.clientWidth;
+  const h = map.clientHeight;
+
+  maskCanvas.width = Math.floor(w * dpr);
+  maskCanvas.height = Math.floor(h * dpr);
+  ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ctx2.clearRect(0, 0, w, h);
+  ctx2.fillStyle = "rgba(0, 0, 0, 0.75)";
+  ctx2.fillRect(0, 0, w, h);
+
+  const b = getImageBox();
+  const minDim = Math.min(b.dw, b.dh);
+
+  ctx2.globalCompositeOperation = "destination-out";
+  circlesToReveal.forEach(c => {
+    const p = normToPx(c);
+    const rPx = (c.r || 0) * minDim;
+    ctx2.beginPath();
+    ctx2.arc(p.x, p.y, rPx, 0, 2 * Math.PI);
+    ctx2.fill();
+  });
+  ctx2.globalCompositeOperation = "source-over";
+}
+
+/* realtime toggle */
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadTeamIcons();
+
+  // set initial map url + probe
+  await ensureMapReady(mapSelect.value);
+
+  await loadMapState();
+  await enableRealtime();
+
+  const realtimeBtn = document.getElementById("realtime-toggle-btn");
+  realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+  realtimeBtn.classList.toggle("active", realtimeEnabled);
+
+  realtimeBtn.onclick = async () => {
+    realtimeEnabled = !realtimeEnabled;
+    realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+    realtimeBtn.classList.toggle("active", realtimeEnabled);
+
+    if (realtimeEnabled) await enableRealtime();
+    else await disableRealtime();
+  };
+});
+</script>
+
 </body>
 </html>
