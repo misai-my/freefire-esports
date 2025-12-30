@@ -78,9 +78,7 @@
       font-size:.8rem;
     }
 
-    #user-info{
-      color:var(--muted);
-    }
+    #user-info{ color:var(--muted); }
 
     .header-right button{
       padding:6px 10px;
@@ -92,9 +90,7 @@
       cursor:pointer;
     }
 
-    .header-right button:hover{
-      background:#333;
-    }
+    .header-right button:hover{ background:#333; }
 
     main{
       flex:1;
@@ -120,14 +116,8 @@
       gap:4px;
     }
 
-    .toolbar-left strong{
-      font-size:.9rem;
-    }
-
-    .toolbar-left span{
-      font-size:.8rem;
-      color:var(--muted);
-    }
+    .toolbar-left strong{ font-size:.9rem; }
+    .toolbar-left span{ font-size:.8rem; color:var(--muted); }
 
     .toolbar-right{
       display:flex;
@@ -159,9 +149,7 @@
       cursor:not-allowed;
       box-shadow:none;
     }
-    button.primary:hover:not(:disabled){
-      filter:brightness(1.05);
-    }
+    button.primary:hover:not(:disabled){ filter:brightness(1.05); }
 
     button.secondary{
       background:#252525;
@@ -172,9 +160,7 @@
       border-radius:999px;
       cursor:pointer;
     }
-    button.secondary:hover{
-      background:#303030;
-    }
+    button.secondary:hover{ background:#303030; }
 
     #status{
       font-size:.78rem;
@@ -258,7 +244,6 @@
       align-items:center;
       justify-content:center;
       overflow:hidden;
-      position:relative;
     }
 
     .logo-preview img{
@@ -269,10 +254,7 @@
       box-shadow:0 0 8px rgba(255,255,255,.4);
     }
 
-    .logo-placeholder{
-      font-size:.7rem;
-      color:var(--muted);
-    }
+    .logo-placeholder{ font-size:.7rem; color:var(--muted); }
 
     .delete-btn{
       width:100%;
@@ -286,9 +268,7 @@
       cursor:pointer;
     }
 
-    .delete-btn:hover{
-      background:rgba(255,77,79,0.16);
-    }
+    .delete-btn:hover{ background:rgba(255,77,79,0.16); }
 
     .hint{
       margin-top:4px;
@@ -299,26 +279,12 @@
       gap:10px;
     }
 
-    .hint a{
-      color:var(--brand);
-      text-decoration:none;
-      font-weight:500;
-    }
-
-    .hint a:hover{
-      text-decoration:underline;
-    }
-
     @media (max-width:1200px){
-      #main{
-        width:100%;
-        height:100%;
-        border-radius:0;
-        border:none;
-      }
+      #main{ width:100%; height:100%; border-radius:0; border:none; }
     }
   </style>
 </head>
+
 <body>
   <div id="main">
     <header>
@@ -357,14 +323,12 @@
           <span>Preview</span>
           <span>Remove</span>
         </div>
-        <div class="rows-body" id="rows-body">
-          <!-- Rows injected via JS -->
-        </div>
+        <div class="rows-body" id="rows-body"></div>
       </div>
 
       <div class="hint">
-        <span>Tip: Use square or circular logos for best results (e.g. 512×512 from imgur or storage bucket).</span>
-        <span>Link this data from your planner via <code>teams_pathplanner</code> table.</span>
+        <span>Tip: Use square/circle logos (e.g. 512×512).</span>
+        <span>Table: <code>teams_pathplanner</code></span>
       </div>
     </main>
   </div>
@@ -385,28 +349,22 @@
     const statusEl = document.getElementById('status');
     const countPill = document.getElementById('team-count-pill');
 
-    let rows = []; // { el, id, deleted, inputs, preview }
+    let rows = []; // { el, id, deleted, inputs }
 
-    // Auth guard
     client.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        window.location.href = 'index.html';
-      } else {
-        const userInfo = document.getElementById('user-info');
-        if (userInfo && session.user?.email) {
-          userInfo.textContent = 'Logged in as: ' + session.user.email;
-        }
+      if (!session) window.location.href = 'index.html';
+      else {
+        document.getElementById('user-info').textContent =
+          'Logged in as: ' + (session.user?.email || '');
         loadTeams();
       }
     });
 
     function logout() {
-      client.auth.signOut().then(() => {
-        window.location.href = 'index.html';
-      });
+      client.auth.signOut().then(() => window.location.href = 'index.html');
     }
 
-    function setStatus(msg, isError = false) {
+    function setStatus(msg, isError=false) {
       statusEl.textContent = msg || '';
       statusEl.style.color = isError ? '#ff9b9b' : 'var(--muted)';
     }
@@ -417,6 +375,15 @@
       addBtn.disabled = activeCount >= MAX_TEAMS;
     }
 
+    function updateIndices() {
+      let index = 1;
+      rows.forEach(r => {
+        const idxEl = r.el.querySelector('.row-index');
+        if (!r.deleted) idxEl.textContent = index++;
+        else idxEl.textContent = '—';
+      });
+    }
+
     function createRow(teamData = {}) {
       const rowEl = document.createElement('div');
       rowEl.className = 'team-row';
@@ -425,12 +392,10 @@
       idxEl.className = 'row-index';
 
       const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.placeholder = 'Team Name (e.g. G2 Esports)';
+      nameInput.placeholder = 'Team Name';
       nameInput.value = teamData.team_name || '';
 
       const tagInput = document.createElement('input');
-      tagInput.type = 'text';
       tagInput.placeholder = 'TAG';
       tagInput.maxLength = 6;
       tagInput.value = teamData.team_tag || '';
@@ -442,67 +407,56 @@
 
       const previewWrap = document.createElement('div');
       previewWrap.className = 'logo-preview';
-      const previewImg = document.createElement('img');
-      const placeholder = document.createElement('span');
-      placeholder.className = 'logo-placeholder';
-      placeholder.textContent = 'No logo';
+      const ph = document.createElement('span');
+      ph.className = 'logo-placeholder';
+      ph.textContent = teamData.logo_url ? '' : 'No logo';
 
       if (teamData.logo_url) {
-        previewImg.src = teamData.logo_url;
-        previewWrap.appendChild(previewImg);
+        const img = document.createElement('img');
+        img.src = teamData.logo_url;
+        previewWrap.appendChild(img);
       } else {
-        previewWrap.appendChild(placeholder);
+        previewWrap.appendChild(ph);
       }
+
+      logoInput.addEventListener('change', () => {
+        const url = logoInput.value.trim();
+        previewWrap.innerHTML = '';
+        if (!url) {
+          const p = document.createElement('span');
+          p.className = 'logo-placeholder';
+          p.textContent = 'No logo';
+          previewWrap.appendChild(p);
+          return;
+        }
+        const img = document.createElement('img');
+        img.src = url;
+        img.onerror = () => {
+          previewWrap.innerHTML = '';
+          const p = document.createElement('span');
+          p.className = 'logo-placeholder';
+          p.textContent = 'Invalid URL';
+          previewWrap.appendChild(p);
+        };
+        previewWrap.appendChild(img);
+      });
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-btn';
       deleteBtn.type = 'button';
       deleteBtn.textContent = 'Delete';
 
-      // assemble row
-      rowEl.appendChild(idxEl);
-      rowEl.appendChild(nameInput);
-      rowEl.appendChild(tagInput);
-      rowEl.appendChild(logoInput);
-      rowEl.appendChild(previewWrap);
-      rowEl.appendChild(deleteBtn);
-
+      rowEl.append(idxEl, nameInput, tagInput, logoInput, previewWrap, deleteBtn);
       rowsBody.appendChild(rowEl);
 
       const rowObj = {
         el: rowEl,
-        id: teamData.id || null,
+        id: (teamData.id ?? null),
         deleted: false,
-        inputs: { nameInput, tagInput, logoInput },
-        preview: { wrap: previewWrap, img: previewImg, placeholder }
+        inputs: { nameInput, tagInput, logoInput }
       };
-
       rows.push(rowObj);
 
-      // Logo preview change
-      logoInput.addEventListener('change', () => {
-        const url = logoInput.value.trim();
-        previewWrap.innerHTML = '';
-        if (url) {
-          const img = document.createElement('img');
-          img.src = url;
-          img.onerror = () => {
-            previewWrap.innerHTML = '';
-            const ph = document.createElement('span');
-            ph.className = 'logo-placeholder';
-            ph.textContent = 'Invalid URL';
-            previewWrap.appendChild(ph);
-          };
-          previewWrap.appendChild(img);
-        } else {
-          const ph = document.createElement('span');
-          ph.className = 'logo-placeholder';
-          ph.textContent = 'No logo';
-          previewWrap.appendChild(ph);
-        }
-      });
-
-      // Delete row
       deleteBtn.addEventListener('click', () => {
         if (rows.filter(r => !r.deleted).length <= MIN_TEAMS) {
           alert('You must keep at least ' + MIN_TEAMS + ' teams.');
@@ -521,19 +475,6 @@
       updateCountPill();
     }
 
-    function updateIndices() {
-      let index = 1;
-      rows.forEach(r => {
-        const idxEl = r.el.querySelector('.row-index');
-        if (!r.deleted) {
-          idxEl.textContent = index;
-          index++;
-        } else {
-          idxEl.textContent = '—';
-        }
-      });
-    }
-
     async function loadTeams() {
       setStatus('Loading teams...');
       rowsBody.innerHTML = '';
@@ -545,25 +486,32 @@
         .order('id', { ascending: true });
 
       if (error) {
-        console.error('Error loading teams:', error);
+        console.error(error);
         setStatus('Failed to load teams: ' + error.message, true);
         return;
       }
 
-      if (data && data.length) {
-        data.forEach(team => createRow(team));
-      }
+      (data || []).forEach(team => createRow(team));
 
-      // Ensure at least MIN_TEAMS rows
-      while (rows.filter(r => !r.deleted).length < MIN_TEAMS) {
-        createRow();
-      }
+      while (rows.filter(r => !r.deleted).length < MIN_TEAMS) createRow();
 
       setStatus('Teams loaded.');
       updateCountPill();
     }
 
-    // FIXED: use UPDATE + INSERT, not UPSERT with id
+    // ✅ NEW: get current max(id) so new inserts can assign ids
+    async function fetchMaxId() {
+      const { data, error } = await client
+        .from(TABLE_NAME)
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      const max = data?.[0]?.id;
+      return Number(max || 0);
+    }
+
     async function saveTeams() {
       setStatus('Saving teams...');
       saveBtn.disabled = true;
@@ -572,12 +520,9 @@
       const toUpdate = [];
       const toDelete = [];
 
-      // collect changes
       for (const r of rows) {
         if (r.deleted) {
-          if (r.id) {
-            toDelete.push(r.id);
-          }
+          if (r.id != null) toDelete.push(r.id);
           continue;
         }
 
@@ -585,38 +530,37 @@
         const tag  = r.inputs.tagInput.value.trim();
         const logo = r.inputs.logoInput.value.trim();
 
-        // Skip completely empty new rows
+        // Skip truly empty rows
         if (!name && !tag && !logo) {
-          if (r.id) {
-            // existing row cleared => delete
-            toDelete.push(r.id);
-          }
+          if (r.id != null) toDelete.push(r.id);
           continue;
         }
 
-        // basic validation
         if (!name || !tag || !logo) {
           setStatus('Each active team must have a name, tag, and logo URL.', true);
           saveBtn.disabled = false;
-          return; // abort save
+          return;
         }
 
-        const payload = {
-          team_name: name,
-          team_tag: tag,
-          logo_url: logo
-        };
+        const payload = { team_name: name, team_tag: tag, logo_url: logo };
 
-        if (r.id) {
-          payload.id = r.id;
-          toUpdate.push(payload);
+        if (r.id != null) {
+          toUpdate.push({ id: r.id, ...payload });
         } else {
-          toInsert.push(payload);
+          toInsert.push(payload); // id assigned below
         }
       }
 
       try {
-        // Deletes
+        // ✅ assign ids for inserts (because your table requires id)
+        if (toInsert.length) {
+          let nextId = await fetchMaxId();
+          for (const item of toInsert) {
+            nextId += 1;
+            item.id = nextId;
+          }
+        }
+
         if (toDelete.length) {
           const { error: delError } = await client
             .from(TABLE_NAME)
@@ -625,7 +569,6 @@
           if (delError) throw delError;
         }
 
-        // Updates — IMPORTANT: no upsert on identity id
         for (const item of toUpdate) {
           const { id, ...updateData } = item;
           const { error: updError } = await client
@@ -635,20 +578,18 @@
           if (updError) throw updError;
         }
 
-        // Inserts (no id included, uses identity default)
         if (toInsert.length) {
           const { error: insError } = await client
             .from(TABLE_NAME)
-            .insert(toInsert)
-            .select();
+            .insert(toInsert);
           if (insError) throw insError;
         }
 
         setStatus('Saved successfully.');
         await loadTeams();
       } catch (err) {
-        console.error('Save error:', err);
-        setStatus('Failed to save teams: ' + err.message, true);
+        console.error(err);
+        setStatus('Failed to save teams: ' + (err.message || String(err)), true);
       } finally {
         saveBtn.disabled = false;
       }
@@ -659,9 +600,7 @@
       createRow();
     });
 
-    saveBtn.addEventListener('click', () => {
-      saveTeams();
-    });
+    saveBtn.addEventListener('click', saveTeams);
   </script>
 </body>
 </html>
