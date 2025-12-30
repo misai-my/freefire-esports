@@ -121,7 +121,7 @@
       overflow:hidden;
     }
 
-    /* Team icons */
+    /* Team icons (desktop default grid) */
     .icon-grid{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -134,6 +134,13 @@
       margin-bottom: 10px;
     }
 
+    .team-wrap{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+    }
+
     .team-icon{
       width: 50px;
       height: 55px;
@@ -143,7 +150,9 @@
       border: 1px solid rgba(255,255,255,.14);
       box-shadow: 0 10px 24px rgba(0,0,0,.35);
       object-fit: cover;
-      touch-action:none;
+
+      /* Desktop: we don't want map panning, but this is icons; keep safe */
+      touch-action: manipulation;
     }
     .team-icon.selected{
       outline: 2px solid rgba(255,189,89,.55);
@@ -177,10 +186,35 @@
       transition: .18s ease;
     }
 
+    /* ✅ iOS-safe select styling (prevents blank text on mobile Safari) */
     #map-select{
-      background: rgba(0,0,0,.28);
+      background: #0e111a;            /* solid background works better than rgba on iOS selects */
       color: rgba(244,246,255,.92);
+      -webkit-text-fill-color: rgba(244,246,255,.92);
+      -webkit-appearance: none;
+      appearance: none;
+      line-height: 1.2;
+      min-height: 42px;
+      padding-right: 34px;            /* space for fake arrow */
+      position: relative;
     }
+    #map-select:focus{
+      outline:none;
+      border-color: rgba(255,189,89,.55);
+      box-shadow: 0 0 0 3px rgba(255,189,89,.10);
+    }
+    /* fake arrow */
+    #map-select{
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(244,246,255,.85) 50%),
+        linear-gradient(135deg, rgba(244,246,255,.85) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) 50%,
+        calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
     #map-select option, #map-select optgroup{
       background: #0e111a;
       color: rgba(244,246,255,.92);
@@ -316,16 +350,49 @@
         height: var(--phone-panel-h);
         border-left:none;
       }
+
+      /* ✅ turn team grid into horizontal scroll strip */
       .icon-grid{
-        grid-template-columns: repeat(6, 1fr);
+        display:flex;
+        flex-wrap:nowrap;
+        gap:10px;
+        justify-content:flex-start;
+        align-items:flex-start;
+
+        overflow-x:auto;
+        overflow-y:hidden;
+        -webkit-overflow-scrolling: touch;
+
+        padding: 10px 8px;
+        margin-bottom: 10px;
+
+        scroll-snap-type: x proximity;
+        touch-action: pan-x; /* allow sideways swipe */
       }
+
+      .icon-grid::-webkit-scrollbar{ height:10px; }
+      .icon-grid::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius: 10px; }
+      .icon-grid::-webkit-scrollbar-track{ background: transparent; }
+
+      .team-wrap{
+        flex: 0 0 auto;
+        width: 64px;
+        scroll-snap-align: start;
+      }
+
       .team-icon{
         width: 44px;
         height: 48px;
+        touch-action: pan-x; /* allow swipe over icons to scroll */
       }
+
       #controls button, #map-select{
         font-size: 13px;
         padding: 12px 10px;
+      }
+
+      #map-select{
+        min-height: 46px;
       }
     }
 
@@ -407,14 +474,43 @@
     document.getElementById("logoutBtn").addEventListener("click", logout);
 
     /***********************
-     * LOGICAL COORDINATES (perfect sync across devices)
-     * Map area is logically 792 x 800 always.
+     * Map select helpers (prevents blank text on mobile)
+     ***********************/
+    const map = document.getElementById("map");
+    const mapSelect = document.getElementById("map-select");
+
+    const MAP_LABELS = {
+      "https://i.imgur.com/V6iUHaA.jpeg":"Bermuda",
+      "https://i.imgur.com/ieY0LHk.jpeg":"Purgatory",
+      "https://i.imgur.com/48O1Jf8.jpeg":"Alpine",
+      "https://i.imgur.com/4Yz12P9.jpeg":"Kalahari",
+      "https://i.imgur.com/x5he05R.jpeg":"NeXTerra",
+      "https://i.imgur.com/IX1oY9Z.jpeg":"Solara"
+    };
+
+    function ensureMapOption(url){
+      if (!url) return;
+      const opts = Array.from(mapSelect.options);
+      const found = opts.find(o => o.value === url);
+      if (!found){
+        const label = MAP_LABELS[url] || "Saved Map";
+        const opt = new Option(label, url);
+        mapSelect.appendChild(opt);
+      }
+      mapSelect.value = url;
+    }
+
+    function setMapBg(){
+      // if value doesn't exist, iOS can show blank; ensure it exists first
+      ensureMapOption(mapSelect.value);
+      map.style.backgroundImage = `url('${mapSelect.value}')`;
+    }
+
+    /***********************
+     * LOGICAL COORDINATES
      ***********************/
     const LOGICAL_W = 792;
     const LOGICAL_H = 800;
-
-    const map = document.getElementById("map");
-    const mapSelect = document.getElementById("map-select");
 
     const pathCanvas = document.getElementById("pathCanvas");
     const ctx = pathCanvas.getContext("2d");
@@ -422,7 +518,6 @@
     const maskCanvas = document.getElementById("maskCanvas");
     const ctxMask = maskCanvas.getContext("2d");
 
-    function setMapBg(){ map.style.backgroundImage = `url('${mapSelect.value}')`; }
     setMapBg();
 
     function clientToLogical(e){
@@ -451,10 +546,10 @@
     /***********************
      * State
      ***********************/
-    const teamPaths = {};     // logical points
-    const teamIcons = {};     // DOM
-    const circles = [];       // logical
-    const notesData = [];     // logical
+    const teamPaths = {};
+    const teamIcons = {};
+    const circles = [];
+    const notesData = [];
 
     const historyStack = [];
     let selectedIcon = null;
@@ -479,64 +574,29 @@
     /***********************
      * Resize canvases
      ***********************/
-    function resizeCanvases(){
-      const dpr = window.devicePixelRatio || 1;
-
-      pathCanvas.width = Math.round(map.clientWidth * dpr);
-      pathCanvas.height = Math.round(map.clientHeight * dpr);
-      pathCanvas.style.width = map.clientWidth + "px";
-      pathCanvas.style.height = map.clientHeight + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      maskCanvas.width = Math.round(map.clientWidth * dpr);
-      maskCanvas.height = Math.round(map.clientHeight * dpr);
-      maskCanvas.style.width = map.clientWidth + "px";
-      maskCanvas.style.height = map.clientHeight + "px";
-      ctxMask.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      repositionOverlays();
-      drawAll();
-
-      const opt = mapSelect.options[mapSelect.selectedIndex];
-      if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
-      else maskCanvas.style.display = "none";
-    }
-    window.addEventListener("resize", resizeCanvases);
-
-    /***********************
-     * Draw
-     ***********************/
-    function drawArrow(fromL, toL, color){
-      const { sx, sy } = scaleFactors();
-      const from = { x: fromL.x * sx, y: fromL.y * sy };
-      const to   = { x: toL.x * sx,   y: toL.y * sy };
-
-      const dx = to.x - from.x, dy = to.y - from.y;
-      const angle = Math.atan2(dy, dx);
-
-      ctx.beginPath();
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 6;
-
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, to.y);
-
-      ctx.lineTo(to.x - 10 * Math.cos(angle - Math.PI / 6), to.y - 10 * Math.sin(angle - Math.PI / 6));
-      ctx.moveTo(to.x, to.y);
-      ctx.lineTo(to.x - 10 * Math.cos(angle + Math.PI / 6), to.y - 10 * Math.sin(angle + Math.PI / 6));
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+    function repositionOverlays(){
+      for (const id in teamIcons){
+        const el = teamIcons[id];
+        const first = teamPaths[id]?.[0];
+        if (!el || !first) continue;
+        const p = logicalToPx(first);
+        el.style.left = `${p.x - 15}px`;
+        el.style.top  = `${p.y - 15}px`;
+      }
+      document.querySelectorAll(".note").forEach(noteEl => {
+        const id = noteEl.dataset.noteId;
+        const n = notesData.find(x => x.id === id);
+        if (!n) return;
+        const p = logicalToPx(n);
+        noteEl.style.left = `${p.x}px`;
+        noteEl.style.top  = `${p.y}px`;
+      });
     }
 
     function drawAll(){
       ctx.clearRect(0, 0, map.clientWidth, map.clientHeight);
-
       const { sx, sy, s } = scaleFactors();
 
-      // circles
       for (const c of circles){
         const cx = c.x * sx, cy = c.y * sy;
         const r  = c.r * s;
@@ -555,7 +615,29 @@
         ctx.fill();
       }
 
-      // paths
+      function drawArrow(fromL, toL, color){
+        const from = { x: fromL.x * sx, y: fromL.y * sy };
+        const to   = { x: toL.x * sx,   y: toL.y * sy };
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const angle = Math.atan2(dy, dx);
+
+        ctx.beginPath();
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
+
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+
+        ctx.lineTo(to.x - 10 * Math.cos(angle - Math.PI / 6), to.y - 10 * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - 10 * Math.cos(angle + Math.PI / 6), to.y - 10 * Math.sin(angle + Math.PI / 6));
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
       for (const id in teamPaths){
         const path = teamPaths[id];
         const color = teamColors[teamIndex(id)] || "#fff";
@@ -565,49 +647,29 @@
       }
     }
 
-    function drawOverlayMask(circlesToReveal){
-      maskCanvas.style.display = "block";
-      ctxMask.clearRect(0,0,map.clientWidth,map.clientHeight);
+    function resizeCanvases(){
+      const dpr = window.devicePixelRatio || 1;
 
-      ctxMask.fillStyle = "rgba(0,0,0,0.75)";
-      ctxMask.fillRect(0,0,map.clientWidth,map.clientHeight);
+      pathCanvas.width = Math.round(map.clientWidth * dpr);
+      pathCanvas.height = Math.round(map.clientHeight * dpr);
+      pathCanvas.style.width = map.clientWidth + "px";
+      pathCanvas.style.height = map.clientHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const { sx, sy, s } = scaleFactors();
-      ctxMask.globalCompositeOperation = "destination-out";
-      circlesToReveal.forEach(c => {
-        ctxMask.beginPath();
-        ctxMask.arc(c.x*sx, c.y*sy, c.r*s, 0, 2*Math.PI);
-        ctxMask.fill();
-      });
-      ctxMask.globalCompositeOperation = "source-over";
+      maskCanvas.width = Math.round(map.clientWidth * dpr);
+      maskCanvas.height = Math.round(map.clientHeight * dpr);
+      maskCanvas.style.width = map.clientWidth + "px";
+      maskCanvas.style.height = map.clientHeight + "px";
+      ctxMask.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      repositionOverlays();
+      drawAll();
+      maskCanvas.style.display = "none";
     }
+    window.addEventListener("resize", resizeCanvases);
 
     /***********************
-     * Overlays: units + notes reposition on resize
-     ***********************/
-    function repositionOverlays(){
-      // units
-      for (const id in teamIcons){
-        const el = teamIcons[id];
-        const first = teamPaths[id]?.[0];
-        if (!el || !first) continue;
-        const p = logicalToPx(first);
-        el.style.left = `${p.x - 15}px`;
-        el.style.top  = `${p.y - 15}px`;
-      }
-      // notes
-      document.querySelectorAll(".note").forEach(noteEl => {
-        const id = noteEl.dataset.noteId;
-        const n = notesData.find(x => x.id === id);
-        if (!n) return;
-        const p = logicalToPx(n);
-        noteEl.style.left = `${p.x}px`;
-        noteEl.style.top  = `${p.y}px`;
-      });
-    }
-
-    /***********************
-     * Circles hit tests (logical)
+     * Circles hit tests
      ***********************/
     function findCircleResize(ptL){
       for (let i = circles.length - 1; i >= 0; i--){
@@ -653,7 +715,6 @@
         if (pushHistory) historyStack.push({ type:"note", id });
       }
 
-      // initial position
       const p = logicalToPx({ x: logicalX, y: logicalY });
       noteDiv.style.left = `${p.x}px`;
       noteDiv.style.top  = `${p.y}px`;
@@ -664,7 +725,6 @@
         saveMapState();
       });
 
-      // drag with pointer (store logical)
       let dragging = false;
       let offPxX = 0, offPxY = 0;
 
@@ -694,7 +754,6 @@
         noteDiv.style.left = `${newPxX}px`;
         noteDiv.style.top  = `${newPxY}px`;
 
-        // convert px -> logical
         const lx = (newPxX / map.clientWidth) * LOGICAL_W;
         const ly = (newPxY / map.clientHeight) * LOGICAL_H;
 
@@ -798,9 +857,7 @@
 
       data.slice(0, teamColors.length).forEach((team, i) => {
         const wrapper = document.createElement("div");
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.alignItems = "center";
+        wrapper.className = "team-wrap";
 
         const img = document.createElement("img");
         img.src = team.logo_url;
@@ -851,13 +908,11 @@
     };
 
     /***********************
-     * Map pointer interactions (tap vs drag)
-     * (Fix: circle dragging won't block placing logos)
+     * Map pointer interactions
      ***********************/
     let down = false;
     let moved = false;
     let downClient = { x:0, y:0 };
-    let downLogical = { x:0, y:0 };
 
     let candResize = null, candDrag = null;
     let resizingCircle = null, draggingCircle = null;
@@ -872,7 +927,7 @@
       moved = false;
 
       downClient = { x: e.clientX, y: e.clientY };
-      downLogical = clientToLogical(e);
+      const downLogical = clientToLogical(e);
 
       candResize = findCircleResize(downLogical);
       candDrag = candResize ? null : findCircleDrag(downLogical);
@@ -921,7 +976,6 @@
         return;
       }
 
-      // TAP
       candResize = candDrag = null;
       resizingCircle = draggingCircle = null;
 
@@ -999,8 +1053,6 @@
             teamIcons[last.team]?.remove();
             delete teamIcons[last.team];
             if (activeTeam === last.team) activeTeam = null;
-          } else {
-            // unit stays at first point; no change needed
           }
         }
       } else if (last.type === "note"){
@@ -1055,11 +1107,10 @@
         const data = JSON.parse(e.target.result);
 
         if (data.map){
-          mapSelect.value = data.map;
+          ensureMapOption(data.map);
           setMapBg();
         }
 
-        // clear
         Object.values(teamIcons).forEach(el => el?.remove());
         Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
         Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
@@ -1071,7 +1122,6 @@
         selectedIcon = null;
         document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
 
-        // restore
         Object.entries(data.paths || {}).forEach(([id, points]) => {
           const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
           if (!icon || !points?.length) return;
@@ -1099,9 +1149,7 @@
      ***********************/
     mapSelect.addEventListener("change", () => {
       setMapBg();
-      const opt = mapSelect.options[mapSelect.selectedIndex];
-      if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
-      else maskCanvas.style.display = "none";
+      maskCanvas.style.display = "none";
       saveMapState();
     });
 
@@ -1139,11 +1187,10 @@
 
     function applyMapState(state){
       if (state?.map){
-        mapSelect.value = state.map;
+        ensureMapOption(state.map);
         setMapBg();
       }
 
-      // clear
       Object.values(teamIcons).forEach(el => el?.remove());
       Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
       Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
@@ -1155,7 +1202,6 @@
       selectedIcon = null;
       document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
 
-      // restore
       Object.entries(state?.paths || {}).forEach(([id, points]) => {
         const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
         if (!icon || !points?.length) return;
@@ -1165,7 +1211,6 @@
 
       (state?.circles || []).forEach(c => circles.push({ x:c.x, y:c.y, r:c.r, color:c.color || "#00ffff" }));
 
-      // notes can be old format without id
       (state?.notes || []).forEach(n => {
         const nid = n.id || ("n_" + Math.random().toString(16).slice(2));
         notesData.push({ id:nid, x:n.x, y:n.y, text:n.text || "" });
