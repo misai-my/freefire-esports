@@ -157,6 +157,28 @@
       max-width: 150px;
     }
 
+    /* ✅ Sidebar nav search (added) */
+    .nav-search{
+      padding: 12px;
+      padding-top: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .nav-search input{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .9rem;
+    }
+    .nav-search input::placeholder{color: rgba(170,177,197,.75)}
+    .nav-search input:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+
     .nav{
       padding: 12px;
       display:flex;
@@ -215,6 +237,16 @@
       justify-content:center;
       gap:0;
       padding:10px 8px;
+    }
+    /* ✅ hide sidebar search when collapsed */
+    .sidebar.collapsed .nav-search{display:none;}
+
+    /* ✅ sidebar note (added) */
+    .sidebar-note{
+      font-size:.75rem;
+      color: var(--muted);
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,.06);
     }
 
     /* Main */
@@ -870,6 +902,11 @@
         </div>
       </div>
 
+      <!-- ✅ Nav Search (added) -->
+      <div class="nav-search">
+        <input id="navSearch" type="text" placeholder="Search menu..." autocomplete="off" />
+      </div>
+
       <nav class="nav" id="nav">
         <a class="nav-item" href="dashboard.html" data-page="dashboard.html" title="Dashboard">
           <span class="nav-ico">
@@ -878,9 +915,15 @@
           <span class="nav-label">Dashboard</span>
         </a>
 
-        <a class="nav-item active" href="character.html" data-page="character.html" title="Character Skills">
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Character Skills</span>
+        </a>
+
+        <!-- ✅ Compare added (sidebar update) -->
+        <a class="nav-item" href="character-comparison.html" data-page="character-comparison.html" title="Compare Characters">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Compare Characters</span>
         </a>
 
         <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
@@ -903,6 +946,8 @@
           <span class="nav-label">Split View</span>
         </a>
       </nav>
+
+      <div class="sidebar-note">Tip: Use “Show Meta For” to switch BR vs CS meta quickly.</div>
     </aside>
 
     <!-- MAIN -->
@@ -962,7 +1007,11 @@
             </div>
           </div>
 
-          <div class="section-title" id="metaTitle">Meta Characters <span class="hint" id="metaHint">(Battle Royale)</span></div>
+          <!-- ✅ safer title structure (no childNodes hacks) -->
+          <div class="section-title">
+            <span id="metaTitleText">Meta Characters</span>
+            <span class="hint" id="metaHint">(Battle Royale)</span>
+          </div>
           <div class="grid" id="metaGrid"></div>
 
           <div class="section-title" style="margin-top:18px;">Non-Meta Characters</div>
@@ -1064,7 +1113,7 @@
     }
 
     /***********************
-     * Sidebar collapse + active nav
+     * Sidebar collapse + active nav + nav search ✅
      ***********************/
     const sidebar = document.getElementById('sidebar');
 
@@ -1099,13 +1148,22 @@
       });
     })();
 
+    // ✅ nav search filter
+    document.getElementById('navSearch')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = (a.textContent || '').toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
+
     /***********************
      * Character Data + Rendering (optimized)
      ***********************/
     const metaGrid = document.getElementById('metaGrid');
     const nonMetaGrid = document.getElementById('nonMetaGrid');
     const compactByRole = document.getElementById('compactByRole');
-    const metaTitle = document.getElementById('metaTitle');
+    const metaTitleText = document.getElementById('metaTitleText');
     const metaHint = document.getElementById('metaHint');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
     const searchCountPill = document.getElementById('searchCountPill');
@@ -1131,7 +1189,7 @@
     function setModeUI(){
       const isBR = currentMetaMode === 'meta';
       toggleModeBtn.textContent = isBR ? 'Battle Royale' : 'Clash Squad';
-      metaTitle.childNodes[0].textContent = 'Meta Characters ';
+      metaTitleText.textContent = 'Meta Characters';
       metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
     }
 
@@ -1503,7 +1561,6 @@
       currentMetaMode = (currentMetaMode === 'meta') ? 'cs_meta' : 'meta';
       setModeUI();
       renderGrids();
-      // re-apply search quickly (keeps user context)
       scheduleSearchApply(currentSearchTerm);
     });
 
