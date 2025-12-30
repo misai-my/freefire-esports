@@ -97,6 +97,19 @@
       align-items:flex-start;
     }
 
+    /* Mobile sidebar overlay */
+    .sb-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      display:none;
+      z-index: 1900;
+    }
+    .sb-overlay.show{display:block;}
+    body.sb-open{overflow:hidden;}
+
     /* Sidebar */
     .sidebar{
       width: var(--sb-w);
@@ -112,8 +125,9 @@
       position: sticky;
       top: 18px;
       height: calc(100vh - 36px);
-      transition: width .18s ease;
+      transition: width .18s ease, transform .18s ease;
       flex:0 0 auto;
+      z-index: 10;
     }
     .sidebar.collapsed{ width: var(--sb-w-collapsed); }
 
@@ -156,6 +170,13 @@
       text-overflow:ellipsis;
       max-width: 150px;
     }
+
+    /* mobile close btn inside sidebar */
+    .sb-close{
+      margin-left:auto;
+      width:40px;height:40px;border-radius:14px;
+    }
+    .sb-close{display:none;}
 
     .nav{
       padding: 12px;
@@ -743,22 +764,83 @@
       word-break: break-word;
     }
 
+    /* ===== Mobile optimization ===== */
     @media (max-width: 980px){
-      .sidebar{display:none;}
-      .app{padding:12px;}
-      .topbar{top:12px;}
-      :root{
-        --wep-min: 130px;
+      .app{
+        padding:12px;
+        max-width: none;
       }
+      .topbar{top:12px;}
+      :root{ --wep-min: 130px; }
+
+      /* Off-canvas sidebar (instead of hiding) */
+      .sidebar{
+        position: fixed;
+        left: 12px;
+        top: 12px;
+        height: calc(100vh - 24px);
+        width: min(86vw, 320px);
+        transform: translateX(-120%);
+        z-index: 2000;
+      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: min(86vw, 320px); } /* disable collapsed behavior on mobile */
+
+      .sb-close{display:grid;}
+      .sidebar .brand{padding-right:10px;}
+
+      /* keep labels visible on mobile even if collapsed class exists */
+      .sidebar.collapsed .brand h1,
+      .sidebar.collapsed .brand small,
+      .sidebar.collapsed .nav-label{display:block;}
+      .sidebar.collapsed .nav-item{justify-content:flex-start; gap:10px; padding:10px 10px;}
+
+      /* Pills row: allow horizontal scroll */
+      .controls-left{
+        flex-wrap:nowrap;
+        overflow:auto;
+        -webkit-overflow-scrolling: touch;
+        max-width:100%;
+        padding-bottom: 2px;
+      }
+      .controls-left::-webkit-scrollbar{height:8px}
+      .controls-left::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:999px}
+      .controls-left .pill{flex:0 0 auto;}
+
+      .controls-right{width:100%;}
       .grid.list-view .wep-thumb{width: 140px;}
+    }
+
+    @media (max-width: 620px){
+      .topbar{flex-wrap:wrap;}
+      .search{width:100%; order: 2;}
+      .top-actions{width:100%; justify-content:space-between; order: 3;}
+      .userchip{max-width:none;}
+      .usertext span{display:none;} /* hide email line on small screens */
+
+      .field{flex:1 1 160px;}
+      .btn{flex: 1 1 160px;}
+
+      .hero{height: 132px;}
+      .hero-title h2{font-size: 1.2rem;}
+    }
+
+    @media (max-width: 420px){
+      :root{ --wep-min: 118px; }
+      .grid.list-view .wep-thumb{width: 120px;}
+      .grid.list-view .wep-mini{-webkit-line-clamp: 3;}
+      .topbar{padding:10px;}
     }
   </style>
 </head>
 
 <body>
+  <!-- mobile overlay -->
+  <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
+
   <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
+    <!-- SIDEBAR (updated + mobile drawer) -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
       <div class="brand">
         <div class="brand-left">
           <div class="logo">FF</div>
@@ -767,6 +849,12 @@
             <small class="muted">Caster Dashboard</small>
           </div>
         </div>
+
+        <button class="icon-btn sb-close" id="sbClose" aria-label="Close sidebar" title="Close">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
 
       <nav class="nav" id="nav">
@@ -781,6 +869,8 @@
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Character Skills</span>
         </a>
+
+        <!-- Character Comparison REMOVED (per request) -->
 
         <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
@@ -801,14 +891,14 @@
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Split View</span>
         </a>
-
       </nav>
     </aside>
 
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <!-- Desktop: collapse | Mobile: open drawer -->
+        <button class="icon-btn" id="sbToggle" aria-label="Sidebar" title="Sidebar">
           <svg viewBox="0 0 24 24" fill="none">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -972,31 +1062,97 @@
     }
 
     /***********************
-     * Sidebar collapse + active nav
+     * Sidebar: desktop collapse + mobile drawer
      ***********************/
     const sidebar = document.getElementById('sidebar');
+    const sbOverlay = document.getElementById('sbOverlay');
+    const sbClose = document.getElementById('sbClose');
 
-    (function initSidebarCollapse(){
+    function isMobile(){ return window.matchMedia('(max-width: 980px)').matches; }
+
+    function openMobileSidebar(){
+      sidebar.classList.add('open');
+      sbOverlay.classList.add('show');
+      sbOverlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('sb-open');
+    }
+    function closeMobileSidebar(){
+      sidebar.classList.remove('open');
+      sbOverlay.classList.remove('show');
+      sbOverlay.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('sb-open');
+    }
+    function toggleMobileSidebar(){
+      if (sidebar.classList.contains('open')) closeMobileSidebar();
+      else openMobileSidebar();
+    }
+
+    (function initSidebarControls(){
       const key = 'ff_sidebar_collapsed_v1';
-      const saved = localStorage.getItem(key);
-      if (saved === '1') sidebar.classList.add('collapsed');
 
       const btn = document.getElementById('sbToggle');
       const path = document.getElementById('sbTogglePath');
 
-      function syncIcon(){
+      function setToggleIcon(){
         if (!path) return;
-        path.setAttribute('d', sidebar.classList.contains('collapsed')
-          ? 'M10 7l5 5-5 5'
-          : 'M14 7l-5 5 5 5'
-        );
+
+        if (isMobile()){
+          // hamburger
+          path.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+          path.setAttribute('stroke-linejoin', 'round');
+        } else {
+          // chevron
+          path.setAttribute('d', sidebar.classList.contains('collapsed')
+            ? 'M10 7l5 5-5 5'
+            : 'M14 7l-5 5 5 5'
+          );
+        }
       }
-      syncIcon();
+
+      // Apply saved collapsed state ONLY for desktop
+      const saved = localStorage.getItem(key);
+      if (saved === '1') sidebar.classList.add('collapsed');
+
+      // If mobile, force non-collapsed (drawer)
+      if (isMobile()) sidebar.classList.remove('collapsed');
+
+      setToggleIcon();
 
       btn?.addEventListener('click', () => {
+        if (isMobile()){
+          toggleMobileSidebar();
+          return;
+        }
         sidebar.classList.toggle('collapsed');
         localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
-        syncIcon();
+        setToggleIcon();
+      });
+
+      sbClose?.addEventListener('click', closeMobileSidebar);
+      sbOverlay?.addEventListener('click', closeMobileSidebar);
+
+      // Close drawer when tapping a nav item (mobile)
+      document.querySelectorAll('.nav-item').forEach(a => {
+        a.addEventListener('click', () => {
+          if (isMobile()) closeMobileSidebar();
+        });
+      });
+
+      // Keep UI sane across resizes
+      window.addEventListener('resize', () => {
+        if (isMobile()){
+          sidebar.classList.remove('collapsed');
+        } else {
+          closeMobileSidebar();
+          const saved2 = localStorage.getItem(key);
+          sidebar.classList.toggle('collapsed', saved2 === '1');
+        }
+        setToggleIcon();
+      });
+
+      // Escape closes drawer if open
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('open')) closeMobileSidebar();
       });
     })();
 
@@ -1194,7 +1350,6 @@
       if (isListView){
         weaponGrid.classList.add('list-view');
         toggleViewBtn.textContent = '🔳 Grid View';
-        // swap each card into row layout
         [...weaponGrid.querySelectorAll('.wep-card')].forEach(card => {
           const thumb = card._thumb || card.querySelector('.wep-thumb');
           const row = card._row;
@@ -1206,7 +1361,6 @@
       } else {
         weaponGrid.classList.remove('list-view');
         toggleViewBtn.textContent = '📃 List View';
-        // restore grid layout
         [...weaponGrid.querySelectorAll('.wep-card')].forEach(card => {
           const w = card._weapon;
           if (!w) return;
@@ -1216,7 +1370,6 @@
           const cs = isCS(w);
           const price = tidy(w?.price);
 
-          // rebuild grid layout quickly
           const nm = document.createElement('div');
           nm.className = 'wep-name';
           nm.textContent = name;
@@ -1280,7 +1433,6 @@
     function renderWeapons(){
       weaponGrid.innerHTML = '';
 
-      // filter + sort array first
       const type = (currentTypeFilter || '').trim();
       const armory = (currentArmoryFilter || '').toLowerCase().trim();
       const csOnly = !!currentCsOnly;
@@ -1302,7 +1454,6 @@
         filtered.sort((a,b) => {
           const pa = toPriceNum(a?.price);
           const pb = toPriceNum(b?.price);
-          // NaN goes last
           if (!Number.isFinite(pa) && !Number.isFinite(pb)) return tidy(a?.name).localeCompare(tidy(b?.name));
           if (!Number.isFinite(pa)) return 1;
           if (!Number.isFinite(pb)) return -1;
@@ -1326,7 +1477,7 @@
       filtered.forEach(w => weaponGrid.appendChild(makeWeaponCard(w)));
 
       applyViewMode();
-      applyFilters(); // also updates count pill reliably
+      applyFilters();
     }
 
     function populateArmoryOptions(weapons){
@@ -1335,7 +1486,6 @@
         splitArmory(w?.armory).forEach(a => set.add(a));
       });
 
-      // reset
       filterArmory.innerHTML = '<option value="">All</option>';
 
       [...set].sort((a,b) => a.localeCompare(b)).forEach(name => {
@@ -1424,7 +1574,9 @@
 
     infoClose?.addEventListener('click', closeInfo);
     infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo(); });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
+    });
 
     /***********************
      * Events
