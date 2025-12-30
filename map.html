@@ -2,10 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-
-  <!-- ✅ single, mobile-friendly viewport (remove the duplicate fixed-width one) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Team Path Planner</title>
 
   <!-- Fonts -->
@@ -13,69 +10,37 @@
 
   <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const client = supabase.createClient(
-      'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
-    );
-
-    client.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        window.location.href = "index.html";
-      } else {
-        const userInfo = document.getElementById("user-info");
-        if (userInfo && session.user?.email) {
-          userInfo.textContent = "Logged in as: " + session.user.email;
-        }
-        const chip = document.getElementById("user-chip");
-        const emailEl = document.getElementById("user-email");
-        const tagEl = document.getElementById("user-tag");
-        if (chip && emailEl && tagEl && session.user?.email) {
-          emailEl.textContent = session.user.email;
-          tagEl.textContent = session.user.email.split("@")[0];
-        }
-      }
-    });
-
-    function logout() {
-      client.auth.signOut().then(() => {
-        window.location.href = "index.html";
-      });
-    }
-  </script>
 
   <style>
     :root{
       --bg:#07090f;
       --bg2:#0b1020;
-      --panel: rgba(20, 26, 38, .72);
-      --panel2: rgba(14, 18, 28, .72);
       --line: rgba(255,255,255,.10);
       --ink:#f4f6ff;
       --muted:#aab1c5;
 
       --brand:#ffbd59;
-      --brand2:#ff7733;
       --accent:#4dd3ff;
 
       --shadow: 0 22px 70px rgba(0,0,0,.55);
       --radius-lg: 18px;
-      --radius: 14px;
 
+      /* Desktop fixed intent */
       --main-w: 1112px;
       --main-h: 800px;
 
       --sidebar-w: 320px;
       --map-w: 792px; /* 1112 - 320 */
 
-      --unit: 30px; /* ✅ used by JS for positioning */
+      /* Phone layout */
+      --phone-panel-h: 320px;
     }
 
     *{ box-sizing:border-box; }
     html, body{
       margin:0; padding:0;
-      width:100%;
-      height:100%;
+      width:100vw; height:100vh;
+      overflow:hidden;
       font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
       color: var(--ink);
       background:
@@ -83,8 +48,6 @@
         radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
         radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
         linear-gradient(180deg, var(--bg), var(--bg2));
-
-      /* desktop: center fixed canvas */
       display:flex;
       align-items:center;
       justify-content:center;
@@ -93,11 +56,9 @@
       -webkit-user-select:none;
       -webkit-tap-highlight-color: transparent;
       user-select:none;
-
-      overflow:hidden;
     }
 
-    /* ✅ main fixed canvas frame (desktop/tablet) */
+    /* Desktop fixed canvas frame */
     #main{
       width: var(--main-w);
       height: var(--main-h);
@@ -112,7 +73,7 @@
       position: relative;
     }
 
-    /* map area */
+    /* Map area */
     #map-container{
       width: var(--map-w);
       height: 100%;
@@ -125,76 +86,28 @@
     #map{
       width:100%;
       height:100%;
-      /* ✅ make mapping consistent across sizes */
+      position: relative;
+
+      /* IMPORTANT: keep touch + pointer reliable on iOS */
+      touch-action: none;
+
+      /* IMPORTANT: linear mapping across devices (no letterboxing math) */
       background-size: 100% 100%;
       background-position:center;
       background-repeat:no-repeat;
-      position: relative;
-      touch-action: none; /* map should not scroll while drawing */
     }
 
-    #maskCanvas{
-      position:absolute;
-      top:0; left:0;
-      z-index:10;
-      pointer-events:none;
-    }
-
-    canvas{
+    #maskCanvas, #pathCanvas{
       position:absolute;
       top:0; left:0;
       width:100%;
       height:100%;
       pointer-events:none;
     }
+    #maskCanvas{ z-index: 9; }
+    #pathCanvas{ z-index: 10; }
 
-    /* unit */
-    .unit{
-      position:absolute;
-      width: var(--unit);
-      height: var(--unit);
-      background: rgba(255,255,255,.10);
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    .unit img{
-      width:100%;
-      height:100%;
-      border-radius:999px;
-      box-shadow: 0 0 12px 2px rgba(255,255,255,0.35);
-      border: 1px solid rgba(255,255,255,.22);
-      background: rgba(0,0,0,.35);
-      object-fit: cover;
-    }
-    .unit-label{
-      position:absolute;
-      top:-18px; left:50%;
-      transform: translateX(-50%);
-      font-size: 12px;
-      font-weight: 900;
-      background: rgba(0,0,0,.55);
-      color: rgba(244,246,255,.92);
-      padding: 2px 6px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.10);
-      white-space:nowrap;
-    }
-    .reset-btn{
-      position:absolute;
-      bottom:-20px; left:50%;
-      transform: translateX(-50%);
-      background: rgba(255,255,255,.92);
-      color:#000;
-      font-size: 10px;
-      font-weight: 900;
-      padding: 2px 6px;
-      border: none;
-      border-radius: 8px;
-      cursor:pointer;
-    }
-
-    /* right sidebar controls */
+    /* Sidebar */
     #sidebar{
       width: var(--sidebar-w);
       height: 100%;
@@ -208,75 +121,7 @@
       overflow:hidden;
     }
 
-    /* header block inside sidebar */
-    .side-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 10px 10px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      margin-bottom: 10px;
-    }
-    .side-title{ min-width:0; }
-    .side-title h1{
-      margin:0;
-      font-family: Orbitron, sans-serif;
-      font-size: 1.05rem;
-      letter-spacing:.6px;
-      color: var(--brand);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .side-title p{
-      margin: 4px 0 0 0;
-      font-size: .78rem;
-      color: var(--muted);
-      font-weight: 700;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .userchip{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding: 6px 8px;
-      border-radius: 999px;
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(255,255,255,.10);
-      max-width: 150px;
-    }
-    .avatar{
-      width:26px;height:26px;border-radius:10px;
-      background: linear-gradient(135deg, rgba(255,189,89,.28), rgba(77,211,255,.18));
-      border: 1px solid rgba(255,255,255,.12);
-      flex:0 0 auto;
-    }
-    .usertext{min-width:0}
-    .usertext b{
-      display:block;
-      font-family: Orbitron, sans-serif;
-      font-size:.84rem;
-      color: var(--brand);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .usertext span{
-      display:block;
-      font-size:.72rem;
-      color: var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    /* team icons grid (desktop) */
+    /* Team icons */
     .icon-grid{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -298,13 +143,15 @@
       border: 1px solid rgba(255,255,255,.14);
       box-shadow: 0 10px 24px rgba(0,0,0,.35);
       object-fit: cover;
+      touch-action:none;
     }
-    .team-icon:hover{
-      outline: 2px solid rgba(255,189,89,.35);
+    .team-icon.selected{
+      outline: 2px solid rgba(255,189,89,.55);
       outline-offset: 2px;
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
     }
 
-    /* controls panel scroll */
+    /* Controls */
     #controls{
       flex:1;
       display:flex;
@@ -312,13 +159,11 @@
       gap: 8px;
       overflow-y:auto;
       padding-right: 6px;
-      padding-bottom: env(safe-area-inset-bottom);
     }
     #controls::-webkit-scrollbar{ width:10px; }
     #controls::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.10); border-radius: 10px; }
     #controls::-webkit-scrollbar-track{ background: transparent; }
 
-    /* shared control styles */
     #controls button, #map-select{
       width: 100%;
       padding: 10px 10px;
@@ -331,59 +176,90 @@
       cursor:pointer;
       transition: .18s ease;
     }
-    #controls button:hover, #map-select:hover{
-      background: rgba(0,0,0,.30);
-      border-color: rgba(77,211,255,.22);
-      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
-    }
 
     #map-select{
       background: rgba(0,0,0,.28);
       color: rgba(244,246,255,.92);
     }
-    #map-select option,
-    #map-select optgroup{
+    #map-select option, #map-select optgroup{
       background: #0e111a;
       color: rgba(244,246,255,.92);
     }
-    #map-select:focus{
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
-      border-color: rgba(255,189,89,.30);
-    }
 
-    #controls button:active{ transform: scale(.99); }
+    .button-row{ display:flex; gap: 8px; }
+    .button-row button{ flex:1; white-space:nowrap; }
 
-    /* primary button feel */
-    #controls button{ border-color: rgba(255,189,89,.22); }
-    #controls button:hover{
-      border-color: rgba(255,189,89,.28);
-      box-shadow: 0 0 0 3px rgba(255,189,89,.10);
-    }
-
-    /* special toggles */
     #realtime-toggle-btn{ border-color: rgba(77,211,255,.28); }
     #realtime-toggle-btn.active{
       background: rgba(77,211,255,.18);
       border-color: rgba(77,211,255,.40);
-      color: rgba(244,246,255,.92);
       box-shadow: 0 0 0 3px rgba(77,211,255,.10);
     }
 
     #draw-circle.active{
       background: rgba(0,255,255,.18);
       border-color: rgba(0,255,255,.42);
-      color: rgba(244,246,255,.95);
       box-shadow: 0 0 0 3px rgba(0,255,255,.10);
     }
 
-    /* row buttons */
-    .button-row{ display:flex; gap: 8px; }
-    .button-row button{ flex:1; white-space:nowrap; }
+    #note-mode.active{
+      background: rgba(255,189,89,.14);
+      border-color: rgba(255,189,89,.40);
+      box-shadow: 0 0 0 3px rgba(255,189,89,.10);
+    }
 
     #import-file{ display:none; }
 
-    /* notes */
+    /* Unit */
+    .unit{
+      position:absolute;
+      width:30px; height:30px;
+      background: rgba(255,255,255,.10);
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      z-index: 20;
+      touch-action:none;
+    }
+    .unit img{
+      width:100%; height:100%;
+      border-radius:999px;
+      box-shadow: 0 0 12px 2px rgba(255,255,255,0.35);
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(0,0,0,.35);
+      display:block;
+      pointer-events:none;
+    }
+    .unit-label{
+      position:absolute;
+      top:-18px; left:50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(0,0,0,.55);
+      color: rgba(244,246,255,.92);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      white-space:nowrap;
+      pointer-events:none;
+    }
+    .reset-btn{
+      position:absolute;
+      bottom:-20px; left:50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.92);
+      color:#000;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border: none;
+      border-radius: 8px;
+      cursor:pointer;
+      touch-action:none;
+    }
+
+    /* Notes */
     .note{
       position:absolute;
       background: rgba(255,255,255,.92);
@@ -394,24 +270,24 @@
       overflow:hidden;
       box-shadow: 0 14px 40px rgba(0,0,0,.45);
       user-select: text;
+      z-index: 30;
     }
     .drag-handle{
       background: rgba(0,0,0,.12);
-      padding: 6px 10px;
+      padding: 4px 8px;
       font-weight: 1000;
       cursor: grab;
       user-select:none;
       touch-action:none;
     }
     .note div[contenteditable]{
-      padding: 8px 10px;
-      min-height: 22px;
+      padding: 6px 8px;
+      min-height: 20px;
       outline:none;
       font-size: 12px;
       line-height: 1.2rem;
     }
 
-    /* footer user info */
     #user-info{
       font-size: .78rem;
       text-align:center;
@@ -420,1052 +296,938 @@
       user-select:text;
     }
 
-    /* ✅ Mobile layout: stack map + sidebar, larger touch targets, horizontal team scroller */
-    @media (max-width: 980px){
-      html, body{
-        overflow:hidden;
-        align-items:stretch;
-        justify-content:stretch;
-      }
-      :root{
-        --unit: 34px;
-      }
+    /* ✅ PHONE ONLY: stack layout (map full screen, controls bottom) */
+    @media (max-width: 700px){
+      body{ align-items:stretch; justify-content:stretch; }
       #main{
-        width: 100vw;
-        height: 100vh;
-        border-radius: 0;
-        flex-direction: column;
+        width:100vw;
+        height:100vh;
+        border-radius:0;
+        flex-direction:column;
       }
       #map-container{
-        width: 100%;
-        height: 56vh;
-        border-right: 0;
+        width:100%;
+        height: calc(100vh - var(--phone-panel-h));
+        border-right:none;
         border-bottom: 1px solid rgba(255,255,255,.06);
       }
       #sidebar{
-        width: 100%;
-        height: 44vh;
-        border-left: 0;
-        padding: 10px;
+        width:100%;
+        height: var(--phone-panel-h);
+        border-left:none;
       }
-
-      .side-head{
-        padding: 10px;
-      }
-      .side-title h1{ font-size: 1.0rem; }
-      .side-title p{ font-size: .80rem; }
-
-      /* team icons become swipe row */
       .icon-grid{
-        display:flex;
-        gap: 10px;
-        overflow-x:auto;
-        justify-content:flex-start;
-        align-items:flex-start;
-        padding: 10px;
-        -webkit-overflow-scrolling: touch;
-      }
-      .icon-grid > div{
-        flex: 0 0 auto;
+        grid-template-columns: repeat(6, 1fr);
       }
       .team-icon{
-        width: 56px;
-        height: 60px;
-        border-radius: 14px;
+        width: 44px;
+        height: 48px;
       }
-
       #controls button, #map-select{
-        font-size: 14px;
-        padding: 12px 12px;
-        border-radius: 14px;
-        min-height: 44px; /* tap size */
+        font-size: 13px;
+        padding: 12px 10px;
       }
+    }
 
-      .userchip{ max-width: 170px; }
-      .usertext b{ font-size: .88rem; }
-      .usertext span{ font-size: .74rem; }
+    @media (max-width: 700px) and (orientation: landscape){
+      :root{ --phone-panel-h: 240px; }
     }
   </style>
 </head>
 
 <body>
-<div id="main">
-  <div id="map-container">
-    <div id="map">
-      <canvas id="maskCanvas"></canvas>
-      <canvas id="pathCanvas"></canvas>
-    </div>
-  </div>
-
-  <div id="sidebar">
-    <div class="side-head">
-      <div class="side-title">
-        <h1>Path Planner</h1>
-        <p>Draw paths • Circles • Notes</p>
+  <div id="main">
+    <div id="map-container">
+      <div id="map">
+        <canvas id="maskCanvas"></canvas>
+        <canvas id="pathCanvas"></canvas>
       </div>
-      <div class="userchip" id="user-chip" title="Signed in">
-        <div class="avatar"></div>
-        <div class="usertext">
-          <b id="user-tag">Player</b>
-          <span id="user-email">loading…</span>
+    </div>
+
+    <div id="sidebar">
+      <div class="icon-grid" id="teamIcons"></div>
+
+      <div id="controls">
+        <select id="map-select">
+          <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
+          <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
+          <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
+          <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
+          <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
+          <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
+        </select>
+
+        <button id="realtime-toggle-btn" type="button">Real-time: ON</button>
+
+        <div class="button-row">
+          <button id="draw-circle" type="button">Draw Circle</button>
+          <button id="note-mode" type="button">Add Note</button>
         </div>
+
+        <button id="undo-btn" type="button">Undo</button>
+        <button id="reset-all-btn" type="button">Reset All</button>
+
+        <div class="button-row">
+          <button id="export-btn" type="button">Export</button>
+          <button type="button" onclick="document.getElementById('import-file').click()">Import</button>
+        </div>
+
+        <input type="file" id="import-file" accept=".json" />
+
+        <div class="button-row">
+          <button type="button" onclick="location.href='dashboard.html'">← Dashboard</button>
+          <button type="button" onclick="location.href='team_settings.html'">Team Settings</button>
+        </div>
+
+        <button id="logoutBtn" type="button">Logout</button>
+
+        <p id="user-info">Checking login...</p>
       </div>
-    </div>
-
-    <div class="icon-grid" id="teamIcons"></div>
-
-    <div id="controls">
-      <select id="map-select">
-        <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
-        <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
-        <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
-        <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
-        <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
-        <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
-      </select>
-
-      <button id="realtime-toggle-btn">Real-time: ON</button>
-
-      <div class="button-row">
-        <button id="draw-circle">Draw Circle</button>
-        <button id="note-mode">Add Note</button>
-      </div>
-
-      <button id="undo-btn">Undo</button>
-      <button id="reset-all-btn">Reset All</button>
-
-      <div class="button-row">
-        <button id="export-btn">Export</button>
-        <button onclick="document.getElementById('import-file').click()">Import</button>
-      </div>
-
-      <input type="file" id="import-file" accept=".json" />
-
-      <div class="button-row">
-        <button onclick="location.href='dashboard.html'">← Dashboard</button>
-        <button onclick="location.href='team_settings.html'">Team Settings</button>
-      </div>
-
-      <button onclick="logout()">Logout</button>
-
-      <p id="user-info">Checking login...</p>
     </div>
   </div>
-</div>
 
-<script>
-const map = document.getElementById("map");
-const canvas = document.getElementById("pathCanvas");
-const ctx = canvas.getContext("2d");
+  <script>
+    /***********************
+     * Supabase
+     ***********************/
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
 
-/**
- * ✅ Base coordinate system
- * Keep all saved data in a stable "base map size" so desktop ↔ mobile stays aligned.
- * Desktop map area is 792x800 (from your layout).
- */
-const BASE_W = 792;
-const BASE_H = 800;
-
-function getScale(){
-  return {
-    sx: map.clientWidth / BASE_W,
-    sy: map.clientHeight / BASE_H
-  };
-}
-function baseToScreen(pt){
-  const { sx, sy } = getScale();
-  return { x: pt.x * sx, y: pt.y * sy };
-}
-function screenToBase(pt){
-  const { sx, sy } = getScale();
-  return { x: pt.x / sx, y: pt.y / sy };
-}
-function getUnitSize(){
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--unit').trim();
-  const n = parseFloat(v.replace('px',''));
-  return Number.isFinite(n) ? n : 30;
-}
-
-// data
-const teamPaths = {}, teamIcons = {}, undoStacks = {}, circles = [], historyStack = [];
-let selectedIcon = null, activeTeam = null;
-let drawCircleMode = false, noteMode = false;
-let resizingCircle = null, draggingCircle = null;
-let isResizing = false, isDragging = false;
-const notes = []; // {x,y,text}
-
-const teamColors = [
-  "#FF0000", "#00FF00", "#00FFFF", "#FFFF00", "#FF00FF", "#FFA500",
-  "#00BFFF", "#FF69B4", "#7FFF00", "#FF4500", "#00FF7F", "#1E90FF",
-  "#FFD700", "#ADFF2F", "#FF1493", "#40E0D0", "#FF6347", "#87CEEB"
-];
-
-const mapSelect = document.getElementById("map-select");
-map.style.backgroundImage = `url('${mapSelect.value}')`;
-
-// ✅ Prevent “tap after drag” from creating points on mobile
-let suppressClickUntil = 0;
-
-// Default circles remain in BASE coords
-const default_circles_data = {
-  "https://i.imgur.com/V6iUHaA.jpeg": [
-    { r: 30, x: 350, y: 557.5, color: "#ff0000" },
-    { r: 30, x: 393, y: 682.5, color: "#ff0000" },
-    { r: 30, x: 722, y: 387.5, color: "#ff0000" },
-    { r: 30, x: 265, y: 495.5, color: "#ff0000" },
-    { r: 30, x: 411, y: 236,   color: "#ff0000" },
-    { r: 30, x: 103, y: 284.5, color: "#ff0000" },
-    { r: 30, x: 572, y: 239,   color: "#ff0000" },
-    { r: 30, x: 352, y: 358.5, color: "#ff0000" },
-    { r: 30, x: 239, y: 294.5, color: "#ff0000" },
-    { r: 30, x: 694, y: 630.5, color: "#ff0000" },
-    { r: 30, x: 103, y: 588.5, color: "#ff0000" },
-    { r: 30, x: 444, y: 558.5, color: "#ff0000" },
-    { r: 30, x: 457, y: 416.5, color: "#ff0000" },
-    { r: 30, x: 318, y: 124.5, color: "#ff0000" }
-  ],
-  "https://i.imgur.com/IX1oY9Z.jpeg": [
-    { r: 30, x: 326, y: 518.5, color: "#ff0000" },
-    { r: 30, x: 412, y: 711.5, color: "#ff0000" },
-    { r: 30, x: 74,  y: 339.5, color: "#ff0000" },
-    { r: 30, x: 662, y: 695.5, color: "#ff0000" },
-    { r: 30, x: 290, y: 339.5, color: "#ff0000" },
-    { r: 30, x: 617, y: 149.5, color: "#ff0000" },
-    { r: 30, x: 734, y: 524.5, color: "#ff0000" }
-  ],
-  "https://i.imgur.com/x5he05R.jpeg": [
-    { r: 30, x: 344, y: 158.5, color: "#ff0000" },
-    { r: 30, x: 108, y: 279.5, color: "#ff0000" },
-    { r: 30, x: 587, y: 581.5, color: "#ff0000" },
-    { r: 30, x: 447, y: 640.5, color: "#ff0000" },
-    { r: 30, x: 132, y: 620.5, color: "#ff0000" },
-    { r: 30, x: 637, y: 394.5, color: "#ff0000" },
-    { r: 30, x: 290, y: 383.5, color: "#ff0000" },
-    { r: 30, x: 512, y: 373.5, color: "#ff0000" }
-  ],
-  "https://i.imgur.com/48O1Jf8.jpeg": [
-    { r: 30, x: 718, y: 340.5, color: "#ff0000" },
-    { r: 30, x: 151, y: 189.5, color: "#ff0000" },
-    { r: 30, x: 381, y: 294.5, color: "#ff0000" },
-    { r: 30, x: 484, y: 624.5, color: "#ff0000" }
-  ],
-  "https://i.imgur.com/4Yz12P9.jpeg": [
-    { r: 30, x: 655, y: 439.5, color: "#ff0000" },
-    { r: 30, x: 637, y: 612.5, color: "#ff0000" },
-    { r: 30, x: 196, y: 634.5, color: "#ff0000" },
-    { r: 30, x: 471, y: 496.5, color: "#ff0000" },
-    { r: 30, x: 359, y: 155.5, color: "#ff0000" },
-    { r: 30, x: 219, y: 308.5, color: "#ff0000" },
-    { r: 30, x: 588, y: 159.5, color: "#ff0000" }
-  ]
-};
-
-mapSelect.addEventListener("change", () => {
-  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
-  const mapURL = selectedOption.value;
-  const mode = selectedOption.dataset.mode || "";
-
-  map.style.backgroundImage = `url('${mapURL}')`;
-
-  if (mode === "CS" && circles.length === 0 && default_circles_data[mapURL]) {
-    circles.push(...default_circles_data[mapURL]);
-    resizeCanvas();
-    saveMapState();
-  }
-
-  if (mode === "CS") {
-    drawOverlayMask(circles);
-  } else {
-    document.getElementById("maskCanvas").style.display = "none";
-  }
-
-  saveMapState();
-});
-
-// Team icons — load from Supabase teams_pathplanner
-async function loadTeamIcons() {
-  const grid = document.getElementById("teamIcons");
-  grid.innerHTML = "";
-
-  const { data, error } = await client
-    .from("teams_pathplanner")
-    .select("id, team_name, team_tag, logo_url")
-    .order("id", { ascending: true });
-
-  if (error) {
-    console.error("❌ Failed to load teams:", error);
-    const msg = document.createElement("p");
-    msg.textContent = "Failed to load teams.";
-    msg.style.fontSize = "0.8rem";
-    msg.style.color = "#aaa";
-    msg.style.gridColumn = "1 / -1";
-    grid.appendChild(msg);
-    return;
-  }
-
-  if (!data || !data.length) {
-    const msg = document.createElement("p");
-    msg.textContent = "No teams configured. Go to Team Settings to add some.";
-    msg.style.fontSize = "0.8rem";
-    msg.style.color = "#aaa";
-    msg.style.gridColumn = "1 / -1";
-    grid.appendChild(msg);
-    return;
-  }
-
-  data.slice(0, teamColors.length).forEach((team, i) => {
-    const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.flexDirection = "column";
-    wrapper.style.alignItems = "center";
-
-    const img = document.createElement("img");
-    img.src = team.logo_url;
-    img.alt = team.team_name || team.team_tag || `Team ${i + 1}`;
-    img.className = "team-icon";
-
-    const teamId = "team" + (i + 1);
-    img.dataset.id = teamId;
-    img.dataset.teamTag = team.team_tag || "";
-    img.dataset.teamName = team.team_name || "";
-    img.dataset.teamDbId = team.id;
-    img.title = `${team.team_name || "Team"} (${team.team_tag || "TAG"})`;
-
-    img.onclick = () => selectedIcon = img;
-
-    const colorBar = document.createElement("div");
-    colorBar.style.width = "60%";
-    colorBar.style.height = "6px";
-    colorBar.style.marginTop = "6px";
-    colorBar.style.borderRadius = "999px";
-    colorBar.style.backgroundColor = teamColors[i] || "#fff";
-    colorBar.style.boxShadow = "0 8px 18px rgba(0,0,0,.35)";
-
-    wrapper.appendChild(img);
-    wrapper.appendChild(colorBar);
-    grid.appendChild(wrapper);
-  });
-}
-
-// Draw Circle Mode Toggle
-document.getElementById("draw-circle").onclick = () => {
-  drawCircleMode = !drawCircleMode;
-  const btn = document.getElementById("draw-circle");
-  btn.textContent = drawCircleMode ? "Circle Mode: ON" : "Draw Circle";
-  btn.classList.toggle("active", drawCircleMode);
-};
-
-// Note Mode Toggle
-document.getElementById("note-mode").onclick = () => {
-  noteMode = !noteMode;
-  document.getElementById("note-mode").textContent = noteMode ? "Click on Map to Add Note" : "Add Note";
-};
-
-// ✅ Get touch/click coordinates in BASE coords (stable across devices)
-function getCoordsBase(e) {
-  const rect = map.getBoundingClientRect();
-  const touch = e.touches ? e.touches[0] : e;
-  const relX = (touch.clientX - rect.left) / rect.width;
-  const relY = (touch.clientY - rect.top) / rect.height;
-  return {
-    x: Math.max(0, Math.min(BASE_W, relX * BASE_W)),
-    y: Math.max(0, Math.min(BASE_H, relY * BASE_H))
-  };
-}
-
-function createNote(xBase, yBase, text, opts = { recordHistory: true }) {
-  const noteDiv = document.createElement("div");
-  noteDiv.className = "note";
-
-  const idx = notes.length;
-  noteDiv.dataset.noteIdx = String(idx);
-  notes.push({ x: xBase, y: yBase, text: text || "" });
-
-  const p = baseToScreen({ x: xBase, y: yBase });
-  noteDiv.style.left = `${p.x}px`;
-  noteDiv.style.top = `${p.y}px`;
-
-  const handle = document.createElement("div");
-  handle.className = "drag-handle";
-  handle.textContent = "☰";
-
-  const content = document.createElement("div");
-  content.textContent = text || "";
-  content.contentEditable = true;
-
-  noteDiv.appendChild(handle);
-  noteDiv.appendChild(content);
-  map.appendChild(noteDiv);
-
-  if (opts?.recordHistory) historyStack.push({ type: "note", element: noteDiv });
-
-  let offsetX = 0, offsetY = 0, isDraggingNote = false;
-
-  const startDrag = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
-    const rect = map.getBoundingClientRect();
-    offsetX = touch.clientX - rect.left - noteDiv.offsetLeft;
-    offsetY = touch.clientY - rect.top - noteDiv.offsetTop;
-    isDraggingNote = true;
-  };
-
-  const moveDrag = (e) => {
-    if (!isDraggingNote) return;
-    e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
-    const rect = map.getBoundingClientRect();
-    const newX = touch.clientX - rect.left - offsetX;
-    const newY = touch.clientY - rect.top - offsetY;
-    noteDiv.style.left = `${newX}px`;
-    noteDiv.style.top = `${newY}px`;
-
-    const i = Number(noteDiv.dataset.noteIdx);
-    if (Number.isFinite(i) && notes[i]) {
-      const { sx, sy } = getScale();
-      notes[i].x = newX / sx;
-      notes[i].y = newY / sy;
-      notes[i].text = content.textContent || "";
+    async function ensureSession(){
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) { window.location.href = "index.html"; return null; }
+      return session;
     }
-  };
+    async function logout(){
+      await client.auth.signOut();
+      window.location.href = "index.html";
+    }
+    document.getElementById("logoutBtn").addEventListener("click", logout);
 
-  const endDrag = () => {
-    if (isDraggingNote) saveMapState();
-    isDraggingNote = false;
-  };
+    /***********************
+     * LOGICAL COORDINATES (perfect sync across devices)
+     * Map area is logically 792 x 800 always.
+     ***********************/
+    const LOGICAL_W = 792;
+    const LOGICAL_H = 800;
 
-  handle.addEventListener("mousedown", startDrag);
-  handle.addEventListener("touchstart", startDrag, { passive: false });
+    const map = document.getElementById("map");
+    const mapSelect = document.getElementById("map-select");
 
-  window.addEventListener("mousemove", moveDrag);
-  window.addEventListener("touchmove", moveDrag, { passive: false });
-  window.addEventListener("mouseup", endDrag);
-  window.addEventListener("touchend", endDrag);
-}
+    const pathCanvas = document.getElementById("pathCanvas");
+    const ctx = pathCanvas.getContext("2d");
 
-function syncNotesFromDOM(){
-  document.querySelectorAll(".note").forEach(noteDiv => {
-    const i = Number(noteDiv.dataset.noteIdx);
-    if (!Number.isFinite(i) || !notes[i]) return;
+    const maskCanvas = document.getElementById("maskCanvas");
+    const ctxMask = maskCanvas.getContext("2d");
 
-    const { sx, sy } = getScale();
-    const left = parseFloat(noteDiv.style.left || "0");
-    const top = parseFloat(noteDiv.style.top || "0");
-    notes[i].x = left / sx;
-    notes[i].y = top / sy;
-    notes[i].text = noteDiv.querySelector('[contenteditable]')?.textContent || notes[i].text || "";
-  });
-}
+    function setMapBg(){ map.style.backgroundImage = `url('${mapSelect.value}')`; }
+    setMapBg();
 
-// ✅ Reposition DOM overlays on resize (units + notes)
-function relayoutOverlays(){
-  const unitSize = getUnitSize();
+    function clientToLogical(e){
+      const rect = map.getBoundingClientRect();
+      return {
+        x: ((e.clientX - rect.left) / rect.width) * LOGICAL_W,
+        y: ((e.clientY - rect.top) / rect.height) * LOGICAL_H
+      };
+    }
 
-  // units (use first path point as anchor)
-  Object.keys(teamIcons).forEach(id => {
-    const div = teamIcons[id];
-    const path = teamPaths[id];
-    if (!div || !path || !path.length) return;
-    const p = baseToScreen(path[0]);
-    div.style.left = `${p.x - unitSize/2}px`;
-    div.style.top = `${p.y - unitSize/2}px`;
-    div.querySelector("img")?.style && (div.querySelector("img").style.width = div.querySelector("img").style.height = `${unitSize}px`);
-  });
+    function logicalToPx(p){
+      return {
+        x: (p.x / LOGICAL_W) * map.clientWidth,
+        y: (p.y / LOGICAL_H) * map.clientHeight
+      };
+    }
 
-  // notes
-  document.querySelectorAll(".note").forEach(noteDiv => {
-    const i = Number(noteDiv.dataset.noteIdx);
-    if (!Number.isFinite(i) || !notes[i]) return;
-    const p = baseToScreen({ x: notes[i].x, y: notes[i].y });
-    noteDiv.style.left = `${p.x}px`;
-    noteDiv.style.top = `${p.y}px`;
-  });
-}
+    function scaleFactors(){
+      return {
+        sx: map.clientWidth / LOGICAL_W,
+        sy: map.clientHeight / LOGICAL_H,
+        s: Math.min(map.clientWidth / LOGICAL_W, map.clientHeight / LOGICAL_H)
+      };
+    }
 
-// Map click handler (BASE coords)
-map.addEventListener("click", e => {
-  if (Date.now() < suppressClickUntil) return;
+    /***********************
+     * State
+     ***********************/
+    const teamPaths = {};     // logical points
+    const teamIcons = {};     // DOM
+    const circles = [];       // logical
+    const notesData = [];     // logical
 
-  // prevent accidental path actions while interacting with notes
-  if (e.target?.closest && e.target.closest(".note")) return;
+    const historyStack = [];
+    let selectedIcon = null;
+    let activeTeam = null;
 
-  const { x, y } = getCoordsBase(e);
+    let drawCircleMode = false;
+    let noteMode = false;
 
-  if (noteMode) {
-    const text = prompt("Enter note:");
-    if (!text) return;
-    createNote(x, y, text, { recordHistory: true });
-    noteMode = false;
-    document.getElementById("note-mode").textContent = "Add Note";
-    saveMapState();
-    return;
-  }
+    const DRAG_THRESHOLD_PX = 8;
 
-  if (drawCircleMode) {
-    circles.push({ x, y, r: 30, color: "#00ffff" });
-    historyStack.push({ type: "circle" });
-    resizeCanvas();
-    saveMapState();
-    return;
-  }
+    const teamColors = [
+      "#FF0000", "#00FF00", "#00FFFF", "#FFFF00", "#FF00FF", "#FFA500",
+      "#00BFFF", "#FF69B4", "#7FFF00", "#FF4500", "#00FF7F", "#1E90FF",
+      "#FFD700", "#ADFF2F", "#FF1493", "#40E0D0", "#FF6347", "#87CEEB"
+    ];
 
-  if (selectedIcon) {
-    const id = selectedIcon.dataset.id;
-    if (teamIcons[id]) return;
+    function teamIndex(id){
+      const n = parseInt(String(id).replace("team",""), 10);
+      return Number.isFinite(n) ? (n-1) : 0;
+    }
 
-    const unitSize = getUnitSize();
-    const p = baseToScreen({ x, y });
+    /***********************
+     * Resize canvases
+     ***********************/
+    function resizeCanvases(){
+      const dpr = window.devicePixelRatio || 1;
 
-    const div = document.createElement("div");
-    div.className = "unit";
-    div.style.left = `${p.x - unitSize/2}px`;
-    div.style.top = `${p.y - unitSize/2}px`;
+      pathCanvas.width = Math.round(map.clientWidth * dpr);
+      pathCanvas.height = Math.round(map.clientHeight * dpr);
+      pathCanvas.style.width = map.clientWidth + "px";
+      pathCanvas.style.height = map.clientHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const img = selectedIcon.cloneNode(true);
-    img.style.width = img.style.height = `${unitSize}px`;
+      maskCanvas.width = Math.round(map.clientWidth * dpr);
+      maskCanvas.height = Math.round(map.clientHeight * dpr);
+      maskCanvas.style.width = map.clientWidth + "px";
+      maskCanvas.style.height = map.clientHeight + "px";
+      ctxMask.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const label = document.createElement("div");
-    label.className = "unit-label";
-    const teamTag = selectedIcon.dataset.teamTag || id;
-    label.textContent = teamTag;
+      repositionOverlays();
+      drawAll();
 
-    const reset = document.createElement("button");
-    reset.className = "reset-btn";
-    reset.textContent = "Reset";
-    reset.onclick = ev => {
-      ev.stopPropagation();
-      div.remove();
-      delete teamPaths[id];
-      delete teamIcons[id];
-      delete undoStacks[id];
-      resizeCanvas();
-      saveMapState();
-    };
+      const opt = mapSelect.options[mapSelect.selectedIndex];
+      if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
+      else maskCanvas.style.display = "none";
+    }
+    window.addEventListener("resize", resizeCanvases);
 
-    div.append(img, label, reset);
-    map.appendChild(div);
-    div.onclick = () => activeTeam = id;
+    /***********************
+     * Draw
+     ***********************/
+    function drawArrow(fromL, toL, color){
+      const { sx, sy } = scaleFactors();
+      const from = { x: fromL.x * sx, y: fromL.y * sy };
+      const to   = { x: toL.x * sx,   y: toL.y * sy };
 
-    teamPaths[id] = [{ x, y }];   // ✅ store BASE coords
-    teamIcons[id] = div;
-    undoStacks[id] = [];
-    activeTeam = id;
-    selectedIcon = null;
-    historyStack.push({ type: "line", team: id });
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const angle = Math.atan2(dy, dx);
 
-    resizeCanvas();
-    saveMapState();
-  } else if (activeTeam) {
-    undoStacks[activeTeam].push([...teamPaths[activeTeam]]);
-    teamPaths[activeTeam].push({ x, y }); // ✅ BASE coords
-    historyStack.push({ type: "line", team: activeTeam });
-    resizeCanvas();
-    saveMapState();
-  }
-});
+      ctx.beginPath();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 6;
 
-// Helpers for resizing and dragging circles (BASE coords)
-function findCircleForResize(pt) {
-  for (let i = circles.length - 1; i >= 0; i--) {
-    const c = circles[i];
-    const dist = Math.hypot(c.x - pt.x, c.y - pt.y);
-    if (Math.abs(dist - c.r) < 12) return c;
-  }
-  return null;
-}
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
 
-function findCircleForDrag(pt) {
-  for (let i = circles.length - 1; i >= 0; i--) {
-    const c = circles[i];
-    const dist = Math.hypot(c.x - pt.x, c.y - pt.y);
-    if (dist < c.r) return c;
-  }
-  return null;
-}
+      ctx.lineTo(to.x - 10 * Math.cos(angle - Math.PI / 6), to.y - 10 * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(to.x, to.y);
+      ctx.lineTo(to.x - 10 * Math.cos(angle + Math.PI / 6), to.y - 10 * Math.sin(angle + Math.PI / 6));
 
-let didMoveDrag = false;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
 
-function startTouch(e) {
-  // ignore touches on notes
-  if (e.target?.closest && e.target.closest(".note")) return;
+    function drawAll(){
+      ctx.clearRect(0, 0, map.clientWidth, map.clientHeight);
 
-  if (e.type.startsWith("touch")) e.preventDefault();
+      const { sx, sy, s } = scaleFactors();
 
-  didMoveDrag = false;
-  const pt = getCoordsBase(e);
+      // circles
+      for (const c of circles){
+        const cx = c.x * sx, cy = c.y * sy;
+        const r  = c.r * s;
 
-  resizingCircle = findCircleForResize(pt);
-  if (resizingCircle) {
-    isResizing = true;
-  } else {
-    draggingCircle = findCircleForDrag(pt);
-    if (draggingCircle) isDragging = true;
-  }
-}
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+        ctx.strokeStyle = c.color || "#00ffff";
+        ctx.setLineDash([3,1]);
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.setLineDash([]);
 
-function moveTouch(e) {
-  if (!isDragging && !isResizing) return;
-  if (e.type.startsWith("touch")) e.preventDefault();
+        ctx.beginPath();
+        ctx.arc(cx + r, cy, 4, 0, 2*Math.PI);
+        ctx.fillStyle = c.color || "#00ffff";
+        ctx.fill();
+      }
 
-  didMoveDrag = true;
-  const { x, y } = getCoordsBase(e);
-
-  if (resizingCircle && isResizing) {
-    resizingCircle.r = Math.max(10, Math.hypot(x - resizingCircle.x, y - resizingCircle.y));
-  } else if (draggingCircle && isDragging) {
-    draggingCircle.x = x;
-    draggingCircle.y = y;
-  }
-
-  resizeCanvas();
-}
-
-function endTouch() {
-  if (isDragging || isResizing) {
-    saveMapState();
-  }
-
-  if (didMoveDrag) suppressClickUntil = Date.now() + 260;
-
-  resizingCircle = draggingCircle = null;
-  isResizing = isDragging = false;
-}
-
-map.addEventListener("mousedown", startTouch);
-map.addEventListener("mousemove", moveTouch);
-window.addEventListener("mouseup", endTouch);
-
-map.addEventListener("touchstart", startTouch, { passive: false });
-map.addEventListener("touchmove", moveTouch, { passive: false });
-map.addEventListener("touchend", endTouch, { passive: true });
-map.addEventListener("touchcancel", endTouch, { passive: true });
-
-// Undo button
-document.getElementById("undo-btn").onclick = () => {
-  const last = historyStack.pop();
-  if (!last) return;
-
-  if (last.type === "circle") {
-    circles.pop();
-  } else if (last.type === "line") {
-    const path = teamPaths[last.team];
-    if (path) {
-      path.pop();
-      if (path.length === 0) {
-        delete teamPaths[last.team];
-        const icon = teamIcons[last.team];
-        if (icon) icon.remove();
-        delete teamIcons[last.team];
+      // paths
+      for (const id in teamPaths){
+        const path = teamPaths[id];
+        const color = teamColors[teamIndex(id)] || "#fff";
+        for (let i=0;i<path.length-1;i++){
+          drawArrow(path[i], path[i+1], color);
+        }
       }
     }
-  } else if (last.type === "note" && last.element) {
-    const idx = Number(last.element.dataset.noteIdx);
-    last.element.remove();
-    if (Number.isFinite(idx) && notes[idx]) notes[idx] = null;
-  }
 
-  resizeCanvas();
-  saveMapState();
-};
+    function drawOverlayMask(circlesToReveal){
+      maskCanvas.style.display = "block";
+      ctxMask.clearRect(0,0,map.clientWidth,map.clientHeight);
 
-// Reset all
-document.getElementById("reset-all-btn").onclick = () => {
-  if (!confirm("Reset all?")) return;
+      ctxMask.fillStyle = "rgba(0,0,0,0.75)";
+      ctxMask.fillRect(0,0,map.clientWidth,map.clientHeight);
 
-  document.querySelectorAll("#map .unit").forEach(unit => unit.remove());
-  Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
-  Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
-  Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
-
-  circles.length = 0;
-  historyStack.length = 0;
-
-  // clear notes
-  document.querySelectorAll(".note").forEach(n => n.remove());
-  notes.length = 0;
-
-  activeTeam = selectedIcon = null;
-
-  resizeCanvas();
-  saveMapState();
-};
-
-// Export JSON (BASE coords)
-document.getElementById("export-btn").onclick = () => {
-  syncNotesFromDOM();
-  const data = {
-    map: mapSelect.value,
-    paths: teamPaths,
-    circles,
-    notes
-  };
-  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "team-paths.json";
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-// Import JSON (expects BASE coords)
-document.getElementById("import-file").onchange = function () {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const data = JSON.parse(e.target.result);
-
-    if (data.map) {
-      mapSelect.value = data.map;
-      map.style.backgroundImage = `url('${data.map}')`;
+      const { sx, sy, s } = scaleFactors();
+      ctxMask.globalCompositeOperation = "destination-out";
+      circlesToReveal.forEach(c => {
+        ctxMask.beginPath();
+        ctxMask.arc(c.x*sx, c.y*sy, c.r*s, 0, 2*Math.PI);
+        ctxMask.fill();
+      });
+      ctxMask.globalCompositeOperation = "source-over";
     }
 
-    // clear
-    Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
-    Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
-    Object.keys(teamIcons).forEach(k => { teamIcons[k]?.remove(); delete teamIcons[k]; });
-    circles.length = 0;
-    document.querySelectorAll(".note").forEach(n => n.remove());
-    notes.length = 0;
+    /***********************
+     * Overlays: units + notes reposition on resize
+     ***********************/
+    function repositionOverlays(){
+      // units
+      for (const id in teamIcons){
+        const el = teamIcons[id];
+        const first = teamPaths[id]?.[0];
+        if (!el || !first) continue;
+        const p = logicalToPx(first);
+        el.style.left = `${p.x - 15}px`;
+        el.style.top  = `${p.y - 15}px`;
+      }
+      // notes
+      document.querySelectorAll(".note").forEach(noteEl => {
+        const id = noteEl.dataset.noteId;
+        const n = notesData.find(x => x.id === id);
+        if (!n) return;
+        const p = logicalToPx(n);
+        noteEl.style.left = `${p.x}px`;
+        noteEl.style.top  = `${p.y}px`;
+      });
+    }
 
-    // restore paths
-    Object.entries(data.paths || {}).forEach(([id, points]) => {
-      const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
-      if (!icon || !points.length) return;
+    /***********************
+     * Circles hit tests (logical)
+     ***********************/
+    function findCircleResize(ptL){
+      for (let i = circles.length - 1; i >= 0; i--){
+        const c = circles[i];
+        const dist = Math.hypot(c.x - ptL.x, c.y - ptL.y);
+        if (Math.abs(dist - c.r) < 12) return c;
+      }
+      return null;
+    }
+    function findCircleDrag(ptL){
+      for (let i = circles.length - 1; i >= 0; i--){
+        const c = circles[i];
+        const dist = Math.hypot(c.x - ptL.x, c.y - ptL.y);
+        if (dist < c.r) return c;
+      }
+      return null;
+    }
 
-      const unitSize = getUnitSize();
-      const first = points[0];
-      const p = baseToScreen(first);
+    /***********************
+     * Notes
+     ***********************/
+    function createNote(logicalX, logicalY, text, forcedId, pushHistory=true){
+      const id = forcedId || ("n_" + Math.random().toString(16).slice(2));
 
+      const noteDiv = document.createElement("div");
+      noteDiv.className = "note";
+      noteDiv.dataset.noteId = id;
+
+      const handle = document.createElement("div");
+      handle.className = "drag-handle";
+      handle.textContent = "☰";
+
+      const content = document.createElement("div");
+      content.contentEditable = true;
+      content.textContent = text || "";
+
+      noteDiv.appendChild(handle);
+      noteDiv.appendChild(content);
+      map.appendChild(noteDiv);
+
+      if (!notesData.find(n => n.id === id)){
+        notesData.push({ id, x: logicalX, y: logicalY, text: text || "" });
+        if (pushHistory) historyStack.push({ type:"note", id });
+      }
+
+      // initial position
+      const p = logicalToPx({ x: logicalX, y: logicalY });
+      noteDiv.style.left = `${p.x}px`;
+      noteDiv.style.top  = `${p.y}px`;
+
+      content.addEventListener("input", () => {
+        const nd = notesData.find(n => n.id === id);
+        if (nd) nd.text = content.textContent || "";
+        saveMapState();
+      });
+
+      // drag with pointer (store logical)
+      let dragging = false;
+      let offPxX = 0, offPxY = 0;
+
+      handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handle.setPointerCapture(e.pointerId);
+        dragging = true;
+
+        const rect = map.getBoundingClientRect();
+        const curLeft = parseFloat(noteDiv.style.left || "0");
+        const curTop  = parseFloat(noteDiv.style.top  || "0");
+
+        offPxX = (e.clientX - rect.left) - curLeft;
+        offPxY = (e.clientY - rect.top)  - curTop;
+      });
+
+      handle.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = map.getBoundingClientRect();
+        const newPxX = (e.clientX - rect.left) - offPxX;
+        const newPxY = (e.clientY - rect.top)  - offPxY;
+
+        noteDiv.style.left = `${newPxX}px`;
+        noteDiv.style.top  = `${newPxY}px`;
+
+        // convert px -> logical
+        const lx = (newPxX / map.clientWidth) * LOGICAL_W;
+        const ly = (newPxY / map.clientHeight) * LOGICAL_H;
+
+        const nd = notesData.find(n => n.id === id);
+        if (nd){ nd.x = lx; nd.y = ly; }
+
+        drawAll();
+      });
+
+      handle.addEventListener("pointerup", (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+        dragging = false;
+        saveMapState();
+      });
+
+      handle.addEventListener("pointercancel", () => dragging = false);
+
+      return noteDiv;
+    }
+
+    /***********************
+     * Units
+     ***********************/
+    function createUnit(iconEl, teamId, logicalX, logicalY, pushHistory=true){
       const div = document.createElement("div");
       div.className = "unit";
-      div.style.left = `${p.x - unitSize/2}px`;
-      div.style.top = `${p.y - unitSize/2}px`;
 
-      const img = icon.cloneNode(true);
-      img.style.width = img.style.height = `${unitSize}px`;
+      const img = iconEl.cloneNode(true);
+      img.classList.remove("selected");
+      img.style.width = img.style.height = "30px";
 
       const label = document.createElement("div");
       label.className = "unit-label";
-      label.textContent = icon.dataset.teamTag || id;
+      label.textContent = iconEl.dataset.teamTag || teamId;
 
       const reset = document.createElement("button");
       reset.className = "reset-btn";
       reset.textContent = "Reset";
-      reset.onclick = ev => {
-        ev.stopPropagation();
+      reset.addEventListener("pointerdown", (e) => e.stopPropagation());
+      reset.addEventListener("click", (e) => {
+        e.stopPropagation();
         div.remove();
-        delete teamPaths[id];
-        delete teamIcons[id];
-        delete undoStacks[id];
-        resizeCanvas();
+        delete teamPaths[teamId];
+        delete teamIcons[teamId];
+        if (activeTeam === teamId) activeTeam = null;
+        drawAll();
         saveMapState();
-      };
+      });
 
       div.append(img, label, reset);
       map.appendChild(div);
-      div.onclick = () => activeTeam = id;
 
-      teamPaths[id] = points;
-      undoStacks[id] = [];
-      teamIcons[id] = div;
-    });
+      div.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        activeTeam = teamId;
+      });
 
-    (data.circles || []).forEach(c => circles.push(c));
+      const p = logicalToPx({ x: logicalX, y: logicalY });
+      div.style.left = `${p.x - 15}px`;
+      div.style.top  = `${p.y - 15}px`;
 
-    if (data.notes) {
-      data.notes.forEach(n => createNote(n.x, n.y, n.text, { recordHistory: false }));
+      if (pushHistory) historyStack.push({ type:"line", team: teamId });
+
+      return div;
     }
 
-    resizeCanvas();
-    saveMapState();
-  };
-  reader.readAsText(file);
-};
+    /***********************
+     * Team icons (Supabase)
+     ***********************/
+    async function loadTeamIcons(){
+      const grid = document.getElementById("teamIcons");
+      grid.innerHTML = "";
 
-// Drawing
-function drawArrow(fromBase, toBase, color) {
-  const a = baseToScreen(fromBase);
-  const b = baseToScreen(toBase);
+      const { data, error } = await client
+        .from("teams_pathplanner")
+        .select("id, team_name, team_tag, logo_url")
+        .order("id", { ascending: true });
 
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const angle = Math.atan2(dy, dx);
+      if (error){
+        console.error("❌ Failed to load teams:", error);
+        const msg = document.createElement("p");
+        msg.textContent = "Failed to load teams.";
+        msg.style.fontSize = "0.8rem";
+        msg.style.color = "#aaa";
+        msg.style.gridColumn = "1 / -1";
+        grid.appendChild(msg);
+        return;
+      }
 
-  ctx.beginPath();
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 6;
+      if (!data || !data.length){
+        const msg = document.createElement("p");
+        msg.textContent = "No teams configured. Go to Team Settings to add some.";
+        msg.style.fontSize = "0.8rem";
+        msg.style.color = "#aaa";
+        msg.style.gridColumn = "1 / -1";
+        grid.appendChild(msg);
+        return;
+      }
 
-  ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
+      data.slice(0, teamColors.length).forEach((team, i) => {
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = "center";
 
-  ctx.lineTo(b.x - 10 * Math.cos(angle - Math.PI / 6), b.y - 10 * Math.sin(angle - Math.PI / 6));
-  ctx.moveTo(b.x, b.y);
-  ctx.lineTo(b.x - 10 * Math.cos(angle + Math.PI / 6), b.y - 10 * Math.sin(angle + Math.PI / 6));
+        const img = document.createElement("img");
+        img.src = team.logo_url;
+        img.alt = team.team_name || team.team_tag || `Team ${i+1}`;
+        img.className = "team-icon";
 
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 4;
-  ctx.stroke();
-}
+        const teamId = "team" + (i+1);
+        img.dataset.id = teamId;
+        img.dataset.teamTag = team.team_tag || "";
+        img.dataset.teamName = team.team_name || "";
+        img.dataset.teamDbId = team.id;
 
-function drawPaths() {
-  const w = map.clientWidth;
-  const h = map.clientHeight;
-  ctx.clearRect(0, 0, w, h);
+        img.addEventListener("click", () => {
+          document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
+          img.classList.add("selected");
+          selectedIcon = img;
+        });
 
-  const { sx, sy } = getScale();
+        const colorBar = document.createElement("div");
+        colorBar.style.width = "60%";
+        colorBar.style.height = "6px";
+        colorBar.style.marginTop = "6px";
+        colorBar.style.borderRadius = "999px";
+        colorBar.style.backgroundColor = teamColors[i] || "#fff";
 
-  // circles (draw as ellipse if sx != sy)
-  for (let c of circles) {
-    const cx = c.x * sx;
-    const cy = c.y * sy;
-    const rx = c.r * sx;
-    const ry = c.r * sy;
-
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
-    ctx.strokeStyle = c.color;
-    ctx.setLineDash([3, 1]);
-    ctx.lineWidth = 5;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.beginPath();
-    ctx.arc(cx + rx, cy, 4, 0, 2 * Math.PI);
-    ctx.fillStyle = c.color;
-    ctx.fill();
-  }
-
-  // paths
-  for (let id in teamPaths) {
-    const path = teamPaths[id];
-    const i = parseInt(id.replace("team", "")) - 1;
-    const color = teamColors[i] || "#fff";
-    for (let j = 0; j < path.length - 1; j++) {
-      drawArrow(path[j], path[j + 1], color);
+        wrapper.appendChild(img);
+        wrapper.appendChild(colorBar);
+        grid.appendChild(wrapper);
+      });
     }
-  }
-}
 
-function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = map.clientWidth * dpr;
-  canvas.height = map.clientHeight * dpr;
-  canvas.style.width = map.clientWidth + "px";
-  canvas.style.height = map.clientHeight + "px";
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    /***********************
+     * Mode toggles
+     ***********************/
+    const drawCircleBtn = document.getElementById("draw-circle");
+    const noteBtn = document.getElementById("note-mode");
 
-  drawPaths();
-  relayoutOverlays();
+    drawCircleBtn.onclick = () => {
+      drawCircleMode = !drawCircleMode;
+      drawCircleBtn.textContent = drawCircleMode ? "Circle Mode: ON" : "Draw Circle";
+      drawCircleBtn.classList.toggle("active", drawCircleMode);
+    };
 
-  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
-  if (selectedOption?.dataset.mode === "CS") drawOverlayMask(circles);
-  else document.getElementById("maskCanvas").style.display = "none";
-}
+    noteBtn.onclick = () => {
+      noteMode = !noteMode;
+      noteBtn.textContent = noteMode ? "Note Mode: ON" : "Add Note";
+      noteBtn.classList.toggle("active", noteMode);
+    };
 
-window.addEventListener("resize", resizeCanvas);
+    /***********************
+     * Map pointer interactions (tap vs drag)
+     * (Fix: circle dragging won't block placing logos)
+     ***********************/
+    let down = false;
+    let moved = false;
+    let downClient = { x:0, y:0 };
+    let downLogical = { x:0, y:0 };
 
-// Supabase state
-let mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
-let realtimeEnabled = true;
-let realtimeChannel = null;
+    let candResize = null, candDrag = null;
+    let resizingCircle = null, draggingCircle = null;
 
-// Load map state
-async function loadMapState() {
-  const { data, error } = await client
-    .from('map')
-    .select('state')
-    .eq('id', 1)
-    .maybeSingle();
+    map.addEventListener("pointerdown", (e) => {
+      if (e.target?.closest && (e.target.closest(".note") || e.target.closest(".unit"))) return;
 
-  if (error && error.code !== 'PGRST116') {
-    console.error('❌ Failed to load map state:', error);
-    return;
-  }
+      e.preventDefault();
+      map.setPointerCapture(e.pointerId);
 
-  if (!data || !data.state) {
-    mapState = { map: mapSelect.value, paths: {}, circles: [], notes: [] };
-    applyMapState(mapState);
-    await saveMapState();
-    return;
-  }
+      down = true;
+      moved = false;
 
-  mapState = data.state;
-  applyMapState(mapState);
-}
+      downClient = { x: e.clientX, y: e.clientY };
+      downLogical = clientToLogical(e);
 
-// Save map state
-async function saveMapState() {
-  syncNotesFromDOM();
+      candResize = findCircleResize(downLogical);
+      candDrag = candResize ? null : findCircleDrag(downLogical);
 
-  mapState = {
-    map: mapSelect.value,
-    paths: teamPaths,
-    circles,
-    notes: (notes || []).filter(Boolean)
-  };
-
-  const { error } = await client
-    .from('map')
-    .upsert({
-      id: 1,
-      state: mapState,
-      updated_at: new Date().toISOString()
+      resizingCircle = null;
+      draggingCircle = null;
     });
 
-  if (error) console.error('❌ Failed to save map state:', error);
-}
+    map.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      e.preventDefault();
 
-// Apply state to UI
-function applyMapState(state) {
-  mapSelect.value = state.map || mapSelect.value;
-  map.style.backgroundImage = `url('${mapSelect.value}')`;
+      const distPx = Math.hypot(e.clientX - downClient.x, e.clientY - downClient.y);
 
-  // clear
-  Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
-  Object.keys(undoStacks).forEach(k => delete undoStacks[k]);
-  Object.keys(teamIcons).forEach(k => { teamIcons[k]?.remove(); delete teamIcons[k]; });
-  circles.length = 0;
-  document.querySelectorAll(".note").forEach(n => n.remove());
-  notes.length = 0;
-  historyStack.length = 0;
+      if (!moved && distPx > DRAG_THRESHOLD_PX){
+        moved = true;
+        resizingCircle = candResize;
+        draggingCircle = candDrag;
+      }
 
-  // restore paths
-  Object.entries(state.paths || {}).forEach(([id, points]) => {
-    const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
-    if (!icon || !points.length) return;
+      if (!moved) return;
 
-    const unitSize = getUnitSize();
-    const first = points[0];
-    const p = baseToScreen(first);
+      const pL = clientToLogical(e);
 
-    const div = document.createElement("div");
-    div.className = "unit";
-    div.style.left = `${p.x - unitSize/2}px`;
-    div.style.top = `${p.y - unitSize/2}px`;
+      if (resizingCircle){
+        resizingCircle.r = Math.max(10, Math.hypot(pL.x - resizingCircle.x, pL.y - resizingCircle.y));
+        drawAll();
+        return;
+      }
+      if (draggingCircle){
+        draggingCircle.x = pL.x;
+        draggingCircle.y = pL.y;
+        drawAll();
+      }
+    });
 
-    const img = icon.cloneNode(true);
-    img.style.width = img.style.height = `${unitSize}px`;
+    map.addEventListener("pointerup", (e) => {
+      if (!down) return;
+      e.preventDefault();
+      down = false;
 
-    const label = document.createElement("div");
-    label.className = "unit-label";
-    label.textContent = icon.dataset.teamTag || id;
+      if (moved && (resizingCircle || draggingCircle)){
+        candResize = candDrag = null;
+        resizingCircle = draggingCircle = null;
+        saveMapState();
+        return;
+      }
 
-    const reset = document.createElement("button");
-    reset.className = "reset-btn";
-    reset.textContent = "Reset";
-    reset.onclick = ev => {
-      ev.stopPropagation();
-      div.remove();
-      delete teamPaths[id];
-      delete teamIcons[id];
-      delete undoStacks[id];
-      resizeCanvas();
+      // TAP
+      candResize = candDrag = null;
+      resizingCircle = draggingCircle = null;
+
+      if (e.target?.closest && (e.target.closest(".note") || e.target.closest(".unit"))) return;
+
+      const pL = clientToLogical(e);
+
+      if (noteMode){
+        const text = prompt("Enter note:");
+        if (!text) return;
+        createNote(pL.x, pL.y, text, null, true);
+        noteMode = false;
+        noteBtn.textContent = "Add Note";
+        noteBtn.classList.remove("active");
+        saveMapState();
+        return;
+      }
+
+      if (drawCircleMode){
+        circles.push({ x: pL.x, y: pL.y, r: 30, color: "#00ffff" });
+        historyStack.push({ type:"circle" });
+        drawAll();
+        saveMapState();
+        return;
+      }
+
+      if (selectedIcon){
+        const id = selectedIcon.dataset.id;
+
+        if (!teamIcons[id]){
+          teamPaths[id] = [{ x: pL.x, y: pL.y }];
+          teamIcons[id] = createUnit(selectedIcon, id, pL.x, pL.y, true);
+          activeTeam = id;
+        } else {
+          activeTeam = id;
+        }
+
+        selectedIcon.classList.remove("selected");
+        selectedIcon = null;
+
+        drawAll();
+        saveMapState();
+        return;
+      }
+
+      if (activeTeam && teamPaths[activeTeam]){
+        teamPaths[activeTeam].push({ x: pL.x, y: pL.y });
+        historyStack.push({ type:"line", team: activeTeam });
+        drawAll();
+        saveMapState();
+      }
+    });
+
+    map.addEventListener("pointercancel", () => {
+      down = false; moved = false;
+      candResize = candDrag = null;
+      resizingCircle = draggingCircle = null;
+    });
+
+    /***********************
+     * Buttons: undo/reset/export/import
+     ***********************/
+    document.getElementById("undo-btn").onclick = () => {
+      const last = historyStack.pop();
+      if (!last) return;
+
+      if (last.type === "circle"){
+        circles.pop();
+      } else if (last.type === "line"){
+        const path = teamPaths[last.team];
+        if (path){
+          path.pop();
+          if (path.length === 0){
+            delete teamPaths[last.team];
+            teamIcons[last.team]?.remove();
+            delete teamIcons[last.team];
+            if (activeTeam === last.team) activeTeam = null;
+          } else {
+            // unit stays at first point; no change needed
+          }
+        }
+      } else if (last.type === "note"){
+        const el = map.querySelector(`.note[data-note-id="${last.id}"]`);
+        if (el) el.remove();
+        const idx = notesData.findIndex(n => n.id === last.id);
+        if (idx !== -1) notesData.splice(idx, 1);
+      }
+
+      drawAll();
       saveMapState();
     };
 
-    div.append(img, label, reset);
-    map.appendChild(div);
-    div.onclick = () => activeTeam = id;
+    document.getElementById("reset-all-btn").onclick = () => {
+      if (!confirm("Reset all?")) return;
 
-    teamPaths[id] = points;
-    undoStacks[id] = [];
-    teamIcons[id] = div;
-  });
+      Object.values(teamIcons).forEach(el => el?.remove());
+      Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+      Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
 
-  (state.circles || []).forEach(c => circles.push(c));
-  (state.notes || []).filter(Boolean).forEach(n => createNote(n.x, n.y, n.text, { recordHistory: false }));
+      circles.length = 0;
 
-  resizeCanvas();
+      map.querySelectorAll(".note").forEach(n => n.remove());
+      notesData.length = 0;
 
-  const selectedOption = mapSelect.options[mapSelect.selectedIndex];
-  if (selectedOption?.dataset.mode === "CS") drawOverlayMask(circles);
-  else document.getElementById("maskCanvas").style.display = "none";
-}
+      historyStack.length = 0;
+      activeTeam = null;
+      selectedIcon = null;
+      document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
 
-// Realtime handler
-function handleMapChange(payload) {
-  if (!realtimeEnabled) return;
-  const row = payload.new;
-  if (!row || row.id !== 1) return;
-  applyMapState(row.state || {});
-}
+      drawAll();
+      saveMapState();
+    };
 
-// Init
-window.addEventListener("DOMContentLoaded", async () => {
-  await loadTeamIcons();
-  await loadMapState();
-  enableRealtime();
+    document.getElementById("export-btn").onclick = () => {
+      const data = { map: mapSelect.value, paths: teamPaths, circles, notes: notesData };
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "team-paths.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
 
-  const realtimeBtn = document.getElementById("realtime-toggle-btn");
-  realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
-  realtimeBtn.classList.toggle("active", realtimeEnabled);
+    document.getElementById("import-file").onchange = function(){
+      const file = this.files[0];
+      if (!file) return;
 
-  realtimeBtn.onclick = async () => {
-    realtimeEnabled = !realtimeEnabled;
-    realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
-    realtimeBtn.classList.toggle("active", realtimeEnabled);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = JSON.parse(e.target.result);
 
-    if (realtimeEnabled) await enableRealtime();
-    else await disableRealtime();
-  };
+        if (data.map){
+          mapSelect.value = data.map;
+          setMapBg();
+        }
 
-  resizeCanvas();
-});
+        // clear
+        Object.values(teamIcons).forEach(el => el?.remove());
+        Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+        Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+        circles.length = 0;
+        map.querySelectorAll(".note").forEach(n => n.remove());
+        notesData.length = 0;
+        historyStack.length = 0;
+        activeTeam = null;
+        selectedIcon = null;
+        document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
 
-async function enableRealtime() {
-  if (realtimeChannel) return;
+        // restore
+        Object.entries(data.paths || {}).forEach(([id, points]) => {
+          const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+          if (!icon || !points?.length) return;
+          teamPaths[id] = points.map(p => ({ x:p.x, y:p.y }));
+          teamIcons[id] = createUnit(icon, id, points[0].x, points[0].y, false);
+        });
 
-  realtimeChannel = client
-    .channel('public:map')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map' }, handleMapChange)
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'map' }, handleMapChange);
+        (data.circles || []).forEach(c => circles.push({ x:c.x, y:c.y, r:c.r, color:c.color || "#00ffff" }));
 
-  const { error } = await realtimeChannel.subscribe();
-  if (error) console.error("❌ Error subscribing to real-time:", error.message);
-}
+        (data.notes || []).forEach(n => {
+          const nid = n.id || ("n_" + Math.random().toString(16).slice(2));
+          notesData.push({ id:nid, x:n.x, y:n.y, text:n.text || "" });
+          createNote(n.x, n.y, n.text || "", nid, false);
+        });
 
-async function disableRealtime() {
-  if (realtimeChannel) {
-    await client.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-  }
-}
+        resizeCanvases();
+        saveMapState();
+      };
+      reader.readAsText(file);
+      this.value = "";
+    };
 
-function drawOverlayMask(circlesToReveal) {
-  const maskCanvas = document.getElementById("maskCanvas");
-  const ctx2 = maskCanvas.getContext("2d");
+    /***********************
+     * Map change
+     ***********************/
+    mapSelect.addEventListener("change", () => {
+      setMapBg();
+      const opt = mapSelect.options[mapSelect.selectedIndex];
+      if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
+      else maskCanvas.style.display = "none";
+      saveMapState();
+    });
 
-  maskCanvas.style.display = "block";
+    /***********************
+     * Realtime + DB state
+     ***********************/
+    let realtimeEnabled = true;
+    let realtimeChannel = null;
 
-  const dpr = window.devicePixelRatio || 1;
-  maskCanvas.width = map.clientWidth * dpr;
-  maskCanvas.height = map.clientHeight * dpr;
-  maskCanvas.style.width = map.clientWidth + "px";
-  maskCanvas.style.height = map.clientHeight + "px";
-  ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    async function loadMapState(){
+      const { data, error } = await client
+        .from('map')
+        .select('state')
+        .eq('id', 1)
+        .maybeSingle();
 
-  ctx2.clearRect(0, 0, map.clientWidth, map.clientHeight);
-  ctx2.fillStyle = "rgba(0, 0, 0, 0.75)";
-  ctx2.fillRect(0, 0, map.clientWidth, map.clientHeight);
+      if (error && error.code !== 'PGRST116'){
+        console.error('❌ Failed to load map state:', error);
+        return;
+      }
+      if (!data || !data.state){
+        await saveMapState();
+        return;
+      }
+      applyMapState(data.state);
+    }
 
-  const { sx, sy } = getScale();
+    async function saveMapState(){
+      const state = { map: mapSelect.value, paths: teamPaths, circles, notes: notesData };
+      const { error } = await client
+        .from('map')
+        .upsert({ id: 1, state, updated_at: new Date().toISOString() });
+      if (error) console.error('❌ Failed to save map state:', error);
+    }
 
-  ctx2.globalCompositeOperation = "destination-out";
-  circlesToReveal.forEach(c => {
-    const cx = c.x * sx;
-    const cy = c.y * sy;
-    const rx = c.r * sx;
-    const ry = c.r * sy;
+    function applyMapState(state){
+      if (state?.map){
+        mapSelect.value = state.map;
+        setMapBg();
+      }
 
-    ctx2.beginPath();
-    ctx2.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
-    ctx2.fill();
-  });
-  ctx2.globalCompositeOperation = "source-over";
-}
-</script>
+      // clear
+      Object.values(teamIcons).forEach(el => el?.remove());
+      Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+      Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+      circles.length = 0;
+      map.querySelectorAll(".note").forEach(n => n.remove());
+      notesData.length = 0;
 
+      activeTeam = null;
+      selectedIcon = null;
+      document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
+
+      // restore
+      Object.entries(state?.paths || {}).forEach(([id, points]) => {
+        const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+        if (!icon || !points?.length) return;
+        teamPaths[id] = points.map(p => ({ x:p.x, y:p.y }));
+        teamIcons[id] = createUnit(icon, id, points[0].x, points[0].y, false);
+      });
+
+      (state?.circles || []).forEach(c => circles.push({ x:c.x, y:c.y, r:c.r, color:c.color || "#00ffff" }));
+
+      // notes can be old format without id
+      (state?.notes || []).forEach(n => {
+        const nid = n.id || ("n_" + Math.random().toString(16).slice(2));
+        notesData.push({ id:nid, x:n.x, y:n.y, text:n.text || "" });
+        createNote(n.x, n.y, n.text || "", nid, false);
+      });
+
+      resizeCanvases();
+    }
+
+    function handleMapChange(payload){
+      if (!realtimeEnabled) return;
+      const row = payload.new;
+      if (!row || row.id !== 1) return;
+      applyMapState(row.state || {});
+    }
+
+    async function enableRealtime(){
+      if (realtimeChannel) return;
+      realtimeChannel = client
+        .channel('public:map')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map' }, handleMapChange)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'map' }, handleMapChange);
+
+      const { error } = await realtimeChannel.subscribe();
+      if (error) console.error("❌ realtime subscribe:", error.message);
+    }
+
+    async function disableRealtime(){
+      if (!realtimeChannel) return;
+      await client.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    const realtimeBtn = document.getElementById("realtime-toggle-btn");
+    realtimeBtn.onclick = async () => {
+      realtimeEnabled = !realtimeEnabled;
+      realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+      realtimeBtn.classList.toggle("active", realtimeEnabled);
+      if (realtimeEnabled) await enableRealtime();
+      else await disableRealtime();
+    };
+
+    /***********************
+     * Init
+     ***********************/
+    window.addEventListener("DOMContentLoaded", async () => {
+      const session = await ensureSession();
+      if (!session) return;
+
+      document.getElementById("user-info").textContent =
+        "Logged in as: " + (session.user?.email || "unknown");
+
+      await loadTeamIcons();
+      setMapBg();
+
+      resizeCanvases();
+      await loadMapState();
+      await enableRealtime();
+
+      realtimeBtn.classList.toggle("active", realtimeEnabled);
+      realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+    });
+  </script>
 </body>
 </html>
