@@ -1,0 +1,1201 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character Comparison</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.08);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
+
+      --radius:16px;
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+
+      --sb-w: 260px;
+      --sb-w-collapsed: 82px;
+
+      --skill-active:#4dd3ff;
+      --skill-passive:#ff59c7;
+
+      --danger:#ff6b6b;
+      --ok:#71d083;
+    }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0;
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+
+    body::before, body::after{
+      content:"";
+      position:fixed;
+      inset:auto auto 0 0;
+      width:520px; height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform: translate(-45%, -35%);
+      pointer-events:none;
+    }
+    body::after{
+      inset: -120px 0 auto auto;
+      width:420px; height:420px;
+      border:10px solid rgba(77,211,255,.10);
+      transform: translate(38%, 0%);
+    }
+
+    a{color:inherit}
+    select{
+      color-scheme: dark;
+      background: rgba(0,0,0,.28);
+      color: var(--ink);
+    }
+    select option{ background:#0b1020; color:var(--ink); }
+
+    /* Layout */
+    .app{
+      min-height: 100vh;
+      display:flex;
+      gap:18px;
+      padding:18px;
+      max-width: 1440px;
+      margin: 0 auto;
+      align-items:flex-start;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width: var(--sb-w);
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      position: sticky;
+      top: 18px;
+      height: calc(100vh - 36px);
+      transition: width .18s ease;
+      flex:0 0 auto;
+    }
+    .sidebar.collapsed{ width: var(--sb-w-collapsed); }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:16px 16px 10px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-left{display:flex;align-items:center;gap:10px;min-width:0;}
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.5px;
+      color:var(--brand);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing:.6px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
+    }
+    .brand small{
+      display:block;
+      color: var(--muted);
+      font-size:.78rem;
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
+    }
+
+    .nav{
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow:auto;
+    }
+    .nav::-webkit-scrollbar{width:10px}
+    .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .nav::-webkit-scrollbar-track{background: transparent}
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid transparent;
+      color: var(--muted);
+      text-decoration:none;
+      transition: .2s ease;
+      cursor:pointer;
+      min-width:0;
+    }
+    .nav-item:hover{
+      background: rgba(255,255,255,.05);
+      border-color: rgba(255,255,255,.08);
+      color: var(--ink);
+    }
+    .nav-item.active{
+      background: linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
+      border-color: rgba(255,189,89,.22);
+      color: var(--ink);
+    }
+    .nav-ico{
+      width:26px;height:26px;border-radius:10px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      display:grid;place-items:center;
+      flex: 0 0 auto;
+    }
+    .nav-ico svg{width:14px;height:14px;opacity:.9}
+    .nav-label{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+    }
+
+    .sidebar.collapsed .brand h1,
+    .sidebar.collapsed .brand small,
+    .sidebar.collapsed .nav-label{display:none;}
+    .sidebar.collapsed .brand{justify-content:center;}
+    .sidebar.collapsed .brand-left{justify-content:center;}
+    .sidebar.collapsed .nav-item{
+      justify-content:center;
+      gap:0;
+      padding:10px 8px;
+    }
+
+    /* Main */
+    .main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    /* Topbar */
+    .topbar{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+    }
+    .search{
+      flex:1;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      min-width: 0;
+    }
+    .search input{
+      width:100%;
+      background: transparent;
+      border:0;
+      outline:none;
+      color: var(--ink);
+      font-size: .95rem;
+    }
+    .search input::placeholder{color: rgba(170,177,197,.75)}
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    .icon-btn{
+      width:42px;height:42px;border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      color: var(--ink);
+      flex:0 0 auto;
+    }
+    .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
+    .icon-btn svg{width:18px;height:18px;opacity:.92}
+
+    .userchip{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      max-width: 260px;
+    }
+    .avatar{
+      width:28px;height:28px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .usertext{min-width:0}
+    .usertext b{
+      display:block;
+      font-size:.92rem;
+      font-family: Orbitron, sans-serif;
+      color:var(--brand);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
+
+    .logout{
+      color: rgba(255,255,255,.70);
+      text-decoration:none;
+      font-size:.85rem;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      transition:.2s ease;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .logout:hover{
+      border-color: rgba(255,77,77,.35);
+      color: #ff8d8d;
+      box-shadow: 0 0 0 3px rgba(255,77,77,.10);
+    }
+
+    /* Card shells */
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+    .card-inner{padding:14px}
+
+    .hero{
+      position:relative;
+      height: 150px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.10)),
+        url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
+    }
+    .hero::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(420px 220px at 55% 45%, rgba(255,189,89,.16), transparent 60%);
+      pointer-events:none;
+    }
+    .hero-content{
+      position:absolute;
+      left:16px; right:16px; bottom:14px;
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hero-title h2{
+      font-family: Orbitron, sans-serif;
+      font-size: 1.45rem;
+      color: var(--brand);
+      text-shadow: 0 0 18px rgba(255,189,89,.20);
+      margin:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Buttons */
+    .btn{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
+      cursor:pointer;
+      font-weight:900;
+      font-size:.82rem;
+      transition:.2s ease;
+      white-space:nowrap;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+    .btn:hover{
+      background: rgba(0,0,0,.28);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+    .btn.brand{
+      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
+      border-color: rgba(255,189,89,.20);
+    }
+    .btn.brand:hover{
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.28);
+    }
+    .btn.danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.22);
+      color: rgba(255,230,230,.95);
+    }
+    .btn.danger:hover{
+      box-shadow: 0 0 0 3px rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.32);
+    }
+
+    .section-title{
+      margin: 16px 0 10px 0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      font-size: 1.02rem;
+      color: rgba(244,246,255,.92);
+    }
+    .muted{color: var(--muted);}
+
+    /* Player grid */
+    .player-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 1200px){
+      .player-grid{grid-template-columns: repeat(2, 1fr);}
+    }
+    @media (max-width: 680px){
+      .player-grid{grid-template-columns: 1fr;}
+    }
+
+    .player{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      overflow:hidden;
+    }
+    .player-head{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .player-head h3{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      color: var(--brand);
+      font-size: 1rem;
+      letter-spacing:.4px;
+    }
+    .player-head span{
+      font-size:.78rem;
+      color: var(--muted);
+      font-weight:800;
+    }
+    .slots{
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .slot-btn{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      border-radius: 14px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      cursor:pointer;
+      transition:.15s ease;
+      min-height: 54px;
+    }
+    .slot-btn:hover{
+      border-color: rgba(255,189,89,.22);
+      background: rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+    .slot-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .slot-thumb{
+      width:34px; height:44px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+    }
+    .slot-thumb img{
+      width:100%; height:100%;
+      object-fit:cover;
+      object-position: top center;
+      display:block;
+    }
+    .slot-meta{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .slot-meta b{
+      font-size:.86rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      color: rgba(244,246,255,.92);
+    }
+    .slot-meta small{
+      font-size:.75rem;
+      color: var(--muted);
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      font-size:.72rem;
+      font-weight:900;
+      color: rgba(244,246,255,.86);
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      display:inline-block;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.06);
+    }
+    .dot.active{ background: var(--skill-active); }
+    .dot.passive{ background: var(--skill-passive); }
+
+    /* Comparison table */
+    .comparison-wrap{
+      margin-top: 12px;
+      overflow:auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    table.comparison-table{
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+    }
+    .comparison-table th,
+    .comparison-table td{
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      border-right: 1px solid rgba(255,255,255,.06);
+      padding: 12px;
+      text-align: center;
+      vertical-align: top;
+      font-size: .9rem;
+    }
+    .comparison-table th{
+      position: sticky;
+      top: 0;
+      background: rgba(14,18,28,.92);
+      z-index: 2;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      color: rgba(244,246,255,.92);
+    }
+    .comparison-table td:last-child,
+    .comparison-table th:last-child{border-right:0}
+
+    .cell-head{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+    }
+    .cell-head img{
+      width:42px;height:56px;
+      object-fit:cover;
+      object-position: top center;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.15);
+    }
+    .skill-name{
+      font-weight:900;
+      color: var(--brand);
+      font-size: .9rem;
+    }
+    .desc{
+      margin-top: 6px;
+      font-size: .82rem;
+      color: rgba(244,246,255,.80);
+      line-height: 1.25rem;
+      max-height: 110px;
+      overflow:auto;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      text-align:left;
+    }
+    .desc::-webkit-scrollbar{width:10px}
+    .desc::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .desc::-webkit-scrollbar-track{background: transparent}
+
+    /* Modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.70);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display:none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 18px;
+    }
+    .modal.show{display:flex;}
+
+    .modal-card{
+      width: min(980px, 100%);
+      max-height: min(720px, calc(100vh - 36px));
+      overflow:hidden;
+      border-radius: 22px;
+      background: rgba(14,18,28,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 26px 80px rgba(0,0,0,.65);
+      display:flex;
+      flex-direction:column;
+    }
+    .modal-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .modal-top b{
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      color: var(--brand);
+    }
+    .modal-body{
+      padding: 12px;
+      overflow:auto;
+    }
+
+    .modal-body::-webkit-scrollbar{width:10px}
+    .modal-body::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .modal-body::-webkit-scrollbar-track{background: transparent}
+
+    #searchInput{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .92rem;
+      margin-bottom: 12px;
+    }
+    #searchInput::placeholder{color: rgba(170,177,197,.75)}
+    #searchInput:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+
+    .pick-grid{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
+    }
+    .pick{
+      width: 92px;
+      text-align:center;
+      border-radius: 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 10px 8px;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+    .pick:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,189,89,.20);
+      background: rgba(255,255,255,.06);
+    }
+    .pick img{
+      width: 70px;
+      height: 94px;
+      object-fit: cover;
+      object-position: top center;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      transition:.15s ease;
+      display:block;
+      margin: 0 auto 6px auto;
+    }
+    .pick.active-skill img{ border-color: rgba(77,211,255,.90); }
+    .pick.passive-skill img{ border-color: rgba(255,89,199,.90); }
+
+    .pick .nm{
+      font-size:.74rem;
+      font-weight:900;
+      color: rgba(244,246,255,.88);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .pick .rl{
+      margin-top: 4px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      font-size:.68rem;
+      color: rgba(244,246,255,.80);
+      font-weight:900;
+      white-space:nowrap;
+      max-width: 100%;
+    }
+
+    .sidebar-note{
+      font-size:.75rem;
+      color: var(--muted);
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+
+    @media (max-width: 980px){
+      .sidebar{display:none;}
+      .app{padding:12px;}
+      .topbar{top:12px;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-left">
+          <div class="logo">FF</div>
+          <div class="brand-text">
+            <h1>Free Fire</h1>
+            <small class="muted">Caster Dashboard</small>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <a class="nav-item" href="dashboard.html" data-page="dashboard.html" title="Dashboard">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+
+        <!-- IMPORTANT: char.html is now character.html -->
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Character Skills</span>
+        </a>
+
+        <a class="nav-item active" href="character-comparison.html" data-page="character-comparison.html" title="Compare Characters">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Compare Characters</span>
+        </a>
+
+        <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Pets</span>
+        </a>
+
+        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Weapons</span>
+        </a>
+
+        <a class="nav-item" href="map.html" data-page="map.html" title="Map">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6 4 8v14l6-2 4 2 6-2V6l-6 2-4-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Map</span>
+        </a>
+
+        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Split View</span>
+        </a>
+
+      </nav>
+
+      <div class="sidebar-note">Tip: click a slot to pick a character. “Compare” builds the table below.</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="top-actions">
+          <div class="userchip">
+            <div class="avatar"></div>
+            <div class="usertext">
+              <b id="gamertag">PlayerOne</b>
+              <span id="userEmail" class="muted">loading…</span>
+            </div>
+          </div>
+
+          <a class="logout" href="#" id="logoutBtn">Logout</a>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="hero">
+          <div class="hero-content">
+            <div class="hero-title">
+              <h2>Character Comparison</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-inner">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom: 10px;">
+            <div class="muted" style="font-weight:800; font-size:.9rem;">
+              Pick 1 active + 3 passives per player
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <a class="btn" href="dashboard.html">← Dashboard</a>
+              <a class="btn" href="character.html">← Character Gallery</a>
+              <button class="btn brand" onclick="compareCharacters()">Compare</button>
+              <button class="btn danger" onclick="resetSelections()">Reset All</button>
+            </div>
+          </div>
+
+          <div class="player-grid" id="playerGrid"></div>
+
+          <div class="section-title" style="margin-top:18px;">Comparison</div>
+          <div id="comparisonResult"></div>
+
+          <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
+            Free Fire Caster © 2025 — Neptune
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Character Picker Modal -->
+  <div class="modal" id="characterModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pick a Character">
+      <div class="modal-top">
+        <b id="modalTitle">Pick Character</b>
+        <button class="icon-btn" onclick="closeModal()" aria-label="Close" title="Close">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="searchInput" placeholder="Search character..." />
+        <div id="modalGrid" class="pick-grid"></div>
+        <div style="display:flex; justify-content:center; margin-top:12px;">
+          <button class="btn brand" onclick="closeModal()">Close ✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************
+     * Supabase Auth
+     ***********************/
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
+
+    async function ensureSession(){
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        window.location.href = "index.html";
+        return null;
+      }
+      return session;
+    }
+
+    async function logout(){
+      await client.auth.signOut();
+      window.location.href = "index.html";
+    }
+
+    /***********************
+     * Sidebar collapse + active nav + nav search
+     ***********************/
+    const sidebar = document.getElementById('sidebar');
+
+    (function initSidebarCollapse(){
+      const key = 'ff_sidebar_collapsed_v1';
+      const saved = localStorage.getItem(key);
+      if (saved === '1') sidebar.classList.add('collapsed');
+
+      const btn = document.getElementById('sbToggle');
+      const path = document.getElementById('sbTogglePath');
+
+      function syncIcon(){
+        if (!path) return;
+        path.setAttribute('d', sidebar.classList.contains('collapsed')
+          ? 'M10 7l5 5-5 5'
+          : 'M14 7l-5 5 5 5'
+        );
+      }
+      syncIcon();
+
+      btn?.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
+        syncIcon();
+      });
+    })();
+
+    (function setActiveNav(){
+      const here = (location.pathname.split('/').pop() || 'character-comparison.html').toLowerCase();
+      document.querySelectorAll('.nav-item').forEach(a => {
+        const page = (a.getAttribute('data-page') || '').toLowerCase();
+        a.classList.toggle('active', page === here);
+      });
+    })();
+
+    document.getElementById('navSearch')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = a.textContent.toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    /***********************
+     * Comparison logic
+     ***********************/
+    let allCharacters = [];
+    const selections = Array.from({ length: 4 }, () => Array(4).fill(null));
+    let currentPlayer = 0;
+    let currentSlot = 0;
+
+    function tidy(v){
+      return (v ?? '').toString()
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/\s*\n+\s*/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    function createPlayerPanel(playerIndex) {
+      const panel = document.createElement('div');
+      panel.className = 'player';
+
+      const head = document.createElement('div');
+      head.className = 'player-head';
+      head.innerHTML = `<h3>Player ${playerIndex + 1}</h3><span>4 slots</span>`;
+
+      const slotsWrap = document.createElement('div');
+      slotsWrap.className = 'slots';
+
+      const slotLabels = [
+        { label: 'Active Skill', type: 'Active' },
+        { label: 'Passive 1', type: 'Passive' },
+        { label: 'Passive 2', type: 'Passive' },
+        { label: 'Passive 3', type: 'Passive' }
+      ];
+
+      slotLabels.forEach((s, slotIdx) => {
+        const btn = document.createElement('div');
+        btn.className = 'slot-btn';
+        btn.id = `slot-${playerIndex}-${slotIdx}`;
+        btn.innerHTML = `
+          <div class="slot-left">
+            <div class="slot-thumb"></div>
+            <div class="slot-meta">
+              <b>${s.label}</b>
+              <small>${s.type}</small>
+            </div>
+          </div>
+          <span class="tag"><span class="dot ${slotIdx===0?'active':'passive'}"></span>${slotIdx===0?'Active':'Passive'}</span>
+        `;
+        btn.addEventListener('click', () => openModal(playerIndex, slotIdx));
+        slotsWrap.appendChild(btn);
+      });
+
+      panel.appendChild(head);
+      panel.appendChild(slotsWrap);
+      return panel;
+    }
+
+    function openModal(playerIdx, slotIdx) {
+      currentPlayer = playerIdx;
+      currentSlot = slotIdx;
+
+      const modal = document.getElementById('characterModal');
+      const grid = document.getElementById('modalGrid');
+      const input = document.getElementById('searchInput');
+      const title = document.getElementById('modalTitle');
+
+      input.value = '';
+      grid.innerHTML = '';
+
+      const skillType = slotIdx === 0 ? 'Active' : 'Passive';
+      title.textContent = `Pick ${skillType} — Player ${playerIdx + 1} / Slot ${slotIdx + 1}`;
+
+      const filtered = allCharacters.filter(c => tidy(c.skill_type) === skillType);
+
+      filtered
+        .sort((a,b) => tidy(a.name).localeCompare(tidy(b.name)))
+        .forEach(c => {
+          const pick = document.createElement('div');
+          const passive = tidy(c.skill_type) === 'Passive';
+          pick.className = 'pick ' + (passive ? 'passive-skill' : 'active-skill');
+          pick.setAttribute('data-name', tidy(c.name));
+          pick.innerHTML = `
+            <img src="${c.image_url}" alt="${tidy(c.name)}">
+            <div class="nm">${tidy(c.name)}</div>
+            <div class="rl">${tidy(c.role) || 'N/A'}</div>
+          `;
+          pick.addEventListener('click', () => selectCharacter(c));
+          grid.appendChild(pick);
+        });
+
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('characterModal');
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+    }
+
+    function selectCharacter(charObj) {
+      const name = tidy(charObj.name);
+      selections[currentPlayer][currentSlot] = name;
+
+      const slot = document.getElementById(`slot-${currentPlayer}-${currentSlot}`);
+      const label = currentSlot === 0 ? 'Active Skill' : `Passive ${currentSlot}`;
+
+      const isActive = currentSlot === 0;
+      slot.innerHTML = `
+        <div class="slot-left">
+          <div class="slot-thumb">
+            <img src="${charObj.image_url}" alt="${name}">
+          </div>
+          <div class="slot-meta">
+            <b>${name}</b>
+            <small>${label} • ${tidy(charObj.role) || 'N/A'}</small>
+          </div>
+        </div>
+        <span class="tag"><span class="dot ${isActive?'active':'passive'}"></span>${isActive?'Active':'Passive'}</span>
+      `;
+
+      closeModal();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function () {
+      const term = tidy(this.value).toLowerCase();
+      const cards = document.querySelectorAll('.pick');
+      cards.forEach(card => {
+        const name = (card.getAttribute('data-name') || '').toLowerCase();
+        card.style.display = name.includes(term) ? '' : 'none';
+      });
+    });
+
+    window.addEventListener('click', (e) => {
+      const modal = document.getElementById('characterModal');
+      if (e.target === modal) closeModal();
+    });
+
+    function compareCharacters() {
+      const result = document.getElementById('comparisonResult');
+      result.innerHTML = '';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'comparison-wrap';
+
+      const table = document.createElement('table');
+      table.className = 'comparison-table';
+
+      const header = document.createElement('tr');
+      header.innerHTML = '<th>Slot</th>' + Array.from({ length: 4 }, (_, i) => `<th>Player ${i + 1}</th>`).join('');
+      table.appendChild(header);
+
+      const slots = ['Active Skill', 'Passive 1', 'Passive 2', 'Passive 3'];
+      for (let slot = 0; slot < 4; slot++) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td style="font-weight:900; color:rgba(244,246,255,.92)">${slots[slot]}</td>`;
+
+        for (let player = 0; player < 4; player++) {
+          const selectedName = selections[player][slot];
+          const char = allCharacters.find(c => tidy(c.name) === tidy(selectedName));
+
+          if (!char) {
+            row.innerHTML += `<td class="muted">N/A</td>`;
+            continue;
+          }
+
+          const role = tidy(char.role) || 'N/A';
+          const st = tidy(char.skill_type) || '—';
+          const skill = tidy(char.skill) || '—';
+          const desc = tidy(char.description) || '—';
+
+          row.innerHTML += `
+            <td>
+              <div class="cell-head">
+                <img src="${char.image_url}" alt="${tidy(char.name)}">
+                <strong>${tidy(char.name)}</strong>
+                <small class="muted" style="font-weight:800;">${st} • ${role}</small>
+                <div class="skill-name">${skill}</div>
+              </div>
+              <div class="desc">${desc}</div>
+            </td>
+          `;
+        }
+
+        table.appendChild(row);
+      }
+
+      wrap.appendChild(table);
+      result.appendChild(wrap);
+    }
+
+    function resetSelections() {
+      for (let player = 0; player < 4; player++) {
+        for (let slot = 0; slot < 4; slot++) {
+          selections[player][slot] = null;
+
+          const slotEl = document.getElementById(`slot-${player}-${slot}`);
+          const label = slot === 0 ? 'Active Skill' : `Passive ${slot}`;
+          const isActive = slot === 0;
+
+          slotEl.innerHTML = `
+            <div class="slot-left">
+              <div class="slot-thumb"></div>
+              <div class="slot-meta">
+                <b>${label}</b>
+                <small>${isActive ? 'Active' : 'Passive'}</small>
+              </div>
+            </div>
+            <span class="tag"><span class="dot ${isActive?'active':'passive'}"></span>${isActive?'Active':'Passive'}</span>
+          `;
+        }
+      }
+      document.getElementById('comparisonResult').innerHTML = '';
+    }
+
+    /***********************
+     * Load data + init
+     ***********************/
+    window.addEventListener('DOMContentLoaded', async () => {
+      const session = await ensureSession();
+      if (!session) return;
+
+      const email = session.user?.email || '';
+      document.getElementById('userEmail').textContent = email || 'signed in';
+      document.getElementById('gamertag').textContent = email ? email.split('@')[0] : 'PlayerOne';
+
+      const grid = document.getElementById('playerGrid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 4; i++) grid.appendChild(createPlayerPanel(i));
+
+      const res = await fetch('https://neptuneg1.github.io/freefire-caster/character.json', { cache: 'no-store' });
+      allCharacters = await res.json();
+      if (!Array.isArray(allCharacters)) allCharacters = [];
+    });
+  </script>
+</body>
+</html>
