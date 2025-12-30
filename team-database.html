@@ -105,6 +105,12 @@
       background:transparent;
       border-color:var(--stroke);
     }
+    .btn.sm{
+      padding:7px 10px;
+      border-radius:10px;
+      font-size:12px;
+      gap:6px;
+    }
 
     .chip{
       font-size:12px;
@@ -187,9 +193,12 @@
     tbody tr:hover td{
       background:rgba(255,255,255,.03);
     }
+    tbody tr{cursor:pointer}
+    tbody tr .col-actions, tbody tr .col-actions *{cursor:default}
+
     .col-actions{width:1%}
     .row-actions{
-      display:flex; gap:8px; justify-content:flex-end;
+      display:flex; gap:8px; justify-content:flex-end; align-items:center;
     }
     .iconbtn{
       width:34px;height:34px;border-radius:10px;
@@ -210,10 +219,6 @@
       flex:0 0 auto;
     }
     .logo img{width:100%;height:100%;object-fit:cover;display:block}
-    .namecell{
-      display:flex; align-items:center; gap:10px;
-      min-width:240px;
-    }
     .muted{color:var(--muted)}
     .pill{
       display:inline-flex;align-items:center;gap:6px;
@@ -237,12 +242,14 @@
       display:flex;
       justify-content:space-between;
       gap:12px;
+      cursor:pointer;
     }
     .card .left{display:flex; gap:10px; align-items:center; min-width:0}
     .card .meta{min-width:0}
     .card .meta .t{font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
     .card .meta .s{font-size:12px;color:var(--muted);margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
     .card .right{display:flex; gap:8px; align-items:center}
+    .card .right *{cursor:default}
 
     @media (max-width: 900px){
       table{min-width:0}
@@ -305,11 +312,33 @@
       outline:none;
     }
     .formrow textarea{min-height:74px; resize:vertical}
-    .formrow.readonly{
-      opacity:.7;
+    .formrow.readonly{opacity:.7;}
+    .formrow.readonly input, .formrow.readonly textarea, .formrow.readonly select{pointer-events:none;}
+
+    .logo-preview{
+      display:flex; gap:10px; align-items:center;
+      margin-top:8px;
+      padding:8px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
     }
-    .formrow.readonly input, .formrow.readonly textarea, .formrow.readonly select{
-      pointer-events:none;
+    .logo-preview .thumb{
+      width:40px;height:40px;border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      background:rgba(0,0,0,.25);
+      display:grid;place-items:center;
+      flex:0 0 auto;
+    }
+    .logo-preview .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .logo-preview .txt{
+      min-width:0;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .modal-foot{
@@ -361,7 +390,6 @@
       </div>
 
       <div class="actions">
-        <!-- Update this link to your dashboard -->
         <a class="btn ghost" href="index.html">← Back</a>
         <button class="btn" id="btnRefresh">⟳ Refresh</button>
         <button class="btn primary" id="btnAdd">＋ Add Team</button>
@@ -449,12 +477,17 @@
 
   <script>
     /***********************
-     * CONFIG — replace these
+     * CONFIG
      ***********************/
     const SUPABASE_URL = "https://ooutjrewmwsixghbouxi.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg";
     const TABLE = "team_database";
-    const PK = "id"; // change if your primary key is different
+    const PK = "id";
+
+    // If your DB stores ONLY a storage path like: "logos/team.png" (not a full https url),
+    // set your bucket name here (must be public) e.g. "team-logos".
+    // Leave "" if your logo_url is already a full image URL (imgur, etc).
+    const LOGO_BUCKET = "";
 
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -462,11 +495,12 @@
      * State
      ***********************/
     let rows = [];
-    let columns = [];         // derived from data
-    let editableCols = [];    // derived from columns
-    let currentRow = null;    // row being edited
+    let columns = [];
+    let editableCols = [];
+    let currentRow = null;
     let isAddMode = false;
 
+    let logoKey = null; // detected
     const READONLY_COLS = new Set([PK, "created_at", "updated_at"]);
 
     /***********************
@@ -493,21 +527,47 @@
       }[m]));
     }
 
+    function findLogoKey(cols){
+      const priority = [
+        "logo_url","team_logo_url","team_logo","logo","logoUrl","image_url","image","icon_url","icon"
+      ];
+      for (const p of priority){
+        const hit = cols.find(c => String(c).toLowerCase() === String(p).toLowerCase());
+        if (hit) return hit;
+      }
+      // fallback: any column that contains logo/image/icon
+      const fallback = cols.find(c => /logo|image|icon/i.test(c));
+      return fallback || null;
+    }
+
+    function resolveLogoUrl(v){
+      if (!v) return "";
+      const s = String(v).trim();
+      if (!s) return "";
+      if (/^(https?:)?\/\//i.test(s) || s.startsWith("data:") || s.startsWith("blob:")) return s;
+
+      if (LOGO_BUCKET){
+        try{
+          const { data } = client.storage.from(LOGO_BUCKET).getPublicUrl(s);
+          return data?.publicUrl || s;
+        }catch(e){
+          return s;
+        }
+      }
+      return s; // maybe already a relative URL served by your site
+    }
+
     function guessType(val, key){
       if (val === null || val === undefined) return "text";
       if (typeof val === "boolean") return "checkbox";
       if (typeof val === "number") return "number";
-      // datetime-ish keys commonly used
       if (/(created_at|updated_at|date|time)$/i.test(key)) return "datetime-local";
-      // url-ish keys
-      if (/url|logo|image/i.test(key)) return "url";
-      // long text
+      if (/url|logo|image|icon/i.test(key)) return "url";
       if (typeof val === "string" && val.length > 80) return "textarea";
       return "text";
     }
 
     function normalizeDatetimeLocal(v){
-      // supabase often returns ISO strings; input datetime-local needs "YYYY-MM-DDTHH:mm"
       if (!v) return "";
       const d = new Date(v);
       if (isNaN(d)) return "";
@@ -532,9 +592,7 @@
       try{
         let query = client.from(TABLE).select("*");
 
-        // Search (best-effort). If columns don't exist, supabase will error — we fallback.
         if (q){
-          // Try common fields: team_name/team_tag/region (works if they exist)
           query = query.or(`team_name.ilike.%${q}%,team_tag.ilike.%${q}%,region.ilike.%${q}%`);
         }
 
@@ -542,7 +600,6 @@
 
         const { data, error } = await query;
         if (error){
-          // fallback: fetch without search if schema differs
           if (q){
             const fallback = await client.from(TABLE).select("*").order(sortBy, { ascending: sortDir === "asc" });
             if (fallback.error) throw fallback.error;
@@ -571,8 +628,7 @@
         Object.keys(r || {}).forEach(k => keys.add(k));
       }
 
-      // Nice ordering: logo/name/tag/region first, then everything else, then timestamps
-      const preferred = ["logo_url","logo","image_url","team_name","name","team_tag","tag","region","group","country"];
+      const preferred = ["logo_url","logo","image_url","icon_url","team_name","name","team_tag","tag","region","group","country"];
       const tail = ["created_at","updated_at"];
 
       const all = Array.from(keys);
@@ -581,9 +637,9 @@
       const end = tail.filter(k => keys.has(k));
 
       columns = [PK, ...head.filter(k => k!==PK), ...mid.filter(k => k!==PK), ...end.filter(k => k!==PK)];
-
-      // Editable: everything except readonly
       editableCols = columns.filter(c => !READONLY_COLS.has(c));
+
+      logoKey = findLogoKey(columns);
     }
 
     /***********************
@@ -601,19 +657,26 @@
       thead.innerHTML = "";
       tbody.innerHTML = "";
 
-      // If no columns yet, show empty state
       if (!columns.length){
         thead.innerHTML = `<th>—</th>`;
         tbody.innerHTML = `<tr><td class="muted">No data</td></tr>`;
         return;
       }
 
-      // Header
-      for (const col of columns){
+      // Hide the raw logo url column from the table (still editable in modal)
+      const displayCols = columns.filter(c => c !== logoKey);
+
+      // Header: add a dedicated Logo column first (actual image)
+      const thLogo = document.createElement("th");
+      thLogo.textContent = "logo";
+      thead.appendChild(thLogo);
+
+      for (const col of displayCols){
         const th = document.createElement("th");
         th.textContent = col;
         thead.appendChild(th);
       }
+
       const thA = document.createElement("th");
       thA.textContent = "";
       thA.className = "col-actions";
@@ -623,22 +686,31 @@
       for (const r of rows){
         const tr = document.createElement("tr");
 
-        for (const col of columns){
+        // Row click opens edit (but not when clicking action buttons)
+        tr.addEventListener("click", () => openEdit(r));
+
+        // Logo cell
+        const tdLogo = document.createElement("td");
+        const src = logoKey ? resolveLogoUrl(r[logoKey]) : "";
+        tdLogo.innerHTML = `
+          <div class="logo" title="${esc(src || "")}">
+            ${src ? `<img loading="lazy" referrerpolicy="no-referrer" src="${esc(src)}" alt="" onerror="this.remove(); this.parentElement.textContent='🏁';">` : "🏁"}
+          </div>
+        `;
+        tr.appendChild(tdLogo);
+
+        for (const col of displayCols){
           const td = document.createElement("td");
 
-          if (/logo|image/i.test(col) && r[col]){
-            td.innerHTML = `<div class="logo"><img src="${esc(r[col])}" alt=""></div>`;
-          } else if (col === "team_name" || col === "name"){
-            const logoKey = columns.find(c => /logo|image/i.test(c)) || "logo_url";
-            const logoVal = r[logoKey];
+          if (col === "team_name" || col === "name"){
+            const name = r[col];
+            const tag = r.team_tag ?? r.tag ?? "";
+            const reg = r.region ?? "";
             td.innerHTML = `
-              <div class="namecell">
-                <div class="logo">${logoVal ? `<img src="${esc(logoVal)}" alt="">` : "🏁"}</div>
-                <div style="min-width:0">
-                  <div style="font-weight:650; overflow:hidden; text-overflow:ellipsis">${esc(r[col])}</div>
-                  <div class="muted" style="font-size:12px; overflow:hidden; text-overflow:ellipsis">
-                    ${esc(r.team_tag ?? r.tag ?? "")}${(r.region ? " • " + esc(r.region) : "")}
-                  </div>
+              <div style="min-width:240px">
+                <div style="font-weight:650; overflow:hidden; text-overflow:ellipsis">${esc(name ?? "")}</div>
+                <div class="muted" style="font-size:12px; overflow:hidden; text-overflow:ellipsis">
+                  ${esc([tag, reg].filter(Boolean).join(" • "))}
                 </div>
               </div>
             `;
@@ -656,15 +728,17 @@
         tdA.className = "col-actions";
         tdA.innerHTML = `
           <div class="row-actions">
-            <button class="iconbtn" title="Edit">✎</button>
-            <button class="iconbtn danger" title="Delete">🗑</button>
+            <button class="btn sm" title="Edit">✎ Edit</button>
+            <button class="btn sm danger" title="Delete">🗑 Delete</button>
           </div>
         `;
         const [btnEdit, btnDel] = tdA.querySelectorAll("button");
-        btnEdit.addEventListener("click", ()=> openEdit(r));
-        btnDel.addEventListener("click", ()=> confirmDelete(r));
-        tr.appendChild(tdA);
 
+        // prevent row click from also firing
+        btnEdit.addEventListener("click", (e)=>{ e.stopPropagation(); openEdit(r); });
+        btnDel.addEventListener("click", (e)=>{ e.stopPropagation(); confirmDelete(r); });
+
+        tr.appendChild(tdA);
         tbody.appendChild(tr);
       }
     }
@@ -673,11 +747,9 @@
       const wrap = $("cards");
       wrap.innerHTML = "";
 
-      // pick best fields for mobile
       const nameKey = columns.find(c => c==="team_name") || columns.find(c => c==="name") || "team_name";
       const tagKey  = columns.find(c => c==="team_tag")  || columns.find(c => c==="tag")  || "team_tag";
       const regionKey = columns.find(c => c==="region") || null;
-      const logoKey = columns.find(c => /logo|image/i.test(c)) || null;
 
       if (!rows.length){
         wrap.innerHTML = `<div class="muted">No data</div>`;
@@ -687,7 +759,8 @@
       for (const r of rows){
         const card = document.createElement("div");
         card.className = "card";
-        const logo = logoKey ? r[logoKey] : null;
+
+        const src = (logoKey ? resolveLogoUrl(r[logoKey]) : "");
 
         const line2 = [
           tagKey ? (r[tagKey] ?? "") : "",
@@ -696,20 +769,27 @@
 
         card.innerHTML = `
           <div class="left">
-            <div class="logo">${logo ? `<img src="${esc(logo)}" alt="">` : "🏁"}</div>
+            <div class="logo">
+              ${src ? `<img loading="lazy" referrerpolicy="no-referrer" src="${esc(src)}" alt="" onerror="this.remove(); this.parentElement.textContent='🏁';">` : "🏁"}
+            </div>
             <div class="meta">
               <div class="t">${esc(r[nameKey] ?? "(unnamed)")}</div>
               <div class="s">${esc(line2 || ("id: " + (r[PK] ?? "—")))}</div>
             </div>
           </div>
           <div class="right">
-            <button class="iconbtn" title="Edit">✎</button>
-            <button class="iconbtn danger" title="Delete">🗑</button>
+            <button class="btn sm" title="Edit">✎</button>
+            <button class="btn sm danger" title="Delete">🗑</button>
           </div>
         `;
+
+        // tap card = edit
+        card.addEventListener("click", ()=> openEdit(r));
+
         const [btnEdit, btnDel] = card.querySelectorAll("button");
-        btnEdit.addEventListener("click", ()=> openEdit(r));
-        btnDel.addEventListener("click", ()=> confirmDelete(r));
+        btnEdit.addEventListener("click", (e)=>{ e.stopPropagation(); openEdit(r); });
+        btnDel.addEventListener("click", (e)=>{ e.stopPropagation(); confirmDelete(r); });
+
         wrap.appendChild(card);
       }
     }
@@ -736,40 +816,38 @@
       isAddMode = true;
       currentRow = {};
 
-      // If no columns yet (empty table), use a sensible default starter schema.
-      // You can delete/adjust these to match your table.
       if (!columns.length){
         columns = [PK,"team_name","team_tag","region","logo_url","created_at","updated_at"];
         editableCols = columns.filter(c => !READONLY_COLS.has(c));
+        logoKey = findLogoKey(columns);
       }
 
       $("modalTitle").textContent = "Add Team";
       $("rowKeyPill").textContent = `${PK}: (new)`;
       $("btnDelete").style.display = "none";
 
-      buildForm(currentRow, true);
+      buildForm(currentRow);
       $("formHint").textContent = "Fill out the fields you want, then Save.";
       openModal();
     }
 
     function openEdit(row){
       isAddMode = false;
-      currentRow = JSON.parse(JSON.stringify(row)); // clone
+      currentRow = JSON.parse(JSON.stringify(row));
 
       $("modalTitle").textContent = "Edit Team";
       $("rowKeyPill").textContent = `${PK}: ${row?.[PK] ?? "—"}`;
       $("btnDelete").style.display = "inline-flex";
 
-      buildForm(currentRow, false);
+      buildForm(currentRow);
       $("formHint").textContent = "Edit values then Save. Read-only fields are locked.";
       openModal();
     }
 
-    function buildForm(row, allowEmpty){
+    function buildForm(row){
       const grid = $("formGrid");
       grid.innerHTML = "";
 
-      // Always include PK at top for context
       const ordered = [PK, ...editableCols.filter(c => c!==PK), ...columns.filter(c => READONLY_COLS.has(c) && c!==PK)];
 
       const seen = new Set();
@@ -803,7 +881,7 @@
           input.value = normalizeDatetimeLocal(val);
         } else {
           input = document.createElement("input");
-          input.type = type; // text/number/url
+          input.type = type;
           input.value = (val === null || val === undefined) ? "" : String(val);
           if (type === "number") input.inputMode = "numeric";
         }
@@ -813,25 +891,41 @@
 
         box.appendChild(input);
 
-        // If this looks like a logo url field, show a tiny hint/preview
-        if (/logo|image/i.test(col)){
-          const hint = document.createElement("div");
-          hint.className = "hint";
-          hint.style.marginTop = "6px";
-          hint.innerHTML = `Preview: <span class="muted">${esc(val || "—")}</span>`;
-          box.appendChild(hint);
+        // If this is the logo url field, show actual IMAGE preview (not just text)
+        if (logoKey && col === logoKey){
+          const preview = document.createElement("div");
+          preview.className = "logo-preview";
+
+          const thumb = document.createElement("div");
+          thumb.className = "thumb";
+          thumb.innerHTML = "🏁";
+
+          const txt = document.createElement("div");
+          txt.className = "txt";
+          txt.textContent = val ? String(val) : "No logo set";
+
+          preview.appendChild(thumb);
+          preview.appendChild(txt);
+          box.appendChild(preview);
+
+          function paintLogo(url){
+            const resolved = resolveLogoUrl(url);
+            txt.textContent = resolved || "No logo set";
+            if (!resolved){
+              thumb.innerHTML = "🏁";
+              return;
+            }
+            thumb.innerHTML = `<img loading="lazy" referrerpolicy="no-referrer" src="${esc(resolved)}" alt="" onerror="this.remove(); this.parentElement.textContent='🏁';">`;
+          }
+
+          paintLogo(input.value);
 
           input.addEventListener("input", ()=>{
-            hint.innerHTML = `Preview: <span class="muted">${esc(input.value || "—")}</span>`;
+            paintLogo(input.value);
           });
         }
 
         grid.appendChild(box);
-      }
-
-      // If add mode and PK is autogenerated, user can leave it blank.
-      if (isAddMode && READONLY_COLS.has(PK) === false){
-        // nothing special
       }
     }
 
@@ -851,21 +945,17 @@
 
         const raw = el.value;
         if (raw === ""){
-          // For add mode, we skip empty values (lets DB defaults work).
-          // For edit mode, empty string is a valid update, so we keep it.
           if (isAddMode) return;
           payload[col] = "";
           return;
         }
 
-        // Convert number
         if (el.type === "number"){
           const n = Number(raw);
           payload[col] = Number.isFinite(n) ? n : raw;
           return;
         }
 
-        // Convert datetime-local back to ISO
         if (el.type === "datetime-local"){
           const d = new Date(raw);
           payload[col] = isNaN(d) ? raw : d.toISOString();
@@ -885,15 +975,13 @@
       if (!currentRow) return;
 
       const payload = collectFormPayload();
-
-      // In edit mode, ensure we don't accidentally overwrite PK
       if (!isAddMode) delete payload[PK];
 
       try{
         setStatus(isAddMode ? "Inserting…" : "Updating…");
 
         if (isAddMode){
-          const { data, error } = await client.from(TABLE).insert(payload).select("*");
+          const { error } = await client.from(TABLE).insert(payload).select("*");
           if (error) throw error;
           toast("Inserted successfully", "ok");
         } else {
@@ -972,13 +1060,6 @@
      * Boot
      ***********************/
     (async function init(){
-      // Quick safety check: warn if not configured
-      if (SUPABASE_URL.includes("YOUR_PROJECT") || SUPABASE_ANON_KEY.includes("YOUR_ANON_KEY")){
-        toast("Set SUPABASE_URL and SUPABASE_ANON_KEY in the script.", "warn");
-        setStatus("Configure Supabase keys");
-      } else {
-        setStatus("Loading…");
-      }
       await fetchRows();
       setStatus("Idle");
     })();
