@@ -25,7 +25,7 @@
       --shadow: 0 22px 70px rgba(0,0,0,.55);
       --radius-lg: 18px;
 
-      /* Desktop intent */
+      /* Desktop fixed intent */
       --main-w: 1112px;
       --main-h: 800px;
 
@@ -58,10 +58,10 @@
       user-select:none;
     }
 
-    /* ✅ Fit smaller viewports without CSS transform (keeps pointer math correct) */
+    /* Desktop fixed canvas frame */
     #main{
-      width: min(var(--main-w), 100vw);
-      height: min(var(--main-h), 100vh);
+      width: var(--main-w);
+      height: var(--main-h);
       display:flex;
       overflow:hidden;
       border-radius: var(--radius-lg);
@@ -75,13 +75,12 @@
 
     /* Map area */
     #map-container{
-      width: min(var(--map-w), calc(100% - var(--sidebar-w)));
+      width: var(--map-w);
       height: 100%;
       position: relative;
       background: rgba(0,0,0,.35);
       border-right: 1px solid rgba(255,255,255,.06);
       overflow:hidden;
-      flex: 1 1 auto;
     }
 
     #map{
@@ -92,7 +91,7 @@
       /* IMPORTANT: keep touch + pointer reliable on iOS */
       touch-action: none;
 
-      /* IMPORTANT: perfect sync across devices (no letterboxing) */
+      /* IMPORTANT: linear mapping across devices */
       background-size: 100% 100%;
       background-position:center;
       background-repeat:no-repeat;
@@ -120,7 +119,6 @@
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       overflow:hidden;
-      flex: 0 0 var(--sidebar-w);
     }
 
     /* Team icons */
@@ -134,12 +132,7 @@
       background: rgba(255,255,255,.05);
       border: 1px solid rgba(255,255,255,.10);
       margin-bottom: 10px;
-    }
-    .team-wrap{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      width:100%;
+      user-select:none;
     }
 
     .team-icon{
@@ -151,7 +144,7 @@
       border: 1px solid rgba(255,255,255,.14);
       box-shadow: 0 10px 24px rgba(0,0,0,.35);
       object-fit: cover;
-      touch-action: manipulation;
+      touch-action:none;
     }
     .team-icon.selected{
       outline: 2px solid rgba(255,189,89,.55);
@@ -167,13 +160,12 @@
       gap: 8px;
       overflow-y:auto;
       padding-right: 6px;
-      -webkit-overflow-scrolling: touch;
     }
     #controls::-webkit-scrollbar{ width:10px; }
     #controls::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.10); border-radius: 10px; }
     #controls::-webkit-scrollbar-track{ background: transparent; }
 
-    #controls button, #map-select{
+    #controls button{
       width: 100%;
       padding: 10px 10px;
       font-weight: 900;
@@ -184,19 +176,6 @@
       color: rgba(244,246,255,.90);
       cursor:pointer;
       transition: .18s ease;
-    }
-
-    /* ✅ iOS fix: ensure select text is visible in collapsed state */
-    #map-select{
-      background: rgba(0,0,0,.28);
-      color: #f4f6ff;
-      -webkit-text-fill-color: #f4f6ff;
-      line-height: 1.2;
-    }
-    /* options styling is ignored by iOS picker, but keep for others */
-    #map-select option, #map-select optgroup{
-      background: #0e111a;
-      color: rgba(244,246,255,.92);
     }
 
     .button-row{ display:flex; gap: 8px; }
@@ -222,6 +201,47 @@
     }
 
     #import-file{ display:none; }
+
+    /* ✅ Custom visible map selector (fix selected text invisible on mobile) */
+    .select-wrap{
+      position:relative;
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: #0e111a;
+      padding: 10px 12px;
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(244,246,255,.92);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .select-wrap::after{
+      content:"▾";
+      color: rgba(244,246,255,.75);
+      font-weight: 900;
+      margin-left: 10px;
+      flex:0 0 auto;
+    }
+    #map-select-label{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      padding-right: 10px;
+    }
+    /* Native select stays functional but invisible */
+    #map-select{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      opacity:0;
+      appearance:none;
+      -webkit-appearance:none;
+      cursor:pointer;
+    }
 
     /* Unit */
     .unit{
@@ -307,7 +327,6 @@
       margin-top: 10px;
       color: rgba(170,177,197,.85);
       user-select:text;
-      word-break: break-word;
     }
 
     /* ✅ PHONE ONLY: stack layout + horizontal team scroller */
@@ -329,61 +348,39 @@
         width:100%;
         height: var(--phone-panel-h);
         border-left:none;
-        flex: 0 0 auto;
       }
 
-      /* ✅ force sideways scroll when > 6 teams */
+      /* Force sideways scroll */
       .icon-grid{
         display:flex;
         flex-wrap:nowrap;
+        gap:10px;
         overflow-x:auto;
         overflow-y:hidden;
-        gap:10px;
-        padding: 10px 8px;
         -webkit-overflow-scrolling: touch;
-        scroll-snap-type:x mandatory;
+        scroll-snap-type: x mandatory;
         touch-action: pan-x;
       }
-      .icon-grid::-webkit-scrollbar{ height:8px; }
-      .icon-grid::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius: 8px; }
-      .team-wrap{
-        flex: 0 0 auto;
-        width: 64px;
+      .icon-grid > div{
+        flex:0 0 auto;
         scroll-snap-align: start;
       }
-      .team-icon{
-        width: 54px;
-        height: 58px;
-        touch-action: pan-x;
-      }
 
-      #controls button, #map-select{
+      .team-icon{
+        width: 44px;
+        height: 48px;
+      }
+      #controls button{
         font-size: 13px;
         padding: 12px 10px;
       }
-    }
-    
-    /* ✅ iOS / mobile fix: select text disappearing */
-    #map-select{
-      background-color:#0e111a !important;   /* avoid rgba on iOS */
-      color:#f4f6ff !important;
-      -webkit-text-fill-color:#f4f6ff !important;
-      opacity:1 !important;
-      text-shadow:none !important;
-    
-      /* force native select rendering */
-      -webkit-appearance: menulist-button !important;
-      appearance: menulist-button !important;
-    }
-    
-    /* ✅ iOS blur bug: select text can vanish inside backdrop-filter containers */
-    @media (max-width: 700px){
+
+      /* iOS blur sometimes kills select painting inside it */
       #sidebar{
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+        backdrop-filter:none;
+        -webkit-backdrop-filter:none;
       }
     }
-
 
     @media (max-width: 700px) and (orientation: landscape){
       :root{ --phone-panel-h: 240px; }
@@ -404,14 +401,18 @@
       <div class="icon-grid" id="teamIcons"></div>
 
       <div id="controls">
-        <select id="map-select">
-          <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
-          <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
-          <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
-          <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
-          <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
-          <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
-        </select>
+        <!-- ✅ visible label + invisible native select -->
+        <div class="select-wrap" id="map-select-wrap">
+          <span id="map-select-label">Loading…</span>
+          <select id="map-select">
+            <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
+            <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
+            <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
+            <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
+            <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
+            <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
+          </select>
+        </div>
 
         <button id="realtime-toggle-btn" type="button">Real-time: ON</button>
 
@@ -463,14 +464,23 @@
     document.getElementById("logoutBtn").addEventListener("click", logout);
 
     /***********************
+     * Map selector label (fix selected text invisible)
+     ***********************/
+    const mapSelect = document.getElementById("map-select");
+    const mapSelectLabel = document.getElementById("map-select-label");
+
+    function updateMapLabel(){
+      const opt = mapSelect.options[mapSelect.selectedIndex];
+      mapSelectLabel.textContent = opt ? opt.textContent : "Select map";
+    }
+
+    /***********************
      * LOGICAL COORDINATES (perfect sync across devices)
-     * Map area is logically 792 x 800 always.
      ***********************/
     const LOGICAL_W = 792;
     const LOGICAL_H = 800;
 
     const map = document.getElementById("map");
-    const mapSelect = document.getElementById("map-select");
 
     const pathCanvas = document.getElementById("pathCanvas");
     const ctx = pathCanvas.getContext("2d");
@@ -478,19 +488,7 @@
     const maskCanvas = document.getElementById("maskCanvas");
     const ctxMask = maskCanvas.getContext("2d");
 
-    function ensureMapOption(url){
-      if (!url) return;
-      const exists = Array.from(mapSelect.options).some(o => o.value === url);
-      if (exists) return;
-      const opt = document.createElement("option");
-      opt.value = url;
-      opt.textContent = "Loaded Map";
-      opt.dataset.mode = "";
-      mapSelect.appendChild(opt);
-    }
-
     function setMapBg(){ map.style.backgroundImage = `url('${mapSelect.value}')`; }
-    setMapBg();
 
     function clientToLogical(e){
       const rect = map.getBoundingClientRect();
@@ -546,6 +544,25 @@
     /***********************
      * Resize canvases
      ***********************/
+    function repositionOverlays(){
+      for (const id in teamIcons){
+        const el = teamIcons[id];
+        const first = teamPaths[id]?.[0];
+        if (!el || !first) continue;
+        const p = logicalToPx(first);
+        el.style.left = `${p.x - 15}px`;
+        el.style.top  = `${p.y - 15}px`;
+      }
+      document.querySelectorAll(".note").forEach(noteEl => {
+        const id = noteEl.dataset.noteId;
+        const n = notesData.find(x => x.id === id);
+        if (!n) return;
+        const p = logicalToPx(n);
+        noteEl.style.left = `${p.x}px`;
+        noteEl.style.top  = `${p.y}px`;
+      });
+    }
+
     function resizeCanvases(){
       const dpr = window.devicePixelRatio || 1;
 
@@ -603,7 +620,6 @@
 
       const { sx, sy, s } = scaleFactors();
 
-      // circles
       for (const c of circles){
         const cx = c.x * sx, cy = c.y * sy;
         const r  = c.r * s;
@@ -622,7 +638,6 @@
         ctx.fill();
       }
 
-      // paths
       for (const id in teamPaths){
         const path = teamPaths[id];
         const color = teamColors[teamIndex(id)] || "#fff";
@@ -647,30 +662,6 @@
         ctxMask.fill();
       });
       ctxMask.globalCompositeOperation = "source-over";
-    }
-
-    /***********************
-     * Overlays reposition on resize
-     ***********************/
-    function repositionOverlays(){
-      // units
-      for (const id in teamIcons){
-        const el = teamIcons[id];
-        const first = teamPaths[id]?.[0];
-        if (!el || !first) continue;
-        const p = logicalToPx(first);
-        el.style.left = `${p.x - 15}px`;
-        el.style.top  = `${p.y - 15}px`;
-      }
-      // notes
-      document.querySelectorAll(".note").forEach(noteEl => {
-        const id = noteEl.dataset.noteId;
-        const n = notesData.find(x => x.id === id);
-        if (!n) return;
-        const p = logicalToPx(n);
-        noteEl.style.left = `${p.x}px`;
-        noteEl.style.top  = `${p.y}px`;
-      });
     }
 
     /***********************
@@ -720,7 +711,6 @@
         if (pushHistory) historyStack.push({ type:"note", id });
       }
 
-      // initial position
       const p = logicalToPx({ x: logicalX, y: logicalY });
       noteDiv.style.left = `${p.x}px`;
       noteDiv.style.top  = `${p.y}px`;
@@ -731,7 +721,6 @@
         saveMapState();
       });
 
-      // drag with pointer (store logical)
       let dragging = false;
       let offPxX = 0, offPxY = 0;
 
@@ -761,7 +750,6 @@
         noteDiv.style.left = `${newPxX}px`;
         noteDiv.style.top  = `${newPxY}px`;
 
-        // px -> logical
         const lx = (newPxX / map.clientWidth) * LOGICAL_W;
         const ly = (newPxY / map.clientHeight) * LOGICAL_H;
 
@@ -848,7 +836,7 @@
         msg.textContent = "Failed to load teams.";
         msg.style.fontSize = "0.8rem";
         msg.style.color = "#aaa";
-        msg.style.width = "100%";
+        msg.style.gridColumn = "1 / -1";
         grid.appendChild(msg);
         return;
       }
@@ -858,14 +846,16 @@
         msg.textContent = "No teams configured. Go to Team Settings to add some.";
         msg.style.fontSize = "0.8rem";
         msg.style.color = "#aaa";
-        msg.style.width = "100%";
+        msg.style.gridColumn = "1 / -1";
         grid.appendChild(msg);
         return;
       }
 
       data.slice(0, teamColors.length).forEach((team, i) => {
         const wrapper = document.createElement("div");
-        wrapper.className = "team-wrap";
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = "center";
 
         const img = document.createElement("img");
         img.src = team.logo_url;
@@ -878,7 +868,10 @@
         img.dataset.teamName = team.team_name || "";
         img.dataset.teamDbId = team.id;
 
-        img.addEventListener("click", () => {
+        // ✅ pointerdown works better on iOS than click
+        img.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
           img.classList.add("selected");
           selectedIcon = img;
@@ -916,12 +909,11 @@
     };
 
     /***********************
-     * Map pointer interactions (tap vs drag)
+     * Map pointer interactions
      ***********************/
     let down = false;
     let moved = false;
     let downClient = { x:0, y:0 };
-    let downLogical = { x:0, y:0 };
 
     let candResize = null, candDrag = null;
     let resizingCircle = null, draggingCircle = null;
@@ -936,7 +928,7 @@
       moved = false;
 
       downClient = { x: e.clientX, y: e.clientY };
-      downLogical = clientToLogical(e);
+      const downLogical = clientToLogical(e);
 
       candResize = findCircleResize(downLogical);
       candDrag = candResize ? null : findCircleDrag(downLogical);
@@ -985,7 +977,6 @@
         return;
       }
 
-      // TAP
       candResize = candDrag = null;
       resizingCircle = draggingCircle = null;
 
@@ -1117,12 +1108,11 @@
         const data = JSON.parse(e.target.result);
 
         if (data.map){
-          ensureMapOption(data.map);
           mapSelect.value = data.map;
+          updateMapLabel();
           setMapBg();
         }
 
-        // clear
         Object.values(teamIcons).forEach(el => el?.remove());
         Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
         Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
@@ -1134,7 +1124,6 @@
         selectedIcon = null;
         document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
 
-        // restore
         Object.entries(data.paths || {}).forEach(([id, points]) => {
           const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
           if (!icon || !points?.length) return;
@@ -1161,6 +1150,7 @@
      * Map change
      ***********************/
     mapSelect.addEventListener("change", () => {
+      updateMapLabel();
       setMapBg();
       const opt = mapSelect.options[mapSelect.selectedIndex];
       if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
@@ -1170,13 +1160,10 @@
 
     /***********************
      * Realtime + DB state
-     * FIX: OFF disables BOTH inbound (listen) and outbound (save)
      ***********************/
-    let realtimeEnabled = true;
+    let realtimeEnabled = true;      // receiving
+    let syncWritesEnabled = true;    // publishing
     let realtimeChannel = null;
-
-    let lastLocalSaveAt = 0;
-    const SELF_ECHO_MS = 800;
 
     async function loadMapState(){
       const { data, error } = await client
@@ -1190,34 +1177,30 @@
         return;
       }
       if (!data || !data.state){
-        if (realtimeEnabled) await saveMapState();
+        await saveMapState(); // initial seed (only if syncWritesEnabled)
         return;
       }
       applyMapState(data.state);
     }
 
     async function saveMapState(){
-      // ✅ OFF = local only, do not mirror to other users
-      if (!realtimeEnabled) return;
+      // ✅ When OFF: do not publish to DB (so others will NOT mirror your edits)
+      if (!syncWritesEnabled) return;
 
-      lastLocalSaveAt = Date.now();
       const state = { map: mapSelect.value, paths: teamPaths, circles, notes: notesData };
-
       const { error } = await client
         .from('map')
         .upsert({ id: 1, state, updated_at: new Date().toISOString() });
-
       if (error) console.error('❌ Failed to save map state:', error);
     }
 
     function applyMapState(state){
       if (state?.map){
-        ensureMapOption(state.map);
         mapSelect.value = state.map;
+        updateMapLabel();
         setMapBg();
       }
 
-      // clear
       Object.values(teamIcons).forEach(el => el?.remove());
       Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
       Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
@@ -1229,7 +1212,6 @@
       selectedIcon = null;
       document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
 
-      // restore
       Object.entries(state?.paths || {}).forEach(([id, points]) => {
         const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
         if (!icon || !points?.length) return;
@@ -1249,10 +1231,8 @@
     }
 
     function handleMapChange(payload){
+      // ✅ When OFF: ignore incoming updates
       if (!realtimeEnabled) return;
-
-      // ignore self-echo right after we save
-      if (Date.now() - lastLocalSaveAt < SELF_ECHO_MS) return;
 
       const row = payload.new;
       if (!row || row.id !== 1) return;
@@ -1261,7 +1241,6 @@
 
     async function enableRealtime(){
       if (realtimeChannel) return;
-
       realtimeChannel = client
         .channel('public:map')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map' }, handleMapChange)
@@ -1279,17 +1258,20 @@
 
     const realtimeBtn = document.getElementById("realtime-toggle-btn");
     realtimeBtn.onclick = async () => {
+      const turningOff = realtimeEnabled && syncWritesEnabled;
+
+      // toggle both receiving + publishing
       realtimeEnabled = !realtimeEnabled;
+      syncWritesEnabled = realtimeEnabled;
 
       realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
       realtimeBtn.classList.toggle("active", realtimeEnabled);
 
       if (realtimeEnabled){
-        // Pull latest shared board first, then subscribe + allow saving
-        await loadMapState();
         await enableRealtime();
+        // ✅ publish your current state once you turn ON again
+        await saveMapState();
       } else {
-        // OFF: no listening, no mirroring out
         await disableRealtime();
       }
     };
@@ -1304,13 +1286,14 @@
       document.getElementById("user-info").textContent =
         "Logged in as: " + (session.user?.email || "unknown");
 
-      await loadTeamIcons();
+      // initial label + map
+      updateMapLabel();
       setMapBg();
 
+      await loadTeamIcons();
       resizeCanvases();
       await loadMapState();
-
-      if (realtimeEnabled) await enableRealtime();
+      await enableRealtime();
 
       realtimeBtn.classList.toggle("active", realtimeEnabled);
       realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
