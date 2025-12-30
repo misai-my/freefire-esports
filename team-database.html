@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Team Database</title>
+
+  <!-- Supabase JS v2 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --bg:#0e0e0e;
+      --panel:#1b1b1b;
+      --panel2:#141414;
+      --ink:#f5f5f5;
+      --muted:#b9b9b9;
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --line:rgba(255,255,255,.10);
+      --stroke:rgba(255,255,255,.08);
+      --shadow:0 18px 60px rgba(0,0,0,.55);
+      --radius:14px;
+      --radius-lg:18px;
+      --good:#71d083;
+      --bad:#ff6b6b;
+      --warn:#ffd166;
+
+      --header-h:56px;
+      --maxw:1200px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      background:radial-gradient(circle at top,#1f1f1f 0,#050505 60%);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;
+    }
+
+    a{color:inherit;text-decoration:none}
+    button,input,select,textarea{font:inherit;color:inherit}
+    .wrap{max-width:var(--maxw);margin:0 auto;padding:14px}
+
+    /* Header */
+    .topbar{
+      position:sticky; top:0; z-index:10;
+      background:linear-gradient(to bottom, rgba(14,14,14,.92), rgba(14,14,14,.78));
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .topbar-inner{
+      max-width:var(--maxw);
+      margin:0 auto;
+      height:var(--header-h);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 14px;
+      gap:12px;
+    }
+    .title{
+      display:flex; align-items:center; gap:10px; min-width:0;
+    }
+    .badge{
+      width:36px;height:36px;border-radius:10px;
+      background:linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.12));
+      border:1px solid rgba(255,189,89,.35);
+      display:grid;place-items:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+    .title h1{
+      font-size:15px; margin:0; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .title .sub{
+      font-size:12px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .actions{display:flex; gap:10px; align-items:center; flex:0 0 auto;}
+
+    .btn{
+      border:1px solid var(--stroke);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      padding:9px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition:.15s transform, .15s border-color, .15s background;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px); border-color:rgba(255,189,89,.35)}
+    .btn:active{transform:translateY(0px)}
+    .btn.primary{
+      border-color:rgba(255,189,89,.55);
+      background:linear-gradient(180deg, rgba(255,189,89,.18), rgba(255,189,89,.08));
+    }
+    .btn.danger{
+      border-color:rgba(255,107,107,.55);
+      background:linear-gradient(180deg, rgba(255,107,107,.16), rgba(255,107,107,.06));
+    }
+    .btn.ghost{
+      background:transparent;
+      border-color:var(--stroke);
+    }
+
+    .chip{
+      font-size:12px;
+      color:var(--muted);
+      padding:6px 10px;
+      border:1px solid var(--stroke);
+      border-radius:999px;
+      background:rgba(255,255,255,.03);
+      white-space:nowrap;
+    }
+
+    /* Toolbar */
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--stroke);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+    }
+    .toolbar{
+      padding:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .tool-left,.tool-right{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+
+    .field{
+      display:flex; align-items:center; gap:10px;
+      background:rgba(0,0,0,.25);
+      border:1px solid var(--stroke);
+      border-radius:12px;
+      padding:8px 10px;
+      min-height:40px;
+    }
+    .field input{
+      background:transparent; border:0; outline:none;
+      width:260px; max-width:55vw;
+      color:var(--ink);
+    }
+    .field select{
+      background:transparent; border:0; outline:none;
+      color:var(--ink);
+      cursor:pointer;
+    }
+    .field.small input{width:160px}
+    .field.small select{min-width:150px}
+    .hint{font-size:12px;color:var(--muted)}
+
+    /* Table */
+    .table-wrap{
+      overflow:auto;
+      border-top:1px solid var(--line);
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      min-width:900px;
+    }
+    thead th{
+      position:sticky; top:0; z-index:2;
+      background:rgba(17,17,17,.95);
+      border-bottom:1px solid var(--line);
+      font-size:12px;
+      color:var(--muted);
+      text-align:left;
+      padding:10px 12px;
+      white-space:nowrap;
+    }
+    tbody td{
+      border-bottom:1px solid rgba(255,255,255,.06);
+      padding:10px 12px;
+      vertical-align:middle;
+      font-size:13px;
+      color:var(--ink);
+      white-space:nowrap;
+    }
+    tbody tr:hover td{
+      background:rgba(255,255,255,.03);
+    }
+    .col-actions{width:1%}
+    .row-actions{
+      display:flex; gap:8px; justify-content:flex-end;
+    }
+    .iconbtn{
+      width:34px;height:34px;border-radius:10px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.03);
+      cursor:pointer;
+      display:grid;place-items:center;
+      transition:.15s transform, .15s border-color, .15s background;
+    }
+    .iconbtn:hover{transform:translateY(-1px); border-color:rgba(255,189,89,.35)}
+    .iconbtn.danger:hover{border-color:rgba(255,107,107,.55)}
+    .logo{
+      width:34px;height:34px;border-radius:10px;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--stroke);
+      display:grid;place-items:center;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+    .logo img{width:100%;height:100%;object-fit:cover;display:block}
+    .namecell{
+      display:flex; align-items:center; gap:10px;
+      min-width:240px;
+    }
+    .muted{color:var(--muted)}
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 9px;border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.03);
+      font-size:12px;color:var(--muted);
+    }
+
+    /* Mobile cards */
+    .cards{
+      display:none;
+      padding:12px;
+      gap:10px;
+    }
+    .card{
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,.22);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .card .left{display:flex; gap:10px; align-items:center; min-width:0}
+    .card .meta{min-width:0}
+    .card .meta .t{font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .card .meta .s{font-size:12px;color:var(--muted);margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .card .right{display:flex; gap:8px; align-items:center}
+
+    @media (max-width: 900px){
+      table{min-width:0}
+      .table-wrap{display:none}
+      .cards{display:grid}
+      .field input{width:220px}
+      .actions .chip{display:none}
+    }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0; z-index:50;
+      background:rgba(0,0,0,.62);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding:14px;
+    }
+    .modal{
+      width:min(860px, 100%);
+      background:linear-gradient(180deg, rgba(27,27,27,.98), rgba(20,20,20,.98));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      box-shadow:0 30px 110px rgba(0,0,0,.70);
+      overflow:hidden;
+    }
+    .modal-head{
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid var(--line);
+    }
+    .modal-head h2{margin:0;font-size:14px}
+    .modal-body{padding:14px; max-height:65vh; overflow:auto}
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .formrow{
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,.22);
+      border-radius:14px;
+      padding:10px 10px 8px;
+    }
+    .formrow label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .formrow input, .formrow textarea, .formrow select{
+      width:100%;
+      background:transparent;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:9px 10px;
+      outline:none;
+    }
+    .formrow textarea{min-height:74px; resize:vertical}
+    .formrow.readonly{
+      opacity:.7;
+    }
+    .formrow.readonly input, .formrow.readonly textarea, .formrow.readonly select{
+      pointer-events:none;
+    }
+
+    .modal-foot{
+      padding:12px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      border-top:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+    }
+    .modal-foot .left, .modal-foot .right{display:flex; gap:10px; align-items:center}
+    @media (max-width: 720px){
+      .grid{grid-template-columns:1fr}
+      .modal-backdrop{align-items:flex-end}
+    }
+
+    /* Toast */
+    .toast{
+      position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+      background:rgba(20,20,20,.92);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      padding:10px 14px;
+      display:none;
+      gap:10px;
+      align-items:center;
+      box-shadow:0 18px 70px rgba(0,0,0,.6);
+      z-index:80;
+      max-width:min(720px, calc(100% - 28px));
+    }
+    .dot{width:8px;height:8px;border-radius:99px;background:var(--brand)}
+    .toast .msg{font-size:13px;color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .toast.ok .dot{background:var(--good)}
+    .toast.bad .dot{background:var(--bad)}
+    .toast.warn .dot{background:var(--warn)}
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="title">
+        <div class="badge">🏷️</div>
+        <div style="min-width:0">
+          <h1>Team Database</h1>
+          <div class="sub" id="subline">View • Update • Delete — Supabase: <span class="muted">team_database</span></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <!-- Update this link to your dashboard -->
+        <a class="btn ghost" href="index.html">← Back</a>
+        <button class="btn" id="btnRefresh">⟳ Refresh</button>
+        <button class="btn primary" id="btnAdd">＋ Add Team</button>
+        <div class="chip" id="countChip">0 rows</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="toolbar">
+        <div class="tool-left">
+          <div class="field">
+            🔎
+            <input id="q" type="text" placeholder="Search team name / tag / region…">
+          </div>
+
+          <div class="field small" title="Sort by">
+            <span class="muted">Sort</span>
+            <select id="sortBy">
+              <option value="updated_at">updated_at</option>
+              <option value="created_at">created_at</option>
+              <option value="team_name">team_name</option>
+              <option value="team_tag">team_tag</option>
+              <option value="region">region</option>
+            </select>
+          </div>
+
+          <div class="field small" title="Order">
+            <span class="muted">Order</span>
+            <select id="sortDir">
+              <option value="desc">desc</option>
+              <option value="asc">asc</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tool-right">
+          <div class="hint" id="status">Idle</div>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="table-wrap" id="tableWrap">
+        <table>
+          <thead>
+            <tr id="theadRow"></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+
+  <!-- Edit/Add Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">Edit Team</h2>
+        <button class="btn ghost" id="btnClose">✕ Close</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid" id="formGrid"></div>
+        <div style="margin-top:10px" class="hint" id="formHint"></div>
+      </div>
+
+      <div class="modal-foot">
+        <div class="left">
+          <span class="pill" id="rowKeyPill">id: —</span>
+        </div>
+        <div class="right">
+          <button class="btn danger" id="btnDelete" style="display:none">Delete</button>
+          <button class="btn primary" id="btnSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><div class="dot"></div><div class="msg" id="toastMsg"></div></div>
+
+  <script>
+    /***********************
+     * CONFIG — replace these
+     ***********************/
+    const SUPABASE_URL = "https://ooutjrewmwsixghbouxi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg";
+    const TABLE = "team_database";
+    const PK = "id"; // change if your primary key is different
+
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    /***********************
+     * State
+     ***********************/
+    let rows = [];
+    let columns = [];         // derived from data
+    let editableCols = [];    // derived from columns
+    let currentRow = null;    // row being edited
+    let isAddMode = false;
+
+    const READONLY_COLS = new Set([PK, "created_at", "updated_at"]);
+
+    /***********************
+     * UI helpers
+     ***********************/
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(text){ $("status").textContent = text; }
+    function setCount(n){ $("countChip").textContent = `${n} row${n===1?"":"s"}`; }
+
+    let toastTimer = null;
+    function toast(msg, type="ok"){
+      const el = $("toast");
+      el.className = `toast ${type}`;
+      $("toastMsg").textContent = msg;
+      el.style.display = "flex";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> el.style.display="none", 2400);
+    }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[m]));
+    }
+
+    function guessType(val, key){
+      if (val === null || val === undefined) return "text";
+      if (typeof val === "boolean") return "checkbox";
+      if (typeof val === "number") return "number";
+      // datetime-ish keys commonly used
+      if (/(created_at|updated_at|date|time)$/i.test(key)) return "datetime-local";
+      // url-ish keys
+      if (/url|logo|image/i.test(key)) return "url";
+      // long text
+      if (typeof val === "string" && val.length > 80) return "textarea";
+      return "text";
+    }
+
+    function normalizeDatetimeLocal(v){
+      // supabase often returns ISO strings; input datetime-local needs "YYYY-MM-DDTHH:mm"
+      if (!v) return "";
+      const d = new Date(v);
+      if (isNaN(d)) return "";
+      const pad = (n)=> String(n).padStart(2,"0");
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth()+1);
+      const dd = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mi = pad(d.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    }
+
+    /***********************
+     * Data fetching
+     ***********************/
+    async function fetchRows(){
+      const q = $("q").value.trim();
+      const sortBy = $("sortBy").value;
+      const sortDir = $("sortDir").value;
+
+      setStatus("Loading…");
+      try{
+        let query = client.from(TABLE).select("*");
+
+        // Search (best-effort). If columns don't exist, supabase will error — we fallback.
+        if (q){
+          // Try common fields: team_name/team_tag/region (works if they exist)
+          query = query.or(`team_name.ilike.%${q}%,team_tag.ilike.%${q}%,region.ilike.%${q}%`);
+        }
+
+        query = query.order(sortBy, { ascending: sortDir === "asc", nullsFirst: false });
+
+        const { data, error } = await query;
+        if (error){
+          // fallback: fetch without search if schema differs
+          if (q){
+            const fallback = await client.from(TABLE).select("*").order(sortBy, { ascending: sortDir === "asc" });
+            if (fallback.error) throw fallback.error;
+            rows = fallback.data || [];
+            toast("Search fields not found — loaded without search.", "warn");
+          } else {
+            throw error;
+          }
+        } else {
+          rows = data || [];
+        }
+
+        deriveColumns(rows);
+        renderAll();
+        setStatus(`Loaded ${rows.length} row(s)`);
+      }catch(err){
+        console.error(err);
+        setStatus("Error");
+        toast(err?.message || "Failed to load data", "bad");
+      }
+    }
+
+    function deriveColumns(data){
+      const keys = new Set();
+      for (const r of data){
+        Object.keys(r || {}).forEach(k => keys.add(k));
+      }
+
+      // Nice ordering: logo/name/tag/region first, then everything else, then timestamps
+      const preferred = ["logo_url","logo","image_url","team_name","name","team_tag","tag","region","group","country"];
+      const tail = ["created_at","updated_at"];
+
+      const all = Array.from(keys);
+      const head = preferred.filter(k => keys.has(k));
+      const mid = all.filter(k => !head.includes(k) && !tail.includes(k)).sort();
+      const end = tail.filter(k => keys.has(k));
+
+      columns = [PK, ...head.filter(k => k!==PK), ...mid.filter(k => k!==PK), ...end.filter(k => k!==PK)];
+
+      // Editable: everything except readonly
+      editableCols = columns.filter(c => !READONLY_COLS.has(c));
+    }
+
+    /***********************
+     * Rendering
+     ***********************/
+    function renderAll(){
+      setCount(rows.length);
+      renderTable();
+      renderCards();
+    }
+
+    function renderTable(){
+      const thead = $("theadRow");
+      const tbody = $("tbody");
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+
+      // If no columns yet, show empty state
+      if (!columns.length){
+        thead.innerHTML = `<th>—</th>`;
+        tbody.innerHTML = `<tr><td class="muted">No data</td></tr>`;
+        return;
+      }
+
+      // Header
+      for (const col of columns){
+        const th = document.createElement("th");
+        th.textContent = col;
+        thead.appendChild(th);
+      }
+      const thA = document.createElement("th");
+      thA.textContent = "";
+      thA.className = "col-actions";
+      thead.appendChild(thA);
+
+      // Rows
+      for (const r of rows){
+        const tr = document.createElement("tr");
+
+        for (const col of columns){
+          const td = document.createElement("td");
+
+          if (/logo|image/i.test(col) && r[col]){
+            td.innerHTML = `<div class="logo"><img src="${esc(r[col])}" alt=""></div>`;
+          } else if (col === "team_name" || col === "name"){
+            const logoKey = columns.find(c => /logo|image/i.test(c)) || "logo_url";
+            const logoVal = r[logoKey];
+            td.innerHTML = `
+              <div class="namecell">
+                <div class="logo">${logoVal ? `<img src="${esc(logoVal)}" alt="">` : "🏁"}</div>
+                <div style="min-width:0">
+                  <div style="font-weight:650; overflow:hidden; text-overflow:ellipsis">${esc(r[col])}</div>
+                  <div class="muted" style="font-size:12px; overflow:hidden; text-overflow:ellipsis">
+                    ${esc(r.team_tag ?? r.tag ?? "")}${(r.region ? " • " + esc(r.region) : "")}
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            const v = r[col];
+            td.textContent = (v === null || v === undefined) ? "" : (typeof v === "object" ? JSON.stringify(v) : String(v));
+            if (col === PK || col === "created_at" || col === "updated_at") td.classList.add("muted");
+          }
+
+          tr.appendChild(td);
+        }
+
+        // Actions
+        const tdA = document.createElement("td");
+        tdA.className = "col-actions";
+        tdA.innerHTML = `
+          <div class="row-actions">
+            <button class="iconbtn" title="Edit">✎</button>
+            <button class="iconbtn danger" title="Delete">🗑</button>
+          </div>
+        `;
+        const [btnEdit, btnDel] = tdA.querySelectorAll("button");
+        btnEdit.addEventListener("click", ()=> openEdit(r));
+        btnDel.addEventListener("click", ()=> confirmDelete(r));
+        tr.appendChild(tdA);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderCards(){
+      const wrap = $("cards");
+      wrap.innerHTML = "";
+
+      // pick best fields for mobile
+      const nameKey = columns.find(c => c==="team_name") || columns.find(c => c==="name") || "team_name";
+      const tagKey  = columns.find(c => c==="team_tag")  || columns.find(c => c==="tag")  || "team_tag";
+      const regionKey = columns.find(c => c==="region") || null;
+      const logoKey = columns.find(c => /logo|image/i.test(c)) || null;
+
+      if (!rows.length){
+        wrap.innerHTML = `<div class="muted">No data</div>`;
+        return;
+      }
+
+      for (const r of rows){
+        const card = document.createElement("div");
+        card.className = "card";
+        const logo = logoKey ? r[logoKey] : null;
+
+        const line2 = [
+          tagKey ? (r[tagKey] ?? "") : "",
+          regionKey ? (r[regionKey] ?? "") : ""
+        ].filter(Boolean).join(" • ");
+
+        card.innerHTML = `
+          <div class="left">
+            <div class="logo">${logo ? `<img src="${esc(logo)}" alt="">` : "🏁"}</div>
+            <div class="meta">
+              <div class="t">${esc(r[nameKey] ?? "(unnamed)")}</div>
+              <div class="s">${esc(line2 || ("id: " + (r[PK] ?? "—")))}</div>
+            </div>
+          </div>
+          <div class="right">
+            <button class="iconbtn" title="Edit">✎</button>
+            <button class="iconbtn danger" title="Delete">🗑</button>
+          </div>
+        `;
+        const [btnEdit, btnDel] = card.querySelectorAll("button");
+        btnEdit.addEventListener("click", ()=> openEdit(r));
+        btnDel.addEventListener("click", ()=> confirmDelete(r));
+        wrap.appendChild(card);
+      }
+    }
+
+    /***********************
+     * Modal: Add/Edit
+     ***********************/
+    function openModal(){
+      $("modalBackdrop").style.display = "flex";
+      $("modalBackdrop").setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeModal(){
+      $("modalBackdrop").style.display = "none";
+      $("modalBackdrop").setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+      currentRow = null;
+      isAddMode = false;
+      $("formGrid").innerHTML = "";
+      $("formHint").textContent = "";
+    }
+
+    function openAdd(){
+      isAddMode = true;
+      currentRow = {};
+
+      // If no columns yet (empty table), use a sensible default starter schema.
+      // You can delete/adjust these to match your table.
+      if (!columns.length){
+        columns = [PK,"team_name","team_tag","region","logo_url","created_at","updated_at"];
+        editableCols = columns.filter(c => !READONLY_COLS.has(c));
+      }
+
+      $("modalTitle").textContent = "Add Team";
+      $("rowKeyPill").textContent = `${PK}: (new)`;
+      $("btnDelete").style.display = "none";
+
+      buildForm(currentRow, true);
+      $("formHint").textContent = "Fill out the fields you want, then Save.";
+      openModal();
+    }
+
+    function openEdit(row){
+      isAddMode = false;
+      currentRow = JSON.parse(JSON.stringify(row)); // clone
+
+      $("modalTitle").textContent = "Edit Team";
+      $("rowKeyPill").textContent = `${PK}: ${row?.[PK] ?? "—"}`;
+      $("btnDelete").style.display = "inline-flex";
+
+      buildForm(currentRow, false);
+      $("formHint").textContent = "Edit values then Save. Read-only fields are locked.";
+      openModal();
+    }
+
+    function buildForm(row, allowEmpty){
+      const grid = $("formGrid");
+      grid.innerHTML = "";
+
+      // Always include PK at top for context
+      const ordered = [PK, ...editableCols.filter(c => c!==PK), ...columns.filter(c => READONLY_COLS.has(c) && c!==PK)];
+
+      const seen = new Set();
+      for (const col of ordered){
+        if (!col || seen.has(col)) continue;
+        seen.add(col);
+
+        const val = row[col];
+        const type = guessType(val, col);
+        const readonly = READONLY_COLS.has(col) && !isAddMode;
+
+        const box = document.createElement("div");
+        box.className = "formrow" + (readonly ? " readonly" : "");
+
+        const label = document.createElement("label");
+        label.textContent = col;
+        box.appendChild(label);
+
+        let input;
+
+        if (type === "textarea"){
+          input = document.createElement("textarea");
+          input.value = val ?? "";
+        } else if (type === "checkbox"){
+          input = document.createElement("input");
+          input.type = "checkbox";
+          input.checked = Boolean(val);
+        } else if (type === "datetime-local"){
+          input = document.createElement("input");
+          input.type = "datetime-local";
+          input.value = normalizeDatetimeLocal(val);
+        } else {
+          input = document.createElement("input");
+          input.type = type; // text/number/url
+          input.value = (val === null || val === undefined) ? "" : String(val);
+          if (type === "number") input.inputMode = "numeric";
+        }
+
+        input.dataset.col = col;
+        if (readonly) input.disabled = true;
+
+        box.appendChild(input);
+
+        // If this looks like a logo url field, show a tiny hint/preview
+        if (/logo|image/i.test(col)){
+          const hint = document.createElement("div");
+          hint.className = "hint";
+          hint.style.marginTop = "6px";
+          hint.innerHTML = `Preview: <span class="muted">${esc(val || "—")}</span>`;
+          box.appendChild(hint);
+
+          input.addEventListener("input", ()=>{
+            hint.innerHTML = `Preview: <span class="muted">${esc(input.value || "—")}</span>`;
+          });
+        }
+
+        grid.appendChild(box);
+      }
+
+      // If add mode and PK is autogenerated, user can leave it blank.
+      if (isAddMode && READONLY_COLS.has(PK) === false){
+        // nothing special
+      }
+    }
+
+    function collectFormPayload(){
+      const payload = {};
+      const inputs = $("formGrid").querySelectorAll("input,textarea,select");
+
+      inputs.forEach(el=>{
+        const col = el.dataset.col;
+        if (!col) return;
+        if (READONLY_COLS.has(col) && !isAddMode) return;
+
+        if (el.type === "checkbox"){
+          payload[col] = el.checked;
+          return;
+        }
+
+        const raw = el.value;
+        if (raw === ""){
+          // For add mode, we skip empty values (lets DB defaults work).
+          // For edit mode, empty string is a valid update, so we keep it.
+          if (isAddMode) return;
+          payload[col] = "";
+          return;
+        }
+
+        // Convert number
+        if (el.type === "number"){
+          const n = Number(raw);
+          payload[col] = Number.isFinite(n) ? n : raw;
+          return;
+        }
+
+        // Convert datetime-local back to ISO
+        if (el.type === "datetime-local"){
+          const d = new Date(raw);
+          payload[col] = isNaN(d) ? raw : d.toISOString();
+          return;
+        }
+
+        payload[col] = raw;
+      });
+
+      return payload;
+    }
+
+    /***********************
+     * CRUD
+     ***********************/
+    async function saveCurrent(){
+      if (!currentRow) return;
+
+      const payload = collectFormPayload();
+
+      // In edit mode, ensure we don't accidentally overwrite PK
+      if (!isAddMode) delete payload[PK];
+
+      try{
+        setStatus(isAddMode ? "Inserting…" : "Updating…");
+
+        if (isAddMode){
+          const { data, error } = await client.from(TABLE).insert(payload).select("*");
+          if (error) throw error;
+          toast("Inserted successfully", "ok");
+        } else {
+          const id = currentRow[PK];
+          if (id === null || id === undefined) throw new Error(`Missing primary key: ${PK}`);
+          const { error } = await client.from(TABLE).update(payload).eq(PK, id);
+          if (error) throw error;
+          toast("Updated successfully", "ok");
+        }
+
+        closeModal();
+        await fetchRows();
+      }catch(err){
+        console.error(err);
+        setStatus("Error");
+        toast(err?.message || "Save failed", "bad");
+      }finally{
+        setStatus("Idle");
+      }
+    }
+
+    async function confirmDelete(row){
+      const id = row?.[PK];
+      const name = row?.team_name ?? row?.name ?? row?.team_tag ?? row?.tag ?? id;
+
+      const ok = confirm(`Delete this row?\n\n${name}\n${PK}: ${id}\n\nThis cannot be undone.`);
+      if (!ok) return;
+
+      try{
+        setStatus("Deleting…");
+        const { error } = await client.from(TABLE).delete().eq(PK, id);
+        if (error) throw error;
+        toast("Deleted successfully", "ok");
+        if (currentRow && currentRow[PK] === id) closeModal();
+        await fetchRows();
+      }catch(err){
+        console.error(err);
+        setStatus("Error");
+        toast(err?.message || "Delete failed", "bad");
+      }finally{
+        setStatus("Idle");
+      }
+    }
+
+    async function deleteFromModal(){
+      if (!currentRow) return;
+      await confirmDelete(currentRow);
+    }
+
+    /***********************
+     * Events
+     ***********************/
+    $("btnRefresh").addEventListener("click", fetchRows);
+    $("btnAdd").addEventListener("click", openAdd);
+    $("btnClose").addEventListener("click", closeModal);
+    $("btnSave").addEventListener("click", saveCurrent);
+    $("btnDelete").addEventListener("click", deleteFromModal);
+
+    $("modalBackdrop").addEventListener("click", (e)=>{
+      if (e.target === $("modalBackdrop")) closeModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape") closeModal();
+    });
+
+    // Debounced search
+    let t = null;
+    $("q").addEventListener("input", ()=>{
+      clearTimeout(t);
+      t = setTimeout(fetchRows, 350);
+    });
+    $("sortBy").addEventListener("change", fetchRows);
+    $("sortDir").addEventListener("change", fetchRows);
+
+    /***********************
+     * Boot
+     ***********************/
+    (async function init(){
+      // Quick safety check: warn if not configured
+      if (SUPABASE_URL.includes("YOUR_PROJECT") || SUPABASE_ANON_KEY.includes("YOUR_ANON_KEY")){
+        toast("Set SUPABASE_URL and SUPABASE_ANON_KEY in the script.", "warn");
+        setStatus("Configure Supabase keys");
+      } else {
+        setStatus("Loading…");
+      }
+      await fetchRows();
+      setStatus("Idle");
+    })();
+  </script>
+</body>
+</html>
