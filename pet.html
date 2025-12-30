@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ✅ notch + safe-area support -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Pet Gallery</title>
 
   <!-- Fonts -->
@@ -41,10 +42,10 @@
       --role-other:#ffbd59;
 
       /* 👇 sizing knobs (smaller cards) */
-      --pet-min: 128px;        /* smaller column min width */
-      --pet-gap: 10px;         /* tighter gaps */
-      --pet-pad: 8px;          /* tighter padding */
-      --pet-radius: 14px;      /* slightly smaller radius */
+      --pet-min: 128px;
+      --pet-gap: 10px;
+      --pet-pad: 8px;
+      --pet-radius: 14px;
       --pet-thumb-radius: 12px;
     }
 
@@ -62,6 +63,7 @@
       overflow-x:hidden;
       overflow-y:auto;
     }
+    body.sb-lock{ overflow:hidden; }
 
     body::before, body::after{
       content:"";
@@ -100,6 +102,23 @@
       align-items:flex-start;
     }
 
+    /* Mobile sidebar backdrop (drawer) */
+    .sb-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.60);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 80;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+    }
+    .sb-backdrop.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+
     /* Sidebar */
     .sidebar{
       width: var(--sb-w);
@@ -117,6 +136,7 @@
       height: calc(100vh - 36px);
       transition: width .18s ease;
       flex:0 0 auto;
+      z-index: 90;
     }
     .sidebar.collapsed{ width: var(--sb-w-collapsed); }
 
@@ -166,6 +186,7 @@
       flex-direction:column;
       gap:8px;
       overflow:auto;
+      -webkit-overflow-scrolling: touch;
     }
     .nav::-webkit-scrollbar{width:10px}
     .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
@@ -183,6 +204,7 @@
       transition: .2s ease;
       cursor:pointer;
       min-width:0;
+      -webkit-tap-highlight-color: transparent;
     }
     .nav-item:hover{
       background: rgba(255,255,255,.05);
@@ -220,6 +242,13 @@
       padding:10px 8px;
     }
 
+    .sidebar-note{
+      font-size:.75rem;
+      color: var(--muted);
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+
     /* Main */
     .main{
       flex:1;
@@ -243,7 +272,7 @@
       gap:12px;
       position: sticky;
       top: 18px;
-      z-index: 20;
+      z-index: 60;
     }
     .search{
       flex:1;
@@ -263,6 +292,7 @@
       outline:none;
       color: var(--ink);
       font-size: .95rem;
+      min-width: 0;
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
 
@@ -282,6 +312,8 @@
       transition:.2s ease;
       color: var(--ink);
       flex:0 0 auto;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
     .icon-btn svg{width:18px;height:18px;opacity:.92}
@@ -295,11 +327,13 @@
       background: rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);
       max-width: 260px;
+      min-width: 0;
     }
     .avatar{
       width:28px;height:28px;border-radius:10px;
       background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
       border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
     }
     .usertext{min-width:0}
     .usertext b{
@@ -312,7 +346,7 @@
       text-overflow: ellipsis;
       max-width: 170px;
     }
-    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
+    .usertext span{display:block; font-size:.78rem; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
     .logout{
       color: rgba(255,255,255,.70);
@@ -325,6 +359,7 @@
       transition:.2s ease;
       cursor:pointer;
       white-space:nowrap;
+      -webkit-tap-highlight-color: transparent;
     }
     .logout:hover{
       border-color: rgba(255,77,77,.35);
@@ -463,6 +498,8 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .btn:hover{
       background: rgba(0,0,0,.28);
@@ -506,6 +543,7 @@
       gap:6px;
       min-width:0;
       overflow:hidden;
+      -webkit-tap-highlight-color: transparent;
     }
     .pet-card:hover{
       background: rgba(255,255,255,.08);
@@ -515,7 +553,7 @@
 
     .pet-thumb{
       width:100%;
-      aspect-ratio: 1 / 1; /* smaller height vs wide 4:3 */
+      aspect-ratio: 1 / 1;
       border-radius: var(--pet-thumb-radius);
       background: rgba(0,0,0,.18);
       border: 2px solid rgba(255,255,255,.10);
@@ -570,6 +608,8 @@
       padding: 5px 7px;
       white-space:nowrap;
       max-width: 100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .empty-msg{
@@ -607,6 +647,7 @@
       overflow:hidden;
       display:flex;
       flex-direction:column;
+      max-height: min(720px, calc(100vh - 36px));
     }
 
     .modal-top{
@@ -640,6 +681,8 @@
       flex-direction:column;
       gap: 10px;
       justify-content:flex-start;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .badge-row{
@@ -672,21 +715,90 @@
       white-space: normal;
     }
 
+    /* ============================================================
+       ✅ MOBILE OPTIMIZATION + DRAWER SIDEBAR
+       ============================================================ */
     @media (max-width: 980px){
-      .sidebar{display:none;}
-      .app{padding:12px;}
-      .topbar{top:12px;}
-      :root{
-        --pet-min: 118px; /* even smaller on mobile */
+      body::before, body::after{display:none;}
+
+      .app{
+        padding: 10px;
+        gap: 12px;
+        flex-direction: column;
+        max-width: 100%;
+        margin: 0;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+
+      /* drawer sidebar */
+      .sidebar{
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: 0;
+        height: calc(100dvh - env(safe-area-inset-top));
+        width: min(88vw, 340px);
+        transform: translateX(-110%);
+        transition: transform .18s ease;
+        border-radius: 0 22px 22px 0;
+        box-shadow: 0 30px 90px rgba(0,0,0,.70);
+        z-index: 90;
+      }
+      .sidebar.open{ transform: translateX(0); }
+
+      /* ignore collapsed layout on mobile (always show labels) */
+      .sidebar.collapsed{ width: min(88vw, 340px); }
+      .sidebar.collapsed .brand h1,
+      .sidebar.collapsed .brand small,
+      .sidebar.collapsed .nav-label{display:block;}
+      .sidebar.collapsed .brand{justify-content:flex-start;}
+      .sidebar.collapsed .brand-left{justify-content:flex-start;}
+      .sidebar.collapsed .nav-item{
+        justify-content:flex-start;
+        gap:10px;
+        padding:10px 10px;
+      }
+
+      .topbar{
+        top: env(safe-area-inset-top);
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        margin: -10px -10px 0 -10px; /* edge-to-edge */
+        padding: 10px 10px;
+        gap: 10px;
+      }
+
+      .usertext span{display:none;}
+      .usertext b{max-width: 45vw; font-size: .88rem;}
+
+      :root{ --pet-min: 118px; }
+
+      .hero{height: 120px;}
+      .hero-content{left:12px; right:12px; bottom:12px;}
+      .hero-title h2{font-size: 1.18rem;}
+
+      /* modal becomes bottom sheet */
+      .modal{
+        align-items:flex-end;
+        padding: 10px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+      .modal-card{
+        width: 100%;
+        border-radius: 18px;
+        max-height: 92vh;
       }
     }
   </style>
 </head>
 
 <body>
+  <!-- mobile drawer backdrop -->
+  <div class="sb-backdrop" id="sbBackdrop" aria-hidden="true"></div>
+
   <div class="app">
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
       <div class="brand">
         <div class="brand-left">
           <div class="logo">FF</div>
@@ -710,6 +822,11 @@
           <span class="nav-label">Character Skills</span>
         </a>
 
+        <a class="nav-item" href="character-comparison.html" data-page="character-comparison.html" title="Compare Characters">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Compare Characters</span>
+        </a>
+
         <a class="nav-item active" href="pet.html" data-page="pet.html" title="Pets">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Pets</span>
@@ -729,15 +846,17 @@
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Split View</span>
         </a>
-
       </nav>
+
+      <div class="sidebar-note">Tip: use the search + role filter to narrow pets fast.</div>
     </aside>
 
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
-          <svg viewBox="0 0 24 24" fill="none">
+        <!-- desktop: collapse, mobile: open drawer -->
+        <button class="icon-btn" id="sbToggle" aria-label="Sidebar" title="Sidebar">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
@@ -865,31 +984,90 @@
     }
 
     /***********************
-     * Sidebar collapse + active nav
+     * Sidebar: desktop collapse + mobile drawer
      ***********************/
     const sidebar = document.getElementById('sidebar');
+    const sbBackdrop = document.getElementById('sbBackdrop');
 
-    (function initSidebarCollapse(){
-      const key = 'ff_sidebar_collapsed_v1';
-      const saved = localStorage.getItem(key);
-      if (saved === '1') sidebar.classList.add('collapsed');
+    const mqMobile = window.matchMedia('(max-width: 980px)');
+    const KEY_COLLAPSE = 'ff_sidebar_collapsed_v1';
 
-      const btn = document.getElementById('sbToggle');
-      const path = document.getElementById('sbTogglePath');
+    const sbBtn = document.getElementById('sbToggle');
+    const sbPath = document.getElementById('sbTogglePath');
 
-      function syncIcon(){
-        if (!path) return;
-        path.setAttribute('d', sidebar.classList.contains('collapsed')
+    function isMobile(){ return mqMobile.matches; }
+
+    function setPath(d){
+      if (!sbPath) return;
+      sbPath.setAttribute('d', d);
+    }
+
+    function syncSidebarIcon(){
+      if (isMobile()){
+        // hamburger when closed, X when open
+        setPath(sidebar.classList.contains('open')
+          ? 'M6 6l12 12M18 6L6 18'
+          : 'M4 7h16M4 12h16M4 17h16'
+        );
+      } else {
+        setPath(sidebar.classList.contains('collapsed')
           ? 'M10 7l5 5-5 5'
           : 'M14 7l-5 5 5 5'
         );
       }
-      syncIcon();
+    }
 
-      btn?.addEventListener('click', () => {
+    function openMobileSidebar(){
+      sidebar.classList.add('open');
+      sbBackdrop.classList.add('show');
+      sbBackdrop.setAttribute('aria-hidden','false');
+      document.body.classList.add('sb-lock');
+      syncSidebarIcon();
+    }
+
+    function closeMobileSidebar(){
+      sidebar.classList.remove('open');
+      sbBackdrop.classList.remove('show');
+      sbBackdrop.setAttribute('aria-hidden','true');
+      document.body.classList.remove('sb-lock');
+      syncSidebarIcon();
+    }
+
+    (function initSidebar(){
+      // restore desktop collapsed state
+      const saved = localStorage.getItem(KEY_COLLAPSE);
+      if (saved === '1') sidebar.classList.add('collapsed');
+
+      syncSidebarIcon();
+
+      sbBtn?.addEventListener('click', () => {
+        if (isMobile()){
+          sidebar.classList.contains('open') ? closeMobileSidebar() : openMobileSidebar();
+          return;
+        }
         sidebar.classList.toggle('collapsed');
-        localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
-        syncIcon();
+        localStorage.setItem(KEY_COLLAPSE, sidebar.classList.contains('collapsed') ? '1' : '0');
+        syncSidebarIcon();
+      });
+
+      sbBackdrop?.addEventListener('click', closeMobileSidebar);
+
+      // close drawer when clicking a nav link on mobile
+      sidebar.querySelectorAll('.nav-item').forEach(a => {
+        a.addEventListener('click', () => { if (isMobile()) closeMobileSidebar(); });
+      });
+
+      // keep sane state when resizing
+      mqMobile.addEventListener?.('change', () => {
+        // leaving mobile: ensure drawer closed + backdrop removed
+        closeMobileSidebar();
+        syncSidebarIcon();
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')){
+          closeMobileSidebar();
+        }
       });
     })();
 
@@ -963,7 +1141,6 @@
       const name = tidy(p?.name) || 'Unknown Pet';
       const role = tidy(p?.role) || 'N/A';
       const skill = tidy(p?.skill) || '';
-      const desc = tidy(p?.description) || '';
 
       card.dataset.search = makeSearchBlob(p);
       card.dataset.role = role.toUpperCase();
@@ -990,6 +1167,7 @@
 
       const sub = document.createElement('div');
       sub.className = 'pet-sub';
+
       if (role && role !== 'N/A'){
         const chipRole = document.createElement('span');
         chipRole.className = 'chip';
