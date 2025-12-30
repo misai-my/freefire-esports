@@ -35,6 +35,7 @@
 
       --skill-active:#4dd3ff;
       --skill-passive:#ff59c7;
+      color-scheme: dark;
     }
 
     *{box-sizing:border-box}
@@ -77,6 +78,13 @@
       color: var(--ink);
     }
     select option{ background:#0b1020; color:var(--ink); }
+
+    button{font:inherit}
+    :focus-visible{
+      outline: 2px solid rgba(77,211,255,.65);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
 
     /* Layout */
     .app{
@@ -431,6 +439,7 @@
       align-items:center;
       justify-content:center;
       -webkit-tap-highlight-color: transparent;
+      user-select:none;
     }
     .btn:hover{
       background: rgba(0,0,0,.28);
@@ -716,14 +725,18 @@
       text-align: center;
     }
 
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .icon-btn:hover{transform:none}
+      .char-card:hover{transform:none}
+    }
+
     /* ============================================================
        ✅ MOBILE OPTIMIZATION (no layout breaking on desktop)
        ============================================================ */
     @media (max-width: 980px){
-      /* hide sidebar completely on mobile */
       .sidebar{display:none;}
-
-      /* reduce background decorations for perf */
       body::before, body::after{display:none;}
 
       .app{
@@ -735,23 +748,20 @@
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
 
-      /* topbar becomes full-width sticky strip */
       .topbar{
         top: env(safe-area-inset-top);
         border-radius: 0;
         border-left: 0;
         border-right: 0;
-        margin: -10px -10px 0 -10px;  /* edge-to-edge */
+        margin: -10px -10px 0 -10px;
         padding: 10px 10px;
         flex-wrap: wrap;
         gap: 10px;
         z-index: 50;
       }
 
-      /* no sidebar toggle on mobile */
       #sbToggle{display:none;}
 
-      /* search = full width first row */
       .search{
         width: 100%;
         flex: 1 1 100%;
@@ -760,7 +770,6 @@
       }
       .search input{font-size: 1rem;}
 
-      /* actions row */
       .top-actions{
         width: 100%;
         order: 2;
@@ -768,7 +777,6 @@
         gap: 10px;
       }
 
-      /* compact userchip (keep identity, reduce vertical space) */
       .userchip{
         flex: 1;
         max-width: none;
@@ -784,12 +792,10 @@
         font-size: .85rem;
       }
 
-      /* hero shorter */
       .hero{height: 120px;}
       .hero-content{left:12px;right:12px;bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
 
-      /* controls: chips scroll horizontally, buttons stack nicely */
       .controls{gap: 10px;}
       .controls-left{
         width: 100%;
@@ -806,25 +812,21 @@
         gap: 8px;
         align-items: stretch;
       }
-      /* make the meta toggle pill take full width */
       .controls-right .pill{
         grid-column: 1 / -1;
         width: 100%;
         justify-content: space-between;
       }
-      /* dashboard + compare become two buttons side-by-side */
       .controls-right a.btn{
         width: 100%;
         padding: 11px 10px;
         border-radius: 14px;
       }
 
-      /* card padding tighter */
       .card-inner{padding: 12px;}
     }
 
     @media (max-width: 560px){
-      /* smaller card grid = more efficient */
       .grid{
         grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
         gap: 10px;
@@ -833,13 +835,11 @@
       .char-thumb{border-radius: 12px;}
       .char-name{font-size: .75rem;}
 
-      /* role minis tighter */
       .role-grid{padding: 10px; gap: 8px;}
       .mini{width: 64px;}
       .mini .mini-thumb{width: 64px; height: 86px; border-radius: 12px;}
       .mini .mini-name{font-size: .70rem;}
 
-      /* bottom sheet style modal */
       .modal{
         align-items:flex-end;
         padding: 10px;
@@ -908,22 +908,22 @@
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar" type="button">
           <svg viewBox="0 0 24 24" fill="none">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
 
-        <div class="search">
-          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85">
+        <div class="search" role="search">
+          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85" aria-hidden="true">
             <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <input id="searchInput" placeholder="Search characters (name / role / skill)..." />
+          <input id="searchInput" placeholder="Search characters (name / role / skill)..." autocomplete="off" />
         </div>
 
         <div class="top-actions">
           <div class="userchip">
-            <div class="avatar"></div>
+            <div class="avatar" aria-hidden="true"></div>
             <div class="usertext">
               <b id="gamertag">PlayerOne</b>
               <span id="userEmail" class="muted">loading…</span>
@@ -949,7 +949,7 @@
               <span class="pill"><span class="dot active"></span>Active Skill</span>
               <span class="pill"><span class="dot passive"></span>Passive Skill</span>
               <span class="pill"><span class="dot meta"></span>Meta</span>
-              <span class="pill" id="searchCountPill" style="display:none;"></span>
+              <span class="pill" id="searchCountPill" style="display:none;" aria-live="polite"></span>
             </div>
 
             <div class="controls-right">
@@ -987,7 +987,7 @@
           <h3 id="infoName">—</h3>
           <p id="infoSub">—</p>
         </div>
-        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close">
+        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close" type="button">
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -1010,24 +1010,56 @@
 
   <script>
     /***********************
+     * CONFIG (optimized)
+     ***********************/
+    const CFG = Object.freeze({
+      SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
+      CHAR_URL: 'https://misai-my.github.io/freefire-esports/character.json',
+
+      CACHE_KEY: 'ff_chars_cache_v2',
+      CACHE_TTL_MS: 1000 * 60 * 60 * 6, // 6 hours
+
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
+    });
+
+    const FALLBACK_IMG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="rgba(255,189,89,.28)"/>
+            <stop offset="1" stop-color="rgba(77,211,255,.18)"/>
+          </linearGradient>
+        </defs>
+        <rect width="300" height="400" rx="26" fill="rgba(0,0,0,.35)"/>
+        <rect x="18" y="18" width="264" height="364" rx="22" fill="url(#g)" opacity=".65"/>
+        <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle"
+          font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,.88)">NO IMAGE</text>
+      </svg>
+    `)}`;
+
+    /***********************
      * Supabase Auth
      ***********************/
-    const client = supabase.createClient(
-      'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
-    );
+    const client = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
     async function ensureSession(){
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) {
+      try{
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) {
+          window.location.href = "index.html";
+          return null;
+        }
+        return session;
+      }catch(err){
+        console.error('ensureSession error:', err);
         window.location.href = "index.html";
         return null;
       }
-      return session;
     }
 
     async function logout(){
-      await client.auth.signOut();
+      try{ await client.auth.signOut(); }catch(_){}
       window.location.href = "index.html";
     }
 
@@ -1037,8 +1069,7 @@
     const sidebar = document.getElementById('sidebar');
 
     (function initSidebarCollapse(){
-      const key = 'ff_sidebar_collapsed_v1';
-      const saved = localStorage.getItem(key);
+      const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
       if (saved === '1') sidebar.classList.add('collapsed');
 
       const btn = document.getElementById('sbToggle');
@@ -1055,7 +1086,7 @@
 
       btn?.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
-        localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
+        localStorage.setItem(CFG.SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
         syncIcon();
       });
     })();
@@ -1069,13 +1100,8 @@
     })();
 
     /***********************
-     * Character Data + Rendering
+     * Character Data + Rendering (optimized)
      ***********************/
-    const CHAR_URL = 'https://misai-my.github.io/freefire-esports/character.json';
-    let allCharacters = [];
-    let currentMetaMode = 'meta'; // default BR
-    let currentSearchTerm = '';
-
     const metaGrid = document.getElementById('metaGrid');
     const nonMetaGrid = document.getElementById('nonMetaGrid');
     const compactByRole = document.getElementById('compactByRole');
@@ -1083,33 +1109,29 @@
     const metaHint = document.getElementById('metaHint');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
     const searchCountPill = document.getElementById('searchCountPill');
+    const topSearch = document.getElementById('searchInput');
 
-    function safeText(v){ return (v ?? '').toString(); }
+    let allCharacters = [];
+    let currentMetaMode = 'meta'; // default BR
+    let currentSearchTerm = '';
 
-    function tidy(v){
-      return safeText(v)
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        .replace(/\s*\n+\s*/g, ' ')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-    }
+    // small utils
+    const safeText = (v) => (v ?? '').toString();
+    const tidy = (v) => safeText(v)
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\s*\n+\s*/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
-    function isPassive(c){
-      return tidy(c?.skill_type).toLowerCase() === 'passive';
-    }
-
-    function isMeta(c){
-      return tidy(c?.[currentMetaMode] || 'no').toLowerCase() === 'yes';
-    }
-
-    function modeLabel(){
-      return currentMetaMode === 'meta' ? 'BR' : 'CS';
-    }
+    const lower = (v) => tidy(v).toLowerCase();
+    const isPassive = (c) => lower(c?.skill_type) === 'passive';
+    const isMeta = (c) => lower(c?.[currentMetaMode] || 'no') === 'yes';
+    const modeLabel = () => (currentMetaMode === 'meta' ? 'BR' : 'CS');
 
     function setModeUI(){
       const isBR = currentMetaMode === 'meta';
       toggleModeBtn.textContent = isBR ? 'Battle Royale' : 'Clash Squad';
-      metaTitle.textContent = 'Meta Characters';
+      metaTitle.childNodes[0].textContent = 'Meta Characters ';
       metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
     }
 
@@ -1124,22 +1146,30 @@
       return parts.join(' ').toLowerCase();
     }
 
-    function ensureEmptyMsg(grid){
+    function ensureEmptyMsg(grid, text){
       let msg = grid.querySelector('.empty-msg');
       if (!msg){
         msg = document.createElement('div');
         msg.className = 'empty-msg';
-        msg.textContent = 'No matches.';
         grid.appendChild(msg);
       }
+      msg.textContent = text || 'No matches.';
       return msg;
     }
 
+    function wireImgFallback(img){
+      img.addEventListener('error', () => {
+        if (img.dataset.fallbackApplied) return;
+        img.dataset.fallbackApplied = '1';
+        img.src = FALLBACK_IMG;
+      }, { once: true });
+    }
+
     function makeCard(c){
-      const card = document.createElement('div');
       const passive = isPassive(c);
       const meta = isMeta(c);
 
+      const card = document.createElement('div');
       card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '');
       card.setAttribute('tabindex','0');
       card.dataset.search = makeSearchBlob(c);
@@ -1148,10 +1178,12 @@
       thumb.className = 'char-thumb';
 
       const img = document.createElement('img');
-      img.src = c.image_url || '';
+      img.src = c.image_url || FALLBACK_IMG;
       img.alt = tidy(c.name) || 'Character';
       img.loading = 'lazy';
+      img.decoding = 'async';
       img.referrerPolicy = 'no-referrer';
+      wireImgFallback(img);
 
       const metaDot = document.createElement('span');
       metaDot.className = 'meta-dot';
@@ -1177,6 +1209,109 @@
       return card;
     }
 
+    function makeMini(c){
+      const passive = isPassive(c);
+
+      const mini = document.createElement('div');
+      mini.className = 'mini ' + (passive ? 'passive-skill' : 'active-skill');
+      mini.dataset.search = makeSearchBlob(c);
+
+      const mt = document.createElement('div');
+      mt.className = 'mini-thumb';
+
+      const img = document.createElement('img');
+      img.src = c.image_url || FALLBACK_IMG;
+      img.alt = tidy(c.name) || 'Character';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      wireImgFallback(img);
+
+      mt.appendChild(img);
+
+      const mn = document.createElement('div');
+      mn.className = 'mini-name';
+      mn.textContent = tidy(c.name) || '—';
+
+      mini.appendChild(mt);
+      mini.appendChild(mn);
+
+      mini.addEventListener('click', () => openInfo(c, isMeta(c)));
+
+      return mini;
+    }
+
+    function renderGrids(){
+      metaGrid.innerHTML = '';
+      nonMetaGrid.innerHTML = '';
+      compactByRole.innerHTML = '';
+
+      const chars = Array.isArray(allCharacters) ? allCharacters.slice() : [];
+      chars.sort((a,b) => tidy(a?.name).localeCompare(tidy(b?.name)));
+
+      const metas = [];
+      const nonmetas = [];
+      for (const c of chars){
+        (isMeta(c) ? metas : nonmetas).push(c);
+      }
+
+      const metaFrag = document.createDocumentFragment();
+      metas.forEach(c => metaFrag.appendChild(makeCard(c)));
+      metaGrid.appendChild(metaFrag);
+
+      const nonFrag = document.createDocumentFragment();
+      nonmetas.forEach(c => nonFrag.appendChild(makeCard(c)));
+      nonMetaGrid.appendChild(nonFrag);
+
+      if (!metas.length) ensureEmptyMsg(metaGrid, 'No meta characters found for this mode.').style.display = '';
+      if (!nonmetas.length) ensureEmptyMsg(nonMetaGrid, 'No non-meta characters found.').style.display = '';
+
+      // Role groups
+      const roleGroups = new Map();
+      for (const c of chars){
+        const role = tidy(c?.role) || 'Other';
+        if (!roleGroups.has(role)) roleGroups.set(role, []);
+        roleGroups.get(role).push(c);
+      }
+
+      const roles = [...roleGroups.keys()].sort((a,b) => a.localeCompare(b));
+      const roleFrag = document.createDocumentFragment();
+
+      roles.forEach(role => {
+        const arr = roleGroups.get(role) || [];
+
+        const group = document.createElement('div');
+        group.className = 'role-group';
+
+        const head = document.createElement('div');
+        head.className = 'role-head';
+
+        const left = document.createElement('b');
+        left.textContent = role;
+
+        const right = document.createElement('span');
+        right.textContent = `${arr.length} char${arr.length===1?'':'s'}`;
+
+        head.appendChild(left);
+        head.appendChild(right);
+
+        const rg = document.createElement('div');
+        rg.className = 'role-grid';
+
+        const minisFrag = document.createDocumentFragment();
+        arr.forEach(c => minisFrag.appendChild(makeMini(c)));
+        rg.appendChild(minisFrag);
+
+        group.appendChild(head);
+        group.appendChild(rg);
+        roleFrag.appendChild(group);
+      });
+
+      compactByRole.appendChild(roleFrag);
+
+      applyCharacterSearch(currentSearchTerm);
+    }
+
     function applyCharacterSearch(term){
       const q = (term || '').toLowerCase().trim();
 
@@ -1186,17 +1321,18 @@
       ];
 
       let visibleCards = 0;
-      allCards.forEach(el => {
+      for (const el of allCards){
         const hit = !q || (el.dataset.search || '').includes(q);
         el.style.display = hit ? '' : 'none';
         if (hit) visibleCards++;
-      });
+      }
 
-      const metaVisible = [...metaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
-      const nonMetaVisible = [...nonMetaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
-      ensureEmptyMsg(metaGrid).style.display = metaVisible ? 'none' : '';
-      ensureEmptyMsg(nonMetaGrid).style.display = nonMetaVisible ? 'none' : '';
+      const metaHasVisible = [...metaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
+      const nonHasVisible  = [...nonMetaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
+      ensureEmptyMsg(metaGrid).style.display = metaHasVisible ? 'none' : '';
+      ensureEmptyMsg(nonMetaGrid).style.display = nonHasVisible ? 'none' : '';
 
+      // role section filtering (hide groups with no visible minis)
       document.querySelectorAll('#compactByRole .role-group').forEach(group => {
         const minis = [...group.querySelectorAll('.mini')];
         let groupHits = 0;
@@ -1221,98 +1357,75 @@
       }
     }
 
-    function renderGrids(){
-      metaGrid.innerHTML = '';
-      nonMetaGrid.innerHTML = '';
-      compactByRole.innerHTML = '';
-
-      const chars = Array.isArray(allCharacters) ? allCharacters.slice() : [];
-      chars.sort((a,b) => tidy(a?.name).localeCompare(tidy(b?.name)));
-
-      const metas = [];
-      const nonmetas = [];
-      for (const c of chars){
-        (isMeta(c) ? metas : nonmetas).push(c);
-      }
-
-      metas.forEach(c => metaGrid.appendChild(makeCard(c)));
-      nonmetas.forEach(c => nonMetaGrid.appendChild(makeCard(c)));
-
-      const roleGroups = {};
-      for (const c of chars){
-        const role = tidy(c.role) || 'Other';
-        if (!roleGroups[role]) roleGroups[role] = [];
-        roleGroups[role].push(c);
-      }
-
-      const roles = Object.keys(roleGroups).sort((a,b) => a.localeCompare(b));
-      roles.forEach(role => {
-        const group = document.createElement('div');
-        group.className = 'role-group';
-
-        const head = document.createElement('div');
-        head.className = 'role-head';
-
-        const left = document.createElement('b');
-        left.textContent = role;
-
-        const right = document.createElement('span');
-        right.textContent = `${roleGroups[role].length} char${roleGroups[role].length===1?'':'s'}`;
-
-        head.appendChild(left);
-        head.appendChild(right);
-
-        const rg = document.createElement('div');
-        rg.className = 'role-grid';
-
-        roleGroups[role].forEach(c => {
-          const passive = isPassive(c);
-
-          const mini = document.createElement('div');
-          mini.className = 'mini ' + (passive ? 'passive-skill' : 'active-skill');
-          mini.dataset.search = makeSearchBlob(c);
-
-          const mt = document.createElement('div');
-          mt.className = 'mini-thumb';
-
-          const img = document.createElement('img');
-          img.src = c.image_url || '';
-          img.alt = tidy(c.name) || 'Character';
-          img.loading = 'lazy';
-          img.referrerPolicy = 'no-referrer';
-
-          mt.appendChild(img);
-
-          const mn = document.createElement('div');
-          mn.className = 'mini-name';
-          mn.textContent = tidy(c.name) || '—';
-
-          mini.appendChild(mt);
-          mini.appendChild(mn);
-
-          mini.addEventListener('click', () => openInfo(c, isMeta(c)));
-          rg.appendChild(mini);
-        });
-
-        group.appendChild(head);
-        group.appendChild(rg);
-        compactByRole.appendChild(group);
-      });
-
-      applyCharacterSearch(currentSearchTerm);
-    }
-
-    async function loadCharacters(){
-      metaGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
-      nonMetaGrid.innerHTML = '';
-      const res = await fetch(CHAR_URL, { cache: 'no-store' });
-      const data = await res.json();
-      allCharacters = Array.isArray(data) ? data : [];
-      renderGrids();
+    // Debounce search (prevents heavy filtering per keystroke)
+    let searchRAF = 0;
+    function scheduleSearchApply(val){
+      cancelAnimationFrame(searchRAF);
+      searchRAF = requestAnimationFrame(() => applyCharacterSearch(val));
     }
 
     /***********************
-     * Popup (Modal)
+     * Cache helpers
+     ***********************/
+    function readCache(){
+      try{
+        const raw = localStorage.getItem(CFG.CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.data)) return null;
+        if (Date.now() - (parsed.ts || 0) > CFG.CACHE_TTL_MS) return null;
+        return parsed.data;
+      }catch(_){
+        return null;
+      }
+    }
+
+    function writeCache(data){
+      try{
+        localStorage.setItem(CFG.CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+      }catch(_){}
+    }
+
+    async function loadCharacters(){
+      // render cached immediately (fast UI), then refresh from network
+      const cached = readCache();
+      if (cached && !allCharacters.length){
+        allCharacters = cached;
+        renderGrids();
+      } else {
+        metaGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
+        nonMetaGrid.innerHTML = '';
+        compactByRole.innerHTML = '';
+      }
+
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 12000);
+
+      try{
+        const url = CFG.CHAR_URL + (CFG.CHAR_URL.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+
+        allCharacters = arr;
+        writeCache(arr);
+        renderGrids();
+      }catch(err){
+        console.warn('Character fetch failed:', err);
+        // if no cache was rendered, show error
+        if (!allCharacters.length){
+          metaGrid.innerHTML = '<div class="empty-msg">Failed to load character.json</div>';
+          nonMetaGrid.innerHTML = '';
+          compactByRole.innerHTML = '';
+        }
+      }finally{
+        clearTimeout(t);
+      }
+    }
+
+    /***********************
+     * Popup (Modal) + focus handling (optimized)
      ***********************/
     const infoModal = document.getElementById('infoModal');
     const infoClose = document.getElementById('infoClose');
@@ -1322,6 +1435,8 @@
     const infoSkillTitle = document.getElementById('infoSkillTitle');
     const infoSkillDesc = document.getElementById('infoSkillDesc');
     const infoRole = document.getElementById('infoRole');
+
+    let lastFocusEl = null;
 
     function badgeDot(cls, label){
       const el = document.createElement('span');
@@ -1334,6 +1449,8 @@
     }
 
     function openInfo(c, metaFlag){
+      lastFocusEl = document.activeElement;
+
       const name = tidy(c?.name) || '—';
       const role = tidy(c?.role) || 'N/A';
       const st = tidy(c?.skill_type) || '—';
@@ -1359,16 +1476,25 @@
 
       infoModal.classList.add('show');
       infoModal.setAttribute('aria-hidden','false');
+
+      // focus close for accessibility
+      setTimeout(() => infoClose?.focus(), 0);
     }
 
     function closeInfo(){
       infoModal.classList.remove('show');
       infoModal.setAttribute('aria-hidden','true');
+      if (lastFocusEl && typeof lastFocusEl.focus === 'function'){
+        try{ lastFocusEl.focus(); }catch(_){}
+      }
+      lastFocusEl = null;
     }
 
     infoClose?.addEventListener('click', closeInfo);
     infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo(); });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
+    });
 
     /***********************
      * Meta mode toggle
@@ -1377,15 +1503,16 @@
       currentMetaMode = (currentMetaMode === 'meta') ? 'cs_meta' : 'meta';
       setModeUI();
       renderGrids();
+      // re-apply search quickly (keeps user context)
+      scheduleSearchApply(currentSearchTerm);
     });
 
     /***********************
-     * Search filter
+     * Search filter (debounced via RAF)
      ***********************/
-    const topSearch = document.getElementById('searchInput');
     topSearch?.addEventListener('input', (e) => {
       currentSearchTerm = (e.target.value || '');
-      applyCharacterSearch(currentSearchTerm);
+      scheduleSearchApply(currentSearchTerm);
     });
 
     /***********************
