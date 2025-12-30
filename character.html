@@ -2,14 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- ✅ mobile-safe area + notch support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Character Skills</title>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-
-  <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -95,6 +91,24 @@
       max-width: 1440px;
       margin: 0 auto;
       align-items:flex-start;
+      position:relative;
+    }
+
+    /* Sidebar overlay (mobile drawer) */
+    .sb-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 999;
+    }
+    .sb-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
     }
 
     /* Sidebar */
@@ -114,6 +128,7 @@
       height: calc(100vh - 36px);
       transition: width .18s ease;
       flex:0 0 auto;
+      z-index: 1000;
     }
     .sidebar.collapsed{ width: var(--sb-w-collapsed); }
 
@@ -157,7 +172,6 @@
       max-width: 150px;
     }
 
-    /* ✅ Sidebar nav search (added) */
     .nav-search{
       padding: 12px;
       padding-top: 10px;
@@ -238,16 +252,7 @@
       gap:0;
       padding:10px 8px;
     }
-    /* ✅ hide sidebar search when collapsed */
     .sidebar.collapsed .nav-search{display:none;}
-
-    /* ✅ sidebar note (added) */
-    .sidebar-note{
-      font-size:.75rem;
-      color: var(--muted);
-      padding: 12px;
-      border-top: 1px solid rgba(255,255,255,.06);
-    }
 
     /* Main */
     .main{
@@ -665,7 +670,7 @@
       align-items:center;
       justify-content:center;
       padding: 18px;
-      z-index: 1000;
+      z-index: 1200;
     }
     .modal.show{display:flex;}
 
@@ -764,11 +769,8 @@
       .char-card:hover{transform:none}
     }
 
-    /* ============================================================
-       ✅ MOBILE OPTIMIZATION (no layout breaking on desktop)
-       ============================================================ */
+    /* ✅ Mobile: sidebar becomes drawer (same behavior as dashboard) */
     @media (max-width: 980px){
-      .sidebar{display:none;}
       body::before, body::after{display:none;}
 
       .app{
@@ -778,6 +780,24 @@
         max-width: 100%;
         margin: 0;
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+
+      .sidebar{
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sb-w);
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-110%);
+        transition: transform .18s ease;
+        z-index: 1000;
+      }
+      .sidebar.open{
+        transform: translateX(0);
+      }
+      .sidebar.collapsed{
+        width: var(--sb-w); /* no collapsed mode on mobile drawer */
       }
 
       .topbar{
@@ -791,8 +811,6 @@
         gap: 10px;
         z-index: 50;
       }
-
-      #sbToggle{display:none;}
 
       .search{
         width: 100%;
@@ -889,9 +907,12 @@
 </head>
 
 <body>
+  <!-- ✅ overlay for mobile drawer -->
+  <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
+
   <div class="app">
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
       <div class="brand">
         <div class="brand-left">
           <div class="logo">FF</div>
@@ -902,7 +923,6 @@
         </div>
       </div>
 
-      <!-- ✅ Nav Search (added) -->
       <div class="nav-search">
         <input id="navSearch" type="text" placeholder="Search menu..." autocomplete="off" />
       </div>
@@ -915,12 +935,11 @@
           <span class="nav-label">Dashboard</span>
         </a>
 
-        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+        <a class="nav-item active" href="character.html" data-page="character.html" title="Character Skills">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Character Skills</span>
         </a>
 
-        <!-- ✅ Compare added (sidebar update) -->
         <a class="nav-item" href="character-comparison.html" data-page="character-comparison.html" title="Compare Characters">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Compare Characters</span>
@@ -946,14 +965,15 @@
           <span class="nav-label">Split View</span>
         </a>
       </nav>
-
-      <div class="sidebar-note">Tip: Use “Show Meta For” to switch BR vs CS meta quickly.</div>
     </aside>
 
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Collapse sidebar" title="Collapse sidebar" type="button">
+        <!-- ✅ This button now works on BOTH:
+             - desktop: collapse
+             - mobile: open drawer -->
+        <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
           <svg viewBox="0 0 24 24" fill="none">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -1007,7 +1027,6 @@
             </div>
           </div>
 
-          <!-- ✅ safer title structure (no childNodes hacks) -->
           <div class="section-title">
             <span id="metaTitleText">Meta Characters</span>
             <span class="hint" id="metaHint">(Battle Royale)</span>
@@ -1058,17 +1077,12 @@
   </div>
 
   <script>
-    /***********************
-     * CONFIG (optimized)
-     ***********************/
     const CFG = Object.freeze({
       SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
       SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
       CHAR_URL: 'https://misai-my.github.io/freefire-esports/character.json',
-
       CACHE_KEY: 'ff_chars_cache_v2',
-      CACHE_TTL_MS: 1000 * 60 * 60 * 6, // 6 hours
-
+      CACHE_TTL_MS: 1000 * 60 * 60 * 6,
       SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
     });
 
@@ -1087,18 +1101,12 @@
       </svg>
     `)}`;
 
-    /***********************
-     * Supabase Auth
-     ***********************/
     const client = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
     async function ensureSession(){
       try{
         const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-          window.location.href = "index.html";
-          return null;
-        }
+        if (!session) { window.location.href = "index.html"; return null; }
         return session;
       }catch(err){
         console.error('ensureSession error:', err);
@@ -1113,32 +1121,73 @@
     }
 
     /***********************
-     * Sidebar collapse + active nav + nav search ✅
+     * Sidebar behavior (desktop collapse / mobile drawer)
      ***********************/
     const sidebar = document.getElementById('sidebar');
+    const sbToggle = document.getElementById('sbToggle');
+    const sbTogglePath = document.getElementById('sbTogglePath');
+    const sbOverlay = document.getElementById('sbOverlay');
+    const mobileMQ = window.matchMedia('(max-width: 980px)');
 
-    (function initSidebarCollapse(){
-      const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
-      if (saved === '1') sidebar.classList.add('collapsed');
+    function isMobile(){ return mobileMQ.matches; }
 
-      const btn = document.getElementById('sbToggle');
-      const path = document.getElementById('sbTogglePath');
-
-      function syncIcon(){
-        if (!path) return;
-        path.setAttribute('d', sidebar.classList.contains('collapsed')
+    function setToggleIcon(){
+      if (!sbTogglePath) return;
+      if (isMobile()){
+        // hamburger-ish (3 lines)
+        sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
+      }else{
+        sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
           ? 'M10 7l5 5-5 5'
           : 'M14 7l-5 5 5 5'
         );
       }
-      syncIcon();
+    }
 
-      btn?.addEventListener('click', () => {
+    function openDrawer(){
+      sidebar.classList.add('open');
+      sbOverlay.classList.add('show');
+      sbOverlay.setAttribute('aria-hidden','false');
+    }
+    function closeDrawer(){
+      sidebar.classList.remove('open');
+      sbOverlay.classList.remove('show');
+      sbOverlay.setAttribute('aria-hidden','true');
+    }
+    function toggleSidebar(){
+      if (isMobile()){
+        sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+      }else{
         sidebar.classList.toggle('collapsed');
         localStorage.setItem(CFG.SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
-        syncIcon();
-      });
-    })();
+      }
+      setToggleIcon();
+    }
+
+    function syncSidebarMode(){
+      if (isMobile()){
+        sidebar.classList.remove('collapsed'); // drawer only
+        closeDrawer();
+      }else{
+        const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
+        sidebar.classList.toggle('collapsed', saved === '1');
+        closeDrawer();
+      }
+      setToggleIcon();
+    }
+
+    sbToggle?.addEventListener('click', toggleSidebar);
+    sbOverlay?.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
+    });
+
+    // Close drawer after clicking a nav item (mobile)
+    document.querySelectorAll('#nav .nav-item').forEach(a => {
+      a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
+    });
+
+    mobileMQ.addEventListener?.('change', syncSidebarMode);
 
     (function setActiveNav(){
       const here = (location.pathname.split('/').pop() || 'character.html').toLowerCase();
@@ -1148,7 +1197,6 @@
       });
     })();
 
-    // ✅ nav search filter
     document.getElementById('navSearch')?.addEventListener('input', (e) => {
       const q = (e.target.value || '').toLowerCase().trim();
       document.querySelectorAll('#nav .nav-item').forEach(a => {
@@ -1158,7 +1206,7 @@
     });
 
     /***********************
-     * Character Data + Rendering (optimized)
+     * Character Data + Rendering (unchanged from yours)
      ***********************/
     const metaGrid = document.getElementById('metaGrid');
     const nonMetaGrid = document.getElementById('nonMetaGrid');
@@ -1170,10 +1218,9 @@
     const topSearch = document.getElementById('searchInput');
 
     let allCharacters = [];
-    let currentMetaMode = 'meta'; // default BR
+    let currentMetaMode = 'meta';
     let currentSearchTerm = '';
 
-    // small utils
     const safeText = (v) => (v ?? '').toString();
     const tidy = (v) => safeText(v)
       .replace(/[\u200B-\u200D\uFEFF]/g, '')
@@ -1194,13 +1241,7 @@
     }
 
     function makeSearchBlob(c){
-      const parts = [
-        tidy(c?.name),
-        tidy(c?.role),
-        tidy(c?.skill_type),
-        tidy(c?.skill),
-        tidy(c?.description)
-      ].filter(Boolean);
+      const parts = [tidy(c?.name), tidy(c?.role), tidy(c?.skill_type), tidy(c?.skill), tidy(c?.description)].filter(Boolean);
       return parts.join(' ').toLowerCase();
     }
 
@@ -1258,10 +1299,7 @@
 
       card.addEventListener('click', () => openInfo(c, meta));
       card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openInfo(c, meta);
-        }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInfo(c, meta); }
       });
 
       return card;
@@ -1269,7 +1307,6 @@
 
     function makeMini(c){
       const passive = isPassive(c);
-
       const mini = document.createElement('div');
       mini.className = 'mini ' + (passive ? 'passive-skill' : 'active-skill');
       mini.dataset.search = makeSearchBlob(c);
@@ -1295,7 +1332,6 @@
       mini.appendChild(mn);
 
       mini.addEventListener('click', () => openInfo(c, isMeta(c)));
-
       return mini;
     }
 
@@ -1309,9 +1345,7 @@
 
       const metas = [];
       const nonmetas = [];
-      for (const c of chars){
-        (isMeta(c) ? metas : nonmetas).push(c);
-      }
+      for (const c of chars){ (isMeta(c) ? metas : nonmetas).push(c); }
 
       const metaFrag = document.createDocumentFragment();
       metas.forEach(c => metaFrag.appendChild(makeCard(c)));
@@ -1324,7 +1358,6 @@
       if (!metas.length) ensureEmptyMsg(metaGrid, 'No meta characters found for this mode.').style.display = '';
       if (!nonmetas.length) ensureEmptyMsg(nonMetaGrid, 'No non-meta characters found.').style.display = '';
 
-      // Role groups
       const roleGroups = new Map();
       for (const c of chars){
         const role = tidy(c?.role) || 'Other';
@@ -1366,7 +1399,6 @@
       });
 
       compactByRole.appendChild(roleFrag);
-
       applyCharacterSearch(currentSearchTerm);
     }
 
@@ -1390,7 +1422,6 @@
       ensureEmptyMsg(metaGrid).style.display = metaHasVisible ? 'none' : '';
       ensureEmptyMsg(nonMetaGrid).style.display = nonHasVisible ? 'none' : '';
 
-      // role section filtering (hide groups with no visible minis)
       document.querySelectorAll('#compactByRole .role-group').forEach(group => {
         const minis = [...group.querySelectorAll('.mini')];
         let groupHits = 0;
@@ -1415,16 +1446,12 @@
       }
     }
 
-    // Debounce search (prevents heavy filtering per keystroke)
     let searchRAF = 0;
     function scheduleSearchApply(val){
       cancelAnimationFrame(searchRAF);
       searchRAF = requestAnimationFrame(() => applyCharacterSearch(val));
     }
 
-    /***********************
-     * Cache helpers
-     ***********************/
     function readCache(){
       try{
         const raw = localStorage.getItem(CFG.CACHE_KEY);
@@ -1433,19 +1460,14 @@
         if (!parsed || !Array.isArray(parsed.data)) return null;
         if (Date.now() - (parsed.ts || 0) > CFG.CACHE_TTL_MS) return null;
         return parsed.data;
-      }catch(_){
-        return null;
-      }
+      }catch(_){ return null; }
     }
 
     function writeCache(data){
-      try{
-        localStorage.setItem(CFG.CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
-      }catch(_){}
+      try{ localStorage.setItem(CFG.CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); }catch(_){}
     }
 
     async function loadCharacters(){
-      // render cached immediately (fast UI), then refresh from network
       const cached = readCache();
       if (cached && !allCharacters.length){
         allCharacters = cached;
@@ -1465,13 +1487,11 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
-
         allCharacters = arr;
         writeCache(arr);
         renderGrids();
       }catch(err){
         console.warn('Character fetch failed:', err);
-        // if no cache was rendered, show error
         if (!allCharacters.length){
           metaGrid.innerHTML = '<div class="empty-msg">Failed to load character.json</div>';
           nonMetaGrid.innerHTML = '';
@@ -1482,9 +1502,6 @@
       }
     }
 
-    /***********************
-     * Popup (Modal) + focus handling (optimized)
-     ***********************/
     const infoModal = document.getElementById('infoModal');
     const infoClose = document.getElementById('infoClose');
     const infoName = document.getElementById('infoName');
@@ -1534,8 +1551,6 @@
 
       infoModal.classList.add('show');
       infoModal.setAttribute('aria-hidden','false');
-
-      // focus close for accessibility
       setTimeout(() => infoClose?.focus(), 0);
     }
 
@@ -1554,9 +1569,6 @@
       if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
     });
 
-    /***********************
-     * Meta mode toggle
-     ***********************/
     toggleModeBtn?.addEventListener('click', () => {
       currentMetaMode = (currentMetaMode === 'meta') ? 'cs_meta' : 'meta';
       setModeUI();
@@ -1564,18 +1576,14 @@
       scheduleSearchApply(currentSearchTerm);
     });
 
-    /***********************
-     * Search filter (debounced via RAF)
-     ***********************/
     topSearch?.addEventListener('input', (e) => {
       currentSearchTerm = (e.target.value || '');
       scheduleSearchApply(currentSearchTerm);
     });
 
-    /***********************
-     * Init
-     ***********************/
     window.addEventListener('DOMContentLoaded', async () => {
+      syncSidebarMode(); // ✅ important: applies correct sidebar mode on load
+
       const session = await ensureSession();
       if (!session) return;
 
