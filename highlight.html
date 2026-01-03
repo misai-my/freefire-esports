@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <!-- ✅ mobile-safe area + notch support -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Character Comparison</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Loadout Builder — Skills / Pet / Weapon</title>
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -38,6 +38,7 @@
 
       --danger:#ff6b6b;
       --ok:#71d083;
+
       color-scheme: dark;
     }
 
@@ -466,10 +467,15 @@
       letter-spacing:.4px;
       font-size: 1.02rem;
       color: rgba(244,246,255,.92);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
     }
     .muted{color: var(--muted);}
 
-    /* Controls row inside card */
+    /* Top controls inside page */
     .controls{
       display:flex;
       gap:10px;
@@ -482,140 +488,23 @@
       color: var(--muted);
       font-weight:800;
       font-size:.9rem;
-    }
-    .controls-right{
       display:flex;
       gap:10px;
+      align-items:center;
       flex-wrap:wrap;
-      align-items:center;
-      justify-content:flex-end;
     }
-
-    /* Player grid */
-    .player-grid{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-    }
-    @media (max-width: 1200px){
-      .player-grid{grid-template-columns: repeat(2, 1fr);}
-    }
-    @media (max-width: 680px){
-      .player-grid{grid-template-columns: 1fr;}
-    }
-
-    .player{
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      overflow:hidden;
-    }
-    .player-head{
-      padding: 12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .player-head h3{
-      margin:0;
-      font-family: Orbitron, sans-serif;
-      color: var(--brand);
-      font-size: 1rem;
-      letter-spacing:.4px;
-    }
-    .player-head span{
-      font-size:.78rem;
-      color: var(--muted);
-      font-weight:800;
-      white-space:nowrap;
-    }
-    .slots{
-      padding: 12px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    .slot-btn{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px;
-      border-radius: 14px;
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(255,255,255,.10);
-      cursor:pointer;
-      transition:.15s ease;
-      min-height: 54px;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .slot-btn:hover{
-      border-color: rgba(255,189,89,.22);
-      background: rgba(255,255,255,.06);
-      transform: translateY(-1px);
-    }
-    .slot-left{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-    .slot-thumb{
-      width:34px; height:44px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow:hidden;
-      display:grid;
-      place-items:center;
-      flex:0 0 auto;
-    }
-    .slot-thumb img{
-      width:100%; height:100%;
-      object-fit:cover;
-      object-position: top center;
-      display:block;
-      background: rgba(0,0,0,.14);
-    }
-    .slot-meta{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
-    }
-    .slot-meta b{
-      font-size:.86rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      color: rgba(244,246,255,.92);
-    }
-    .slot-meta small{
-      font-size:.75rem;
-      color: var(--muted);
-      font-weight:800;
-      letter-spacing:.2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width: 100%;
-    }
-    .tag{
+    .pill{
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding: 6px 8px;
+      gap:8px;
+      padding: 8px 10px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      font-size:.72rem;
-      font-weight:900;
+      background: rgba(0,0,0,.18);
       color: rgba(244,246,255,.86);
+      font-weight:900;
+      font-size:.8rem;
       white-space:nowrap;
-      flex:0 0 auto;
     }
     .dot{
       width:8px;height:8px;border-radius:50%;
@@ -624,76 +513,212 @@
     }
     .dot.active{ background: var(--skill-active); }
     .dot.passive{ background: var(--skill-passive); }
+    .dot.pet{ background: var(--brand); }
+    .dot.weapon{ background: var(--accent); }
+    .dot.loadout{ background: var(--brand2); }
 
-    /* Comparison table */
-    .comparison-wrap{
-      margin-top: 12px;
-      overflow:auto;
-      border-radius: 18px;
+    .controls-right{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    /* Rows */
+    .row-wrap{
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.04);
-    }
-    table.comparison-table{
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 920px;
-    }
-    .comparison-table th,
-    .comparison-table td{
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      border-right: 1px solid rgba(255,255,255,.06);
+      border-radius: 18px;
       padding: 12px;
-      text-align: center;
-      vertical-align: top;
-      font-size: .9rem;
+      overflow:hidden;
     }
-    .comparison-table th{
-      position: sticky;
-      top: 0;
-      background: rgba(14,18,28,.92);
-      z-index: 2;
-      font-family: Orbitron, sans-serif;
-      letter-spacing:.4px;
-      color: rgba(244,246,255,.92);
-    }
-    .comparison-table td:last-child,
-    .comparison-table th:last-child{border-right:0}
 
-    .cell-head{
+    .slot-row{
+      display:flex;
+      gap: 12px;
+      overflow-x:auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+    }
+    .slot-row::-webkit-scrollbar{height:10px}
+    .slot-row::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .slot-row::-webkit-scrollbar-track{background: transparent}
+
+    /* Slot cards */
+    .slot-card{
+      scroll-snap-align: start;
+      width: 210px;
+      flex: 0 0 auto;
+      border-radius: 18px;
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      position:relative;
       display:flex;
       flex-direction:column;
+      min-height: 250px;
+    }
+    .slot-card.clickable{ cursor:pointer; transition: .15s ease; }
+    .slot-card.clickable:hover{
+      border-color: rgba(255,189,89,.22);
+      background: rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+
+    .slot-top{
+      padding: 10px 10px 8px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    .slot-top b{
+      font-family: Orbitron, sans-serif;
+      color: rgba(244,246,255,.92);
+      font-size: .92rem;
+      letter-spacing:.3px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 140px;
+    }
+    .chip{
+      display:inline-flex;
       align-items:center;
       gap:6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.14);
+      font-size:.7rem;
+      font-weight:900;
+      color: rgba(244,246,255,.86);
+      white-space:nowrap;
+      flex:0 0 auto;
     }
-    .cell-head img{
-      width:42px;height:56px;
+
+    .slot-body{
+      padding: 10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      min-height: 98px;
+    }
+    .thumb{
+      width:56px; height:74px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      background: rgba(255,255,255,.05);
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+    }
+    .thumb img{
+      width:100%; height:100%;
       object-fit:cover;
       object-position: top center;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.15);
+      display:block;
+      background: rgba(0,0,0,.14);
     }
-    .skill-name{
+    .meta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      flex:1;
+    }
+    .meta .name{
       font-weight:900;
-      color: var(--brand);
-      font-size: .9rem;
+      color: rgba(244,246,255,.92);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size: .92rem;
     }
-    .desc{
-      margin-top: 6px;
-      font-size: .82rem;
-      color: rgba(244,246,255,.80);
-      line-height: 1.25rem;
-      max-height: 110px;
-      overflow:auto;
-      padding: 8px 10px;
-      border-radius: 12px;
+    .meta .sub{
+      color: var(--muted);
+      font-weight:800;
+      font-size: .78rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .meta .skill{
+      color: var(--brand);
+      font-weight:900;
+      font-size: .78rem;
+      line-height: 1.05rem;
+      white-space: normal;
+      overflow-wrap:anywhere;
+      word-break: break-word;
+      max-height: 2.1rem;
+      overflow:hidden;
+    }
+
+    /* Collapsible description */
+    details.desc{
+      margin: 0 10px 10px 10px;
+      border-radius: 14px;
       border: 1px solid rgba(255,255,255,.08);
       background: rgba(0,0,0,.14);
-      text-align:left;
+      overflow:hidden;
     }
-    .desc::-webkit-scrollbar{width:10px}
-    .desc::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
-    .desc::-webkit-scrollbar-track{background: transparent}
+    details.desc > summary{
+      list-style:none;
+      cursor:pointer;
+      padding: 10px 10px;
+      font-weight:900;
+      color: rgba(244,246,255,.88);
+      font-size: .8rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      user-select:none;
+    }
+    details.desc > summary::-webkit-details-marker{display:none}
+    .caret{
+      width:12px;height:12px; opacity:.9; flex:0 0 auto;
+      transition: transform .15s ease;
+    }
+    details.desc[open] .caret{ transform: rotate(180deg); }
+    .desc-body{
+      padding: 0 10px 10px 10px;
+      color: rgba(244,246,255,.82);
+      font-size: .82rem;
+      line-height: 1.25rem;
+      white-space: normal;
+      overflow-wrap:anywhere;
+      word-break: break-word;
+    }
+    .desc-body .muted{font-weight:800}
+
+    /* Remove button for extra active slots */
+    .mini-x{
+      position:absolute;
+      top: 8px;
+      right: 8px;
+      width:28px;height:28px;
+      border-radius: 10px;
+      display:grid; place-items:center;
+      background: rgba(255,107,107,.10);
+      border: 1px solid rgba(255,107,107,.20);
+      color: rgba(255,230,230,.95);
+      cursor:pointer;
+      transition:.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mini-x:hover{
+      background: rgba(255,107,107,.16);
+      border-color: rgba(255,107,107,.32);
+      box-shadow: 0 0 0 3px rgba(255,107,107,.12);
+    }
+    .mini-x svg{width:14px;height:14px}
 
     /* Modal */
     .modal{
@@ -743,7 +768,6 @@
       overflow:auto;
       -webkit-overflow-scrolling: touch;
     }
-
     .modal-body::-webkit-scrollbar{width:10px}
     .modal-body::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
     .modal-body::-webkit-scrollbar-track{background: transparent}
@@ -773,7 +797,7 @@
       align-items: stretch;
     }
     .pick{
-      width: 92px;
+      width: 108px;
       text-align:center;
       border-radius: 16px;
       background: rgba(255,255,255,.04);
@@ -789,20 +813,16 @@
       background: rgba(255,255,255,.06);
     }
     .pick img{
-      width: 70px;
-      height: 94px;
+      width: 76px;
+      height: 102px;
       object-fit: cover;
       object-position: top center;
       border-radius: 14px;
       border: 2px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.14);
-      transition:.15s ease;
       display:block;
       margin: 0 auto 6px auto;
     }
-    .pick.active-skill img{ border-color: rgba(77,211,255,.90); }
-    .pick.passive-skill img{ border-color: rgba(255,89,199,.90); }
-
     .pick .nm{
       font-size:.74rem;
       font-weight:900;
@@ -881,7 +901,6 @@
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
 
-      /* Sidebar becomes drawer (not hidden) */
       .sidebar{
         position: fixed;
         top: 0;
@@ -894,14 +913,14 @@
         z-index: 1000;
       }
       .sidebar.open{ transform: translateX(0); }
-      .sidebar.collapsed{ width: var(--sb-w); } /* no collapsed mode on mobile */
+      .sidebar.collapsed{ width: var(--sb-w); }
 
       .topbar{
         top: env(safe-area-inset-top);
         border-radius: 0;
         border-left: 0;
         border-right: 0;
-        margin: -10px -10px 0 -10px; /* edge-to-edge */
+        margin: -10px -10px 0 -10px;
         padding: 10px 10px;
         gap: 10px;
         z-index: 50;
@@ -914,7 +933,6 @@
       .hero-content{left:12px;right:12px;bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
 
-      .controls-left{width:100%;}
       .controls-right{
         width:100%;
         display:grid;
@@ -923,33 +941,23 @@
         justify-content: stretch;
       }
       .controls-right .btn{width:100%; padding: 11px 10px; border-radius: 14px;}
-      .controls-right .btn.danger{grid-column: 1 / -1;} /* reset full width */
+      .controls-right .btn.danger{grid-column: 1 / -1;}
 
-      .player-grid{gap: 12px;}
-
-      .modal{
-        align-items:flex-end;
-        padding: 10px;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom));
-      }
-      .modal-card{
-        width: 100%;
-        max-height: 92vh;
-        border-radius: 18px;
-      }
+      .slot-card{ width: 200px; }
     }
 
     @media (prefers-reduced-motion: reduce){
       *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
       .icon-btn:hover{transform:none}
-      .slot-btn:hover{transform:none}
+      .slot-card.clickable:hover{transform:none}
       .pick:hover{transform:none}
+      details.desc > summary{cursor:default}
     }
   </style>
 </head>
 
 <body>
-  <!-- ✅ overlay for mobile drawer -->
+  <!-- overlay for mobile drawer -->
   <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
   <div class="app">
@@ -982,9 +990,9 @@
           <span class="nav-label">Character Skills</span>
         </a>
 
-        <a class="nav-item active" href="character-comparison.html" data-page="character-comparison.html" title="Compare Characters">
+        <a class="nav-item active" href="character-comparison.html" data-page="character-comparison.html" title="Loadout Builder">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Compare Characters</span>
+          <span class="nav-label">Loadout Builder</span>
         </a>
 
         <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
@@ -995,6 +1003,11 @@
         <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Weapons</span>
+        </a>
+
+        <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadouts">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 7h10M7 12h10M7 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4h14v16H5V4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Loadouts</span>
         </a>
 
         <a class="nav-item" href="map.html" data-page="map.html" title="Map">
@@ -1008,15 +1021,15 @@
         </a>
       </nav>
 
-      <div class="sidebar-note">Tip: click a slot to pick a character. “Compare” builds the table below.</div>
+      <div class="sidebar-note">
+        Tip: Click a card to pick. Descriptions auto-update (no compare button).<br/>
+        Active row defaults to 4 slots — add more anytime.
+      </div>
     </aside>
 
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <!-- ✅ same toggle behavior as new sidebar:
-             - desktop: collapse sidebar
-             - mobile: open/close drawer -->
         <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
           <svg viewBox="0 0 24 24" fill="none">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1040,26 +1053,44 @@
         <div class="hero">
           <div class="hero-content">
             <div class="hero-title">
-              <h2>Character Comparison</h2>
+              <h2>Loadout Builder</h2>
             </div>
           </div>
         </div>
 
         <div class="card-inner">
           <div class="controls">
-            <div class="controls-left">Pick 1 active + 3 passives per player</div>
+            <div class="controls-left">
+              <span class="pill"><span class="dot active"></span>Active</span>
+              <span class="pill"><span class="dot passive"></span>Passive</span>
+              <span class="pill"><span class="dot pet"></span>Pet</span>
+              <span class="pill"><span class="dot weapon"></span>Weapon</span>
+              <span class="pill"><span class="dot loadout"></span>Loadout</span>
+            </div>
             <div class="controls-right">
               <a class="btn" href="dashboard.html">← Dashboard</a>
-              <a class="btn" href="character.html">← Character Gallery</a>
-              <button class="btn brand" id="compareBtn" type="button">Compare</button>
-              <button class="btn danger" id="resetBtn" type="button">Reset All</button>
+              <button class="btn brand" id="addActiveBtn" type="button">+ Add Active Slot</button>
+              <button class="btn danger" id="resetBtn" type="button">Reset</button>
             </div>
           </div>
 
-          <div class="player-grid" id="playerGrid"></div>
+          <!-- ACTIVE ROW -->
+          <div class="section-title">
+            <span>Active Skills Row</span>
+            <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+          </div>
+          <div class="row-wrap">
+            <div class="slot-row" id="activeRow"></div>
+          </div>
 
-          <div class="section-title" style="margin-top:18px;">Comparison</div>
-          <div id="comparisonResult"></div>
+          <!-- SECOND ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Passive / Pet / Weapon / Loadouts</span>
+            <span class="muted" style="font-weight:800;font-size:.85rem;">Loadouts auto-populate all 4</span>
+          </div>
+          <div class="row-wrap">
+            <div class="slot-row" id="secondaryRow"></div>
+          </div>
 
           <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
             Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
@@ -1069,17 +1100,17 @@
     </main>
   </div>
 
-  <!-- Character Picker Modal -->
-  <div class="modal" id="characterModal" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pick a Character">
+  <!-- Picker Modal -->
+  <div class="modal" id="pickerModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pick Item">
       <div class="modal-top">
-        <b id="modalTitle">Pick Character</b>
+        <b id="modalTitle">Pick</b>
         <button class="icon-btn" id="modalCloseBtn" aria-label="Close" title="Close" type="button">
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
       <div class="modal-body">
-        <input type="text" id="searchInput" placeholder="Search character (name / role / skill)..." />
+        <input type="text" id="searchInput" placeholder="Search (name / role / skill / category)..." />
         <div id="modalGrid" class="pick-grid"></div>
         <div style="display:flex; justify-content:center; margin-top:12px;">
           <button class="btn brand" id="modalCloseBtn2" type="button">Close ✕</button>
@@ -1106,10 +1137,7 @@
     async function ensureSession(){
       try{
         const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-          window.location.href = "index.html";
-          return null;
-        }
+        if (!session) { window.location.href = "index.html"; return null; }
         return session;
       }catch(err){
         window.location.href = "index.html";
@@ -1128,7 +1156,6 @@
     const toastEl = document.getElementById('toast');
     const toastMsg = document.getElementById('toastMsg');
     let toastTimer = null;
-
     function toast(message){
       toastMsg.textContent = message || '';
       toastEl.classList.add('show');
@@ -1137,10 +1164,30 @@
     }
 
     /***********************
-     * ✅ New Sidebar behavior (desktop collapse / mobile drawer)
+     * Sidebar behavior (desktop collapse / mobile drawer)
      ***********************/
     const CFG = Object.freeze({
-      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1',
+
+      // ✅ Adjust these URLs to match your project files if needed:
+      CHAR_URLS: [
+        'https://misai-my.github.io/freefire-esports/character.json',
+        'https://neptuneg1.github.io/freefire-caster/character.json'
+      ],
+      PET_URLS: [
+        'https://misai-my.github.io/freefire-esports/pet.json',
+        'https://neptuneg1.github.io/freefire-caster/pet.json'
+      ],
+      WEAPON_URLS: [
+        // put your actual weapons JSON here (examples):
+        'https://misai-my.github.io/freefire-esports/weapon.json',
+        'https://neptuneg1.github.io/freefire-caster/weapon.json'
+      ],
+      LOADOUT_URLS: [
+        // put your actual loadout JSON here (must contain 4 loadouts)
+        'https://misai-my.github.io/freefire-esports/loadout.json',
+        'https://neptuneg1.github.io/freefire-caster/loadout.json'
+      ]
     });
 
     const sidebar = document.getElementById('sidebar');
@@ -1148,23 +1195,19 @@
     const sbTogglePath = document.getElementById('sbTogglePath');
     const sbOverlay = document.getElementById('sbOverlay');
     const mobileMQ = window.matchMedia('(max-width: 980px)');
-
     function isMobile(){ return mobileMQ.matches; }
 
     function setToggleIcon(){
       if (!sbTogglePath) return;
       if (isMobile()){
-        // hamburger
         sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
       }else{
-        // chevron swap based on collapsed state
         sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
           ? 'M10 7l5 5-5 5'
           : 'M14 7l-5 5 5 5'
         );
       }
     }
-
     function openDrawer(){
       sidebar.classList.add('open');
       sbOverlay.classList.add('show');
@@ -1175,7 +1218,6 @@
       sbOverlay.classList.remove('show');
       sbOverlay.setAttribute('aria-hidden','true');
     }
-
     function toggleSidebar(){
       if (isMobile()){
         sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
@@ -1185,10 +1227,9 @@
       }
       setToggleIcon();
     }
-
     function syncSidebarMode(){
       if (isMobile()){
-        sidebar.classList.remove('collapsed'); // drawer only
+        sidebar.classList.remove('collapsed');
         closeDrawer();
       }else{
         const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
@@ -1203,15 +1244,11 @@
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
     });
-
-    // Close drawer after clicking a nav item (mobile)
     document.querySelectorAll('#nav .nav-item').forEach(a => {
       a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
     });
-
     mobileMQ.addEventListener?.('change', syncSidebarMode);
 
-    // active nav
     (function setActiveNav(){
       const here = (location.pathname.split('/').pop() || 'character-comparison.html').toLowerCase();
       document.querySelectorAll('.nav-item').forEach(a => {
@@ -1220,7 +1257,6 @@
       });
     })();
 
-    // sidebar nav search
     document.getElementById('navSearch')?.addEventListener('input', (e) => {
       const q = (e.target.value || '').toLowerCase().trim();
       document.querySelectorAll('#nav .nav-item').forEach(a => {
@@ -1235,173 +1271,446 @@
     });
 
     /***********************
-     * Data + Helpers
+     * Data + selection state
      ***********************/
-    const CHAR_URLS = [
-      'https://misai-my.github.io/freefire-esports/character.json',
-      'https://neptuneg1.github.io/freefire-caster/character.json'
-    ];
+    const STORE_KEY = 'ff_loadout_builder_v1';
 
-    let allCharacters = [];
-    let charByName = new Map(); // key: lower(name) -> char object
+    let characters = [];
+    let pets = [];
+    let weapons = [];
+    let loadouts = [];
 
-    // selections[player][slot] = charObj|null
-    const selections = Array.from({ length: 4 }, () => Array(4).fill(null));
+    // Active row: default 4 slots, expandable
+    let activeSlots = Array.from({length: 4}, () => null);
 
-    let currentPlayer = 0;
-    let currentSlot = 0;
+    // Second row picks
+    let passivePick = null;
+    let petPick = null;
+    let weaponPick = null;
 
-    function tidy(v){
-      return (v ?? '').toString()
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        .replace(/\s*\n+\s*/g, ' ')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
+    // Picker context
+    let pickerMode = null; // 'active' | 'passive' | 'pet' | 'weapon'
+    let pickerIndex = 0;
+
+    const activeRowEl = document.getElementById('activeRow');
+    const secondaryRowEl = document.getElementById('secondaryRow');
+
+    const tidy = (v) => (v ?? '').toString()
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\s*\n+\s*/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    const lower = (v) => tidy(v).toLowerCase();
+    const keyOf = (name) => lower(name);
+
+    function isPassiveChar(c){
+      return lower(c?.skill_type).includes('passive');
     }
-    function keyName(name){
-      return tidy(name).toLowerCase();
-    }
-    function skillTypeOf(c){
-      const st = tidy(c?.skill_type).toLowerCase();
-      return st.includes('passive') ? 'Passive' : 'Active';
-    }
-    function imgOf(c){
-      return tidy(c?.image_url) || '';
+    function isActiveChar(c){
+      const st = lower(c?.skill_type);
+      return st && !st.includes('passive');
     }
 
-    function buildIndex(){
-      charByName = new Map();
-      for (const c of allCharacters){
-        const nm = keyName(c?.name);
-        if (!nm) continue;
-        if (!charByName.has(nm)) charByName.set(nm, c);
+    // Generic field getters (so it still works even if JSON schema differs a bit)
+    function getItemName(item){
+      return tidy(item?.name || item?.weapon_name || item?.pet_name || item?.title) || '—';
+    }
+    function getItemImg(item){
+      return tidy(item?.image_url || item?.img || item?.image || item?.icon || item?.logo_url) || '';
+    }
+    function getItemSubtitle(item, kind){
+      if (kind === 'active' || kind === 'passive'){
+        const role = tidy(item?.role) || 'N/A';
+        const st = tidy(item?.skill_type) || (kind === 'passive' ? 'Passive' : 'Active');
+        return `${st} • ${role}`;
+      }
+      if (kind === 'pet'){
+        const t = tidy(item?.type || item?.category) || 'Pet';
+        return t;
+      }
+      if (kind === 'weapon'){
+        const cat = tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+        return cat;
+      }
+      if (kind === 'loadout'){
+        const tag = tidy(item?.mode || item?.type) || 'Loadout';
+        return tag;
+      }
+      return '—';
+    }
+    function getItemSkillLine(item, kind){
+      if (kind === 'active' || kind === 'passive'){
+        return tidy(item?.skill) || '';
+      }
+      if (kind === 'pet'){
+        return tidy(item?.skill || item?.ability || item?.passive || item?.active) || '';
+      }
+      if (kind === 'weapon'){
+        return tidy(item?.special || item?.perk || item?.ability || item?.attribute) || '';
+      }
+      if (kind === 'loadout'){
+        // Optional: show a short line (if you store it)
+        return tidy(item?.summary || item?.note || item?.desc_short) || '';
+      }
+      return '';
+    }
+    function getItemDesc(item, kind){
+      // For your character.json: description (and maybe description_ms)
+      // For others: description / desc / lore, etc.
+      const d =
+        tidy(item?.description) ||
+        tidy(item?.desc) ||
+        tidy(item?.details) ||
+        tidy(item?.lore) ||
+        tidy(item?.summary) ||
+        '';
+      if (d) return d;
+
+      // weapon data sometimes stores long text in "note" or "info"
+      const alt = tidy(item?.info) || tidy(item?.notes) || '';
+      return alt || '';
+    }
+
+    function packState(){
+      return {
+        activeSlots: activeSlots.map(x => x ? getItemName(x) : null),
+        passivePick: passivePick ? getItemName(passivePick) : null,
+        petPick: petPick ? getItemName(petPick) : null,
+        weaponPick: weaponPick ? getItemName(weaponPick) : null,
+        activeCount: activeSlots.length
+      };
+    }
+
+    function saveState(){
+      try{ sessionStorage.setItem(STORE_KEY, JSON.stringify(packState())); }catch(_){}
+    }
+
+    function restoreState(){
+      try{
+        const raw = sessionStorage.getItem(STORE_KEY);
+        if (!raw) return null;
+        const s = JSON.parse(raw);
+        if (!s || typeof s !== 'object') return null;
+
+        const count = Math.max(4, Math.min(24, Number(s.activeCount || 4)));
+        activeSlots = Array.from({length: count}, () => null);
+
+        return s;
+      }catch(_){
+        return null;
       }
     }
 
+    function findByName(list, name){
+      const k = keyOf(name);
+      if (!k) return null;
+      for (const it of list){
+        if (keyOf(getItemName(it)) === k) return it;
+      }
+      return null;
+    }
+
     /***********************
-     * UI: Player Panels
+     * Fetch helpers
      ***********************/
-    function createPlayerPanel(playerIndex) {
-      const panel = document.createElement('div');
-      panel.className = 'player';
+    async function fetchFromUrls(urls){
+      let lastErr = null;
+      for (const url of urls){
+        try{
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 12000);
+          const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(t);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (!Array.isArray(data)) throw new Error('Bad JSON (expected array)');
+          return data;
+        }catch(err){
+          lastErr = err;
+        }
+      }
+      console.warn('Fetch failed:', lastErr);
+      return [];
+    }
 
-      const head = document.createElement('div');
-      head.className = 'player-head';
-      head.innerHTML = `<h3>Player ${playerIndex + 1}</h3><span>1 Active • 3 Passive</span>`;
+    /***********************
+     * Rendering
+     ***********************/
+    function caretSvg(){
+      return `
+        <svg class="caret" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    }
 
-      const slotsWrap = document.createElement('div');
-      slotsWrap.className = 'slots';
+    function slotCardHTML({
+      title,
+      kind,      // active|passive|pet|weapon|loadout
+      chipDot,   // active|passive|pet|weapon|loadout
+      chipText,
+      item,
+      emptyHint = 'Click to pick',
+      clickable = true,
+      removable = false,
+      removeIndex = -1
+    }){
+      const name = item ? getItemName(item) : title;
+      const sub = item ? getItemSubtitle(item, kind) : emptyHint;
+      const img = item ? getItemImg(item) : '';
+      const skillLine = item ? getItemSkillLine(item, kind) : '';
+      const desc = item ? (getItemDesc(item, kind) || '—') : 'Pick an item to show its description.';
+      const showSkill = !!skillLine;
 
-      const slotLabels = [
-        { label: 'Active Skill', type: 'Active' },
-        { label: 'Passive 1', type: 'Passive' },
-        { label: 'Passive 2', type: 'Passive' },
-        { label: 'Passive 3', type: 'Passive' }
-      ];
+      const removeBtn = removable ? `
+        <button class="mini-x" data-remove="${removeIndex}" title="Remove slot" aria-label="Remove slot" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      ` : '';
 
-      slotLabels.forEach((s, slotIdx) => {
-        const btn = document.createElement('div');
-        btn.className = 'slot-btn';
-        btn.id = `slot-${playerIndex}-${slotIdx}`;
-        btn.setAttribute('role','button');
-        btn.setAttribute('tabindex','0');
-        btn.innerHTML = slotEmptyHTML(s.label, s.type, slotIdx === 0);
+      return `
+        <div class="slot-card ${clickable ? 'clickable' : ''}" data-kind="${kind}">
+          ${removeBtn}
+          <div class="slot-top">
+            <b title="${title}">${title}</b>
+            <span class="chip"><span class="dot ${chipDot}"></span>${chipText}</span>
+          </div>
 
-        btn.addEventListener('click', () => openModal(playerIndex, slotIdx));
-        btn.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            openModal(playerIndex, slotIdx);
-          }
+          <div class="slot-body">
+            <div class="thumb">
+              ${img ? `<img src="${img}" alt="${tidy(name)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+            </div>
+            <div class="meta">
+              <div class="name" title="${tidy(name)}">${tidy(name) || '—'}</div>
+              <div class="sub" title="${tidy(sub)}">${tidy(sub) || '—'}</div>
+              ${showSkill ? `<div class="skill" title="${tidy(skillLine)}">${tidy(skillLine)}</div>` : `<div class="skill" style="color:rgba(170,177,197,.9)">${''}</div>`}
+            </div>
+          </div>
+
+          <details class="desc">
+            <summary>
+              <span>Description</span>
+              ${caretSvg()}
+            </summary>
+            <div class="desc-body">
+              ${item ? '' : `<span class="muted">(${tidy(emptyHint)})</span><br/>`}
+              ${escapeHTML(desc)}
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    function escapeHTML(str){
+      const s = tidy(str);
+      return s
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+
+    function renderActiveRow(){
+      activeRowEl.innerHTML = activeSlots.map((it, i) => {
+        const removable = i >= 4; // extras removable
+        return slotCardHTML({
+          title: `Active ${i + 1}`,
+          kind: 'active',
+          chipDot: 'active',
+          chipText: 'Active',
+          item: it,
+          emptyHint: 'Click to pick an Active skill',
+          clickable: true,
+          removable,
+          removeIndex: i
         });
+      }).join('');
 
-        slotsWrap.appendChild(btn);
+      // Click handlers
+      [...activeRowEl.querySelectorAll('.slot-card.clickable')].forEach((card, idx) => {
+        card.addEventListener('click', (e) => {
+          // ignore remove click bubbling
+          if (e.target?.closest?.('.mini-x')) return;
+          openPicker('active', idx);
+        });
       });
 
-      panel.appendChild(head);
-      panel.appendChild(slotsWrap);
-      return panel;
+      // Remove handlers for extra slots
+      [...activeRowEl.querySelectorAll('[data-remove]')].forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const i = Number(btn.getAttribute('data-remove'));
+          if (!Number.isFinite(i) || i < 4) return;
+          activeSlots.splice(i, 1);
+          saveState();
+          renderActiveRow();
+        });
+      });
     }
 
-    function slotEmptyHTML(label, type, isActive){
-      return `
-        <div class="slot-left">
-          <div class="slot-thumb"></div>
-          <div class="slot-meta">
-            <b>${label}</b>
-            <small>${type}</small>
-          </div>
-        </div>
-        <span class="tag"><span class="dot ${isActive?'active':'passive'}"></span>${isActive?'Active':'Passive'}</span>
-      `;
+    function renderSecondaryRow(){
+      const parts = [];
+
+      parts.push(slotCardHTML({
+        title: 'Passive',
+        kind: 'passive',
+        chipDot: 'passive',
+        chipText: 'Passive',
+        item: passivePick,
+        emptyHint: 'Click to pick a Passive',
+        clickable: true
+      }));
+
+      parts.push(slotCardHTML({
+        title: 'Pet',
+        kind: 'pet',
+        chipDot: 'pet',
+        chipText: 'Pet',
+        item: petPick,
+        emptyHint: 'Click to pick a Pet',
+        clickable: true
+      }));
+
+      parts.push(slotCardHTML({
+        title: 'Weapon',
+        kind: 'weapon',
+        chipDot: 'weapon',
+        chipText: 'Weapon',
+        item: weaponPick,
+        emptyHint: 'Click to pick a Weapon',
+        clickable: true
+      }));
+
+      // Loadouts: show all 4 (auto populated)
+      const lo = (Array.isArray(loadouts) ? loadouts.slice(0, 4) : []);
+      if (lo.length){
+        lo.forEach((l, idx) => {
+          parts.push(slotCardHTML({
+            title: `Loadout ${idx + 1}`,
+            kind: 'loadout',
+            chipDot: 'loadout',
+            chipText: 'Loadout',
+            item: l,
+            emptyHint: 'Loadout data',
+            clickable: false
+          }));
+        });
+      }else{
+        // placeholders if loadout.json not found yet
+        for (let i=0;i<4;i++){
+          parts.push(slotCardHTML({
+            title: `Loadout ${i + 1}`,
+            kind: 'loadout',
+            chipDot: 'loadout',
+            chipText: 'Loadout',
+            item: null,
+            emptyHint: 'Loadout JSON not loaded',
+            clickable: false
+          }));
+        }
+      }
+
+      secondaryRowEl.innerHTML = parts.join('');
+
+      // Click handlers for the 3 pickable cards
+      const cards = [...secondaryRowEl.querySelectorAll('.slot-card.clickable')];
+      cards.forEach(card => {
+        const kind = card.getAttribute('data-kind');
+        card.addEventListener('click', () => {
+          if (kind === 'passive') openPicker('passive', 0);
+          if (kind === 'pet') openPicker('pet', 0);
+          if (kind === 'weapon') openPicker('weapon', 0);
+        });
+      });
     }
 
-    function slotFilledHTML(charObj, label, isActive){
-      const nm = tidy(charObj?.name) || '—';
-      const rl = tidy(charObj?.role) || 'N/A';
-      const img = imgOf(charObj);
-      return `
-        <div class="slot-left">
-          <div class="slot-thumb">
-            ${img ? `<img src="${img}" alt="${nm}" loading="lazy" referrerpolicy="no-referrer">` : ``}
-          </div>
-          <div class="slot-meta">
-            <b>${nm}</b>
-            <small>${label} • ${rl}</small>
-          </div>
-        </div>
-        <span class="tag"><span class="dot ${isActive?'active':'passive'}"></span>${isActive?'Active':'Passive'}</span>
-      `;
+    function rerenderAll(){
+      renderActiveRow();
+      renderSecondaryRow();
     }
 
     /***********************
-     * Modal: Picker
+     * Picker modal
      ***********************/
-    const modal = document.getElementById('characterModal');
+    const modal = document.getElementById('pickerModal');
     const modalGrid = document.getElementById('modalGrid');
     const modalInput = document.getElementById('searchInput');
     const modalTitle = document.getElementById('modalTitle');
 
-    function openModal(playerIdx, slotIdx) {
-      currentPlayer = playerIdx;
-      currentSlot = slotIdx;
+    function openPicker(mode, index){
+      pickerMode = mode;
+      pickerIndex = index;
 
-      const isActiveSlot = slotIdx === 0;
-      const needType = isActiveSlot ? 'Active' : 'Passive';
+      const label =
+        mode === 'active' ? `Pick Active (Slot ${index + 1})` :
+        mode === 'passive' ? 'Pick Passive' :
+        mode === 'pet' ? 'Pick Pet' :
+        mode === 'weapon' ? 'Pick Weapon' :
+        'Pick';
 
-      modalTitle.textContent = `Pick ${needType} — Player ${playerIdx + 1} / Slot ${slotIdx + 1}`;
+      modalTitle.textContent = label;
       modalInput.value = '';
-      renderModalGrid(needType, '');
+      renderPickerGrid('');
 
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
-
       setTimeout(() => modalInput.focus(), 0);
     }
 
-    function closeModal() {
+    function closePicker(){
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
     }
 
-    function renderModalGrid(needType, term){
+    function getPickerList(){
+      if (pickerMode === 'active') return characters.filter(isActiveChar);
+      if (pickerMode === 'passive') return characters.filter(isPassiveChar);
+      if (pickerMode === 'pet') return pets;
+      if (pickerMode === 'weapon') return weapons;
+      return [];
+    }
+
+    function getPickerChipText(item){
+      if (pickerMode === 'active' || pickerMode === 'passive'){
+        const r = tidy(item?.role) || 'N/A';
+        return r;
+      }
+      if (pickerMode === 'pet'){
+        return tidy(item?.type || item?.category) || 'Pet';
+      }
+      if (pickerMode === 'weapon'){
+        return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+      }
+      return '';
+    }
+
+    function buildSearchBlob(item){
+      const fields = [
+        getItemName(item),
+        tidy(item?.role),
+        tidy(item?.skill_type),
+        tidy(item?.skill),
+        tidy(item?.description),
+        tidy(item?.desc),
+        tidy(item?.category),
+        tidy(item?.type),
+        tidy(item?.weapon_type),
+        tidy(item?.special),
+        tidy(item?.perk),
+      ].filter(Boolean).join(' ');
+      return fields.toLowerCase();
+    }
+
+    function renderPickerGrid(term){
       const q = tidy(term).toLowerCase();
       modalGrid.innerHTML = '';
 
-      const list = allCharacters
-        .filter(c => skillTypeOf(c) === needType)
-        .map(c => ({
-          c,
-          blob: [
-            tidy(c?.name),
-            tidy(c?.role),
-            tidy(c?.skill),
-            tidy(c?.description),
-            tidy(c?.skill_type)
-          ].filter(Boolean).join(' ').toLowerCase()
-        }))
+      const list = getPickerList()
+        .map(it => ({ it, blob: buildSearchBlob(it) }))
         .filter(x => !q || x.blob.includes(q))
-        .sort((a,b) => tidy(a.c?.name).localeCompare(tidy(b.c?.name)));
+        .sort((a,b) => getItemName(a.it).localeCompare(getItemName(b.it)));
 
       if (!list.length){
         const empty = document.createElement('div');
@@ -1411,202 +1720,137 @@
         return;
       }
 
-      list.forEach(({c}) => {
+      list.forEach(({it}) => {
         const pick = document.createElement('div');
-        const passive = skillTypeOf(c) === 'Passive';
-        pick.className = 'pick ' + (passive ? 'passive-skill' : 'active-skill');
+        pick.className = 'pick';
 
-        const nm = tidy(c?.name) || '—';
-        const rl = tidy(c?.role) || 'N/A';
-        const img = imgOf(c);
-
-        pick.dataset.key = keyName(nm);
+        const nm = getItemName(it);
+        const img = getItemImg(it);
+        const chip = getPickerChipText(it);
 
         pick.innerHTML = `
-          ${img ? `<img src="${img}" alt="${nm}" loading="lazy" referrerpolicy="no-referrer">` : `<div class="empty" style="padding:10px;border-radius:14px;">No image</div>`}
-          <div class="nm">${nm}</div>
-          <div class="rl">${rl}</div>
+          ${img ? `<img src="${img}" alt="${escapeHTML(nm)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+          <div class="nm">${escapeHTML(nm)}</div>
+          <div class="rl">${escapeHTML(chip || '—')}</div>
         `;
 
-        pick.addEventListener('click', () => selectCharacter(c));
+        pick.addEventListener('click', () => applyPick(it));
         modalGrid.appendChild(pick);
       });
     }
 
-    function selectCharacter(charObj) {
-      const nm = tidy(charObj?.name);
-      if (!nm) return;
+    function applyPick(item){
+      const nm = getItemName(item);
 
-      const exists = selections[currentPlayer].some(s => s && keyName(s.name) === keyName(nm));
-      if (exists){
-        toast(`Already picked for Player ${currentPlayer+1}. Choose a different one.`);
+      // Prevent duplicate actives inside active row (optional but useful)
+      if (pickerMode === 'active'){
+        const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === keyOf(nm));
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That active skill is already in another slot.');
+          return;
+        }
+        activeSlots[pickerIndex] = item;
+        saveState();
+        renderActiveRow();
+        closePicker();
         return;
       }
 
-      selections[currentPlayer][currentSlot] = charObj;
+      if (pickerMode === 'passive'){
+        passivePick = item;
+        saveState();
+        renderSecondaryRow();
+        closePicker();
+        return;
+      }
 
-      const slotEl = document.getElementById(`slot-${currentPlayer}-${currentSlot}`);
-      const label = currentSlot === 0 ? 'Active Skill' : `Passive ${currentSlot}`;
-      const isActive = currentSlot === 0;
+      if (pickerMode === 'pet'){
+        petPick = item;
+        saveState();
+        renderSecondaryRow();
+        closePicker();
+        return;
+      }
 
-      slotEl.innerHTML = slotFilledHTML(charObj, label, isActive);
-
-      persistSelections();
-      closeModal();
+      if (pickerMode === 'weapon'){
+        weaponPick = item;
+        saveState();
+        renderSecondaryRow();
+        closePicker();
+        return;
+      }
     }
 
-    document.getElementById('modalCloseBtn')?.addEventListener('click', closeModal);
-    document.getElementById('modalCloseBtn2')?.addEventListener('click', closeModal);
-
-    modalInput?.addEventListener('input', () => {
-      const needType = (currentSlot === 0) ? 'Active' : 'Passive';
-      renderModalGrid(needType, modalInput.value);
-    });
-
-    window.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('show')) closeModal();
-    });
+    document.getElementById('modalCloseBtn')?.addEventListener('click', closePicker);
+    document.getElementById('modalCloseBtn2')?.addEventListener('click', closePicker);
+    modalInput?.addEventListener('input', () => renderPickerGrid(modalInput.value));
+    window.addEventListener('click', (e) => { if (e.target === modal) closePicker(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closePicker(); });
 
     /***********************
-     * Compare / Reset
+     * Actions
      ***********************/
-    const comparisonResult = document.getElementById('comparisonResult');
+    document.getElementById('addActiveBtn')?.addEventListener('click', () => {
+      activeSlots.push(null);
+      saveState();
+      renderActiveRow();
+      // auto-scroll to end
+      setTimeout(() => { activeRowEl.scrollLeft = activeRowEl.scrollWidth; }, 0);
+    });
 
-    function compareCharacters() {
-      comparisonResult.innerHTML = '';
-
-      const wrap = document.createElement('div');
-      wrap.className = 'comparison-wrap';
-
-      const table = document.createElement('table');
-      table.className = 'comparison-table';
-
-      const header = document.createElement('tr');
-      header.innerHTML = '<th>Slot</th>' + Array.from({ length: 4 }, (_, i) => `<th>Player ${i + 1}</th>`).join('');
-      table.appendChild(header);
-
-      const slots = ['Active Skill', 'Passive 1', 'Passive 2', 'Passive 3'];
-
-      for (let slot = 0; slot < 4; slot++) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td style="font-weight:900; color:rgba(244,246,255,.92)">${slots[slot]}</td>`;
-
-        for (let player = 0; player < 4; player++) {
-          const char = selections[player][slot];
-
-          if (!char) {
-            row.innerHTML += `<td class="muted">N/A</td>`;
-            continue;
-          }
-
-          const role = tidy(char.role) || 'N/A';
-          const st = tidy(char.skill_type) || '—';
-          const skill = tidy(char.skill) || '—';
-          const desc = tidy(char.description) || '—';
-          const img = imgOf(char);
-          const nm = tidy(char.name) || '—';
-
-          row.innerHTML += `
-            <td>
-              <div class="cell-head">
-                ${img ? `<img src="${img}" alt="${nm}" loading="lazy" referrerpolicy="no-referrer">` : ``}
-                <strong>${nm}</strong>
-                <small class="muted" style="font-weight:800;">${st} • ${role}</small>
-                <div class="skill-name">${skill}</div>
-              </div>
-              <div class="desc">${desc}</div>
-            </td>
-          `;
-        }
-        table.appendChild(row);
-      }
-
-      wrap.appendChild(table);
-      comparisonResult.appendChild(wrap);
-    }
-
-    function resetSelections() {
-      for (let player = 0; player < 4; player++) {
-        for (let slot = 0; slot < 4; slot++) {
-          selections[player][slot] = null;
-
-          const slotEl = document.getElementById(`slot-${player}-${slot}`);
-          const label = slot === 0 ? 'Active Skill' : `Passive ${slot}`;
-          const isActive = slot === 0;
-          slotEl.innerHTML = slotEmptyHTML(label, isActive ? 'Active' : 'Passive', isActive);
-        }
-      }
-      comparisonResult.innerHTML = '';
-      clearPersistedSelections();
+    document.getElementById('resetBtn')?.addEventListener('click', () => {
+      activeSlots = Array.from({length: 4}, () => null);
+      passivePick = null;
+      petPick = null;
+      weaponPick = null;
+      try{ sessionStorage.removeItem(STORE_KEY); }catch(_){}
+      rerenderAll();
       toast('Reset complete.');
-    }
-
-    document.getElementById('compareBtn')?.addEventListener('click', compareCharacters);
-    document.getElementById('resetBtn')?.addEventListener('click', resetSelections);
+    });
 
     /***********************
-     * Persistence (sessionStorage)
+     * Init
      ***********************/
-    const STORE_KEY = 'ff_char_compare_v2';
+    async function initDataAndState(){
+      // load datasets
+      const [c, p, w, l] = await Promise.all([
+        fetchFromUrls(CFG.CHAR_URLS),
+        fetchFromUrls(CFG.PET_URLS),
+        fetchFromUrls(CFG.WEAPON_URLS),
+        fetchFromUrls(CFG.LOADOUT_URLS),
+      ]);
 
-    function persistSelections(){
-      try{
-        const packed = selections.map(row => row.map(c => c ? tidy(c.name) : null));
-        sessionStorage.setItem(STORE_KEY, JSON.stringify(packed));
-      }catch(e){}
-    }
-    function clearPersistedSelections(){
-      try{ sessionStorage.removeItem(STORE_KEY); }catch(e){}
-    }
-    function restoreSelections(){
-      try{
-        const raw = sessionStorage.getItem(STORE_KEY);
-        if (!raw) return;
-        const packed = JSON.parse(raw);
-        if (!Array.isArray(packed) || packed.length !== 4) return;
+      characters = Array.isArray(c) ? c : [];
+      pets = Array.isArray(p) ? p : [];
+      weapons = Array.isArray(w) ? w : [];
+      loadouts = Array.isArray(l) ? l : [];
 
-        for (let p=0; p<4; p++){
-          for (let s=0; s<4; s++){
-            const nm = packed?.[p]?.[s];
-            if (!nm) continue;
-            const obj = charByName.get(keyName(nm));
-            if (!obj) continue;
-            selections[p][s] = obj;
+      // restore selections by name (after data is available)
+      const saved = restoreState();
+      if (saved){
+        const count = Math.max(4, Math.min(24, Number(saved.activeCount || 4)));
+        activeSlots = Array.from({length: count}, () => null);
 
-            const slotEl = document.getElementById(`slot-${p}-${s}`);
-            const label = s === 0 ? 'Active Skill' : `Passive ${s}`;
-            slotEl.innerHTML = slotFilledHTML(obj, label, s === 0);
-          }
-        }
-      }catch(e){}
-    }
+        const savedActives = Array.isArray(saved.activeSlots) ? saved.activeSlots : [];
+        savedActives.slice(0, count).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) activeSlots[i] = obj;
+        });
 
-    /***********************
-     * Load data + init
-     ***********************/
-    async function fetchCharacters(){
-      let lastErr = null;
-
-      for (const url of CHAR_URLS){
-        try{
-          const res = await fetch(url + `?v=${Date.now()}`, { cache: 'no-store' });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          if (!Array.isArray(data)) throw new Error('Bad JSON');
-          return data;
-        }catch(err){
-          lastErr = err;
-        }
+        passivePick = saved.passivePick ? findByName(characters, saved.passivePick) : null;
+        petPick = saved.petPick ? findByName(pets, saved.petPick) : null;
+        weaponPick = saved.weaponPick ? findByName(weapons, saved.weaponPick) : null;
+      }else{
+        // Ensure default 4
+        activeSlots = Array.from({length: 4}, () => null);
       }
-      console.error('Character fetch failed:', lastErr);
-      return [];
+
+      rerenderAll();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      syncSidebarMode(); // ✅ applies correct sidebar mode on load
+      syncSidebarMode();
 
       const session = await ensureSession();
       if (!session) return;
@@ -1615,17 +1859,7 @@
       document.getElementById('userEmail').textContent = email || 'signed in';
       document.getElementById('gamertag').textContent = email ? email.split('@')[0] : 'PlayerOne';
 
-      // build player grid
-      const grid = document.getElementById('playerGrid');
-      grid.innerHTML = '';
-      for (let i = 0; i < 4; i++) grid.appendChild(createPlayerPanel(i));
-
-      // load data
-      allCharacters = await fetchCharacters();
-      buildIndex();
-
-      // restore
-      restoreSelections();
+      await initDataAndState();
     });
   </script>
 </body>
