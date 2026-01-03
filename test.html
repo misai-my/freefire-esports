@@ -466,6 +466,12 @@
     .dot.passive{ background: var(--skill-passive); }
     .dot.meta{ background: var(--brand); }
 
+    /* ✅ legend dot colors (same size/style as other pills) */
+    .dot.cat-attack{ background: var(--cat-attack); }
+    .dot.cat-info{ background: var(--cat-info); }
+    .dot.cat-survival{ background: var(--cat-survival); }
+    .dot.cat-teamwork{ background: var(--cat-teamwork); }
+
     .btn{
       padding: 9px 12px;
       border-radius: 12px;
@@ -600,11 +606,10 @@
       font-weight:1000;
       line-height: 1.05rem;
 
-      /* ✅ allow wrapping (no cutoff) */
       white-space: normal;
       overflow: visible;
       padding: 0 2px;
-      min-height: 2.1rem; /* keeps cards aligned */
+      min-height: 2.1rem;
     }
     .char-skill .skill-text{
       display:block;
@@ -612,20 +617,18 @@
       word-break: break-word;
     }
 
-    /* skill text colors by category */
     .char-skill.cat-attack{ color: var(--cat-attack); }
     .char-skill.cat-info{ color: var(--cat-info); }
     .char-skill.cat-survival{ color: var(--cat-survival); }
     .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
 
-    /* ✅ dot beside skill (color-coded per category) */
     .char-skill .cat-dot{
       width:8px;height:8px;border-radius:50%;
       flex:0 0 auto;
       margin-top: .22rem;
       box-shadow: 0 0 0 3px rgba(0,0,0,.20);
       border:1px solid rgba(255,255,255,.20);
-      background: rgba(170,177,197,.70); /* default */
+      background: rgba(170,177,197,.70);
     }
     .char-skill .cat-dot.cat-attack{ background: var(--cat-attack); }
     .char-skill .cat-dot.cat-info{ background: var(--cat-info); }
@@ -974,6 +977,13 @@
               <span class="pill"><span class="dot active"></span>Active Skill</span>
               <span class="pill"><span class="dot passive"></span>Passive Skill</span>
               <span class="pill"><span class="dot meta"></span>Meta</span>
+
+              <!-- ✅ Category legend (aligned with other pills) -->
+              <span class="pill"><span class="dot cat-attack"></span>Attack</span>
+              <span class="pill"><span class="dot cat-info"></span>Info</span>
+              <span class="pill"><span class="dot cat-survival"></span>Survival</span>
+              <span class="pill"><span class="dot cat-teamwork"></span>Teamwork</span>
+
               <span class="pill" id="searchCountPill" style="display:none;" aria-live="polite"></span>
             </div>
 
@@ -1200,9 +1210,9 @@
     }
 
     /***********************
-     * ✅ Desc language toggle (auto-works if description_ms exists)
+     * Desc language toggle (auto-works if description_ms exists)
      ***********************/
-    const KEY_LANG = 'ff_char_desc_lang_v1'; // '0' EN, '1' MS
+    const KEY_LANG = 'ff_char_desc_lang_v1';
     let useMS = (localStorage.getItem(KEY_LANG) === '1');
 
     const langToggleBtn = document.getElementById('langToggleBtn');
@@ -1237,7 +1247,7 @@
     });
 
     /***********************
-     * ✅ Category mapping (Attack/Info/Survival/Teamwork)
+     * Category mapping (Attack/Info/Survival/Teamwork)
      ***********************/
     function getCategoryClass(c){
       const r = lower(c?.role);
@@ -1309,7 +1319,6 @@
       name.className = 'char-name';
       name.textContent = tidy(c.name) || '—';
 
-      // ✅ skill line under name + colored dot per category
       const skillLine = document.createElement('div');
       const catCls = getCategoryClass(c);
       skillLine.className = 'char-skill' + (catCls ? (' ' + catCls) : '');
