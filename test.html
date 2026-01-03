@@ -2,11 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- ✅ mobile-safe area + notch support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Character Skills</title>
+  <title>Loadout Builder — Skills / Pet / Weapon</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
     :root{
@@ -32,11 +36,8 @@
       --skill-active:#4dd3ff;
       --skill-passive:#ff59c7;
 
-      /* ✅ category colors */
-      --cat-attack:#ff5a5a;     /* Red */
-      --cat-info:#ffe36b;       /* Yellow */
-      --cat-survival:#8be27a;   /* Green */
-      --cat-teamwork:#ff59c7;   /* Pink */
+      --danger:#ff6b6b;
+      --ok:#71d083;
 
       color-scheme: dark;
     }
@@ -64,7 +65,6 @@
       border-radius:50%;
       border:10px solid rgba(77,211,255,.14);
       transform: translate(-45%, -35%);
-      filter: blur(.2px);
       pointer-events:none;
     }
     body::after{
@@ -81,7 +81,7 @@
       color: var(--ink);
     }
     select option{ background:#0b1020; color:var(--ink); }
-    button{font:inherit}
+
     :focus-visible{
       outline: 2px solid rgba(77,211,255,.65);
       outline-offset: 2px;
@@ -100,7 +100,7 @@
       position:relative;
     }
 
-    /* Sidebar overlay (mobile drawer) */
+    /* ✅ Mobile drawer overlay */
     .sb-overlay{
       position: fixed;
       inset: 0;
@@ -222,6 +222,7 @@
       transition: .2s ease;
       cursor:pointer;
       min-width:0;
+      -webkit-tap-highlight-color: transparent;
     }
     .nav-item:hover{
       background: rgba(255,255,255,.05);
@@ -260,6 +261,13 @@
     }
     .sidebar.collapsed .nav-search{display:none;}
 
+    .sidebar-note{
+      font-size:.75rem;
+      color: var(--muted);
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+
     /* Main */
     .main{
       flex:1;
@@ -280,37 +288,11 @@
       padding: 12px 14px;
       display:flex;
       align-items:center;
+      justify-content:space-between;
       gap:12px;
       position: sticky;
       top: 18px;
       z-index: 20;
-    }
-    .search{
-      flex:1;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding: 10px 12px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      min-width: 0;
-    }
-    .search input{
-      width:100%;
-      background: transparent;
-      border:0;
-      outline:none;
-      color: var(--ink);
-      font-size: .95rem;
-    }
-    .search input::placeholder{color: rgba(170,177,197,.75)}
-
-    .top-actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex:0 0 auto;
     }
 
     .icon-btn{
@@ -327,6 +309,14 @@
     .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
     .icon-btn svg{width:18px;height:18px;opacity:.92}
 
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+      min-width: 0;
+    }
+
     .userchip{
       display:flex;
       align-items:center;
@@ -335,7 +325,7 @@
       border-radius: 999px;
       background: rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);
-      max-width: 260px;
+      max-width: 280px;
       min-width: 0;
     }
     .avatar{
@@ -355,7 +345,14 @@
       text-overflow: ellipsis;
       max-width: 170px;
     }
-    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
+    .usertext span{
+      display:block;
+      font-size:.78rem;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
     .logout{
       color: rgba(255,255,255,.70);
@@ -376,7 +373,7 @@
       box-shadow: 0 0 0 3px rgba(255,77,77,.10);
     }
 
-    /* Cards */
+    /* Card shells */
     .card{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -421,57 +418,7 @@
       text-overflow: ellipsis;
     }
 
-    /* Controls */
-    .controls{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-      margin-bottom: 10px;
-    }
-    .controls-left{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      min-width:0;
-    }
-    .controls-right{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      color: rgba(244,246,255,.86);
-      font-weight:800;
-      font-size:.82rem;
-      white-space:nowrap;
-    }
-    .dot{
-      width:9px;height:9px;border-radius:50%;
-      display:inline-block;
-      box-shadow: 0 0 0 3px rgba(255,255,255,.06);
-    }
-    .dot.active{ background: var(--skill-active); }
-    .dot.passive{ background: var(--skill-passive); }
-    .dot.meta{ background: var(--brand); }
-
-    /* ✅ legend dot colors (same size/style as other pills) */
-    .dot.cat-attack{ background: var(--cat-attack); }
-    .dot.cat-info{ background: var(--cat-info); }
-    .dot.cat-survival{ background: var(--cat-survival); }
-    .dot.cat-teamwork{ background: var(--cat-teamwork); }
-
+    /* Buttons */
     .btn{
       padding: 9px 12px;
       border-radius: 12px;
@@ -487,6 +434,7 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
+      gap:8px;
       -webkit-tap-highlight-color: transparent;
       user-select:none;
     }
@@ -503,6 +451,20 @@
       box-shadow: 0 0 0 3px rgba(255,189,89,.12);
       border-color: rgba(255,189,89,.28);
     }
+    .btn.danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.22);
+      color: rgba(255,230,230,.95);
+    }
+    .btn.danger:hover{
+      box-shadow: 0 0 0 3px rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.32);
+    }
+    .btn.small{
+      padding: 7px 10px;
+      border-radius: 12px;
+      font-size: .78rem;
+    }
 
     .section-title{
       margin: 16px 0 10px 0;
@@ -510,242 +472,451 @@
       letter-spacing:.4px;
       font-size: 1.02rem;
       color: rgba(244,246,255,.92);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
     }
-    .section-title .hint{
-      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+    .section-title .right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .muted{color: var(--muted);}
+
+    /* Top controls inside page */
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 10px;
+    }
+    .controls-left{
       color: var(--muted);
-      font-weight:700;
-      font-size: .82rem;
-      margin-left: 8px;
-      letter-spacing: 0;
+      font-weight:800;
+      font-size:.9rem;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight:900;
+      font-size:.8rem;
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      display:inline-block;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.06);
+    }
+    .dot.active{ background: var(--skill-active); }
+    .dot.passive{ background: var(--skill-passive); }
+    .dot.pet{ background: var(--brand); }
+    .dot.weapon{ background: var(--accent); }
+    .dot.loadout{ background: var(--brand2); }
+
+    .controls-right{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
     }
 
-    /* Grids */
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    /* Rows */
+    .row-wrap{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 18px;
+      padding: 12px;
+      overflow:hidden;
+    }
+
+    .slot-row{
+      display:flex;
       gap: 12px;
+      overflow-x:auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
     }
+    .slot-row::-webkit-scrollbar{height:10px}
+    .slot-row::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .slot-row::-webkit-scrollbar-track{background: transparent}
 
-    /* Character card */
-    .char-card{
+    /* Slot cards */
+    .slot-card{
+      scroll-snap-align: start;
+      width: 210px;
+      flex: 0 0 auto;
+      border-radius: 18px;
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
       position:relative;
-      padding: 10px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.09);
-      cursor:pointer;
-      transition:.18s ease;
       display:flex;
       flex-direction:column;
-      gap:6px;
-      min-width:0;
-      -webkit-tap-highlight-color: transparent;
+      min-height: 250px;
     }
-    .char-card:hover{
-      background: rgba(255,255,255,.08);
+    .slot-card.clickable{ cursor:pointer; transition: .15s ease; }
+    .slot-card.clickable:hover{
+      border-color: rgba(255,189,89,.22);
+      background: rgba(255,255,255,.06);
       transform: translateY(-1px);
-      border-color: rgba(255,189,89,.18);
     }
 
-    .char-thumb{
-      width:100%;
-      aspect-ratio: 3 / 4;
-      border-radius: 14px;
-      background: rgba(0,0,0,.18);
-      border: 2px solid rgba(255,255,255,.10);
+    .slot-top{
+      padding: 10px 10px 8px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    .slot-top b{
+      font-family: Orbitron, sans-serif;
+      color: rgba(244,246,255,.92);
+      font-size: .92rem;
+      letter-spacing:.3px;
+      white-space:nowrap;
       overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 140px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.14);
+      font-size:.7rem;
+      font-weight:900;
+      color: rgba(244,246,255,.86);
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+
+    .slot-body{
+      padding: 10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      min-height: 98px;
+    }
+    .thumb{
+      width:56px; height:74px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      background: rgba(255,255,255,.05);
       display:grid;
       place-items:center;
-      position:relative;
+      flex:0 0 auto;
     }
-    .char-thumb img{
-      width:100%;
-      height:100%;
-      object-fit: cover;
+    .thumb img{
+      width:100%; height:100%;
+      object-fit:cover;
       object-position: top center;
       display:block;
-      background: rgba(255,255,255,.02);
+      background: rgba(0,0,0,.14);
     }
 
-    .char-card.active-skill .char-thumb{ border-color: rgba(77,211,255,.95); }
-    .char-card.passive-skill .char-thumb{ border-color: rgba(255,89,199,.95); }
-
-    .meta-dot{
-      position:absolute;
-      top:10px; right:10px;
-      width:10px; height:10px;
-      border-radius:50%;
-      background: var(--brand);
-      box-shadow: 0 0 0 3px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.22);
-      display:none;
+    /* ✅ weapon thumbs should not look “zoomed” */
+    .slot-card[data-kind="weapon"] .thumb{
+      padding: 6px;
+      background: rgba(0,0,0,.18);
     }
-    .char-card.is-meta .meta-dot{ display:block; }
+    .slot-card[data-kind="weapon"] .thumb img{
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      object-position: center;
+      border-radius: 10px;
+      background: transparent;
+    }
 
-    .char-name{
-      font-size:.82rem;
+    .meta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      flex:1;
+    }
+    .meta .name{
       font-weight:900;
       color: rgba(244,246,255,.92);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      text-align:center;
-      padding: 0 2px;
+      font-size: .92rem;
     }
-
-    /* ✅ Skill line under name (wrap + colored per role) */
-    .char-skill{
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-      gap:6px;
-      text-align:center;
-
-      font-size:.72rem;
-      font-weight:1000;
+    .meta .sub{
+      color: var(--muted);
+      font-weight:800;
+      font-size: .78rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .meta .skill{
+      color: var(--brand);
+      font-weight:900;
+      font-size: .78rem;
       line-height: 1.05rem;
-
       white-space: normal;
-      overflow: visible;
-      padding: 0 2px;
-      min-height: 2.1rem;
+      overflow-wrap:anywhere;
+      word-break: break-word;
+      max-height: 2.1rem;
+      overflow:hidden;
     }
-    .char-skill .skill-text{
-      display:block;
+
+    /* ✅ Row-level descriptions (no per-card clicking) */
+    .desc-block{
+      margin: 0 10px 10px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      overflow:hidden;
+      padding: 10px 10px;
+      display:none;
+    }
+    .desc-hd{
+      font-weight:900;
+      color: rgba(244,246,255,.88);
+      font-size: .8rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom: 6px;
+    }
+    .desc-body{
+      color: rgba(244,246,255,.82);
+      font-size: .82rem;
+      line-height: 1.25rem;
+      white-space: normal;
       overflow-wrap:anywhere;
       word-break: break-word;
     }
+    .row-wrap.show-desc .desc-block{ display:block; }
 
-    .char-skill.cat-attack{ color: var(--cat-attack); }
-    .char-skill.cat-info{ color: var(--cat-info); }
-    .char-skill.cat-survival{ color: var(--cat-survival); }
-    .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
-
-    .char-skill .cat-dot{
-      width:8px;height:8px;border-radius:50%;
-      flex:0 0 auto;
-      margin-top: .22rem;
-      box-shadow: 0 0 0 3px rgba(0,0,0,.20);
-      border:1px solid rgba(255,255,255,.20);
-      background: rgba(170,177,197,.70);
+    /* Remove button for extra active slots */
+    .mini-x{
+      position:absolute;
+      top: 8px;
+      right: 8px;
+      width:28px;height:28px;
+      border-radius: 10px;
+      display:grid; place-items:center;
+      background: rgba(255,107,107,.10);
+      border: 1px solid rgba(255,107,107,.20);
+      color: rgba(255,230,230,.95);
+      cursor:pointer;
+      transition:.15s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .char-skill .cat-dot.cat-attack{ background: var(--cat-attack); }
-    .char-skill .cat-dot.cat-info{ background: var(--cat-info); }
-    .char-skill .cat-dot.cat-survival{ background: var(--cat-survival); }
-    .char-skill .cat-dot.cat-teamwork{ background: var(--cat-teamwork); }
-
-    .empty-msg{
-      grid-column: 1 / -1;
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px dashed rgba(255,255,255,.12);
-      background: rgba(0,0,0,.16);
-      color: var(--muted);
-      font-weight: 800;
-      text-align: center;
+    .mini-x:hover{
+      background: rgba(255,107,107,.16);
+      border-color: rgba(255,107,107,.32);
+      box-shadow: 0 0 0 3px rgba(255,107,107,.12);
     }
+    .mini-x svg{width:14px;height:14px}
 
     /* Modal */
     .modal{
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.62);
+      background: rgba(0,0,0,0.70);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       display:none;
-      align-items:center;
-      justify-content:center;
+      justify-content: center;
+      align-items: center;
+      z-index: 1400;
       padding: 18px;
-      z-index: 1200;
     }
     .modal.show{display:flex;}
 
     .modal-card{
-      width: min(560px, 100%);
-      background: rgba(14, 18, 28, .92);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 22px;
-      box-shadow: 0 26px 80px rgba(0,0,0,.65);
+      width: min(980px, 100%);
+      max-height: min(720px, calc(100vh - 36px));
       overflow:hidden;
+      border-radius: 22px;
+      background: rgba(14,18,28,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 26px 80px rgba(0,0,0,.65);
       display:flex;
       flex-direction:column;
-      max-height: 88vh;
     }
-
     .modal-top{
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding: 14px 14px 10px 14px;
+      gap:10px;
+      padding: 12px 12px;
       border-bottom: 1px solid rgba(255,255,255,.08);
     }
-    .modal-top h3{
-      margin:0;
+    .modal-top b{
       font-family: Orbitron, sans-serif;
-      letter-spacing:.6px;
+      letter-spacing:.4px;
       color: var(--brand);
-      font-size: 1.15rem;
-      line-height: 1.25rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 80%;
     }
-    .modal-top p{
-      margin:6px 0 0 0;
-      color: var(--muted);
-      font-size:.82rem;
-      font-weight:700;
-      letter-spacing:.2px;
-      white-space:normal;
-    }
-
     .modal-body{
-      padding: 12px 14px 14px 14px;
-      display:flex;
-      flex-direction:column;
-      gap: 10px;
-      justify-content:flex-start;
+      padding: 12px;
       overflow:auto;
       -webkit-overflow-scrolling: touch;
     }
+    .modal-body::-webkit-scrollbar{width:10px}
+    .modal-body::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .modal-body::-webkit-scrollbar-track{background: transparent}
 
-    .badge-row{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin: 0;
-      padding: 0;
+    #searchInput{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .92rem;
+      margin-bottom: 12px;
+    }
+    #searchInput::placeholder{color: rgba(170,177,197,.75)}
+    #searchInput:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
 
-    .info-block{
+    .pick-grid{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
+      align-items: stretch;
+    }
+    .pick{
+      width: 108px;
+      text-align:center;
+      border-radius: 16px;
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 10px 12px;
+      padding: 10px 8px;
+      cursor:pointer;
+      transition:.15s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .info-block b{
+    .pick:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,189,89,.20);
+      background: rgba(255,255,255,.06);
+    }
+    .pick img{
+      width: 76px;
+      height: 102px;
+      object-fit: cover;
+      object-position: top center;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
       display:block;
-      margin:0 0 6px 0;
-      color: rgba(244,246,255,.92);
-      font-size: .92rem;
+      margin: 0 auto 6px auto;
+    }
+
+    /* ✅ weapon popout images: prevent zoom/crop */
+    .modal[data-mode="weapon"] .pick img{
+      object-fit: contain;
+      object-position: center;
+      background: rgba(0,0,0,.18);
+      padding: 6px;
+    }
+
+    .pick .nm{
+      font-size:.74rem;
       font-weight:900;
+      color: rgba(244,246,255,.88);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .info-block .txt{
-      margin:0;
-      color: rgba(244,246,255,.86);
-      font-size: .92rem;
-      line-height: 1.28rem;
-      white-space: normal;
+    .pick .rl{
+      margin-top: 4px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      font-size:.68rem;
+      color: rgba(244,246,255,.80);
+      font-weight:900;
+      white-space:nowrap;
+      max-width: 100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    /* Reduce motion */
-    @media (prefers-reduced-motion: reduce){
-      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
-      .icon-btn:hover{transform:none}
-      .char-card:hover{transform:none}
+    .empty{
+      width:100%;
+      padding: 14px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.14);
+      background: rgba(0,0,0,.16);
+      color: var(--muted);
+      font-weight: 900;
+      text-align: center;
     }
 
-    /* ✅ Mobile: sidebar becomes drawer */
+    /* Toast */
+    .toast{
+      position: fixed;
+      left: 50%;
+      top: calc(env(safe-area-inset-top) + 14px);
+      transform: translateX(-50%);
+      background: rgba(14,18,28,.92);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      border-radius: 999px;
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      z-index: 2000;
+      max-width: min(640px, calc(100vw - 24px));
+      color: rgba(244,246,255,.92);
+      font-weight: 900;
+      font-size: .85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast .t-dot{width:10px;height:10px;border-radius:50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(255,255,255,.06);}
+
+    /* ============================================================
+       ✅ MOBILE OPTIMIZATION (drawer sidebar + edge-to-edge)
+       ============================================================ */
     @media (max-width: 980px){
       body::before, body::after{display:none;}
 
@@ -779,96 +950,41 @@
         border-right: 0;
         margin: -10px -10px 0 -10px;
         padding: 10px 10px;
-        flex-wrap: wrap;
         gap: 10px;
         z-index: 50;
       }
 
-      .search{
-        width: 100%;
-        flex: 1 1 100%;
-        order: 1;
-        padding: 11px 12px;
-      }
-      .search input{font-size: 1rem;}
-
-      .top-actions{
-        width: 100%;
-        order: 2;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .userchip{
-        flex: 1;
-        max-width: none;
-        padding: 7px 9px;
-      }
       .usertext span{display:none;}
-      .usertext b{ max-width: 52vw; font-size: .88rem; }
-      .logout{ padding: 9px 10px; font-size: .85rem; }
+      .usertext b{max-width: 52vw; font-size: .88rem;}
 
       .hero{height: 120px;}
       .hero-content{left:12px;right:12px;bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
 
-      .controls{gap: 10px;}
-      .controls-left{
-        width: 100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 2px;
-      }
-      .controls-left::-webkit-scrollbar{display:none;}
       .controls-right{
-        width: 100%;
-        display: grid;
+        width:100%;
+        display:grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
-        align-items: stretch;
+        justify-content: stretch;
       }
-      .controls-right .pill{
-        grid-column: 1 / -1;
-        width: 100%;
-        justify-content: space-between;
-      }
-      .controls-right .btn{
-        width: 100%;
-        padding: 11px 10px;
-        border-radius: 14px;
-      }
+      .controls-right .btn{width:100%; padding: 11px 10px; border-radius: 14px;}
+      .controls-right .btn.danger{grid-column: 1 / -1;}
 
-      .card-inner{padding: 12px;}
+      .slot-card{ width: 200px; }
     }
 
-    @media (max-width: 560px){
-      .grid{
-        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-        gap: 10px;
-      }
-      .char-card{padding: 8px; border-radius: 14px;}
-      .char-thumb{border-radius: 12px;}
-      .char-name{font-size: .75rem;}
-      .char-skill{font-size:.68rem; min-height: 2.0rem;}
-
-      .modal{
-        align-items:flex-end;
-        padding: 10px;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom));
-      }
-      .modal-card{
-        width: 100%;
-        max-height: 92vh;
-        border-radius: 18px;
-      }
-      .modal-top{padding: 12px;}
-      .modal-top h3{font-size: 1.05rem;}
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .icon-btn:hover{transform:none}
+      .slot-card.clickable:hover{transform:none}
+      .pick:hover{transform:none}
     }
   </style>
 </head>
 
 <body>
+  <!-- overlay for mobile drawer -->
   <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
   <div class="app">
@@ -896,9 +1012,14 @@
           <span class="nav-label">Dashboard</span>
         </a>
 
-        <a class="nav-item active" href="character.html" data-page="character.html" title="Character Skills">
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Character Skills</span>
+        </a>
+
+        <a class="nav-item active" href="character-comparison.html" data-page="character-comparison.html" title="Loadout Builder">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Loadout Builder</span>
         </a>
 
         <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
@@ -911,14 +1032,9 @@
           <span class="nav-label">Weapons</span>
         </a>
 
-        <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadout">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 7h10M7 12h10M7 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M5 4h14v16H5V4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">Loadout</span>
+        <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadouts">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 7h10M7 12h10M7 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4h14v16H5V4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Loadouts</span>
         </a>
 
         <a class="nav-item" href="map.html" data-page="map.html" title="Map">
@@ -931,6 +1047,11 @@
           <span class="nav-label">Split View</span>
         </a>
       </nav>
+
+      <div class="sidebar-note">
+        Tip: Click a card to pick. Use the row button to show/hide all descriptions.<br/>
+        Active row defaults to 4 slots — add more anytime.
+      </div>
     </aside>
 
     <!-- MAIN -->
@@ -942,16 +1063,9 @@
           </svg>
         </button>
 
-        <div class="search" role="search">
-          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85" aria-hidden="true">
-            <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input id="searchInput" placeholder="Search characters (name / role / skill)..." autocomplete="off" />
-        </div>
-
         <div class="top-actions">
           <div class="userchip">
-            <div class="avatar" aria-hidden="true"></div>
+            <div class="avatar"></div>
             <div class="usertext">
               <b id="gamertag">PlayerOne</b>
               <span id="userEmail" class="muted">loading…</span>
@@ -966,7 +1080,7 @@
         <div class="hero">
           <div class="hero-content">
             <div class="hero-title">
-              <h2>Character Gallery</h2>
+              <h2>Loadout Builder</h2>
             </div>
           </div>
         </div>
@@ -974,42 +1088,54 @@
         <div class="card-inner">
           <div class="controls">
             <div class="controls-left">
-              <span class="pill"><span class="dot active"></span>Active Skill</span>
-              <span class="pill"><span class="dot passive"></span>Passive Skill</span>
-              <span class="pill"><span class="dot meta"></span>Meta</span>
-
-              <!-- ✅ Category legend (aligned with other pills) -->
-              <span class="pill"><span class="dot cat-attack"></span>Attack</span>
-              <span class="pill"><span class="dot cat-info"></span>Info</span>
-              <span class="pill"><span class="dot cat-survival"></span>Survival</span>
-              <span class="pill"><span class="dot cat-teamwork"></span>Teamwork</span>
-
-              <span class="pill" id="searchCountPill" style="display:none;" aria-live="polite"></span>
+              <span class="pill"><span class="dot active"></span>Active</span>
+              <span class="pill"><span class="dot passive"></span>Passive</span>
+              <span class="pill"><span class="dot pet"></span>Pet</span>
+              <span class="pill"><span class="dot weapon"></span>Weapon</span>
+              <span class="pill"><span class="dot loadout"></span>Loadout</span>
             </div>
-
             <div class="controls-right">
-              <button class="btn" id="langToggleBtn" type="button" title="Toggle description language (auto-works once description_ms exists)">
-                Desc: EN
-              </button>
-
-              <span class="pill" style="border-color: rgba(255,189,89,.18)">
-                Show Meta For:
-                <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
-              </span>
-
               <a class="btn" href="dashboard.html">← Dashboard</a>
-              <a class="btn" href="character-comparison.html">Compare</a>
+              <button class="btn brand" id="addActiveBtn" type="button">+ Add Active Slot</button>
+              <button class="btn danger" id="resetBtn" type="button">Reset</button>
             </div>
           </div>
 
+          <!-- ACTIVE ROW -->
           <div class="section-title">
-            <span id="metaTitleText">Meta Characters</span>
-            <span class="hint" id="metaHint">(Battle Royale)</span>
+            <span>Active Skills Row</span>
+            <div class="right">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn small" id="toggleActiveDesc" type="button">Show Descriptions</button>
+            </div>
           </div>
-          <div class="grid" id="metaGrid"></div>
+          <div class="row-wrap" id="activeWrap">
+            <div class="slot-row" id="activeRow"></div>
+          </div>
 
-          <div class="section-title" style="margin-top:18px;">Non-Meta Characters</div>
-          <div class="grid" id="nonMetaGrid"></div>
+          <!-- PASSIVE ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Passive Skills Row</span>
+            <div class="right">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">1 Slot</span>
+              <button class="btn small" id="togglePassiveDesc" type="button">Show Descriptions</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="passiveWrap">
+            <div class="slot-row" id="passiveRow"></div>
+          </div>
+
+          <!-- PET / WEAPON / LOADOUT ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Pet / Weapon / Loadouts</span>
+            <div class="right">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Loadouts auto-populate all 4</span>
+              <button class="btn small" id="toggleSecondaryDesc" type="button">Show Descriptions</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="secondaryWrap">
+            <div class="slot-row" id="secondaryRow"></div>
+          </div>
 
           <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
             Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
@@ -1019,61 +1145,39 @@
     </main>
   </div>
 
-  <!-- Info Modal -->
-  <div class="modal" id="infoModal" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Character Info">
+  <!-- Picker Modal -->
+  <div class="modal" id="pickerModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pick Item">
       <div class="modal-top">
-        <div style="min-width:0">
-          <h3 id="infoName">—</h3>
-          <p id="infoSub">—</p>
-        </div>
-        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close" type="button">
+        <b id="modalTitle">Pick</b>
+        <button class="icon-btn" id="modalCloseBtn" aria-label="Close" title="Close" type="button">
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
-
       <div class="modal-body">
-        <div class="badge-row" id="infoBadges"></div>
-
-        <div class="info-block">
-          <b id="infoSkillTitle">Skill: —</b>
-          <p class="txt" id="infoSkillDesc">—</p>
-        </div>
-
-        <div class="info-block">
-          <b>Role</b>
-          <p class="txt" id="infoRole">—</p>
+        <input type="text" id="searchInput" placeholder="Search (name / role / skill / category)..." />
+        <div id="modalGrid" class="pick-grid"></div>
+        <div style="display:flex; justify-content:center; margin-top:12px;">
+          <button class="btn brand" id="modalCloseBtn2" type="button">Close ✕</button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="t-dot"></span>
+    <span id="toastMsg">—</span>
+  </div>
+
   <script>
-    const CFG = Object.freeze({
-      SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
-      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
-      CHAR_URL: 'https://misai-my.github.io/freefire-esports/character.json',
-      CACHE_KEY: 'ff_chars_cache_v2',
-      CACHE_TTL_MS: 1000 * 60 * 60 * 6,
-      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
-    });
-
-    const FALLBACK_IMG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
-        <defs>
-          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="rgba(255,189,89,.28)"/>
-            <stop offset="1" stop-color="rgba(77,211,255,.18)"/>
-          </linearGradient>
-        </defs>
-        <rect width="300" height="400" rx="26" fill="rgba(0,0,0,.35)"/>
-        <rect x="18" y="18" width="264" height="364" rx="22" fill="url(#g)" opacity=".65"/>
-        <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle"
-          font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,.88)">NO IMAGE</text>
-      </svg>
-    `)}`;
-
-    const client = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    /***********************
+     * Supabase Auth
+     ***********************/
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
 
     async function ensureSession(){
       try{
@@ -1081,7 +1185,6 @@
         if (!session) { window.location.href = "index.html"; return null; }
         return session;
       }catch(err){
-        console.error('ensureSession error:', err);
         window.location.href = "index.html";
         return null;
       }
@@ -1093,14 +1196,47 @@
     }
 
     /***********************
+     * Toast
+     ***********************/
+    const toastEl = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimer = null;
+    function toast(message){
+      toastMsg.textContent = message || '';
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1700);
+    }
+
+    /***********************
      * Sidebar behavior (desktop collapse / mobile drawer)
      ***********************/
+    const CFG = Object.freeze({
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1',
+
+      CHAR_URLS: [
+        'https://misai-my.github.io/freefire-esports/character.json',
+        'https://neptuneg1.github.io/freefire-caster/character.json'
+      ],
+      PET_URLS: [
+        'https://misai-my.github.io/freefire-esports/pet.json',
+        'https://neptuneg1.github.io/freefire-caster/pet.json'
+      ],
+      WEAPON_URLS: [
+        'https://misai-my.github.io/freefire-esports/weapon.json',
+        'https://neptuneg1.github.io/freefire-caster/weapon.json'
+      ],
+      LOADOUT_URLS: [
+        'https://misai-my.github.io/freefire-esports/loadout.json',
+        'https://neptuneg1.github.io/freefire-caster/loadout.json'
+      ]
+    });
+
     const sidebar = document.getElementById('sidebar');
     const sbToggle = document.getElementById('sbToggle');
     const sbTogglePath = document.getElementById('sbTogglePath');
     const sbOverlay = document.getElementById('sbOverlay');
     const mobileMQ = window.matchMedia('(max-width: 980px)');
-
     function isMobile(){ return mobileMQ.matches; }
 
     function setToggleIcon(){
@@ -1114,7 +1250,6 @@
         );
       }
     }
-
     function openDrawer(){
       sidebar.classList.add('open');
       sbOverlay.classList.add('show');
@@ -1134,7 +1269,6 @@
       }
       setToggleIcon();
     }
-
     function syncSidebarMode(){
       if (isMobile()){
         sidebar.classList.remove('collapsed');
@@ -1152,15 +1286,13 @@
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
     });
-
     document.querySelectorAll('#nav .nav-item').forEach(a => {
       a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
     });
-
     mobileMQ.addEventListener?.('change', syncSidebarMode);
 
     (function setActiveNav(){
-      const here = (location.pathname.split('/').pop() || 'character.html').toLowerCase();
+      const here = (location.pathname.split('/').pop() || 'character-comparison.html').toLowerCase();
       document.querySelectorAll('.nav-item').forEach(a => {
         const page = (a.getAttribute('data-page') || '').toLowerCase();
         a.classList.toggle('active', page === here);
@@ -1175,391 +1307,688 @@
       });
     });
 
+    document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
     /***********************
-     * Character Data + Rendering
+     * Data + selection state
      ***********************/
-    const metaGrid = document.getElementById('metaGrid');
-    const nonMetaGrid = document.getElementById('nonMetaGrid');
-    const metaTitleText = document.getElementById('metaTitleText');
-    const metaHint = document.getElementById('metaHint');
-    const toggleModeBtn = document.getElementById('toggleModeBtn');
-    const searchCountPill = document.getElementById('searchCountPill');
-    const topSearch = document.getElementById('searchInput');
+    const STORE_KEY = 'ff_loadout_builder_v1';
 
-    let allCharacters = [];
-    let currentMetaMode = 'meta';
-    let currentSearchTerm = '';
+    let characters = [];
+    let pets = [];
+    let weapons = [];
+    let loadouts = [];
 
-    const safeText = (v) => (v ?? '').toString();
-    const tidy = (v) => safeText(v)
+    // Active row: default 4 slots, expandable
+    let activeSlots = Array.from({length: 4}, () => null);
+
+    // Passive row pick
+    let passivePick = null;
+
+    // Other picks
+    let petPick = null;
+    let weaponPick = null;
+
+    // Picker context
+    let pickerMode = null; // 'active' | 'passive' | 'pet' | 'weapon'
+    let pickerIndex = 0;
+
+    const activeRowEl = document.getElementById('activeRow');
+    const passiveRowEl = document.getElementById('passiveRow');
+    const secondaryRowEl = document.getElementById('secondaryRow');
+
+    const activeWrap = document.getElementById('activeWrap');
+    const passiveWrap = document.getElementById('passiveWrap');
+    const secondaryWrap = document.getElementById('secondaryWrap');
+
+    // --- robust text coercion to avoid "[object Object]" ---
+    function asText(v){
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'string') return v;
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+
+      if (Array.isArray(v)){
+        return v.map(asText).filter(Boolean).join(', ');
+      }
+
+      if (typeof v === 'object'){
+        // common multilingual/value shapes
+        const prefer = ['en','EN','english','name','title','text','value','label','desc','description'];
+        for (const k of prefer){
+          if (typeof v[k] === 'string' && v[k].trim()) return v[k];
+        }
+        try{ return JSON.stringify(v); }catch(_){ return String(v); }
+      }
+      return String(v);
+    }
+
+    const tidy = (v) => asText(v)
       .replace(/[\u200B-\u200D\uFEFF]/g, '')
       .replace(/\s*\n+\s*/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    const lower = (v) => tidy(v).toLowerCase();
-    const isPassive = (c) => lower(c?.skill_type) === 'passive';
-    const isMeta = (c) => lower(c?.[currentMetaMode] || 'no') === 'yes';
-    const modeLabel = () => (currentMetaMode === 'meta' ? 'BR' : 'CS');
+    const cleanDesc = (v) => {
+      let s = asText(v);
+      s = s.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+      s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      s = s.replace(/\n{3,}/g, '\n\n');
+      return s;
+    };
 
-    function setModeUI(){
-      const isBR = currentMetaMode === 'meta';
-      toggleModeBtn.textContent = isBR ? 'Battle Royale' : 'Clash Squad';
-      metaTitleText.textContent = 'Meta Characters';
-      metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
+    const lower = (v) => tidy(v).toLowerCase();
+    const keyOf = (name) => lower(name);
+
+    function isPassiveChar(c){
+      return lower(c?.skill_type).includes('passive');
+    }
+    function isActiveChar(c){
+      const st = lower(c?.skill_type);
+      return st && !st.includes('passive');
+    }
+
+    // Generic field getters
+    function getItemName(item){
+      return tidy(item?.name || item?.weapon_name || item?.pet_name || item?.title) || '—';
+    }
+    function getItemImg(item){
+      return tidy(item?.image_url || item?.img || item?.image || item?.icon || item?.logo_url) || '';
+    }
+    function getItemSubtitle(item, kind){
+      if (kind === 'active' || kind === 'passive'){
+        const role = tidy(item?.role) || 'N/A';
+        const st = tidy(item?.skill_type) || (kind === 'passive' ? 'Passive' : 'Active');
+        return `${st} • ${role}`;
+      }
+      if (kind === 'pet'){
+        const t = tidy(item?.type || item?.category) || 'Pet';
+        return t;
+      }
+      if (kind === 'weapon'){
+        const cat = tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+        return cat;
+      }
+      if (kind === 'loadout'){
+        const tag = tidy(item?.mode || item?.type) || 'Loadout';
+        return tag;
+      }
+      return '—';
+    }
+    function getItemSkillLine(item, kind){
+      if (kind === 'active' || kind === 'passive'){
+        return tidy(item?.skill) || '';
+      }
+      if (kind === 'pet'){
+        return tidy(item?.skill || item?.ability || item?.passive || item?.active) || '';
+      }
+      if (kind === 'weapon'){
+        return tidy(item?.special || item?.perk || item?.ability || item?.attribute) || '';
+      }
+      if (kind === 'loadout'){
+        return tidy(item?.summary || item?.note || item?.desc_short) || '';
+      }
+      return '';
+    }
+    function getItemDesc(item, kind){
+      // Prefer “description-ish” fields first, but safely stringify objects/arrays
+      const d =
+        cleanDesc(item?.description) ||
+        cleanDesc(item?.desc) ||
+        cleanDesc(item?.details) ||
+        cleanDesc(item?.lore) ||
+        cleanDesc(item?.info) ||
+        cleanDesc(item?.notes) ||
+        cleanDesc(item?.summary) ||
+        cleanDesc(item?.note) ||
+        '';
+      return d || '';
+    }
+
+    function packState(){
+      return {
+        activeSlots: activeSlots.map(x => x ? getItemName(x) : null),
+        passivePick: passivePick ? getItemName(passivePick) : null,
+        petPick: petPick ? getItemName(petPick) : null,
+        weaponPick: weaponPick ? getItemName(weaponPick) : null,
+        activeCount: activeSlots.length
+      };
+    }
+
+    function saveState(){
+      try{ sessionStorage.setItem(STORE_KEY, JSON.stringify(packState())); }catch(_){}
+    }
+
+    function restoreState(){
+      try{
+        const raw = sessionStorage.getItem(STORE_KEY);
+        if (!raw) return null;
+        const s = JSON.parse(raw);
+        if (!s || typeof s !== 'object') return null;
+
+        const count = Math.max(4, Math.min(24, Number(s.activeCount || 4)));
+        activeSlots = Array.from({length: count}, () => null);
+
+        return s;
+      }catch(_){
+        return null;
+      }
+    }
+
+    function findByName(list, name){
+      const k = keyOf(name);
+      if (!k) return null;
+      for (const it of list){
+        if (keyOf(getItemName(it)) === k) return it;
+      }
+      return null;
     }
 
     /***********************
-     * Desc language toggle (auto-works if description_ms exists)
+     * Fetch helpers
      ***********************/
-    const KEY_LANG = 'ff_char_desc_lang_v1';
-    let useMS = (localStorage.getItem(KEY_LANG) === '1');
-
-    const langToggleBtn = document.getElementById('langToggleBtn');
-    let lastOpenedChar = null;
-    let lastOpenedMetaFlag = false;
-
-    function getMSDesc(c){ return tidy(c?.description_ms ?? ''); }
-    function getDisplayDesc(c){
-      const en = tidy(c?.description ?? '');
-      const ms = getMSDesc(c);
-      if (useMS) return ms || en || '—';
-      return en || ms || '—';
-    }
-    function anyMSAvailable(){
-      return Array.isArray(allCharacters) && allCharacters.some(c => !!getMSDesc(c));
-    }
-    function syncLangToggleUI(){
-      if (!langToggleBtn) return;
-      langToggleBtn.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
-      langToggleBtn.title = anyMSAvailable()
-        ? 'Toggle description language'
-        : 'No translated data yet for characters. This will auto-work once description_ms is added.';
-    }
-
-    langToggleBtn?.addEventListener('click', () => {
-      useMS = !useMS;
-      localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
-      syncLangToggleUI();
-      if (infoModal.classList.contains('show') && lastOpenedChar){
-        openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
+    function normalizeToArray(data){
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object'){
+        const keys = ['data','items','list','loadouts','weapons','pets','characters'];
+        for (const k of keys){
+          if (Array.isArray(data[k])) return data[k];
+        }
       }
+      return [];
+    }
+
+    async function fetchFromUrls(urls){
+      let lastErr = null;
+      for (const url of urls){
+        try{
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 12000);
+          const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(t);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const arr = normalizeToArray(data);
+          if (!arr.length) throw new Error('Bad JSON (expected array or {items:[]})');
+          return arr;
+        }catch(err){
+          lastErr = err;
+        }
+      }
+      console.warn('Fetch failed:', lastErr);
+      return [];
+    }
+
+    /***********************
+     * Rendering
+     ***********************/
+    function escapeHTML(str){
+      const s = (str ?? '').toString();
+      return s
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+
+    function descHTMLFromText(s){
+      const raw = (s ?? '').toString();
+      return escapeHTML(raw).replace(/\n/g, '<br/>');
+    }
+
+    function slotCardHTML({
+      title,
+      kind,      // active|passive|pet|weapon|loadout
+      chipDot,   // active|passive|pet|weapon|loadout
+      chipText,
+      item,
+      emptyHint = 'Click to pick',
+      clickable = true,
+      removable = false,
+      removeIndex = -1
+    }){
+      const name = item ? getItemName(item) : title;
+      const sub = item ? getItemSubtitle(item, kind) : emptyHint;
+      const img = item ? getItemImg(item) : '';
+      const skillLine = item ? getItemSkillLine(item, kind) : '';
+      const descRaw = item ? (getItemDesc(item, kind) || '—') : `Pick an item to show its description.\n(${emptyHint})`;
+
+      const removeBtn = removable ? `
+        <button class="mini-x" data-remove="${removeIndex}" title="Remove slot" aria-label="Remove slot" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      ` : '';
+
+      return `
+        <div class="slot-card ${clickable ? 'clickable' : ''}" data-kind="${kind}">
+          ${removeBtn}
+          <div class="slot-top">
+            <b title="${escapeHTML(title)}">${escapeHTML(title)}</b>
+            <span class="chip"><span class="dot ${chipDot}"></span>${escapeHTML(chipText)}</span>
+          </div>
+
+          <div class="slot-body">
+            <div class="thumb">
+              ${img ? `<img src="${img}" alt="${escapeHTML(tidy(name))}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+            </div>
+            <div class="meta">
+              <div class="name" title="${escapeHTML(tidy(name))}">${escapeHTML(tidy(name) || '—')}</div>
+              <div class="sub" title="${escapeHTML(tidy(sub))}">${escapeHTML(tidy(sub) || '—')}</div>
+              ${skillLine ? `<div class="skill" title="${escapeHTML(tidy(skillLine))}">${escapeHTML(tidy(skillLine))}</div>` : `<div class="skill" style="color:rgba(170,177,197,.9)"></div>`}
+            </div>
+          </div>
+
+          <div class="desc-block" data-desc>
+            <div class="desc-hd">Description</div>
+            <div class="desc-body">${descHTMLFromText(descRaw)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function wireDescStopPropagation(containerEl){
+      // prevent description clicks from triggering “pick”
+      containerEl.querySelectorAll('[data-desc]').forEach(d => {
+        d.addEventListener('click', (e) => e.stopPropagation());
+      });
+    }
+
+    function renderActiveRow(){
+      activeRowEl.innerHTML = activeSlots.map((it, i) => {
+        const removable = i >= 4; // extras removable
+        return slotCardHTML({
+          title: `Active ${i + 1}`,
+          kind: 'active',
+          chipDot: 'active',
+          chipText: 'Active',
+          item: it,
+          emptyHint: 'Click to pick an Active skill',
+          clickable: true,
+          removable,
+          removeIndex: i
+        });
+      }).join('');
+
+      // Click handlers
+      [...activeRowEl.querySelectorAll('.slot-card.clickable')].forEach((card, idx) => {
+        card.addEventListener('click', (e) => {
+          if (e.target?.closest?.('.mini-x')) return;
+          if (e.target?.closest?.('[data-desc]')) return;
+          openPicker('active', idx);
+        });
+      });
+
+      // Remove handlers for extra slots
+      [...activeRowEl.querySelectorAll('[data-remove]')].forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const i = Number(btn.getAttribute('data-remove'));
+          if (!Number.isFinite(i) || i < 4) return;
+          activeSlots.splice(i, 1);
+          saveState();
+          renderActiveRow();
+        });
+      });
+
+      wireDescStopPropagation(activeRowEl);
+    }
+
+    function renderPassiveRow(){
+      passiveRowEl.innerHTML = slotCardHTML({
+        title: 'Passive',
+        kind: 'passive',
+        chipDot: 'passive',
+        chipText: 'Passive',
+        item: passivePick,
+        emptyHint: 'Click to pick a Passive',
+        clickable: true
+      });
+
+      const card = passiveRowEl.querySelector('.slot-card.clickable');
+      card?.addEventListener('click', (e) => {
+        if (e.target?.closest?.('[data-desc]')) return;
+        openPicker('passive', 0);
+      });
+
+      wireDescStopPropagation(passiveRowEl);
+    }
+
+    function renderSecondaryRow(){
+      const parts = [];
+
+      parts.push(slotCardHTML({
+        title: 'Pet',
+        kind: 'pet',
+        chipDot: 'pet',
+        chipText: 'Pet',
+        item: petPick,
+        emptyHint: 'Click to pick a Pet',
+        clickable: true
+      }));
+
+      parts.push(slotCardHTML({
+        title: 'Weapon',
+        kind: 'weapon',
+        chipDot: 'weapon',
+        chipText: 'Weapon',
+        item: weaponPick,
+        emptyHint: 'Click to pick a Weapon',
+        clickable: true
+      }));
+
+      // Loadouts: show all 4 (auto populated)
+      const lo = (Array.isArray(loadouts) ? loadouts.slice(0, 4) : []);
+      if (lo.length){
+        lo.forEach((l, idx) => {
+          parts.push(slotCardHTML({
+            title: `Loadout ${idx + 1}`,
+            kind: 'loadout',
+            chipDot: 'loadout',
+            chipText: 'Loadout',
+            item: l,
+            emptyHint: 'Loadout data',
+            clickable: false
+          }));
+        });
+      }else{
+        for (let i=0;i<4;i++){
+          parts.push(slotCardHTML({
+            title: `Loadout ${i + 1}`,
+            kind: 'loadout',
+            chipDot: 'loadout',
+            chipText: 'Loadout',
+            item: null,
+            emptyHint: 'Loadout JSON not loaded',
+            clickable: false
+          }));
+        }
+      }
+
+      secondaryRowEl.innerHTML = parts.join('');
+
+      // Click handlers for pickable cards (Pet/Weapon only)
+      [...secondaryRowEl.querySelectorAll('.slot-card.clickable')].forEach(card => {
+        const kind = card.getAttribute('data-kind');
+        card.addEventListener('click', (e) => {
+          if (e.target?.closest?.('[data-desc]')) return;
+          if (kind === 'pet') openPicker('pet', 0);
+          if (kind === 'weapon') openPicker('weapon', 0);
+        });
+      });
+
+      wireDescStopPropagation(secondaryRowEl);
+    }
+
+    function rerenderAll(){
+      renderActiveRow();
+      renderPassiveRow();
+      renderSecondaryRow();
+      syncRowDescButtons();
+    }
+
+    /***********************
+     * Row-level description toggles
+     ***********************/
+    const btnActiveDesc = document.getElementById('toggleActiveDesc');
+    const btnPassiveDesc = document.getElementById('togglePassiveDesc');
+    const btnSecondaryDesc = document.getElementById('toggleSecondaryDesc');
+
+    function setBtnLabel(btn, on){
+      if (!btn) return;
+      btn.textContent = on ? 'Hide Descriptions' : 'Show Descriptions';
+    }
+
+    function syncRowDescButtons(){
+      setBtnLabel(btnActiveDesc, activeWrap.classList.contains('show-desc'));
+      setBtnLabel(btnPassiveDesc, passiveWrap.classList.contains('show-desc'));
+      setBtnLabel(btnSecondaryDesc, secondaryWrap.classList.contains('show-desc'));
+    }
+
+    btnActiveDesc?.addEventListener('click', () => {
+      activeWrap.classList.toggle('show-desc');
+      syncRowDescButtons();
+    });
+    btnPassiveDesc?.addEventListener('click', () => {
+      passiveWrap.classList.toggle('show-desc');
+      syncRowDescButtons();
+    });
+    btnSecondaryDesc?.addEventListener('click', () => {
+      secondaryWrap.classList.toggle('show-desc');
+      syncRowDescButtons();
     });
 
     /***********************
-     * Category mapping (Attack/Info/Survival/Teamwork)
+     * Picker modal
      ***********************/
-    function getCategoryClass(c){
-      const r = lower(c?.role);
-      if (!r) return '';
-      if (r.includes('attack')) return 'cat-attack';
-      if (r.includes('info')) return 'cat-info';
-      if (r.includes('survival')) return 'cat-survival';
-      if (r.includes('team')) return 'cat-teamwork';
+    const modal = document.getElementById('pickerModal');
+    const modalGrid = document.getElementById('modalGrid');
+    const modalInput = document.getElementById('searchInput');
+    const modalTitle = document.getElementById('modalTitle');
+
+    function openPicker(mode, index){
+      pickerMode = mode;
+      pickerIndex = index;
+
+      // ✅ for CSS tweaks (weapon popout images)
+      modal.dataset.mode = mode;
+
+      const label =
+        mode === 'active' ? `Pick Active (Slot ${index + 1})` :
+        mode === 'passive' ? 'Pick Passive' :
+        mode === 'pet' ? 'Pick Pet' :
+        mode === 'weapon' ? 'Pick Weapon' :
+        'Pick';
+
+      modalTitle.textContent = label;
+      modalInput.value = '';
+      renderPickerGrid('');
+
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      setTimeout(() => modalInput.focus(), 0);
+    }
+
+    function closePicker(){
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      delete modal.dataset.mode;
+    }
+
+    function getPickerList(){
+      if (pickerMode === 'active') return characters.filter(isActiveChar);
+      if (pickerMode === 'passive') return characters.filter(isPassiveChar);
+      if (pickerMode === 'pet') return pets;
+      if (pickerMode === 'weapon') return weapons;
+      return [];
+    }
+
+    function getPickerChipText(item){
+      if (pickerMode === 'active' || pickerMode === 'passive'){
+        const r = tidy(item?.role) || 'N/A';
+        return r;
+      }
+      if (pickerMode === 'pet'){
+        return tidy(item?.type || item?.category) || 'Pet';
+      }
+      if (pickerMode === 'weapon'){
+        return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+      }
       return '';
     }
 
-    function makeSearchBlob(c){
-      return [
-        tidy(c?.name),
-        tidy(c?.role),
-        tidy(c?.skill_type),
-        tidy(c?.skill),
-        tidy(c?.description),
-        getMSDesc(c)
-      ].filter(Boolean).join(' ').toLowerCase();
+    function buildSearchBlob(item){
+      const fields = [
+        getItemName(item),
+        tidy(item?.role),
+        tidy(item?.skill_type),
+        tidy(item?.skill),
+        tidy(item?.description),
+        tidy(item?.desc),
+        tidy(item?.category),
+        tidy(item?.type),
+        tidy(item?.weapon_type),
+        tidy(item?.special),
+        tidy(item?.perk),
+      ].filter(Boolean).join(' ');
+      return fields.toLowerCase();
     }
 
-    function ensureEmptyMsg(grid, text){
-      let msg = grid.querySelector('.empty-msg');
-      if (!msg){
-        msg = document.createElement('div');
-        msg.className = 'empty-msg';
-        grid.appendChild(msg);
+    function renderPickerGrid(term){
+      const q = tidy(term).toLowerCase();
+      modalGrid.innerHTML = '';
+
+      const list = getPickerList()
+        .map(it => ({ it, blob: buildSearchBlob(it) }))
+        .filter(x => !q || x.blob.includes(q))
+        .sort((a,b) => getItemName(a.it).localeCompare(getItemName(b.it)));
+
+      if (!list.length){
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No matches.';
+        modalGrid.appendChild(empty);
+        return;
       }
-      msg.textContent = text || 'No matches.';
-      return msg;
-    }
 
-    function wireImgFallback(img){
-      img.addEventListener('error', () => {
-        if (img.dataset.fallbackApplied) return;
-        img.dataset.fallbackApplied = '1';
-        img.src = FALLBACK_IMG;
-      }, { once: true });
-    }
+      list.forEach(({it}) => {
+        const pick = document.createElement('div');
+        pick.className = 'pick';
 
-    function makeCard(c){
-      const passive = isPassive(c);
-      const meta = isMeta(c);
+        const nm = getItemName(it);
+        const img = getItemImg(it);
+        const chip = getPickerChipText(it);
 
-      const card = document.createElement('div');
-      card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '');
-      card.setAttribute('tabindex','0');
-      card.dataset.search = makeSearchBlob(c);
+        pick.innerHTML = `
+          ${img ? `<img src="${img}" alt="${escapeHTML(nm)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+          <div class="nm">${escapeHTML(nm)}</div>
+          <div class="rl">${escapeHTML(chip || '—')}</div>
+        `;
 
-      const thumb = document.createElement('div');
-      thumb.className = 'char-thumb';
-
-      const img = document.createElement('img');
-      img.src = c.image_url || FALLBACK_IMG;
-      img.alt = tidy(c.name) || 'Character';
-      img.loading = 'lazy';
-      img.decoding = 'async';
-      img.referrerPolicy = 'no-referrer';
-      wireImgFallback(img);
-
-      const metaDot = document.createElement('span');
-      metaDot.className = 'meta-dot';
-
-      thumb.appendChild(img);
-      thumb.appendChild(metaDot);
-
-      const name = document.createElement('div');
-      name.className = 'char-name';
-      name.textContent = tidy(c.name) || '—';
-
-      const skillLine = document.createElement('div');
-      const catCls = getCategoryClass(c);
-      skillLine.className = 'char-skill' + (catCls ? (' ' + catCls) : '');
-
-      const dot = document.createElement('span');
-      dot.className = 'cat-dot' + (catCls ? (' ' + catCls) : '');
-
-      const skillText = document.createElement('span');
-      skillText.className = 'skill-text';
-      skillText.textContent = tidy(c?.skill) || '—';
-
-      skillLine.appendChild(dot);
-      skillLine.appendChild(skillText);
-
-      card.appendChild(thumb);
-      card.appendChild(name);
-      card.appendChild(skillLine);
-
-      card.addEventListener('click', () => openInfo(c, meta));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInfo(c, meta); }
+        pick.addEventListener('click', () => applyPick(it));
+        modalGrid.appendChild(pick);
       });
-
-      return card;
     }
 
-    function renderGrids(){
-      metaGrid.innerHTML = '';
-      nonMetaGrid.innerHTML = '';
+    function applyPick(item){
+      const nm = getItemName(item);
 
-      const chars = Array.isArray(allCharacters) ? allCharacters.slice() : [];
-      chars.sort((a,b) => tidy(a?.name).localeCompare(tidy(b?.name)));
-
-      const metas = [];
-      const nonmetas = [];
-      for (const c of chars){ (isMeta(c) ? metas : nonmetas).push(c); }
-
-      const metaFrag = document.createDocumentFragment();
-      metas.forEach(c => metaFrag.appendChild(makeCard(c)));
-      metaGrid.appendChild(metaFrag);
-
-      const nonFrag = document.createDocumentFragment();
-      nonmetas.forEach(c => nonFrag.appendChild(makeCard(c)));
-      nonMetaGrid.appendChild(nonFrag);
-
-      if (!metas.length) ensureEmptyMsg(metaGrid, 'No meta characters found for this mode.').style.display = '';
-      if (!nonmetas.length) ensureEmptyMsg(nonMetaGrid, 'No non-meta characters found.').style.display = '';
-
-      syncLangToggleUI();
-      applyCharacterSearch(currentSearchTerm);
-    }
-
-    function applyCharacterSearch(term){
-      const q = (term || '').toLowerCase().trim();
-
-      const allCards = [
-        ...metaGrid.querySelectorAll('.char-card'),
-        ...nonMetaGrid.querySelectorAll('.char-card')
-      ];
-
-      let visibleCards = 0;
-      for (const el of allCards){
-        const hit = !q || (el.dataset.search || '').includes(q);
-        el.style.display = hit ? '' : 'none';
-        if (hit) visibleCards++;
-      }
-
-      const metaHasVisible = [...metaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
-      const nonHasVisible  = [...nonMetaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
-      ensureEmptyMsg(metaGrid).style.display = metaHasVisible ? 'none' : '';
-      ensureEmptyMsg(nonMetaGrid).style.display = nonHasVisible ? 'none' : '';
-
-      if (q) {
-        searchCountPill.style.display = '';
-        searchCountPill.textContent = `Showing: ${visibleCards} match${visibleCards===1?'':'es'}`;
-      } else {
-        searchCountPill.style.display = 'none';
-        searchCountPill.textContent = '';
-      }
-    }
-
-    let searchRAF = 0;
-    function scheduleSearchApply(val){
-      cancelAnimationFrame(searchRAF);
-      searchRAF = requestAnimationFrame(() => applyCharacterSearch(val));
-    }
-
-    function readCache(){
-      try{
-        const raw = localStorage.getItem(CFG.CACHE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || !Array.isArray(parsed.data)) return null;
-        if (Date.now() - (parsed.ts || 0) > CFG.CACHE_TTL_MS) return null;
-        return parsed.data;
-      }catch(_){ return null; }
-    }
-
-    function writeCache(data){
-      try{ localStorage.setItem(CFG.CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); }catch(_){}
-    }
-
-    async function loadCharacters(){
-      const cached = readCache();
-      if (cached && !allCharacters.length){
-        allCharacters = cached;
-        renderGrids();
-      } else {
-        metaGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
-        nonMetaGrid.innerHTML = '';
-      }
-
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 12000);
-
-      try{
-        const url = CFG.CHAR_URL + (CFG.CHAR_URL.includes('?') ? '&' : '?') + 'v=' + Date.now();
-        const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const arr = Array.isArray(data) ? data : [];
-        allCharacters = arr;
-        writeCache(arr);
-        renderGrids();
-      }catch(err){
-        console.warn('Character fetch failed:', err);
-        if (!allCharacters.length){
-          metaGrid.innerHTML = '<div class="empty-msg">Failed to load character.json</div>';
-          nonMetaGrid.innerHTML = '';
+      if (pickerMode === 'active'){
+        const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === keyOf(nm));
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That active skill is already in another slot.');
+          return;
         }
-      }finally{
-        clearTimeout(t);
+        activeSlots[pickerIndex] = item;
+        saveState();
+        renderActiveRow();
+        closePicker();
+        return;
+      }
+
+      if (pickerMode === 'passive'){
+        passivePick = item;
+        saveState();
+        renderPassiveRow();
+        closePicker();
+        return;
+      }
+
+      if (pickerMode === 'pet'){
+        petPick = item;
+        saveState();
+        renderSecondaryRow();
+        closePicker();
+        return;
+      }
+
+      if (pickerMode === 'weapon'){
+        weaponPick = item;
+        saveState();
+        renderSecondaryRow();
+        closePicker();
+        return;
       }
     }
+
+    document.getElementById('modalCloseBtn')?.addEventListener('click', closePicker);
+    document.getElementById('modalCloseBtn2')?.addEventListener('click', closePicker);
+    modalInput?.addEventListener('input', () => renderPickerGrid(modalInput.value));
+    window.addEventListener('click', (e) => { if (e.target === modal) closePicker(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closePicker(); });
 
     /***********************
-     * Modal
+     * Actions
      ***********************/
-    const infoModal = document.getElementById('infoModal');
-    const infoClose = document.getElementById('infoClose');
-    const infoName = document.getElementById('infoName');
-    const infoSub = document.getElementById('infoSub');
-    const infoBadges = document.getElementById('infoBadges');
-    const infoSkillTitle = document.getElementById('infoSkillTitle');
-    const infoSkillDesc = document.getElementById('infoSkillDesc');
-    const infoRole = document.getElementById('infoRole');
+    document.getElementById('addActiveBtn')?.addEventListener('click', () => {
+      activeSlots.push(null);
+      saveState();
+      renderActiveRow();
+      setTimeout(() => { activeRowEl.scrollLeft = activeRowEl.scrollWidth; }, 0);
+    });
 
-    let lastFocusEl = null;
+    document.getElementById('resetBtn')?.addEventListener('click', () => {
+      activeSlots = Array.from({length: 4}, () => null);
+      passivePick = null;
+      petPick = null;
+      weaponPick = null;
+      try{ sessionStorage.removeItem(STORE_KEY); }catch(_){}
+      rerenderAll();
+      toast('Reset complete.');
+    });
 
-    function badgeDot(cls, label){
-      const el = document.createElement('span');
-      el.className = 'pill';
-      const d = document.createElement('span');
-      d.className = 'dot ' + cls;
-      el.appendChild(d);
-      el.appendChild(document.createTextNode(label));
-      return el;
-    }
+    /***********************
+     * Init
+     ***********************/
+    async function initDataAndState(){
+      const [c, p, w, l] = await Promise.all([
+        fetchFromUrls(CFG.CHAR_URLS),
+        fetchFromUrls(CFG.PET_URLS),
+        fetchFromUrls(CFG.WEAPON_URLS),
+        fetchFromUrls(CFG.LOADOUT_URLS),
+      ]);
 
-    function openInfo(c, metaFlag, keepOpen=false){
-      lastOpenedChar = c;
-      lastOpenedMetaFlag = !!metaFlag;
+      characters = Array.isArray(c) ? c : [];
+      pets = Array.isArray(p) ? p : [];
+      weapons = Array.isArray(w) ? w : [];
+      loadouts = Array.isArray(l) ? l : [];
 
-      if (!keepOpen) lastFocusEl = document.activeElement;
+      // restore selections by name (after data is available)
+      const saved = restoreState();
+      if (saved){
+        const count = Math.max(4, Math.min(24, Number(saved.activeCount || 4)));
+        activeSlots = Array.from({length: count}, () => null);
 
-      const name = tidy(c?.name) || '—';
-      const role = tidy(c?.role) || 'N/A';
-      const st = tidy(c?.skill_type) || '—';
-      const skill = tidy(c?.skill) || '—';
-      const desc = getDisplayDesc(c);
+        const savedActives = Array.isArray(saved.activeSlots) ? saved.activeSlots : [];
+        savedActives.slice(0, count).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) activeSlots[i] = obj;
+        });
 
-      infoName.textContent = name;
-
-      const chips = [];
-      if (role && role !== 'N/A') chips.push(role.toUpperCase());
-      if (metaFlag) chips.push('META');
-      chips.push(modeLabel());
-      if (st) chips.push(st);
-      infoSub.textContent = chips.join(' • ');
-
-      infoBadges.innerHTML = '';
-      infoBadges.appendChild(badgeDot(isPassive(c) ? 'passive' : 'active', isPassive(c) ? 'Passive Skill' : 'Active Skill'));
-      if (metaFlag) infoBadges.appendChild(badgeDot('meta', 'Meta'));
-
-      infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • (MS)' : '');
-      infoSkillDesc.textContent = (st ? (st + ' — ') : '') + (desc || '—');
-      infoRole.textContent = role;
-
-      if (!keepOpen){
-        infoModal.classList.add('show');
-        infoModal.setAttribute('aria-hidden','false');
-        setTimeout(() => infoClose?.focus(), 0);
+        passivePick = saved.passivePick ? findByName(characters, saved.passivePick) : null;
+        petPick = saved.petPick ? findByName(pets, saved.petPick) : null;
+        weaponPick = saved.weaponPick ? findByName(weapons, saved.weaponPick) : null;
+      }else{
+        activeSlots = Array.from({length: 4}, () => null);
       }
+
+      rerenderAll();
     }
-
-    function closeInfo(){
-      infoModal.classList.remove('show');
-      infoModal.setAttribute('aria-hidden','true');
-      if (lastFocusEl && typeof lastFocusEl.focus === 'function'){
-        try{ lastFocusEl.focus(); }catch(_){}
-      }
-      lastFocusEl = null;
-    }
-
-    infoClose?.addEventListener('click', closeInfo);
-    infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
-    });
-
-    toggleModeBtn?.addEventListener('click', () => {
-      currentMetaMode = (currentMetaMode === 'meta') ? 'cs_meta' : 'meta';
-      setModeUI();
-      renderGrids();
-      scheduleSearchApply(currentSearchTerm);
-    });
-
-    topSearch?.addEventListener('input', (e) => {
-      currentSearchTerm = (e.target.value || '');
-      scheduleSearchApply(currentSearchTerm);
-    });
 
     window.addEventListener('DOMContentLoaded', async () => {
       syncSidebarMode();
-      syncLangToggleUI();
 
       const session = await ensureSession();
       if (!session) return;
 
       const email = session.user?.email || '';
       document.getElementById('userEmail').textContent = email || 'signed in';
-      const username = email ? email.split('@')[0] : 'PlayerOne';
-      document.getElementById('gamertag').textContent = username;
+      document.getElementById('gamertag').textContent = email ? email.split('@')[0] : 'PlayerOne';
 
-      document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        logout();
-      });
-
-      setModeUI();
-      await loadCharacters();
+      await initDataAndState();
     });
   </script>
 </body>
