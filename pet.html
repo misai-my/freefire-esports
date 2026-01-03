@@ -896,10 +896,14 @@
             </div>
 
             <div class="controls-right">
-              <!-- ✅ NEW: Description toggle (description vs description_ms) -->
-              <button class="btn" id="langToggleBtn" type="button" title="Toggle description language">
-                Desc: EN
-              </button>
+              <!-- ✅ Consistent "language dropdown" (EN/MS) -->
+              <div class="field">
+                <label for="descLang">Desc</label>
+                <select id="descLang" title="Description language">
+                  <option value="en">EN</option>
+                  <option value="ms">MS</option>
+                </select>
+              </div>
 
               <div class="field">
                 <label for="filterRole">Role</label>
@@ -1074,12 +1078,11 @@
     })();
 
     /***********************
-     * ✅ Description language toggle (description vs description_ms)
+     * ✅ Description language dropdown (description vs description_ms)
      ***********************/
-    const KEY_LANG = 'ff_pet_desc_lang_v2'; // '0' = EN, '1' = MS
-    let useMS = (localStorage.getItem(KEY_LANG) === '1');
-
-    const langToggleBtn = document.getElementById('langToggleBtn');
+    const KEY_LANG = 'ff_pet_desc_lang_v2'; // 'en' / 'ms'
+    const descLang = document.getElementById('descLang');
+    let useMS = (localStorage.getItem(KEY_LANG) === 'ms');
     let lastOpenedPet = null;
 
     function safeText(v){ return (v ?? '').toString(); }
@@ -1091,27 +1094,23 @@
         .trim();
     }
 
-    function getMSDesc(p){
-      return tidy(p?.description_ms ?? '');
-    }
+    function getMSDesc(p){ return tidy(p?.description_ms ?? ''); }
 
     function getDisplayDesc(p){
       const en = tidy(p?.description ?? '');
       const ms = getMSDesc(p);
-
       if (useMS) return ms || en || '—';
       return en || ms || '—';
     }
 
-    function syncLangToggleUI(){
-      if (!langToggleBtn) return;
-      langToggleBtn.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
+    function syncLangUI(){
+      if (!descLang) return;
+      descLang.value = useMS ? 'ms' : 'en';
     }
 
-    langToggleBtn?.addEventListener('click', () => {
-      useMS = !useMS;
-      localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
-      syncLangToggleUI();
+    descLang?.addEventListener('change', () => {
+      useMS = (descLang.value === 'ms');
+      localStorage.setItem(KEY_LANG, useMS ? 'ms' : 'en');
 
       if (infoModal.classList.contains('show') && lastOpenedPet){
         openInfo(lastOpenedPet, true);
@@ -1161,7 +1160,7 @@
         tidy(p?.role),
         tidy(p?.skill),
         tidy(p?.description),
-        getMSDesc(p) // ✅ include MS in search too
+        getMSDesc(p)
       ].filter(Boolean).join(' ').toLowerCase();
     }
 
@@ -1257,8 +1256,10 @@
       const empty = ensureEmptyMsg();
       empty.style.display = visible ? 'none' : '';
 
-      countPill.style.display = '';
-      countPill.textContent = `Showing: ${visible} pet${visible===1?'':'s'}`;
+      if (countPill){
+        countPill.style.display = '';
+        countPill.textContent = `Showing: ${visible} pet${visible===1?'':'s'}`;
+      }
     }
 
     function renderPets(){
@@ -1269,7 +1270,7 @@
 
       if (!pets.length){
         petGrid.innerHTML = '<div class="empty-msg">No pets found in pet.json.</div>';
-        countPill.style.display = 'none';
+        if (countPill) countPill.style.display = 'none';
         return;
       }
 
@@ -1326,7 +1327,7 @@
       infoBadges.innerHTML = '';
       infoBadges.appendChild(badgeDot(roleColorVar(role), role && role !== 'N/A' ? role : 'OTHER'));
 
-      infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • (MS)' : '');
+      infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • MS' : ' • EN');
       infoSkillDesc.textContent = desc || '—';
       infoRole.textContent = role || '—';
 
@@ -1367,7 +1368,7 @@
      * Init
      ***********************/
     window.addEventListener('DOMContentLoaded', async () => {
-      syncLangToggleUI();
+      syncLangUI();
 
       const session = await ensureSession();
       if (!session) return;
@@ -1382,7 +1383,7 @@
       }catch(err){
         console.error('Error loading pet data:', err);
         petGrid.innerHTML = '<div class="empty-msg">Error loading pet data.</div>';
-        countPill.style.display = 'none';
+        if (countPill) countPill.style.display = 'none';
       }
     });
   </script>
