@@ -867,7 +867,8 @@
         width: 100%;
         justify-content: space-between;
       }
-      .controls-right a.btn{
+      /* ✅ include buttons too (not only <a>) */
+      .controls-right .btn{
         width: 100%;
         padding: 11px 10px;
         border-radius: 14px;
@@ -965,9 +966,6 @@
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <!-- ✅ This button now works on BOTH:
-             - desktop: collapse
-             - mobile: open drawer -->
         <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
           <svg viewBox="0 0 24 24" fill="none">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1013,6 +1011,11 @@
             </div>
 
             <div class="controls-right">
+              <!-- ✅ Added (same placement/style as pet.html) -->
+              <button class="btn" id="langToggleBtn" type="button" title="Toggle description language (auto-works once description_ms exists)">
+                Desc: EN
+              </button>
+
               <span class="pill" style="border-color: rgba(255,189,89,.18)">
                 Show Meta For:
                 <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
@@ -1129,7 +1132,6 @@
     function setToggleIcon(){
       if (!sbTogglePath) return;
       if (isMobile()){
-        // hamburger-ish (3 lines)
         sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
       }else{
         sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
@@ -1161,7 +1163,7 @@
 
     function syncSidebarMode(){
       if (isMobile()){
-        sidebar.classList.remove('collapsed'); // drawer only
+        sidebar.classList.remove('collapsed');
         closeDrawer();
       }else{
         const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
@@ -1177,7 +1179,6 @@
       if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
     });
 
-    // Close drawer after clicking a nav item (mobile)
     document.querySelectorAll('#nav .nav-item').forEach(a => {
       a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
     });
@@ -1201,7 +1202,7 @@
     });
 
     /***********************
-     * Character Data + Rendering (unchanged from yours)
+     * Character Data + Rendering
      ***********************/
     const metaGrid = document.getElementById('metaGrid');
     const nonMetaGrid = document.getElementById('nonMetaGrid');
@@ -1235,8 +1236,60 @@
       metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
     }
 
+    /***********************
+     * ✅ Description language toggle (ready for future description_ms)
+     * - currently character.json has no translated field yet,
+     *   but this will auto-work once you add description_ms.
+     ***********************/
+    const KEY_LANG = 'ff_char_desc_lang_v1'; // '0' EN, '1' MS
+    let useMS = (localStorage.getItem(KEY_LANG) === '1');
+
+    const langToggleBtn = document.getElementById('langToggleBtn');
+    let lastOpenedChar = null;
+    let lastOpenedMetaFlag = false;
+
+    function getMSDesc(c){
+      return tidy(c?.description_ms ?? '');
+    }
+    function getDisplayDesc(c){
+      const en = tidy(c?.description ?? '');
+      const ms = getMSDesc(c);
+      if (useMS) return ms || en || '—';
+      return en || ms || '—';
+    }
+    function anyMSAvailable(){
+      return Array.isArray(allCharacters) && allCharacters.some(c => !!getMSDesc(c));
+    }
+    function syncLangToggleUI(){
+      if (!langToggleBtn) return;
+      langToggleBtn.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
+      // helpful tooltip when MS not available yet
+      if (!anyMSAvailable()){
+        langToggleBtn.title = 'No translated data yet for characters. This will auto-work once description_ms is added.';
+      } else {
+        langToggleBtn.title = 'Toggle description language';
+      }
+    }
+
+    langToggleBtn?.addEventListener('click', () => {
+      useMS = !useMS;
+      localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
+      syncLangToggleUI();
+
+      if (infoModal.classList.contains('show') && lastOpenedChar){
+        openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
+      }
+    });
+
     function makeSearchBlob(c){
-      const parts = [tidy(c?.name), tidy(c?.role), tidy(c?.skill_type), tidy(c?.skill), tidy(c?.description)].filter(Boolean);
+      const parts = [
+        tidy(c?.name),
+        tidy(c?.role),
+        tidy(c?.skill_type),
+        tidy(c?.skill),
+        tidy(c?.description),
+        getMSDesc(c) // ✅ included for future MS search too
+      ].filter(Boolean);
       return parts.join(' ').toLowerCase();
     }
 
@@ -1394,6 +1447,10 @@
       });
 
       compactByRole.appendChild(roleFrag);
+
+      // ✅ update lang tooltip state once data is loaded
+      syncLangToggleUI();
+
       applyCharacterSearch(currentSearchTerm);
     }
 
@@ -1518,14 +1575,19 @@
       return el;
     }
 
-    function openInfo(c, metaFlag){
-      lastFocusEl = document.activeElement;
+    function openInfo(c, metaFlag, keepOpen=false){
+      lastOpenedChar = c;
+      lastOpenedMetaFlag = !!metaFlag;
+
+      if (!keepOpen) lastFocusEl = document.activeElement;
 
       const name = tidy(c?.name) || '—';
       const role = tidy(c?.role) || 'N/A';
       const st = tidy(c?.skill_type) || '—';
       const skill = tidy(c?.skill) || '—';
-      const desc = tidy(c?.description) || '—';
+
+      // ✅ uses language toggle (falls back to EN if MS not available)
+      const desc = getDisplayDesc(c);
 
       infoName.textContent = name;
 
@@ -1540,13 +1602,15 @@
       infoBadges.appendChild(badgeDot(isPassive(c) ? 'passive' : 'active', isPassive(c) ? 'Passive Skill' : 'Active Skill'));
       if (metaFlag) infoBadges.appendChild(badgeDot('meta', 'Meta'));
 
-      infoSkillTitle.textContent = 'Skill: ' + (skill || '—');
+      infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • (MS)' : '');
       infoSkillDesc.textContent = (st ? (st + ' — ') : '') + (desc || '—');
       infoRole.textContent = role;
 
-      infoModal.classList.add('show');
-      infoModal.setAttribute('aria-hidden','false');
-      setTimeout(() => infoClose?.focus(), 0);
+      if (!keepOpen){
+        infoModal.classList.add('show');
+        infoModal.setAttribute('aria-hidden','false');
+        setTimeout(() => infoClose?.focus(), 0);
+      }
     }
 
     function closeInfo(){
@@ -1577,7 +1641,8 @@
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-      syncSidebarMode(); // ✅ important: applies correct sidebar mode on load
+      syncSidebarMode();
+      syncLangToggleUI(); // ✅ set initial button label
 
       const session = await ensureSession();
       if (!session) return;
