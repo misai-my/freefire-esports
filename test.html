@@ -32,11 +32,11 @@
       --skill-active:#4dd3ff;
       --skill-passive:#ff59c7;
 
-      /* ✅ Category colors (requested) */
-      --cat-attack:#ff4d4f;    /* Red */
-      --cat-info:#ffe93b;      /* Yellow */
-      --cat-survival:#71d083;  /* Green */
-      --cat-teamwork:#ff59c7;  /* Pink */
+      /* ✅ category colors */
+      --cat-attack:#ff5a5a;     /* Red */
+      --cat-info:#ffe36b;       /* Yellow */
+      --cat-survival:#8be27a;   /* Green */
+      --cat-teamwork:#ff59c7;   /* Pink */
 
       color-scheme: dark;
     }
@@ -81,7 +81,6 @@
       color: var(--ink);
     }
     select option{ background:#0b1020; color:var(--ink); }
-
     button{font:inherit}
     :focus-visible{
       outline: 2px solid rgba(77,211,255,.65);
@@ -533,7 +532,7 @@
       transition:.18s ease;
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:6px;
       min-width:0;
       -webkit-tap-highlight-color: transparent;
     }
@@ -554,7 +553,6 @@
       place-items:center;
       position:relative;
     }
-
     .char-thumb img{
       width:100%;
       height:100%;
@@ -588,10 +586,9 @@
       text-overflow:ellipsis;
       text-align:center;
       padding: 0 2px;
-      line-height: 1.1rem;
     }
 
-    /* ✅ Skill name below character name + category dot + wrapping */
+    /* ✅ Skill line under name (wrap + colored per role) */
     .char-skill{
       display:flex;
       align-items:flex-start;
@@ -599,43 +596,41 @@
       gap:6px;
       text-align:center;
 
-      font-size:.74rem;
-      font-weight:900;
-
-      white-space: normal;          /* allow wrapping */
-      overflow: visible;
-      text-overflow: unset;
-      word-break: break-word;
-      overflow-wrap: anywhere;
-
+      font-size:.72rem;
+      font-weight:1000;
       line-height: 1.05rem;
-      padding: 0 2px 2px 2px;
-      color: rgba(244,246,255,.86);
+
+      /* ✅ allow wrapping (no cutoff) */
+      white-space: normal;
+      overflow: visible;
+      padding: 0 2px;
+      min-height: 2.1rem; /* keeps cards aligned */
     }
+    .char-skill .skill-text{
+      display:block;
+      overflow-wrap:anywhere;
+      word-break: break-word;
+    }
+
+    /* skill text colors by category */
+    .char-skill.cat-attack{ color: var(--cat-attack); }
+    .char-skill.cat-info{ color: var(--cat-info); }
+    .char-skill.cat-survival{ color: var(--cat-survival); }
+    .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
+
+    /* ✅ dot beside skill (color-coded per category) */
     .char-skill .cat-dot{
       width:8px;height:8px;border-radius:50%;
       flex:0 0 auto;
       margin-top: .22rem;
       box-shadow: 0 0 0 3px rgba(0,0,0,.20);
       border:1px solid rgba(255,255,255,.20);
-      background: rgba(170,177,197,.70);
+      background: rgba(170,177,197,.70); /* default */
     }
-    .char-skill .skill-text{
-      display:block;
-      max-width: 100%;
-    }
-
-    .char-skill.cat-attack{ color: var(--cat-attack); }
-    .char-skill.cat-attack .cat-dot{ background: var(--cat-attack); }
-
-    .char-skill.cat-info{ color: var(--cat-info); }
-    .char-skill.cat-info .cat-dot{ background: var(--cat-info); }
-
-    .char-skill.cat-survival{ color: var(--cat-survival); }
-    .char-skill.cat-survival .cat-dot{ background: var(--cat-survival); }
-
-    .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
-    .char-skill.cat-teamwork .cat-dot{ background: var(--cat-teamwork); }
+    .char-skill .cat-dot.cat-attack{ background: var(--cat-attack); }
+    .char-skill .cat-dot.cat-info{ background: var(--cat-info); }
+    .char-skill .cat-dot.cat-survival{ background: var(--cat-survival); }
+    .char-skill .cat-dot.cat-teamwork{ background: var(--cat-teamwork); }
 
     .empty-msg{
       grid-column: 1 / -1;
@@ -719,15 +714,6 @@
       padding: 0;
     }
 
-    /* ✅ category badge pill for modal */
-    .pill.cat-pill{
-      border-color: rgba(255,255,255,.14);
-    }
-    .dot.cat-attack{ background: var(--cat-attack); }
-    .dot.cat-info{ background: var(--cat-info); }
-    .dot.cat-survival{ background: var(--cat-survival); }
-    .dot.cat-teamwork{ background: var(--cat-teamwork); }
-
     .info-block{
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.10);
@@ -756,7 +742,7 @@
       .char-card:hover{transform:none}
     }
 
-    /* ✅ Mobile: sidebar becomes drawer (same behavior as dashboard) */
+    /* ✅ Mobile: sidebar becomes drawer */
     @media (max-width: 980px){
       body::before, body::after{display:none;}
 
@@ -780,12 +766,8 @@
         transition: transform .18s ease;
         z-index: 1000;
       }
-      .sidebar.open{
-        transform: translateX(0);
-      }
-      .sidebar.collapsed{
-        width: var(--sb-w);
-      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: var(--sb-w); }
 
       .topbar{
         top: env(safe-area-inset-top);
@@ -820,14 +802,8 @@
         padding: 7px 9px;
       }
       .usertext span{display:none;}
-      .usertext b{
-        max-width: 52vw;
-        font-size: .88rem;
-      }
-      .logout{
-        padding: 9px 10px;
-        font-size: .85rem;
-      }
+      .usertext b{ max-width: 52vw; font-size: .88rem; }
+      .logout{ padding: 9px 10px; font-size: .85rem; }
 
       .hero{height: 120px;}
       .hero-content{left:12px;right:12px;bottom:12px;}
@@ -871,7 +847,7 @@
       .char-card{padding: 8px; border-radius: 14px;}
       .char-thumb{border-radius: 12px;}
       .char-name{font-size: .75rem;}
-      .char-skill{font-size: .70rem;}
+      .char-skill{font-size:.68rem; min-height: 2.0rem;}
 
       .modal{
         align-items:flex-end;
@@ -890,7 +866,6 @@
 </head>
 
 <body>
-  <!-- ✅ overlay for mobile drawer -->
   <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
   <div class="app">
@@ -1011,6 +986,7 @@
                 Show Meta For:
                 <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
               </span>
+
               <a class="btn" href="dashboard.html">← Dashboard</a>
               <a class="btn" href="character-comparison.html">Compare</a>
             </div>
@@ -1025,8 +1001,6 @@
           <div class="section-title" style="margin-top:18px;">Non-Meta Characters</div>
           <div class="grid" id="nonMetaGrid"></div>
 
-          <!-- ✅ Removed "Overview by Role" section (no longer needed) -->
-
           <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
             Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
           </div>
@@ -1035,7 +1009,7 @@
     </main>
   </div>
 
-  <!-- Info Modal (Popup) -->
+  <!-- Info Modal -->
   <div class="modal" id="infoModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Character Info">
       <div class="modal-top">
@@ -1218,46 +1192,6 @@
     const isMeta = (c) => lower(c?.[currentMetaMode] || 'no') === 'yes';
     const modeLabel = () => (currentMetaMode === 'meta' ? 'BR' : 'CS');
 
-    /* ✅ Category helpers (supports multiple possible JSON keys)
-       If your JSON key is different, add it here. */
-    function getCategoryRaw(c){
-      return tidy(
-        c?.category ??
-        c?.skill_category ??
-        c?.skillCategory ??
-        c?.skill_cat ??
-        c?.cat ??
-        ''
-      );
-    }
-    function getCategoryKey(c){
-      const v = lower(getCategoryRaw(c));
-      if (!v) return '';
-      if (v.startsWith('att')) return 'attack';
-      if (v.startsWith('inf')) return 'info';
-      if (v.startsWith('sur')) return 'survival';
-      if (v.startsWith('tea')) return 'teamwork';
-      // handle common variants
-      if (v.includes('attack')) return 'attack';
-      if (v.includes('info')) return 'info';
-      if (v.includes('surviv')) return 'survival';
-      if (v.includes('team')) return 'teamwork';
-      return '';
-    }
-    function getCategoryLabel(c){
-      const key = getCategoryKey(c);
-      if (key === 'attack') return 'Attack';
-      if (key === 'info') return 'Info';
-      if (key === 'survival') return 'Survival';
-      if (key === 'teamwork') return 'Teamwork';
-      return '';
-    }
-    function getCategoryClass(c){
-      const key = getCategoryKey(c);
-      if (!key) return '';
-      return 'cat-' + key; // cat-attack / cat-info / ...
-    }
-
     function setModeUI(){
       const isBR = currentMetaMode === 'meta';
       toggleModeBtn.textContent = isBR ? 'Battle Royale' : 'Clash Squad';
@@ -1266,7 +1200,7 @@
     }
 
     /***********************
-     * ✅ Description language toggle (ready for future description_ms)
+     * ✅ Desc language toggle (auto-works if description_ms exists)
      ***********************/
     const KEY_LANG = 'ff_char_desc_lang_v1'; // '0' EN, '1' MS
     let useMS = (localStorage.getItem(KEY_LANG) === '1');
@@ -1275,9 +1209,7 @@
     let lastOpenedChar = null;
     let lastOpenedMetaFlag = false;
 
-    function getMSDesc(c){
-      return tidy(c?.description_ms ?? '');
-    }
+    function getMSDesc(c){ return tidy(c?.description_ms ?? ''); }
     function getDisplayDesc(c){
       const en = tidy(c?.description ?? '');
       const ms = getMSDesc(c);
@@ -1290,34 +1222,42 @@
     function syncLangToggleUI(){
       if (!langToggleBtn) return;
       langToggleBtn.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
-      if (!anyMSAvailable()){
-        langToggleBtn.title = 'No translated data yet for characters. This will auto-work once description_ms is added.';
-      } else {
-        langToggleBtn.title = 'Toggle description language';
-      }
+      langToggleBtn.title = anyMSAvailable()
+        ? 'Toggle description language'
+        : 'No translated data yet for characters. This will auto-work once description_ms is added.';
     }
 
     langToggleBtn?.addEventListener('click', () => {
       useMS = !useMS;
       localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
       syncLangToggleUI();
-
       if (infoModal.classList.contains('show') && lastOpenedChar){
         openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
       }
     });
 
+    /***********************
+     * ✅ Category mapping (Attack/Info/Survival/Teamwork)
+     ***********************/
+    function getCategoryClass(c){
+      const r = lower(c?.role);
+      if (!r) return '';
+      if (r.includes('attack')) return 'cat-attack';
+      if (r.includes('info')) return 'cat-info';
+      if (r.includes('survival')) return 'cat-survival';
+      if (r.includes('team')) return 'cat-teamwork';
+      return '';
+    }
+
     function makeSearchBlob(c){
-      const parts = [
+      return [
         tidy(c?.name),
         tidy(c?.role),
         tidy(c?.skill_type),
         tidy(c?.skill),
-        getCategoryRaw(c),          // ✅ include category in search
         tidy(c?.description),
         getMSDesc(c)
-      ].filter(Boolean);
-      return parts.join(' ').toLowerCase();
+      ].filter(Boolean).join(' ').toLowerCase();
     }
 
     function ensureEmptyMsg(grid, text){
@@ -1369,19 +1309,18 @@
       name.className = 'char-name';
       name.textContent = tidy(c.name) || '—';
 
-      // ✅ skill line (colored by category) + dot like pets
+      // ✅ skill line under name + colored dot per category
       const skillLine = document.createElement('div');
       const catCls = getCategoryClass(c);
       skillLine.className = 'char-skill' + (catCls ? (' ' + catCls) : '');
 
       const dot = document.createElement('span');
-      dot.className = 'cat-dot';
+      dot.className = 'cat-dot' + (catCls ? (' ' + catCls) : '');
 
       const skillText = document.createElement('span');
       skillText.className = 'skill-text';
       skillText.textContent = tidy(c?.skill) || '—';
 
-      // If no category, still show dot (grey) but keep consistent layout
       skillLine.appendChild(dot);
       skillLine.appendChild(skillText);
 
@@ -1506,6 +1445,9 @@
       }
     }
 
+    /***********************
+     * Modal
+     ***********************/
     const infoModal = document.getElementById('infoModal');
     const infoClose = document.getElementById('infoClose');
     const infoName = document.getElementById('infoName');
@@ -1527,19 +1469,6 @@
       return el;
     }
 
-    function badgeCategory(c){
-      const label = getCategoryLabel(c);
-      if (!label) return null;
-      const key = getCategoryKey(c); // attack/info/survival/teamwork
-      const el = document.createElement('span');
-      el.className = 'pill cat-pill';
-      const d = document.createElement('span');
-      d.className = 'dot cat-' + key;
-      el.appendChild(d);
-      el.appendChild(document.createTextNode(label));
-      return el;
-    }
-
     function openInfo(c, metaFlag, keepOpen=false){
       lastOpenedChar = c;
       lastOpenedMetaFlag = !!metaFlag;
@@ -1550,15 +1479,12 @@
       const role = tidy(c?.role) || 'N/A';
       const st = tidy(c?.skill_type) || '—';
       const skill = tidy(c?.skill) || '—';
-      const cat = getCategoryLabel(c);
-
       const desc = getDisplayDesc(c);
 
       infoName.textContent = name;
 
       const chips = [];
       if (role && role !== 'N/A') chips.push(role.toUpperCase());
-      if (cat) chips.push(cat.toUpperCase());
       if (metaFlag) chips.push('META');
       chips.push(modeLabel());
       if (st) chips.push(st);
@@ -1566,8 +1492,6 @@
 
       infoBadges.innerHTML = '';
       infoBadges.appendChild(badgeDot(isPassive(c) ? 'passive' : 'active', isPassive(c) ? 'Passive Skill' : 'Active Skill'));
-      const catBadge = badgeCategory(c);
-      if (catBadge) infoBadges.appendChild(catBadge);
       if (metaFlag) infoBadges.appendChild(badgeDot('meta', 'Meta'));
 
       infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • (MS)' : '');
