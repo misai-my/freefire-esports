@@ -2,14 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- ✅ mobile-safe area + notch support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Loadout Builder — Skills / Pet / Weapon</title>
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
@@ -37,6 +33,9 @@
       --skill-passive:#ff59c7;
 
       --danger:#ff6b6b;
+
+      /* ✅ responsive slot width (desktop default) */
+      --slot-w: 210px;
 
       color-scheme: dark;
     }
@@ -87,7 +86,6 @@
       border-radius: 12px;
     }
 
-    /* Layout */
     .app{
       min-height: 100vh;
       display:flex;
@@ -99,7 +97,6 @@
       position:relative;
     }
 
-    /* ✅ Mobile drawer overlay */
     .sb-overlay{
       position: fixed;
       inset: 0;
@@ -116,7 +113,6 @@
       pointer-events: auto;
     }
 
-    /* Sidebar */
     .sidebar{
       width: var(--sb-w);
       background: var(--panel2);
@@ -267,7 +263,6 @@
       border-top: 1px solid rgba(255,255,255,.06);
     }
 
-    /* Main */
     .main{
       flex:1;
       display:flex;
@@ -276,7 +271,6 @@
       gap: 14px;
     }
 
-    /* Topbar */
     .topbar{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -372,7 +366,7 @@
       box-shadow: 0 0 0 3px rgba(255,77,77,.10);
     }
 
-    /* ✅ Language dropdown (theme-matched) */
+    /* ✅ Language dropdown (fixed options EN/MS) */
     .lang-wrap{
       display:flex;
       align-items:center;
@@ -401,7 +395,6 @@
       border-color: rgba(77,211,255,.22);
     }
 
-    /* Card shells */
     .card{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -446,7 +439,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Buttons */
     .btn{
       padding: 9px 12px;
       border-radius: 12px;
@@ -515,7 +507,6 @@
     }
     .muted{color: var(--muted);}
 
-    /* Top controls inside page */
     .controls{
       display:flex;
       gap:10px;
@@ -565,7 +556,6 @@
       justify-content:flex-end;
     }
 
-    /* Rows */
     .row-wrap{
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.04);
@@ -586,10 +576,9 @@
     .slot-row::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
     .slot-row::-webkit-scrollbar-track{background: transparent}
 
-    /* Slot cards */
     .slot-card{
       scroll-snap-align: start;
-      width: 210px;
+      width: var(--slot-w);
       flex: 0 0 auto;
       border-radius: 18px;
       background: rgba(0,0,0,.16);
@@ -715,7 +704,6 @@
       overflow:hidden;
     }
 
-    /* ✅ Row-level descriptions (no per-card clicking) */
     .desc-block{
       margin: 0 10px 10px 10px;
       border-radius: 14px;
@@ -745,7 +733,6 @@
     }
     .row-wrap.show-desc .desc-block{ display:block; }
 
-    /* Remove button for extra slots */
     .mini-x{
       position:absolute;
       top: 8px;
@@ -767,7 +754,6 @@
     }
     .mini-x svg{width:14px;height:14px}
 
-    /* Modal */
     .modal{
       position: fixed;
       inset: 0;
@@ -836,15 +822,15 @@
       border-color: rgba(77,211,255,.22);
     }
 
+    /* ✅ reduce “empty spaces” in picker by using grid */
     .pick-grid{
-      display:flex;
-      flex-wrap: wrap;
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
       gap: 10px;
-      justify-content: flex-start;
       align-items: stretch;
     }
     .pick{
-      width: 108px;
+      width: auto;
       text-align:center;
       border-radius: 16px;
       background: rgba(255,255,255,.04);
@@ -916,7 +902,6 @@
       text-align: center;
     }
 
-    /* Toast */
     .toast{
       position: fixed;
       left: 50%;
@@ -943,7 +928,7 @@
     .toast .t-dot{width:10px;height:10px;border-radius:50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(255,255,255,.06);}
 
     /* ============================================================
-       ✅ MOBILE OPTIMIZATION (drawer sidebar + edge-to-edge)
+       ✅ MOBILE: reduce empty spaces + tighter paddings + responsive cards
        ============================================================ */
     @media (max-width: 980px){
       body::before, body::after{display:none;}
@@ -980,15 +965,40 @@
         padding: 10px 10px;
         gap: 10px;
         z-index: 50;
+
+        /* ✅ allow wrapping so it doesn't create big empty spaces */
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .top-actions{
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      /* ✅ show lang on mobile, but compact */
+      .lang-wrap{
+        padding: 6px 8px;
+        gap: 6px;
+      }
+      .lang-wrap label{ display:none; }
+      .lang-wrap select{
+        padding: 6px 10px;
+        font-size: .8rem;
       }
 
       .usertext span{display:none;}
-      .usertext b{max-width: 46vw; font-size: .88rem;}
+      .usertext b{max-width: 44vw; font-size: .88rem;}
 
-      .lang-wrap{display:none;} /* optional: hide language chip on mobile */
       .hero{height: 120px;}
       .hero-content{left:12px;right:12px;bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
+
+      .card-inner{padding: 10px;} /* ✅ tighter */
+
+      /* ✅ responsive card width (reduces empty space in row) */
+      :root{ --slot-w: clamp(160px, 44vw, 210px); }
 
       .controls-right{
         width:100%;
@@ -1000,7 +1010,10 @@
       .controls-right .btn{width:100%; padding: 11px 10px; border-radius: 14px;}
       .controls-right .btn.danger{grid-column: 1 / -1;}
 
-      .slot-card{ width: 200px; }
+      /* modal grid tighter on narrow screens */
+      .pick-grid{
+        grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      }
     }
 
     @media (prefers-reduced-motion: reduce){
@@ -1013,11 +1026,9 @@
 </head>
 
 <body>
-  <!-- overlay for mobile drawer -->
   <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
   <div class="app">
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
       <div class="brand">
         <div class="brand-left">
@@ -1078,12 +1089,11 @@
       </nav>
 
       <div class="sidebar-note">
-        Tip: Use “+ Add Active Skill” / “+ Add Passive Skill” on each row header.<br/>
-        Use the row button to show/hide all descriptions.
+        Tip: Row buttons show/hide ALL descriptions in that row.<br/>
+        Language switch is EN / MS.
       </div>
     </aside>
 
-    <!-- MAIN -->
     <main class="main">
       <header class="topbar">
         <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
@@ -1093,11 +1103,12 @@
         </button>
 
         <div class="top-actions">
-          <!-- ✅ language picker -->
+          <!-- ✅ fixed language options: EN / MS -->
           <div class="lang-wrap" title="Change language">
             <label for="langSelect">Lang</label>
             <select id="langSelect" aria-label="Language">
               <option value="en">EN</option>
+              <option value="ms">MS</option>
             </select>
           </div>
 
@@ -1154,7 +1165,7 @@
           <div class="section-title" style="margin-top:18px;">
             <span>Passive Skills Row</span>
             <div class="right">
-              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 1</span>
               <button class="btn brand small" id="addPassiveBtn" type="button">+ Add Passive Skill</button>
               <button class="btn small" id="togglePassiveDesc" type="button">Show Descriptions</button>
             </div>
@@ -1251,8 +1262,7 @@
      ***********************/
     const CFG = Object.freeze({
       SIDEBAR_KEY: 'ff_sidebar_collapsed_v1',
-      LANG_KEY: 'ff_loadout_lang_v1',
-
+      LANG_KEY: 'ff_loadout_lang_v2', /* bumped */
       CHAR_URLS: [
         'https://misai-my.github.io/freefire-esports/character.json',
         'https://neptuneg1.github.io/freefire-caster/character.json'
@@ -1352,15 +1362,21 @@
     });
 
     /***********************
-     * Language (auto-detect + switch)
+     * ✅ Language EN/MS only + JSON supports:
+     * - { field: { en:"", ms:"" } }
+     * - { field_en:"", field_ms:"" } (or _EN/_MS)
      ***********************/
+    const LANGS = Object.freeze(['en','ms']);
     const langSelect = document.getElementById('langSelect');
+
     let currentLang = (localStorage.getItem(CFG.LANG_KEY) || 'en').toLowerCase();
+    if (!LANGS.includes(currentLang)) currentLang = 'en';
+    if (langSelect) langSelect.value = currentLang;
 
     function looksLikeTranslationObject(obj){
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
       const keys = Object.keys(obj);
-      if (keys.length === 0 || keys.length > 12) return false;
+      if (!keys.length || keys.length > 12) return false;
       let stringCount = 0;
       for (const k of keys){
         if (typeof obj[k] === 'string') stringCount++;
@@ -1368,86 +1384,6 @@
       return stringCount >= Math.min(2, keys.length);
     }
 
-    function detectLanguageKeysFromValue(v, outSet){
-      if (!v || typeof v !== 'object') return;
-      if (Array.isArray(v)) return;
-      if (!looksLikeTranslationObject(v)) return;
-      for (const k of Object.keys(v)){
-        if (typeof v[k] === 'string' && v[k].trim()) outSet.add(String(k).toLowerCase());
-      }
-    }
-
-    function detectLanguages(arrays){
-      const s = new Set(['en']);
-      const fields = ['name','skill','description','desc','role','skill_type','category','type','weapon_type','special','perk','ability','attribute','summary','note','details'];
-      for (const arr of arrays){
-        for (let i=0;i<Math.min(80, arr.length); i++){
-          const it = arr[i];
-          if (!it || typeof it !== 'object') continue;
-          for (const f of fields){
-            detectLanguageKeysFromValue(it[f], s);
-          }
-        }
-      }
-      return [...s].sort((a,b) => a.localeCompare(b));
-    }
-
-    function populateLanguageSelect(keys){
-      if (!langSelect) return;
-      langSelect.innerHTML = '';
-      for (const k of keys){
-        const opt = document.createElement('option');
-        opt.value = k;
-        opt.textContent = k.toUpperCase();
-        langSelect.appendChild(opt);
-      }
-      if (!keys.includes(currentLang)) currentLang = keys.includes('en') ? 'en' : keys[0] || 'en';
-      langSelect.value = currentLang;
-    }
-
-    function setLanguage(lang){
-      const v = String(lang || 'en').toLowerCase();
-      currentLang = v;
-      localStorage.setItem(CFG.LANG_KEY, currentLang);
-      rerenderAll(); // 🔁 rerender with new language
-      toast(`Language: ${currentLang.toUpperCase()}`);
-    }
-
-    langSelect?.addEventListener('change', (e) => setLanguage(e.target.value));
-
-    /***********************
-     * Data + selection state
-     ***********************/
-    const STORE_KEY = 'ff_loadout_builder_v2'; // bumped because passive slots added
-
-    let characters = [];
-    let pets = [];
-    let weapons = [];
-    let loadouts = [];
-
-    // Active row: default 4 slots, expandable
-    let activeSlots = Array.from({length: 4}, () => null);
-
-    // Passive row: default 1 slot, expandable
-    let passiveSlots = Array.from({length: 4}, () => null);
-
-    // Other picks
-    let petPick = null;
-    let weaponPick = null;
-
-    // Picker context
-    let pickerMode = null; // 'active' | 'passive' | 'pet' | 'weapon'
-    let pickerIndex = 0;
-
-    const activeRowEl = document.getElementById('activeRow');
-    const passiveRowEl = document.getElementById('passiveRow');
-    const secondaryRowEl = document.getElementById('secondaryRow');
-
-    const activeWrap = document.getElementById('activeWrap');
-    const passiveWrap = document.getElementById('passiveWrap');
-    const secondaryWrap = document.getElementById('secondaryWrap');
-
-    // --- robust text coercion to avoid "[object Object]" + support language objects ---
     function asText(v, lang=currentLang){
       if (v === null || v === undefined) return '';
       if (typeof v === 'string') return v;
@@ -1458,13 +1394,11 @@
       }
 
       if (typeof v === 'object'){
-        // language-first for translation objects
         const lk = String(lang || 'en').toLowerCase();
-        const candidates = [lk, lk.toUpperCase(), 'en', 'EN', 'english', 'name', 'title', 'text', 'value', 'label', 'desc', 'description'];
+        const candidates = [lk, lk.toUpperCase(), 'en', 'EN', 'ms', 'MS', 'bm', 'BM', 'bahasa', 'Bahasa'];
         for (const k of candidates){
           if (typeof v[k] === 'string' && v[k].trim()) return v[k];
         }
-        // fallback: first string value
         for (const k of Object.keys(v)){
           if (typeof v[k] === 'string' && v[k].trim()) return v[k];
         }
@@ -1487,71 +1421,162 @@
       return s;
     };
 
+    // ✅ Prefer language-specific variants when lang !== EN
+    function pickLang(item, base){
+      if (!item || typeof item !== 'object') return '';
+      const lang = currentLang;
+
+      const direct = item[base];
+      if (direct && typeof direct === 'object' && looksLikeTranslationObject(direct)) {
+        return asText(direct, lang);
+      }
+
+      const langKeys = [
+        `${base}_${lang}`, `${base}_${lang.toUpperCase()}`,
+        (lang === 'ms') ? `${base}_bm` : null,
+        (lang === 'ms') ? `${base}_BM` : null,
+      ].filter(Boolean);
+
+      // if switching to MS, try MS-specific fields first (so name_ms overrides name)
+      if (lang !== 'en'){
+        for (const k of langKeys){
+          if (item[k] !== undefined && item[k] !== null && String(item[k]).trim()) return asText(item[k], lang);
+        }
+      }
+
+      if (direct !== undefined && direct !== null && String(direct).trim()){
+        return asText(direct, lang);
+      }
+
+      // fallback to EN variants
+      const enKeys = [`${base}_en`, `${base}_EN`, `${base}_english`];
+      for (const k of enKeys){
+        if (item[k] !== undefined && item[k] !== null && String(item[k]).trim()) return asText(item[k], lang);
+      }
+
+      // last: if lang==en, try ms too (some json might store only ms)
+      if (lang === 'en'){
+        const msKeys = [`${base}_ms`, `${base}_MS`, `${base}_bm`, `${base}_BM`];
+        for (const k of msKeys){
+          if (item[k] !== undefined && item[k] !== null && String(item[k]).trim()) return asText(item[k], lang);
+        }
+      }
+
+      return '';
+    }
+
+    function setLanguage(lang){
+      const v = String(lang || 'en').toLowerCase();
+      currentLang = LANGS.includes(v) ? v : 'en';
+      localStorage.setItem(CFG.LANG_KEY, currentLang);
+      rerenderAll();
+      toast(`Language: ${currentLang.toUpperCase()}`);
+    }
+    langSelect?.addEventListener('change', (e) => setLanguage(e.target.value));
+
+    /***********************
+     * Data + selection state
+     ***********************/
+    const STORE_KEY = 'ff_loadout_builder_v2';
+
+    let characters = [];
+    let pets = [];
+    let weapons = [];
+    let loadouts = [];
+
+    let activeSlots = Array.from({length: 4}, () => null);
+    let passiveSlots = Array.from({length: 1}, () => null);
+    let petPick = null;
+    let weaponPick = null;
+
+    let pickerMode = null;
+    let pickerIndex = 0;
+
+    const activeRowEl = document.getElementById('activeRow');
+    const passiveRowEl = document.getElementById('passiveRow');
+    const secondaryRowEl = document.getElementById('secondaryRow');
+
+    const activeWrap = document.getElementById('activeWrap');
+    const passiveWrap = document.getElementById('passiveWrap');
+    const secondaryWrap = document.getElementById('secondaryWrap');
+
     const lower = (v) => tidy(v).toLowerCase();
     const keyOf = (name) => lower(name);
 
-    function isPassiveChar(c){
-      return lower(c?.skill_type).includes('passive');
-    }
+    function isPassiveChar(c){ return lower(pickLang(c,'skill_type') || c?.skill_type).includes('passive'); }
     function isActiveChar(c){
-      const st = lower(c?.skill_type);
+      const st = lower(pickLang(c,'skill_type') || c?.skill_type);
       return st && !st.includes('passive');
     }
 
-    // Generic field getters
     function getItemName(item){
-      return tidy(item?.name || item?.weapon_name || item?.pet_name || item?.title) || '—';
+      return (
+        tidy(pickLang(item,'name')) ||
+        tidy(pickLang(item,'weapon_name')) ||
+        tidy(pickLang(item,'pet_name')) ||
+        tidy(pickLang(item,'title')) ||
+        '—'
+      );
     }
     function getItemImg(item){
       return tidy(item?.image_url || item?.img || item?.image || item?.icon || item?.logo_url) || '';
     }
     function getItemSubtitle(item, kind){
       if (kind === 'active' || kind === 'passive'){
-        const role = tidy(item?.role) || 'N/A';
-        const st = tidy(item?.skill_type) || (kind === 'passive' ? 'Passive' : 'Active');
+        const role = tidy(pickLang(item,'role') || item?.role) || 'N/A';
+        const st = tidy(pickLang(item,'skill_type') || item?.skill_type) || (kind === 'passive' ? 'Passive' : 'Active');
         return `${st} • ${role}`;
       }
       if (kind === 'pet'){
-        const t = tidy(item?.type || item?.category) || 'Pet';
+        const t = tidy(pickLang(item,'type') || item?.type || pickLang(item,'category') || item?.category) || 'Pet';
         return t;
       }
       if (kind === 'weapon'){
-        const cat = tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+        const cat = tidy(pickLang(item,'category') || item?.category || pickLang(item,'type') || item?.type || pickLang(item,'weapon_type') || item?.weapon_type) || 'Weapon';
         return cat;
       }
       if (kind === 'loadout'){
-        const tag = tidy(item?.mode || item?.type) || 'Loadout';
+        const tag = tidy(pickLang(item,'mode') || item?.mode || pickLang(item,'type') || item?.type) || 'Loadout';
         return tag;
       }
       return '—';
     }
     function getItemSkillLine(item, kind){
       if (kind === 'active' || kind === 'passive'){
-        return tidy(item?.skill) || '';
+        return tidy(pickLang(item,'skill') || item?.skill) || '';
       }
       if (kind === 'pet'){
-        return tidy(item?.skill || item?.ability || item?.passive || item?.active) || '';
+        return tidy(
+          pickLang(item,'skill') || item?.skill ||
+          pickLang(item,'ability') || item?.ability ||
+          pickLang(item,'passive') || item?.passive ||
+          pickLang(item,'active') || item?.active
+        ) || '';
       }
       if (kind === 'weapon'){
-        return tidy(item?.special || item?.perk || item?.ability || item?.attribute) || '';
+        return tidy(
+          pickLang(item,'special') || item?.special ||
+          pickLang(item,'perk') || item?.perk ||
+          pickLang(item,'ability') || item?.ability ||
+          pickLang(item,'attribute') || item?.attribute
+        ) || '';
       }
       if (kind === 'loadout'){
-        return tidy(item?.summary || item?.note || item?.desc_short) || '';
+        return tidy(pickLang(item,'summary') || item?.summary || pickLang(item,'note') || item?.note || pickLang(item,'desc_short') || item?.desc_short) || '';
       }
       return '';
     }
-    function getItemDesc(item, kind){
-      const d =
-        cleanDesc(item?.description) ||
-        cleanDesc(item?.desc) ||
-        cleanDesc(item?.details) ||
-        cleanDesc(item?.lore) ||
-        cleanDesc(item?.info) ||
-        cleanDesc(item?.notes) ||
-        cleanDesc(item?.summary) ||
-        cleanDesc(item?.note) ||
-        '';
-      return d || '';
+    function getItemDesc(item){
+      return cleanDesc(
+        pickLang(item,'description') || item?.description ||
+        pickLang(item,'desc') || item?.desc ||
+        pickLang(item,'details') || item?.details ||
+        pickLang(item,'info') || item?.info ||
+        pickLang(item,'notes') || item?.notes ||
+        pickLang(item,'summary') || item?.summary ||
+        pickLang(item,'note') || item?.note ||
+        ''
+      ) || '';
     }
 
     function packState(){
@@ -1565,11 +1590,9 @@
         lang: currentLang
       };
     }
-
     function saveState(){
       try{ sessionStorage.setItem(STORE_KEY, JSON.stringify(packState())); }catch(_){}
     }
-
     function restoreState(){
       try{
         const raw = sessionStorage.getItem(STORE_KEY);
@@ -1582,13 +1605,13 @@
         activeSlots = Array.from({length: aCount}, () => null);
         passiveSlots = Array.from({length: pCount}, () => null);
 
-        if (s.lang) currentLang = String(s.lang).toLowerCase();
+        if (s.lang && LANGS.includes(String(s.lang).toLowerCase())) currentLang = String(s.lang).toLowerCase();
+        if (langSelect) langSelect.value = currentLang;
         return s;
       }catch(_){
         return null;
       }
     }
-
     function findByName(list, name){
       const k = keyOf(name);
       if (!k) return null;
@@ -1645,28 +1668,17 @@
         .replaceAll('"','&quot;')
         .replaceAll("'","&#039;");
     }
-
     function descHTMLFromText(s){
       const raw = (s ?? '').toString();
       return escapeHTML(raw).replace(/\n/g, '<br/>');
     }
 
-    function slotCardHTML({
-      title,
-      kind,      // active|passive|pet|weapon|loadout
-      chipDot,   // active|passive|pet|weapon|loadout
-      chipText,
-      item,
-      emptyHint = 'Click to pick',
-      clickable = true,
-      removable = false,
-      removeIndex = -1
-    }){
+    function slotCardHTML({ title, kind, chipDot, chipText, item, emptyHint='Click to pick', clickable=true, removable=false, removeIndex=-1 }){
       const name = item ? getItemName(item) : title;
-      const sub = item ? getItemSubtitle(item, kind) : emptyHint;
-      const img = item ? getItemImg(item) : '';
+      const sub  = item ? getItemSubtitle(item, kind) : emptyHint;
+      const img  = item ? getItemImg(item) : '';
       const skillLine = item ? getItemSkillLine(item, kind) : '';
-      const descRaw = item ? (getItemDesc(item, kind) || '—') : `Pick an item to show its description.\n(${emptyHint})`;
+      const descRaw = item ? (getItemDesc(item) || '—') : `Pick an item to show its description.\n(${emptyHint})`;
 
       const removeBtn = removable ? `
         <button class="mini-x" data-remove="${removeIndex}" title="Remove slot" aria-label="Remove slot" type="button">
@@ -1709,7 +1721,7 @@
 
     function renderActiveRow(){
       activeRowEl.innerHTML = activeSlots.map((it, i) => {
-        const removable = i >= 4; // extras removable
+        const removable = i >= 4;
         return slotCardHTML({
           title: `Active ${i + 1}`,
           kind: 'active',
@@ -1747,7 +1759,7 @@
 
     function renderPassiveRow(){
       passiveRowEl.innerHTML = passiveSlots.map((it, i) => {
-        const removable = i >= 1; // extras removable
+        const removable = i >= 1;
         return slotCardHTML({
           title: `Passive ${i + 1}`,
           kind: 'passive',
@@ -1852,7 +1864,7 @@
       renderPassiveRow();
       renderSecondaryRow();
       syncRowDescButtons();
-      saveState(); // persist lang + slot counts
+      saveState();
     }
 
     /***********************
@@ -1866,25 +1878,15 @@
       if (!btn) return;
       btn.textContent = on ? 'Hide Descriptions' : 'Show Descriptions';
     }
-
     function syncRowDescButtons(){
       setBtnLabel(btnActiveDesc, activeWrap.classList.contains('show-desc'));
       setBtnLabel(btnPassiveDesc, passiveWrap.classList.contains('show-desc'));
       setBtnLabel(btnSecondaryDesc, secondaryWrap.classList.contains('show-desc'));
     }
 
-    btnActiveDesc?.addEventListener('click', () => {
-      activeWrap.classList.toggle('show-desc');
-      syncRowDescButtons();
-    });
-    btnPassiveDesc?.addEventListener('click', () => {
-      passiveWrap.classList.toggle('show-desc');
-      syncRowDescButtons();
-    });
-    btnSecondaryDesc?.addEventListener('click', () => {
-      secondaryWrap.classList.toggle('show-desc');
-      syncRowDescButtons();
-    });
+    btnActiveDesc?.addEventListener('click', () => { activeWrap.classList.toggle('show-desc'); syncRowDescButtons(); });
+    btnPassiveDesc?.addEventListener('click', () => { passiveWrap.classList.toggle('show-desc'); syncRowDescButtons(); });
+    btnSecondaryDesc?.addEventListener('click', () => { secondaryWrap.classList.toggle('show-desc'); syncRowDescButtons(); });
 
     /***********************
      * Picker modal
@@ -1897,16 +1899,13 @@
     function openPicker(mode, index){
       pickerMode = mode;
       pickerIndex = index;
-
-      // ✅ for CSS tweaks (weapon popout images)
       modal.dataset.mode = mode;
 
       const label =
         mode === 'active' ? `Pick Active (Slot ${index + 1})` :
         mode === 'passive' ? `Pick Passive (Slot ${index + 1})` :
         mode === 'pet' ? 'Pick Pet' :
-        mode === 'weapon' ? 'Pick Weapon' :
-        'Pick';
+        mode === 'weapon' ? 'Pick Weapon' : 'Pick';
 
       modalTitle.textContent = label;
       modalInput.value = '';
@@ -1933,14 +1932,13 @@
 
     function getPickerChipText(item){
       if (pickerMode === 'active' || pickerMode === 'passive'){
-        const r = tidy(item?.role) || 'N/A';
-        return r;
+        return tidy(pickLang(item,'role') || item?.role) || 'N/A';
       }
       if (pickerMode === 'pet'){
-        return tidy(item?.type || item?.category) || 'Pet';
+        return tidy(pickLang(item,'type') || item?.type || pickLang(item,'category') || item?.category) || 'Pet';
       }
       if (pickerMode === 'weapon'){
-        return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+        return tidy(pickLang(item,'category') || item?.category || pickLang(item,'weapon_type') || item?.weapon_type) || 'Weapon';
       }
       return '';
     }
@@ -1948,16 +1946,16 @@
     function buildSearchBlob(item){
       const fields = [
         getItemName(item),
-        tidy(item?.role),
-        tidy(item?.skill_type),
-        tidy(item?.skill),
-        tidy(item?.description),
-        tidy(item?.desc),
-        tidy(item?.category),
-        tidy(item?.type),
-        tidy(item?.weapon_type),
-        tidy(item?.special),
-        tidy(item?.perk),
+        tidy(pickLang(item,'role') || item?.role),
+        tidy(pickLang(item,'skill_type') || item?.skill_type),
+        tidy(pickLang(item,'skill') || item?.skill),
+        tidy(pickLang(item,'description') || item?.description),
+        tidy(pickLang(item,'desc') || item?.desc),
+        tidy(pickLang(item,'category') || item?.category),
+        tidy(pickLang(item,'type') || item?.type),
+        tidy(pickLang(item,'weapon_type') || item?.weapon_type),
+        tidy(pickLang(item,'special') || item?.special),
+        tidy(pickLang(item,'perk') || item?.perk),
       ].filter(Boolean).join(' ');
       return fields.toLowerCase();
     }
@@ -2074,6 +2072,10 @@
       passiveSlots = Array.from({length: 1}, () => null);
       petPick = null;
       weaponPick = null;
+      currentLang = 'en';
+      localStorage.setItem(CFG.LANG_KEY, currentLang);
+      if (langSelect) langSelect.value = currentLang;
+
       try{ sessionStorage.removeItem(STORE_KEY); }catch(_){}
       rerenderAll();
       toast('Reset complete.');
@@ -2095,49 +2097,22 @@
       weapons = Array.isArray(w) ? w : [];
       loadouts = Array.isArray(l) ? l : [];
 
-      // ✅ detect language keys from loaded datasets and populate dropdown
-      const langKeys = detectLanguages([characters, pets, weapons, loadouts]);
-      populateLanguageSelect(langKeys);
-
-      // restore selections by name (after data is available)
       const saved = restoreState();
       if (saved){
-        // apply restored lang (then resync select)
-        if (saved.lang) currentLang = String(saved.lang).toLowerCase();
-        if (langKeys.includes(currentLang)) langSelect.value = currentLang;
-        else {
-          currentLang = langKeys.includes('en') ? 'en' : (langKeys[0] || 'en');
-          langSelect.value = currentLang;
-        }
-
         const aCount = Math.max(4, Math.min(24, Number(saved.activeCount || 4)));
         const pCount = Math.max(1, Math.min(12, Number(saved.passiveCount || 1)));
         activeSlots = Array.from({length: aCount}, () => null);
         passiveSlots = Array.from({length: pCount}, () => null);
 
         const savedActives = Array.isArray(saved.activeSlots) ? saved.activeSlots : [];
-        savedActives.slice(0, aCount).forEach((nm, i) => {
-          if (!nm) return;
-          const obj = findByName(characters, nm);
-          if (obj) activeSlots[i] = obj;
-        });
+        savedActives.slice(0, aCount).forEach((nm, i) => { if (nm) { const obj = findByName(characters, nm); if (obj) activeSlots[i] = obj; } });
 
         const savedPassives = Array.isArray(saved.passiveSlots) ? saved.passiveSlots : [];
-        savedPassives.slice(0, pCount).forEach((nm, i) => {
-          if (!nm) return;
-          const obj = findByName(characters, nm);
-          if (obj) passiveSlots[i] = obj;
-        });
+        savedPassives.slice(0, pCount).forEach((nm, i) => { if (nm) { const obj = findByName(characters, nm); if (obj) passiveSlots[i] = obj; } });
 
         petPick = saved.petPick ? findByName(pets, saved.petPick) : null;
         weaponPick = saved.weaponPick ? findByName(weapons, saved.weaponPick) : null;
       }else{
-        // respect persisted language even if no builder state
-        const persisted = localStorage.getItem(CFG.LANG_KEY);
-        if (persisted) currentLang = String(persisted).toLowerCase();
-        if (!langKeys.includes(currentLang)) currentLang = langKeys.includes('en') ? 'en' : (langKeys[0] || 'en');
-        if (langSelect) langSelect.value = currentLang;
-
         activeSlots = Array.from({length: 4}, () => null);
         passiveSlots = Array.from({length: 1}, () => null);
       }
