@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- ✅ mobile-safe area + notch support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Highlight Builder</title>
+  <title>Loadout Builder — Skills / Pet / Weapon</title>
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -473,6 +473,13 @@
       gap:10px;
       flex-wrap:wrap;
     }
+    .section-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
     .muted{color: var(--muted);}
 
     /* Top controls inside page */
@@ -698,7 +705,7 @@
     }
     .desc-body .muted{font-weight:800}
 
-    /* Remove button for extra active slots */
+    /* Remove button for extra slots */
     .mini-x{
       position:absolute;
       top: 8px;
@@ -712,6 +719,7 @@
       cursor:pointer;
       transition:.15s ease;
       -webkit-tap-highlight-color: transparent;
+      z-index: 3;
     }
     .mini-x:hover{
       background: rgba(255,107,107,.16);
@@ -990,9 +998,9 @@
           <span class="nav-label">Character Skills</span>
         </a>
 
-        <a class="nav-item active" href="character-comparison.html" data-page="highlight.html" title="Highlight Builder">
+        <a class="nav-item active" href="character-comparison.html" data-page="character-comparison.html" title="Loadout Builder">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 3v18M14 3v18M4 7h6M14 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Highlight Builder</span>
+          <span class="nav-label">Loadout Builder</span>
         </a>
 
         <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
@@ -1022,8 +1030,8 @@
       </nav>
 
       <div class="sidebar-note">
-        Tip: Click a card to pick. Descriptions auto-update (no compare button).<br/>
-        Active row defaults to 4 slots — add more anytime.
+        Tip: Click a card to pick. Use the Description dropdown to expand details.<br/>
+        Active + Passive rows each default to 4 slots — add more anytime.
       </div>
     </aside>
 
@@ -1053,7 +1061,7 @@
         <div class="hero">
           <div class="hero-content">
             <div class="hero-title">
-              <h2>Highlight Builder</h2>
+              <h2>Loadout Builder</h2>
             </div>
           </div>
         </div>
@@ -1069,7 +1077,6 @@
             </div>
             <div class="controls-right">
               <a class="btn" href="dashboard.html">← Dashboard</a>
-              <button class="btn brand" id="addActiveBtn" type="button">+ Add Active Slot</button>
               <button class="btn danger" id="resetBtn" type="button">Reset</button>
             </div>
           </div>
@@ -1077,19 +1084,60 @@
           <!-- ACTIVE ROW -->
           <div class="section-title">
             <span>Active Skills Row</span>
-            <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn brand" id="addActiveBtn" type="button">+ Add Active Skill</button>
+            </div>
           </div>
           <div class="row-wrap">
             <div class="slot-row" id="activeRow"></div>
           </div>
 
-          <!-- SECOND ROW -->
+          <!-- PASSIVE ROW -->
           <div class="section-title" style="margin-top:18px;">
-            <span>Passive / Pet / Weapon / Loadouts</span>
-            <span class="muted" style="font-weight:800;font-size:.85rem;">Loadouts auto-populate all 4</span>
+            <span>Passive Skills Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn brand" id="addPassiveBtn" type="button">+ Add Passive Skill</button>
+            </div>
           </div>
           <div class="row-wrap">
-            <div class="slot-row" id="secondaryRow"></div>
+            <div class="slot-row" id="passiveRow"></div>
+          </div>
+
+          <!-- PET ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Pets Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 2 • Scroll →</span>
+              <button class="btn brand" id="addPetBtn" type="button">+ Add Pet Slot</button>
+            </div>
+          </div>
+          <div class="row-wrap">
+            <div class="slot-row" id="petRow"></div>
+          </div>
+
+          <!-- WEAPON ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Weapons Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 2 • Scroll →</span>
+              <button class="btn brand" id="addWeaponBtn" type="button">+ Add Weapon Slot</button>
+            </div>
+          </div>
+          <div class="row-wrap">
+            <div class="slot-row" id="weaponRow"></div>
+          </div>
+
+          <!-- LOADOUT ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Loadouts Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Auto-populate 4</span>
+            </div>
+          </div>
+          <div class="row-wrap">
+            <div class="slot-row" id="loadoutRow"></div>
           </div>
 
           <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
@@ -1168,8 +1216,6 @@
      ***********************/
     const CFG = Object.freeze({
       SIDEBAR_KEY: 'ff_sidebar_collapsed_v1',
-
-      // ✅ Adjust these URLs to match your project files if needed:
       CHAR_URLS: [
         'https://misai-my.github.io/freefire-esports/character.json',
         'https://neptuneg1.github.io/freefire-caster/character.json'
@@ -1179,12 +1225,10 @@
         'https://neptuneg1.github.io/freefire-caster/pet.json'
       ],
       WEAPON_URLS: [
-        // put your actual weapons JSON here (examples):
         'https://misai-my.github.io/freefire-esports/weapon.json',
         'https://neptuneg1.github.io/freefire-caster/weapon.json'
       ],
       LOADOUT_URLS: [
-        // put your actual loadout JSON here (must contain 4 loadouts)
         'https://misai-my.github.io/freefire-esports/loadout.json',
         'https://neptuneg1.github.io/freefire-caster/loadout.json'
       ]
@@ -1273,32 +1317,45 @@
     /***********************
      * Data + selection state
      ***********************/
-    const STORE_KEY = 'ff_loadout_builder_v1';
+    const STORE_KEY_V2 = 'ff_loadout_builder_v2';
+    const STORE_KEY_V1 = 'ff_loadout_builder_v1'; // migrate support
 
     let characters = [];
     let pets = [];
     let weapons = [];
     let loadouts = [];
 
-    // Active row: default 4 slots, expandable
-    let activeSlots = Array.from({length: 4}, () => null);
+    // ✅ Dedicated rows (default counts)
+    const DEFAULT_ACTIVE = 4;
+    const DEFAULT_PASSIVE = 4;
+    const DEFAULT_PET = 2;
+    const DEFAULT_WEAPON = 2;
 
-    // Second row picks
-    let passivePick = null;
-    let petPick = null;
-    let weaponPick = null;
+    let activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
+    let passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+    let petSlots     = Array.from({length: DEFAULT_PET},     () => null);
+    let weaponSlots  = Array.from({length: DEFAULT_WEAPON},  () => null);
 
     // Picker context
     let pickerMode = null; // 'active' | 'passive' | 'pet' | 'weapon'
     let pickerIndex = 0;
 
     const activeRowEl = document.getElementById('activeRow');
-    const secondaryRowEl = document.getElementById('secondaryRow');
+    const passiveRowEl = document.getElementById('passiveRow');
+    const petRowEl = document.getElementById('petRow');
+    const weaponRowEl = document.getElementById('weaponRow');
+    const loadoutRowEl = document.getElementById('loadoutRow');
 
     const tidy = (v) => (v ?? '').toString()
       .replace(/[\u200B-\u200D\uFEFF]/g, '')
       .replace(/\s*\n+\s*/g, ' ')
       .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    // Keep line breaks for description (no collapsing)
+    const tidyBlock = (v) => (v ?? '').toString()
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\r\n/g, '\n')
       .trim();
 
     const lower = (v) => tidy(v).toLowerCase();
@@ -1308,11 +1365,11 @@
       return lower(c?.skill_type).includes('passive');
     }
     function isActiveChar(c){
-      const st = lower(c?.skill_type);
-      return st && !st.includes('passive');
+      // treat missing skill_type as Active (so you don't accidentally hide skills)
+      return !isPassiveChar(c);
     }
 
-    // Generic field getters (so it still works even if JSON schema differs a bit)
+    // Generic field getters
     function getItemName(item){
       return tidy(item?.name || item?.weapon_name || item?.pet_name || item?.title) || '—';
     }
@@ -1326,16 +1383,13 @@
         return `${st} • ${role}`;
       }
       if (kind === 'pet'){
-        const t = tidy(item?.type || item?.category) || 'Pet';
-        return t;
+        return tidy(item?.type || item?.category) || 'Pet';
       }
       if (kind === 'weapon'){
-        const cat = tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
-        return cat;
+        return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
       }
       if (kind === 'loadout'){
-        const tag = tidy(item?.mode || item?.type) || 'Loadout';
-        return tag;
+        return tidy(item?.mode || item?.type) || 'Loadout';
       }
       return '—';
     }
@@ -1350,53 +1404,61 @@
         return tidy(item?.special || item?.perk || item?.ability || item?.attribute) || '';
       }
       if (kind === 'loadout'){
-        // Optional: show a short line (if you store it)
         return tidy(item?.summary || item?.note || item?.desc_short) || '';
       }
       return '';
     }
     function getItemDesc(item, kind){
-      // For your character.json: description (and maybe description_ms)
-      // For others: description / desc / lore, etc.
       const d =
-        tidy(item?.description) ||
-        tidy(item?.desc) ||
-        tidy(item?.details) ||
-        tidy(item?.lore) ||
-        tidy(item?.summary) ||
+        tidyBlock(item?.description) ||
+        tidyBlock(item?.desc) ||
+        tidyBlock(item?.details) ||
+        tidyBlock(item?.lore) ||
+        tidyBlock(item?.summary) ||
         '';
       if (d) return d;
 
-      // weapon data sometimes stores long text in "note" or "info"
-      const alt = tidy(item?.info) || tidy(item?.notes) || '';
+      const alt = tidyBlock(item?.info) || tidyBlock(item?.notes) || '';
       return alt || '';
     }
 
-    function packState(){
+    function packStateV2(){
       return {
-        activeSlots: activeSlots.map(x => x ? getItemName(x) : null),
-        passivePick: passivePick ? getItemName(passivePick) : null,
-        petPick: petPick ? getItemName(petPick) : null,
-        weaponPick: weaponPick ? getItemName(weaponPick) : null,
-        activeCount: activeSlots.length
+        v: 2,
+        activeCount: activeSlots.length,
+        passiveCount: passiveSlots.length,
+        petCount: petSlots.length,
+        weaponCount: weaponSlots.length,
+        activeSlots:  activeSlots.map(x => x ? getItemName(x) : null),
+        passiveSlots: passiveSlots.map(x => x ? getItemName(x) : null),
+        petSlots:     petSlots.map(x => x ? getItemName(x) : null),
+        weaponSlots:  weaponSlots.map(x => x ? getItemName(x) : null),
       };
     }
 
     function saveState(){
-      try{ sessionStorage.setItem(STORE_KEY, JSON.stringify(packState())); }catch(_){}
+      try{ sessionStorage.setItem(STORE_KEY_V2, JSON.stringify(packStateV2())); }catch(_){}
     }
 
     function restoreState(){
+      // Try V2
       try{
-        const raw = sessionStorage.getItem(STORE_KEY);
-        if (!raw) return null;
-        const s = JSON.parse(raw);
+        const raw2 = sessionStorage.getItem(STORE_KEY_V2);
+        if (raw2){
+          const s = JSON.parse(raw2);
+          if (s && typeof s === 'object'){
+            return { type:'v2', data:s };
+          }
+        }
+      }catch(_){}
+
+      // Try V1 (migrate)
+      try{
+        const raw1 = sessionStorage.getItem(STORE_KEY_V1);
+        if (!raw1) return null;
+        const s = JSON.parse(raw1);
         if (!s || typeof s !== 'object') return null;
-
-        const count = Math.max(4, Math.min(24, Number(s.activeCount || 4)));
-        activeSlots = Array.from({length: count}, () => null);
-
-        return s;
+        return { type:'v1', data:s };
       }catch(_){
         return null;
       }
@@ -1435,6 +1497,29 @@
     }
 
     /***********************
+     * Escaping
+     ***********************/
+    function escapeHTMLInline(str){
+      const s = tidy(str);
+      return s
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+    function escapeHTMLBlock(str){
+      const s = tidyBlock(str);
+      const esc = s
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+      return esc.replaceAll('\n','<br/>');
+    }
+
+    /***********************
      * Rendering
      ***********************/
     function caretSvg(){
@@ -1454,7 +1539,8 @@
       emptyHint = 'Click to pick',
       clickable = true,
       removable = false,
-      removeIndex = -1
+      removeIndex = -1,
+      index = 0
     }){
       const name = item ? getItemName(item) : title;
       const sub = item ? getItemSubtitle(item, kind) : emptyHint;
@@ -1470,21 +1556,21 @@
       ` : '';
 
       return `
-        <div class="slot-card ${clickable ? 'clickable' : ''}" data-kind="${kind}">
+        <div class="slot-card ${clickable ? 'clickable' : ''}" data-kind="${kind}" data-index="${index}">
           ${removeBtn}
           <div class="slot-top">
-            <b title="${title}">${title}</b>
-            <span class="chip"><span class="dot ${chipDot}"></span>${chipText}</span>
+            <b title="${escapeHTMLInline(title)}">${escapeHTMLInline(title)}</b>
+            <span class="chip"><span class="dot ${chipDot}"></span>${escapeHTMLInline(chipText)}</span>
           </div>
 
           <div class="slot-body">
             <div class="thumb">
-              ${img ? `<img src="${img}" alt="${tidy(name)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+              ${img ? `<img src="${escapeHTMLInline(img)}" alt="${escapeHTMLInline(name)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
             </div>
             <div class="meta">
-              <div class="name" title="${tidy(name)}">${tidy(name) || '—'}</div>
-              <div class="sub" title="${tidy(sub)}">${tidy(sub) || '—'}</div>
-              ${showSkill ? `<div class="skill" title="${tidy(skillLine)}">${tidy(skillLine)}</div>` : `<div class="skill" style="color:rgba(170,177,197,.9)">${''}</div>`}
+              <div class="name" title="${escapeHTMLInline(name)}">${escapeHTMLInline(name) || '—'}</div>
+              <div class="sub" title="${escapeHTMLInline(sub)}">${escapeHTMLInline(sub) || '—'}</div>
+              ${showSkill ? `<div class="skill" title="${escapeHTMLInline(skillLine)}">${escapeHTMLInline(skillLine)}</div>` : `<div class="skill" style="color:rgba(170,177,197,.9)"></div>`}
             </div>
           </div>
 
@@ -1494,96 +1580,68 @@
               ${caretSvg()}
             </summary>
             <div class="desc-body">
-              ${item ? '' : `<span class="muted">(${tidy(emptyHint)})</span><br/>`}
-              ${escapeHTML(desc)}
+              ${item ? '' : `<span class="muted">(${escapeHTMLInline(emptyHint)})</span><br/>`}
+              ${escapeHTMLBlock(desc)}
             </div>
           </details>
         </div>
       `;
     }
 
-    function escapeHTML(str){
-      const s = tidy(str);
-      return s
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#039;");
-    }
-
-    function renderActiveRow(){
-      activeRowEl.innerHTML = activeSlots.map((it, i) => {
-        const removable = i >= 4; // extras removable
+    function renderSlotsRow(rowEl, slots, {
+      kind,
+      chipDot,
+      chipText,
+      titlePrefix,
+      emptyHint,
+      defaultCount
+    }){
+      rowEl.innerHTML = slots.map((it, i) => {
+        const removable = i >= defaultCount;
         return slotCardHTML({
-          title: `Active ${i + 1}`,
-          kind: 'active',
-          chipDot: 'active',
-          chipText: 'Active',
+          title: `${titlePrefix} ${i + 1}`,
+          kind,
+          chipDot,
+          chipText,
           item: it,
-          emptyHint: 'Click to pick an Active skill',
+          emptyHint,
           clickable: true,
           removable,
-          removeIndex: i
+          removeIndex: i,
+          index: i
         });
       }).join('');
 
-      // Click handlers
-      [...activeRowEl.querySelectorAll('.slot-card.clickable')].forEach((card, idx) => {
+      // Click handlers (✅ fix: clicking Description should NOT open picker)
+      rowEl.querySelectorAll('.slot-card.clickable').forEach(card => {
         card.addEventListener('click', (e) => {
-          // ignore remove click bubbling
           if (e.target?.closest?.('.mini-x')) return;
-          openPicker('active', idx);
+          if (e.target?.closest?.('details.desc')) return; // <- fixes "buggy description" / accidental picker open
+          const idx = Number(card.getAttribute('data-index') || '0');
+          openPicker(kind, idx);
         });
       });
 
-      // Remove handlers for extra slots
-      [...activeRowEl.querySelectorAll('[data-remove]')].forEach(btn => {
+      // Remove handlers
+      rowEl.querySelectorAll('[data-remove]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const i = Number(btn.getAttribute('data-remove'));
-          if (!Number.isFinite(i) || i < 4) return;
-          activeSlots.splice(i, 1);
+          if (!Number.isFinite(i) || i < defaultCount) return;
+
+          if (kind === 'active')  activeSlots.splice(i, 1);
+          if (kind === 'passive') passiveSlots.splice(i, 1);
+          if (kind === 'pet')     petSlots.splice(i, 1);
+          if (kind === 'weapon')  weaponSlots.splice(i, 1);
+
           saveState();
-          renderActiveRow();
+          rerenderAll();
         });
       });
     }
 
-    function renderSecondaryRow(){
+    function renderLoadoutsRow(){
       const parts = [];
-
-      parts.push(slotCardHTML({
-        title: 'Passive',
-        kind: 'passive',
-        chipDot: 'passive',
-        chipText: 'Passive',
-        item: passivePick,
-        emptyHint: 'Click to pick a Passive',
-        clickable: true
-      }));
-
-      parts.push(slotCardHTML({
-        title: 'Pet',
-        kind: 'pet',
-        chipDot: 'pet',
-        chipText: 'Pet',
-        item: petPick,
-        emptyHint: 'Click to pick a Pet',
-        clickable: true
-      }));
-
-      parts.push(slotCardHTML({
-        title: 'Weapon',
-        kind: 'weapon',
-        chipDot: 'weapon',
-        chipText: 'Weapon',
-        item: weaponPick,
-        emptyHint: 'Click to pick a Weapon',
-        clickable: true
-      }));
-
-      // Loadouts: show all 4 (auto populated)
       const lo = (Array.isArray(loadouts) ? loadouts.slice(0, 4) : []);
       if (lo.length){
         lo.forEach((l, idx) => {
@@ -1594,11 +1652,12 @@
             chipText: 'Loadout',
             item: l,
             emptyHint: 'Loadout data',
-            clickable: false
+            clickable: false,
+            removable: false,
+            index: idx
           }));
         });
       }else{
-        // placeholders if loadout.json not found yet
         for (let i=0;i<4;i++){
           parts.push(slotCardHTML({
             title: `Loadout ${i + 1}`,
@@ -1607,28 +1666,53 @@
             chipText: 'Loadout',
             item: null,
             emptyHint: 'Loadout JSON not loaded',
-            clickable: false
+            clickable: false,
+            removable: false,
+            index: i
           }));
         }
       }
-
-      secondaryRowEl.innerHTML = parts.join('');
-
-      // Click handlers for the 3 pickable cards
-      const cards = [...secondaryRowEl.querySelectorAll('.slot-card.clickable')];
-      cards.forEach(card => {
-        const kind = card.getAttribute('data-kind');
-        card.addEventListener('click', () => {
-          if (kind === 'passive') openPicker('passive', 0);
-          if (kind === 'pet') openPicker('pet', 0);
-          if (kind === 'weapon') openPicker('weapon', 0);
-        });
-      });
+      loadoutRowEl.innerHTML = parts.join('');
     }
 
     function rerenderAll(){
-      renderActiveRow();
-      renderSecondaryRow();
+      renderSlotsRow(activeRowEl, activeSlots, {
+        kind: 'active',
+        chipDot: 'active',
+        chipText: 'Active',
+        titlePrefix: 'Active',
+        emptyHint: 'Click to pick an Active skill',
+        defaultCount: DEFAULT_ACTIVE
+      });
+
+      renderSlotsRow(passiveRowEl, passiveSlots, {
+        kind: 'passive',
+        chipDot: 'passive',
+        chipText: 'Passive',
+        titlePrefix: 'Passive',
+        emptyHint: 'Click to pick a Passive skill',
+        defaultCount: DEFAULT_PASSIVE
+      });
+
+      renderSlotsRow(petRowEl, petSlots, {
+        kind: 'pet',
+        chipDot: 'pet',
+        chipText: 'Pet',
+        titlePrefix: 'Pet',
+        emptyHint: 'Click to pick a Pet',
+        defaultCount: DEFAULT_PET
+      });
+
+      renderSlotsRow(weaponRowEl, weaponSlots, {
+        kind: 'weapon',
+        chipDot: 'weapon',
+        chipText: 'Weapon',
+        titlePrefix: 'Weapon',
+        emptyHint: 'Click to pick a Weapon',
+        defaultCount: DEFAULT_WEAPON
+      });
+
+      renderLoadoutsRow();
     }
 
     /***********************
@@ -1644,10 +1728,10 @@
       pickerIndex = index;
 
       const label =
-        mode === 'active' ? `Pick Active (Slot ${index + 1})` :
-        mode === 'passive' ? 'Pick Passive' :
-        mode === 'pet' ? 'Pick Pet' :
-        mode === 'weapon' ? 'Pick Weapon' :
+        mode === 'active'  ? `Pick Active (Slot ${index + 1})` :
+        mode === 'passive' ? `Pick Passive (Slot ${index + 1})` :
+        mode === 'pet'     ? `Pick Pet (Slot ${index + 1})` :
+        mode === 'weapon'  ? `Pick Weapon (Slot ${index + 1})` :
         'Pick';
 
       modalTitle.textContent = label;
@@ -1674,8 +1758,7 @@
 
     function getPickerChipText(item){
       if (pickerMode === 'active' || pickerMode === 'passive'){
-        const r = tidy(item?.role) || 'N/A';
-        return r;
+        return tidy(item?.role) || 'N/A';
       }
       if (pickerMode === 'pet'){
         return tidy(item?.type || item?.category) || 'Pet';
@@ -1692,8 +1775,8 @@
         tidy(item?.role),
         tidy(item?.skill_type),
         tidy(item?.skill),
-        tidy(item?.description),
-        tidy(item?.desc),
+        tidyBlock(item?.description),
+        tidyBlock(item?.desc),
         tidy(item?.category),
         tidy(item?.type),
         tidy(item?.weapon_type),
@@ -1729,9 +1812,9 @@
         const chip = getPickerChipText(it);
 
         pick.innerHTML = `
-          ${img ? `<img src="${img}" alt="${escapeHTML(nm)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
-          <div class="nm">${escapeHTML(nm)}</div>
-          <div class="rl">${escapeHTML(chip || '—')}</div>
+          ${img ? `<img src="${escapeHTMLInline(img)}" alt="${escapeHTMLInline(nm)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+          <div class="nm">${escapeHTMLInline(nm)}</div>
+          <div class="rl">${escapeHTMLInline(chip || '—')}</div>
         `;
 
         pick.addEventListener('click', () => applyPick(it));
@@ -1741,44 +1824,48 @@
 
     function applyPick(item){
       const nm = getItemName(item);
+      const k = keyOf(nm);
 
-      // Prevent duplicate actives inside active row (optional but useful)
+      // Prevent duplicates within each row (optional but helpful)
       if (pickerMode === 'active'){
-        const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === keyOf(nm));
+        const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
         if (existsAt !== -1 && existsAt !== pickerIndex){
           toast('That active skill is already in another slot.');
           return;
         }
         activeSlots[pickerIndex] = item;
-        saveState();
-        renderActiveRow();
-        closePicker();
-        return;
       }
 
       if (pickerMode === 'passive'){
-        passivePick = item;
-        saveState();
-        renderSecondaryRow();
-        closePicker();
-        return;
+        const existsAt = passiveSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That passive skill is already in another slot.');
+          return;
+        }
+        passiveSlots[pickerIndex] = item;
       }
 
       if (pickerMode === 'pet'){
-        petPick = item;
-        saveState();
-        renderSecondaryRow();
-        closePicker();
-        return;
+        const existsAt = petSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That pet is already in another slot.');
+          return;
+        }
+        petSlots[pickerIndex] = item;
       }
 
       if (pickerMode === 'weapon'){
-        weaponPick = item;
-        saveState();
-        renderSecondaryRow();
-        closePicker();
-        return;
+        const existsAt = weaponSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That weapon is already in another slot.');
+          return;
+        }
+        weaponSlots[pickerIndex] = item;
       }
+
+      saveState();
+      rerenderAll();
+      closePicker();
     }
 
     document.getElementById('modalCloseBtn')?.addEventListener('click', closePicker);
@@ -1793,17 +1880,42 @@
     document.getElementById('addActiveBtn')?.addEventListener('click', () => {
       activeSlots.push(null);
       saveState();
-      renderActiveRow();
-      // auto-scroll to end
+      rerenderAll();
       setTimeout(() => { activeRowEl.scrollLeft = activeRowEl.scrollWidth; }, 0);
     });
 
+    document.getElementById('addPassiveBtn')?.addEventListener('click', () => {
+      passiveSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { passiveRowEl.scrollLeft = passiveRowEl.scrollWidth; }, 0);
+    });
+
+    document.getElementById('addPetBtn')?.addEventListener('click', () => {
+      petSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { petRowEl.scrollLeft = petRowEl.scrollWidth; }, 0);
+    });
+
+    document.getElementById('addWeaponBtn')?.addEventListener('click', () => {
+      weaponSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { weaponRowEl.scrollLeft = weaponRowEl.scrollWidth; }, 0);
+    });
+
     document.getElementById('resetBtn')?.addEventListener('click', () => {
-      activeSlots = Array.from({length: 4}, () => null);
-      passivePick = null;
-      petPick = null;
-      weaponPick = null;
-      try{ sessionStorage.removeItem(STORE_KEY); }catch(_){}
+      activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
+      passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+      petSlots     = Array.from({length: DEFAULT_PET},     () => null);
+      weaponSlots  = Array.from({length: DEFAULT_WEAPON},  () => null);
+
+      try{
+        sessionStorage.removeItem(STORE_KEY_V2);
+        sessionStorage.removeItem(STORE_KEY_V1);
+      }catch(_){}
+
       rerenderAll();
       toast('Reset complete.');
     });
@@ -1812,7 +1924,6 @@
      * Init
      ***********************/
     async function initDataAndState(){
-      // load datasets
       const [c, p, w, l] = await Promise.all([
         fetchFromUrls(CFG.CHAR_URLS),
         fetchFromUrls(CFG.PET_URLS),
@@ -1825,25 +1936,86 @@
       weapons = Array.isArray(w) ? w : [];
       loadouts = Array.isArray(l) ? l : [];
 
-      // restore selections by name (after data is available)
-      const saved = restoreState();
-      if (saved){
-        const count = Math.max(4, Math.min(24, Number(saved.activeCount || 4)));
-        activeSlots = Array.from({length: count}, () => null);
+      const restored = restoreState();
 
-        const savedActives = Array.isArray(saved.activeSlots) ? saved.activeSlots : [];
-        savedActives.slice(0, count).forEach((nm, i) => {
+      if (restored?.type === 'v2'){
+        const s = restored.data;
+
+        const ac = Math.max(DEFAULT_ACTIVE,  Math.min(24, Number(s.activeCount  || DEFAULT_ACTIVE)));
+        const pc = Math.max(DEFAULT_PASSIVE, Math.min(24, Number(s.passiveCount || DEFAULT_PASSIVE)));
+        const ptc= Math.max(DEFAULT_PET,     Math.min(24, Number(s.petCount     || DEFAULT_PET)));
+        const wc = Math.max(DEFAULT_WEAPON,  Math.min(24, Number(s.weaponCount  || DEFAULT_WEAPON)));
+
+        activeSlots  = Array.from({length: ac},  () => null);
+        passiveSlots = Array.from({length: pc},  () => null);
+        petSlots     = Array.from({length: ptc}, () => null);
+        weaponSlots  = Array.from({length: wc},  () => null);
+
+        (Array.isArray(s.activeSlots) ? s.activeSlots : []).slice(0, ac).forEach((nm, i) => {
           if (!nm) return;
           const obj = findByName(characters, nm);
           if (obj) activeSlots[i] = obj;
         });
 
-        passivePick = saved.passivePick ? findByName(characters, saved.passivePick) : null;
-        petPick = saved.petPick ? findByName(pets, saved.petPick) : null;
-        weaponPick = saved.weaponPick ? findByName(weapons, saved.weaponPick) : null;
-      }else{
-        // Ensure default 4
-        activeSlots = Array.from({length: 4}, () => null);
+        (Array.isArray(s.passiveSlots) ? s.passiveSlots : []).slice(0, pc).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) passiveSlots[i] = obj;
+        });
+
+        (Array.isArray(s.petSlots) ? s.petSlots : []).slice(0, ptc).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(pets, nm);
+          if (obj) petSlots[i] = obj;
+        });
+
+        (Array.isArray(s.weaponSlots) ? s.weaponSlots : []).slice(0, wc).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(weapons, nm);
+          if (obj) weaponSlots[i] = obj;
+        });
+      }
+      else if (restored?.type === 'v1'){
+        // Migrate from old format (activeSlots + passivePick/petPick/weaponPick)
+        const s = restored.data;
+
+        const ac = Math.max(DEFAULT_ACTIVE, Math.min(24, Number(s.activeCount || DEFAULT_ACTIVE)));
+        activeSlots = Array.from({length: ac}, () => null);
+
+        const savedActives = Array.isArray(s.activeSlots) ? s.activeSlots : [];
+        savedActives.slice(0, ac).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) activeSlots[i] = obj;
+        });
+
+        passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+        if (s.passivePick){
+          const obj = findByName(characters, s.passivePick);
+          if (obj) passiveSlots[0] = obj;
+        }
+
+        petSlots = Array.from({length: DEFAULT_PET}, () => null);
+        if (s.petPick){
+          const obj = findByName(pets, s.petPick);
+          if (obj) petSlots[0] = obj;
+        }
+
+        weaponSlots = Array.from({length: DEFAULT_WEAPON}, () => null);
+        if (s.weaponPick){
+          const obj = findByName(weapons, s.weaponPick);
+          if (obj) weaponSlots[0] = obj;
+        }
+
+        // Save migrated to V2
+        saveState();
+      }
+      else{
+        // Defaults already set
+        activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
+        passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+        petSlots     = Array.from({length: DEFAULT_PET},     () => null);
+        weaponSlots  = Array.from({length: DEFAULT_WEAPON},  () => null);
       }
 
       rerenderAll();
