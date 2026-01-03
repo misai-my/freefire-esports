@@ -896,14 +896,10 @@
             </div>
 
             <div class="controls-right">
-              <!-- ✅ Consistent "language dropdown" (EN/MS) -->
-              <div class="field">
-                <label for="descLang">Desc</label>
-                <select id="descLang" title="Description language">
-                  <option value="en">EN</option>
-                  <option value="ms">MS</option>
-                </select>
-              </div>
+              <!-- ✅ Language toggle button (replaces dropdown) -->
+              <button class="btn" id="langToggle" type="button" title="Toggle description language" aria-pressed="false">
+                Desc: EN
+              </button>
 
               <div class="field">
                 <label for="filterRole">Role</label>
@@ -1078,10 +1074,10 @@
     })();
 
     /***********************
-     * ✅ Description language dropdown (description vs description_ms)
+     * ✅ Description language TOGGLE BUTTON (description vs description_ms)
      ***********************/
     const KEY_LANG = 'ff_pet_desc_lang_v2'; // 'en' / 'ms'
-    const descLang = document.getElementById('descLang');
+    const langToggle = document.getElementById('langToggle');
     let useMS = (localStorage.getItem(KEY_LANG) === 'ms');
     let lastOpenedPet = null;
 
@@ -1104,13 +1100,15 @@
     }
 
     function syncLangUI(){
-      if (!descLang) return;
-      descLang.value = useMS ? 'ms' : 'en';
+      if (!langToggle) return;
+      langToggle.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
+      langToggle.setAttribute('aria-pressed', useMS ? 'true' : 'false');
     }
 
-    descLang?.addEventListener('change', () => {
-      useMS = (descLang.value === 'ms');
+    langToggle?.addEventListener('click', () => {
+      useMS = !useMS;
       localStorage.setItem(KEY_LANG, useMS ? 'ms' : 'en');
+      syncLangUI();
 
       if (infoModal.classList.contains('show') && lastOpenedPet){
         openInfo(lastOpenedPet, true);
