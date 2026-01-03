@@ -253,6 +253,21 @@
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
 
+    /* ✅ Language dropdown (fixed list, never reads JSON keys) */
+    .lang-select{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: var(--ink);
+      font-weight: 800;
+      font-size: .86rem;
+      letter-spacing: .2px;
+      cursor: pointer;
+      flex:0 0 auto;
+      max-width: 210px;
+    }
+
     .top-actions{
       display:flex;
       align-items:center;
@@ -317,23 +332,6 @@
       border-color: rgba(255,77,77,.35);
       color: #ff8d8d;
       box-shadow: 0 0 0 3px rgba(255,77,77,.10);
-    }
-
-    /* NEW: Language select styled like theme */
-    .lang-select{
-      padding: 8px 10px;
-      height: 42px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.20);
-      color: rgba(244,246,255,.92);
-      font-weight: 900;
-      letter-spacing: .2px;
-      cursor: pointer;
-    }
-    .lang-select:hover{
-      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
-      border-color: rgba(77,211,255,.22);
     }
 
     /* Content */
@@ -466,6 +464,7 @@
         border-radius: 16px;
       }
       .hero-chip{ border-radius: 16px; }
+      .lang-select{ max-width: 160px; }
     }
 
     /* Horizontal Quick View */
@@ -861,6 +860,9 @@
       .quickbar{ grid-template-columns: 1fr; }
       .modal-controls input{min-width: 0; width:100%;}
       .modal-controls select{min-width: 0; width:100%;}
+      .lang-select{ width: 100%; max-width: none; }
+      .topbar{ flex-wrap: wrap; }
+      .search{ flex: 1 1 280px; }
     }
 
     /* ===== Map Window bar (Dashboard) ===== */
@@ -1088,13 +1090,10 @@
           <input id="searchInput" placeholder="Search pages..." />
         </div>
 
-        <div class="top-actions">
-          <!-- NEW: Language selector (auto-detects *_xx fields like description_ms / details_ms) -->
-          <select id="langSelect" class="lang-select" title="Language">
-            <option value="en">EN</option>
-            <option value="ms">MS</option>
-          </select>
+        <!-- ✅ Fixed language dropdown (no more TYPE) -->
+        <select id="langSelect" class="lang-select" aria-label="Language"></select>
 
+        <div class="top-actions">
           <div class="userchip">
             <div class="avatar"></div>
             <div class="usertext">
@@ -1351,134 +1350,6 @@
     }
 
     /***********************
-     * Language (auto supports *_xx fields like description_ms, name_ms, skill_ms, details_ms)
-     ***********************/
-    const LANG_KEY = 'ff_lang_v1';
-    const LANG_STATE = {
-      current: (localStorage.getItem(LANG_KEY) || 'en').toLowerCase()
-    };
-
-    function safeText(v){ return (v ?? '').toString(); }
-    function norm(v){ return safeText(v).trim(); }
-    function normLower(v){ return norm(v).toLowerCase(); }
-    function isTruthy(v){ return !!norm(v); }
-
-    function getLocalizedField(item, base, lang){
-      if (!item) return '';
-      const l = (lang || 'en').toLowerCase();
-
-      // EN = use base field
-      if (l && l !== 'en'){
-        const k = `${base}_${l}`;       // e.g. description_ms
-        if (k in item && isTruthy(item[k])) return item[k];
-      }
-
-      // fallback to base
-      return (base in item) ? item[base] : '';
-    }
-
-    function getAnyLocalized(item, bases, lang){
-      for (const b of bases){
-        const v = getLocalizedField(item, b, lang);
-        if (isTruthy(v)) return v;
-      }
-      // final: try non-localized candidates
-      for (const b of bases){
-        const v = item?.[b];
-        if (isTruthy(v)) return v;
-      }
-      return '';
-    }
-
-    function getLoadoutDetails(item, lang, mode){
-      if (!item) return '';
-      const l = (lang || 'en').toLowerCase();
-      const m = (mode || '').toLowerCase();
-
-      if (l && l !== 'en'){
-        const dk = `details_${l}`; // details_ms
-        const dObj = item?.[dk];
-        const v = dObj?.[m];
-        if (isTruthy(v)) return v;
-      }
-      return item?.details?.[m] || '';
-    }
-
-    // detect language suffixes from loaded JSON keys (name_xx, description_xx, skill_xx, details_xx)
-    function detectLangCodesFromItems(items){
-      const langs = new Set();
-      const re = /^(name|description|skill|ability|type|desc|special|details)_(\w{2,5})$/i;
-
-      for (const it of (items || [])){
-        if (!it || typeof it !== 'object') continue;
-
-        // top-level keys
-        for (const k of Object.keys(it)){
-          const m = k.match(re);
-          if (m && m[2]) langs.add(m[2].toLowerCase());
-        }
-
-        // also check details_xx object exists
-        for (const k of Object.keys(it)){
-          if (/^details_\w{2,5}$/i.test(k)) {
-            const code = k.split('_').pop()?.toLowerCase();
-            if (code) langs.add(code);
-          }
-        }
-      }
-      return langs;
-    }
-
-    function buildLanguageOptions(){
-      const sel = document.getElementById('langSelect');
-      if (!sel) return;
-
-      const discovered = new Set(['en']); // always include en
-
-      // scan across datasets (once loaded)
-      for (const k of Object.keys(DATA || {})){
-        const items = DATA[k]?.items || [];
-        detectLangCodesFromItems(items).forEach(c => discovered.add(c));
-      }
-
-      // keep MS as a friendly default even if not detected yet
-      discovered.add('ms');
-
-      const sorted = Array.from(discovered).sort((a,b) => {
-        if (a === 'en') return -1;
-        if (b === 'en') return 1;
-        return a.localeCompare(b);
-      });
-
-      const cur = (LANG_STATE.current || 'en').toLowerCase();
-      sel.innerHTML = sorted.map(code => {
-        const label = code.toUpperCase();
-        return `<option value="${code}">${label}</option>`;
-      }).join('');
-
-      sel.value = sorted.includes(cur) ? cur : 'en';
-      LANG_STATE.current = sel.value;
-      localStorage.setItem(LANG_KEY, LANG_STATE.current);
-    }
-
-    function onLanguageChanged(){
-      // refresh quick view + carousel + any open modals
-      applyQuickView('character');
-      applyQuickView('pet');
-      applyQuickView('weapon');
-      applyQuickView('loadout');
-      buildHeroCarousel();
-
-      if (loadoutModal?.classList.contains('show')){
-        openLoadoutDetails(); // re-render contents in current language
-      }
-
-      if (modal?.classList.contains('show')){
-        renderPickerGrid();   // show translated names in picker if available
-      }
-    }
-
-    /***********************
      * Sidebar (Desktop collapse + Mobile drawer)
      ***********************/
     const sidebar = document.getElementById('sidebar');
@@ -1612,12 +1483,102 @@
       loadout: 'all'
     };
 
-    function pickImg(item){
-      return item?.image_url || item?.icon || item?.img || 'https://i.imgur.com/qXFpizS.jpg';
+    function safeText(v){ return (v ?? '').toString(); }
+    function norm(v){ return safeText(v).trim(); }
+    function normLower(v){ return norm(v).toLowerCase(); }
+
+    /***********************
+     * ✅ Language (BEST OPTION)
+     * - fixed list only (never reads JSON keys, so no "TYPE")
+     * - supports: name_ms, description_ms, skill_ms, type_ms, etc
+     * - loadout supports: details_ms: { br:"", cs:"" }
+     ***********************/
+    const SUPPORTED_LANGS = [
+      { code: "en", label: "English" },
+      { code: "ms", label: "Bahasa Melayu" },
+      // add more later safely:
+      // { code: "id", label: "Bahasa Indonesia" },
+      // { code: "th", label: "ไทย" },
+      // { code: "vi", label: "Tiếng Việt" },
+      // { code: "tl", label: "Filipino" },
+    ];
+
+    const LANG = { key: "ff_lang_v1", current: "en" };
+
+    function getLang(){
+      const saved = localStorage.getItem(LANG.key);
+      return SUPPORTED_LANGS.some(l => l.code === saved) ? saved : "en";
     }
 
-    function getName(item){
-      return norm(getLocalizedField(item, 'name', LANG_STATE.current)) || norm(item?.name) || '—';
+    function setLang(code){
+      if (!SUPPORTED_LANGS.some(l => l.code === code)) code = "en";
+      LANG.current = code;
+      localStorage.setItem(LANG.key, code);
+
+      // refresh visible UI
+      applyQuickView('character');
+      applyQuickView('pet');
+      applyQuickView('weapon');
+      applyQuickView('loadout');
+
+      // if picker is open, re-render to show translated names/tooltips
+      if (modal?.classList.contains('show')) renderPickerGrid();
+    }
+
+    function initLangSelect(){
+      const sel = document.getElementById("langSelect");
+      if (!sel) return;
+
+      sel.innerHTML = SUPPORTED_LANGS
+        .map(l => `<option value="${l.code}">${l.label}</option>`)
+        .join("");
+
+      LANG.current = getLang();
+      sel.value = LANG.current;
+
+      sel.addEventListener("change", () => setLang(sel.value));
+    }
+
+    function tField(item, baseKey){
+      if (!item) return "";
+      const code = LANG.current || "en";
+
+      if (code !== "en"){
+        const v = item[`${baseKey}_${code}`];
+        if (v != null && String(v).trim() !== "") return String(v);
+      }
+
+      const v2 = item[baseKey];
+      return v2 != null ? String(v2) : "";
+    }
+
+    function tLoadoutDetails(item, mode /* "br"|"cs" */){
+      if (!item) return "";
+      const code = LANG.current || "en";
+
+      // preferred: details_ms object (and future: details_id, details_th, ...)
+      if (code !== "en"){
+        const obj = item[`details_${code}`];
+
+        // if object style:
+        if (obj && typeof obj === "object"){
+          const v = obj?.[mode];
+          if (v != null && String(v).trim() !== "") return String(v);
+        }
+
+        // if someone stored it as string accidentally:
+        if (typeof obj === "string" && obj.trim()){
+          return obj;
+        }
+      }
+
+      // fallback: EN details object
+      const v2 = item?.details?.[mode];
+      return v2 != null ? String(v2) : "";
+    }
+
+    function pickImg(item){
+      return item?.image_url || item?.icon || item?.img || 'https://i.imgur.com/qXFpizS.jpg';
     }
 
     function getCategory(type, item){
@@ -1630,32 +1591,28 @@
 
     function buildDesc(type, item){
       if (!item) return '—';
-      const lang = LANG_STATE.current;
 
       if (type === 'character'){
-        const skill = getAnyLocalized(item, ['skill','ability'], lang);
-        const d = getLocalizedField(item, 'description', lang); // uses description_ms when lang=ms
-        const left = isTruthy(skill) ? skill : '—';
-        return left + (isTruthy(d) ? ` — ${d}` : '');
+        const skill = tField(item, "skill");
+        const d = tField(item, "description");
+        return (skill ? skill : '—') + (d ? ` — ${d}` : '');
       }
 
       if (type === 'pet'){
-        const skill = getAnyLocalized(item, ['skill','ability'], lang);
-        const d = getLocalizedField(item, 'description', lang);
-        const left = isTruthy(skill) ? skill : '—';
-        return left + (isTruthy(d) ? ` — ${d}` : '');
+        const skill = tField(item, "skill") || tField(item, "ability");
+        const d = tField(item, "description");
+        return (skill ? skill : '—') + (d ? ` — ${d}` : '');
       }
 
       if (type === 'weapon'){
-        const t = getAnyLocalized(item, ['type','weapon_type','category','class'], lang);
-        const d = getAnyLocalized(item, ['description','special','desc'], lang);
-        const left = isTruthy(t) ? t : '—';
-        return left + (isTruthy(d) ? ` — ${d}` : '');
+        const t = tField(item, "type") || tField(item, "category");
+        const d = tField(item, "description") || tField(item, "special") || tField(item, "desc");
+        return (t ? t : '—') + (d ? ` — ${d}` : '');
       }
 
       if (type === 'loadout'){
-        const br = getLoadoutDetails(item, lang, 'br');
-        const cs = getLoadoutDetails(item, lang, 'cs');
+        const br = tLoadoutDetails(item, "br");
+        const cs = tLoadoutDetails(item, "cs");
 
         const headLine = (txt, max=170) => {
           const t = safeText(txt).trim();
@@ -1664,11 +1621,13 @@
           return first.length > max ? first.slice(0, max-1) + '…' : first;
         };
 
-        const parts = [];
         const brHead = headLine(br);
         const csHead = headLine(cs);
+
+        const parts = [];
         if (brHead) parts.push(`BR: ${brHead}`);
         if (csHead) parts.push(`CS: ${csHead}`);
+
         return parts.join('  ') || '—';
       }
 
@@ -1687,7 +1646,7 @@
       if (!item) return;
 
       const img = pickImg(item);
-      const name = getName(item);
+      const name = safeText(tField(item, "name") || '—');
       const desc = buildDesc(type, item);
 
       if (type === 'character'){
@@ -1763,7 +1722,7 @@
         <div class="hero-carousel-strip" id="heroCarouselStrip">
           ${finalSeq.map(idx => {
             const it = items[idx];
-            const name = getName(it);
+            const name = safeText(tField(it, "name") || it?.name || '—');
             const img = pickImg(it);
             return `
               <div class="hero-chip" title="${name}">
@@ -1926,41 +1885,61 @@
       return true;
     }
 
+    function blobSearchText(type, it){
+      // include both EN and current language fields for better search
+      const code = LANG.current || "en";
+
+      const fields = [];
+
+      // always include EN/base
+      fields.push(safeText(it?.name));
+      fields.push(safeText(it?.skill));
+      fields.push(safeText(it?.ability));
+      fields.push(safeText(it?.type));
+      fields.push(safeText(it?.category));
+      fields.push(safeText(it?.description));
+      fields.push(safeText(it?.special));
+      fields.push(safeText(it?.desc));
+
+      // include translated suffixes if not EN
+      if (code !== "en"){
+        fields.push(safeText(it?.[`name_${code}`]));
+        fields.push(safeText(it?.[`skill_${code}`]));
+        fields.push(safeText(it?.[`ability_${code}`]));
+        fields.push(safeText(it?.[`type_${code}`]));
+        fields.push(safeText(it?.[`category_${code}`]));
+        fields.push(safeText(it?.[`description_${code}`]));
+        fields.push(safeText(it?.[`special_${code}`]));
+        fields.push(safeText(it?.[`desc_${code}`]));
+      }
+
+      // loadout details (both EN + translated)
+      if (type === "loadout"){
+        fields.push(safeText(it?.details?.br));
+        fields.push(safeText(it?.details?.cs));
+        if (code !== "en"){
+          const d = it?.[`details_${code}`];
+          if (d && typeof d === "object"){
+            fields.push(safeText(d?.br));
+            fields.push(safeText(d?.cs));
+          } else {
+            fields.push(safeText(d));
+          }
+        }
+      }
+
+      return fields.join(" ").toLowerCase();
+    }
+
     function renderPickerGrid(){
       const state = DATA[currentPickerType];
       const q = (pickerSearch.value || '').toLowerCase().trim();
       const all = state.items || [];
-      const lang = LANG_STATE.current;
 
       const filtered = all.filter(it => {
         if (!passesTypeFilter(it)) return false;
         if (!q) return true;
-
-        const name = getName(it).toLowerCase();
-
-        // include EN + current language in search blob (so you can search either)
-        const descActive = buildDesc(currentPickerType, it);
-        const descEN = (lang !== 'en') ? (function(){
-          const prev = LANG_STATE.current;
-          LANG_STATE.current = 'en';
-          const d = buildDesc(currentPickerType, it);
-          LANG_STATE.current = prev;
-          return d;
-        })() : '';
-
-        const detailsBR = safeText(it?.details?.br || '') + ' ' + safeText(it?.details?.cs || '');
-        const detailsLang = (currentPickerType === 'loadout')
-          ? (safeText(getLoadoutDetails(it, lang, 'br')) + ' ' + safeText(getLoadoutDetails(it, lang, 'cs')))
-          : '';
-
-        const blob = [
-          name,
-          safeText(descActive),
-          safeText(descEN),
-          detailsBR,
-          detailsLang
-        ].join(' ').toLowerCase();
-
+        const blob = blobSearchText(currentPickerType, it);
         return blob.includes(q);
       });
 
@@ -1969,7 +1948,7 @@
       pickerGrid.innerHTML = filtered.map(it => {
         const idx = all.indexOf(it);
         const img = pickImg(it);
-        const name = getName(it);
+        const name = safeText(tField(it, "name") || it?.name || '—');
         const tip = buildDesc(currentPickerType, it);
         return `
           <div class="pick-card" data-idx="${idx}" title="${name}${tip ? ' — ' + tip : ''}">
@@ -2018,13 +1997,11 @@
       const it = getSelectedLoadout();
       if (!it) return;
 
-      const lang = LANG_STATE.current;
-
       document.getElementById('ldImg').src = pickImg(it);
-      document.getElementById('ldName').textContent = getName(it);
+      document.getElementById('ldName').textContent = safeText(tField(it, "name") || it.name || '—');
 
-      const br = safeText(getLoadoutDetails(it, lang, 'br') || '').trim() || '—';
-      const cs = safeText(getLoadoutDetails(it, lang, 'cs') || '').trim() || '—';
+      const br = safeText(tLoadoutDetails(it, "br") || '—').trim() || '—';
+      const cs = safeText(tLoadoutDetails(it, "cs") || '—').trim() || '—';
 
       document.getElementById('ldBR').textContent = br;
       document.getElementById('ldCS').textContent = cs;
@@ -2348,6 +2325,9 @@
       const session = await ensureSession();
       if (!session) return;
 
+      // init language selector first (so initial render uses correct lang)
+      initLangSelect();
+
       const email = session.user?.email || '';
       document.getElementById('userEmail').textContent = email || 'signed in';
       const username = email ? email.split('@')[0] : 'PlayerOne';
@@ -2357,17 +2337,6 @@
         e.preventDefault();
         logout();
       });
-
-      // language selector events (persisted)
-      const langSel = document.getElementById('langSelect');
-      if (langSel){
-        langSel.value = (LANG_STATE.current || 'en').toLowerCase();
-        langSel.addEventListener('change', () => {
-          LANG_STATE.current = (langSel.value || 'en').toLowerCase();
-          localStorage.setItem(LANG_KEY, LANG_STATE.current);
-          onLanguageChanged();
-        });
-      }
 
       setMapByUrl(MAPS[0].url);
 
@@ -2384,13 +2353,10 @@
         DATA.weapon.items = Array.isArray(weapons) ? weapons : [];
         DATA.loadout.items = Array.isArray(loadouts) ? loadouts : [];
 
-        // rebuild language options after data load (auto-detect *_xx fields)
-        buildLanguageOptions();
-
-        // ensure selector uses stored value after options are rebuilt
-        if (langSel){
-          langSel.value = (LANG_STATE.current || 'en').toLowerCase();
-        }
+        // ensure lang is set from storage
+        LANG.current = getLang();
+        const sel = document.getElementById("langSelect");
+        if (sel) sel.value = LANG.current;
 
         buildHeroCarousel();
         setCounts();
