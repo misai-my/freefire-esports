@@ -31,6 +31,13 @@
 
       --skill-active:#4dd3ff;
       --skill-passive:#ff59c7;
+
+      /* ✅ category colors */
+      --cat-attack:#ff5a5a;     /* Red */
+      --cat-info:#ffe36b;       /* Yellow */
+      --cat-survival:#8be27a;   /* Green */
+      --cat-teamwork:#ff59c7;   /* Pink */
+
       color-scheme: dark;
     }
 
@@ -74,7 +81,6 @@
       color: var(--ink);
     }
     select option{ background:#0b1020; color:var(--ink); }
-
     button{font:inherit}
     :focus-visible{
       outline: 2px solid rgba(77,211,255,.65);
@@ -460,6 +466,12 @@
     .dot.passive{ background: var(--skill-passive); }
     .dot.meta{ background: var(--brand); }
 
+    /* ✅ legend dot colors (same size/style as other pills) */
+    .dot.cat-attack{ background: var(--cat-attack); }
+    .dot.cat-info{ background: var(--cat-info); }
+    .dot.cat-survival{ background: var(--cat-survival); }
+    .dot.cat-teamwork{ background: var(--cat-teamwork); }
+
     .btn{
       padding: 9px 12px;
       border-radius: 12px;
@@ -526,7 +538,7 @@
       transition:.18s ease;
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:6px;
       min-width:0;
       -webkit-tap-highlight-color: transparent;
     }
@@ -547,7 +559,6 @@
       place-items:center;
       position:relative;
     }
-
     .char-thumb img{
       width:100%;
       height:100%;
@@ -583,80 +594,56 @@
       padding: 0 2px;
     }
 
-    /* Overview by Role */
-    .role-wrap{
+    /* ✅ Skill line under name (wrap + colored per role) */
+    .char-skill{
       display:flex;
-      flex-direction:column;
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .role-group{
-      border-radius: 18px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow:hidden;
-    }
-    .role-head{
-      padding: 12px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    .role-head b{
-      font-family: Orbitron, sans-serif;
-      letter-spacing:.4px;
-      color: var(--brand);
-      font-size: .95rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .role-head span{
-      color: var(--muted);
-      font-size:.78rem;
-      font-weight:700;
-      white-space:nowrap;
-    }
-    .role-grid{
-      padding: 12px;
-      display:flex;
-      flex-wrap:wrap;
-      gap: 8px;
-      justify-content:flex-start;
-    }
-    .mini{
-      width: 72px;
-      display:flex;
-      flex-direction:column;
-      gap: 6px;
-      align-items:center;
-      cursor:pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .mini .mini-thumb{
-      width:72px;
-      height:96px;
-      border-radius: 12px;
-      overflow:hidden;
-      border:2px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-    }
-    .mini.active-skill .mini-thumb{ border-color: rgba(77,211,255,.95); }
-    .mini.passive-skill .mini-thumb{ border-color: rgba(255,89,199,.95); }
-    .mini .mini-thumb img{
-      width:100%; height:100%;
-      object-fit:cover;
-      object-position: top center;
-      display:block;
-    }
-    .mini .mini-name{
-      font-size:.72rem;
-      color: rgba(244,246,255,.80);
+      align-items:flex-start;
+      justify-content:center;
+      gap:6px;
       text-align:center;
+
+      font-size:.72rem;
+      font-weight:1000;
       line-height: 1.05rem;
+
+      white-space: normal;
+      overflow: visible;
+      padding: 0 2px;
+      min-height: 2.1rem;
+    }
+    .char-skill .skill-text{
+      display:block;
+      overflow-wrap:anywhere;
       word-break: break-word;
+    }
+
+    .char-skill.cat-attack{ color: var(--cat-attack); }
+    .char-skill.cat-info{ color: var(--cat-info); }
+    .char-skill.cat-survival{ color: var(--cat-survival); }
+    .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
+
+    .char-skill .cat-dot{
+      width:8px;height:8px;border-radius:50%;
+      flex:0 0 auto;
+      margin-top: .22rem;
+      box-shadow: 0 0 0 3px rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.20);
+      background: rgba(170,177,197,.70);
+    }
+    .char-skill .cat-dot.cat-attack{ background: var(--cat-attack); }
+    .char-skill .cat-dot.cat-info{ background: var(--cat-info); }
+    .char-skill .cat-dot.cat-survival{ background: var(--cat-survival); }
+    .char-skill .cat-dot.cat-teamwork{ background: var(--cat-teamwork); }
+
+    .empty-msg{
+      grid-column: 1 / -1;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.12);
+      background: rgba(0,0,0,.16);
+      color: var(--muted);
+      font-weight: 800;
+      text-align: center;
     }
 
     /* Modal */
@@ -751,17 +738,6 @@
       white-space: normal;
     }
 
-    .empty-msg{
-      grid-column: 1 / -1;
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px dashed rgba(255,255,255,.12);
-      background: rgba(0,0,0,.16);
-      color: var(--muted);
-      font-weight: 800;
-      text-align: center;
-    }
-
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce){
       *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
@@ -769,7 +745,7 @@
       .char-card:hover{transform:none}
     }
 
-    /* ✅ Mobile: sidebar becomes drawer (same behavior as dashboard) */
+    /* ✅ Mobile: sidebar becomes drawer */
     @media (max-width: 980px){
       body::before, body::after{display:none;}
 
@@ -793,12 +769,8 @@
         transition: transform .18s ease;
         z-index: 1000;
       }
-      .sidebar.open{
-        transform: translateX(0);
-      }
-      .sidebar.collapsed{
-        width: var(--sb-w); /* no collapsed mode on mobile drawer */
-      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: var(--sb-w); }
 
       .topbar{
         top: env(safe-area-inset-top);
@@ -833,14 +805,8 @@
         padding: 7px 9px;
       }
       .usertext span{display:none;}
-      .usertext b{
-        max-width: 52vw;
-        font-size: .88rem;
-      }
-      .logout{
-        padding: 9px 10px;
-        font-size: .85rem;
-      }
+      .usertext b{ max-width: 52vw; font-size: .88rem; }
+      .logout{ padding: 9px 10px; font-size: .85rem; }
 
       .hero{height: 120px;}
       .hero-content{left:12px;right:12px;bottom:12px;}
@@ -867,7 +833,6 @@
         width: 100%;
         justify-content: space-between;
       }
-      /* ✅ include buttons too (not only <a>) */
       .controls-right .btn{
         width: 100%;
         padding: 11px 10px;
@@ -885,11 +850,7 @@
       .char-card{padding: 8px; border-radius: 14px;}
       .char-thumb{border-radius: 12px;}
       .char-name{font-size: .75rem;}
-
-      .role-grid{padding: 10px; gap: 8px;}
-      .mini{width: 64px;}
-      .mini .mini-thumb{width: 64px; height: 86px; border-radius: 12px;}
-      .mini .mini-name{font-size: .70rem;}
+      .char-skill{font-size:.68rem; min-height: 2.0rem;}
 
       .modal{
         align-items:flex-end;
@@ -908,7 +869,6 @@
 </head>
 
 <body>
-  <!-- ✅ overlay for mobile drawer -->
   <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
   <div class="app">
@@ -951,8 +911,7 @@
           <span class="nav-label">Weapons</span>
         </a>
 
-        <!-- ✅ NEW: Loadout -->
-        <a class="nav-item active" href="loadout.html" data-page="loadout.html" title="Loadout">
+        <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadout">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M7 7h10M7 12h10M7 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1018,11 +977,17 @@
               <span class="pill"><span class="dot active"></span>Active Skill</span>
               <span class="pill"><span class="dot passive"></span>Passive Skill</span>
               <span class="pill"><span class="dot meta"></span>Meta</span>
+
+              <!-- ✅ Category legend (aligned with other pills) -->
+              <span class="pill"><span class="dot cat-attack"></span>Attack</span>
+              <span class="pill"><span class="dot cat-info"></span>Info</span>
+              <span class="pill"><span class="dot cat-survival"></span>Survival</span>
+              <span class="pill"><span class="dot cat-teamwork"></span>Teamwork</span>
+
               <span class="pill" id="searchCountPill" style="display:none;" aria-live="polite"></span>
             </div>
 
             <div class="controls-right">
-              <!-- ✅ Added (same placement/style as pet.html) -->
               <button class="btn" id="langToggleBtn" type="button" title="Toggle description language (auto-works once description_ms exists)">
                 Desc: EN
               </button>
@@ -1031,6 +996,7 @@
                 Show Meta For:
                 <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
               </span>
+
               <a class="btn" href="dashboard.html">← Dashboard</a>
               <a class="btn" href="character-comparison.html">Compare</a>
             </div>
@@ -1045,9 +1011,6 @@
           <div class="section-title" style="margin-top:18px;">Non-Meta Characters</div>
           <div class="grid" id="nonMetaGrid"></div>
 
-          <div class="section-title" style="margin-top:22px;">Overview by Role</div>
-          <div class="role-wrap" id="compactByRole"></div>
-
           <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
             Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
           </div>
@@ -1056,7 +1019,7 @@
     </main>
   </div>
 
-  <!-- Info Modal (Popup) -->
+  <!-- Info Modal -->
   <div class="modal" id="infoModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Character Info">
       <div class="modal-top">
@@ -1217,7 +1180,6 @@
      ***********************/
     const metaGrid = document.getElementById('metaGrid');
     const nonMetaGrid = document.getElementById('nonMetaGrid');
-    const compactByRole = document.getElementById('compactByRole');
     const metaTitleText = document.getElementById('metaTitleText');
     const metaHint = document.getElementById('metaHint');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
@@ -1248,20 +1210,16 @@
     }
 
     /***********************
-     * ✅ Description language toggle (ready for future description_ms)
-     * - currently character.json has no translated field yet,
-     *   but this will auto-work once you add description_ms.
+     * Desc language toggle (auto-works if description_ms exists)
      ***********************/
-    const KEY_LANG = 'ff_char_desc_lang_v1'; // '0' EN, '1' MS
+    const KEY_LANG = 'ff_char_desc_lang_v1';
     let useMS = (localStorage.getItem(KEY_LANG) === '1');
 
     const langToggleBtn = document.getElementById('langToggleBtn');
     let lastOpenedChar = null;
     let lastOpenedMetaFlag = false;
 
-    function getMSDesc(c){
-      return tidy(c?.description_ms ?? '');
-    }
+    function getMSDesc(c){ return tidy(c?.description_ms ?? ''); }
     function getDisplayDesc(c){
       const en = tidy(c?.description ?? '');
       const ms = getMSDesc(c);
@@ -1274,34 +1232,42 @@
     function syncLangToggleUI(){
       if (!langToggleBtn) return;
       langToggleBtn.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
-      // helpful tooltip when MS not available yet
-      if (!anyMSAvailable()){
-        langToggleBtn.title = 'No translated data yet for characters. This will auto-work once description_ms is added.';
-      } else {
-        langToggleBtn.title = 'Toggle description language';
-      }
+      langToggleBtn.title = anyMSAvailable()
+        ? 'Toggle description language'
+        : 'No translated data yet for characters. This will auto-work once description_ms is added.';
     }
 
     langToggleBtn?.addEventListener('click', () => {
       useMS = !useMS;
       localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
       syncLangToggleUI();
-
       if (infoModal.classList.contains('show') && lastOpenedChar){
         openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
       }
     });
 
+    /***********************
+     * Category mapping (Attack/Info/Survival/Teamwork)
+     ***********************/
+    function getCategoryClass(c){
+      const r = lower(c?.role);
+      if (!r) return '';
+      if (r.includes('attack')) return 'cat-attack';
+      if (r.includes('info')) return 'cat-info';
+      if (r.includes('survival')) return 'cat-survival';
+      if (r.includes('team')) return 'cat-teamwork';
+      return '';
+    }
+
     function makeSearchBlob(c){
-      const parts = [
+      return [
         tidy(c?.name),
         tidy(c?.role),
         tidy(c?.skill_type),
         tidy(c?.skill),
         tidy(c?.description),
-        getMSDesc(c) // ✅ included for future MS search too
-      ].filter(Boolean);
-      return parts.join(' ').toLowerCase();
+        getMSDesc(c)
+      ].filter(Boolean).join(' ').toLowerCase();
     }
 
     function ensureEmptyMsg(grid, text){
@@ -1353,8 +1319,23 @@
       name.className = 'char-name';
       name.textContent = tidy(c.name) || '—';
 
+      const skillLine = document.createElement('div');
+      const catCls = getCategoryClass(c);
+      skillLine.className = 'char-skill' + (catCls ? (' ' + catCls) : '');
+
+      const dot = document.createElement('span');
+      dot.className = 'cat-dot' + (catCls ? (' ' + catCls) : '');
+
+      const skillText = document.createElement('span');
+      skillText.className = 'skill-text';
+      skillText.textContent = tidy(c?.skill) || '—';
+
+      skillLine.appendChild(dot);
+      skillLine.appendChild(skillText);
+
       card.appendChild(thumb);
       card.appendChild(name);
+      card.appendChild(skillLine);
 
       card.addEventListener('click', () => openInfo(c, meta));
       card.addEventListener('keydown', (e) => {
@@ -1364,40 +1345,9 @@
       return card;
     }
 
-    function makeMini(c){
-      const passive = isPassive(c);
-      const mini = document.createElement('div');
-      mini.className = 'mini ' + (passive ? 'passive-skill' : 'active-skill');
-      mini.dataset.search = makeSearchBlob(c);
-
-      const mt = document.createElement('div');
-      mt.className = 'mini-thumb';
-
-      const img = document.createElement('img');
-      img.src = c.image_url || FALLBACK_IMG;
-      img.alt = tidy(c.name) || 'Character';
-      img.loading = 'lazy';
-      img.decoding = 'async';
-      img.referrerPolicy = 'no-referrer';
-      wireImgFallback(img);
-
-      mt.appendChild(img);
-
-      const mn = document.createElement('div');
-      mn.className = 'mini-name';
-      mn.textContent = tidy(c.name) || '—';
-
-      mini.appendChild(mt);
-      mini.appendChild(mn);
-
-      mini.addEventListener('click', () => openInfo(c, isMeta(c)));
-      return mini;
-    }
-
     function renderGrids(){
       metaGrid.innerHTML = '';
       nonMetaGrid.innerHTML = '';
-      compactByRole.innerHTML = '';
 
       const chars = Array.isArray(allCharacters) ? allCharacters.slice() : [];
       chars.sort((a,b) => tidy(a?.name).localeCompare(tidy(b?.name)));
@@ -1417,51 +1367,7 @@
       if (!metas.length) ensureEmptyMsg(metaGrid, 'No meta characters found for this mode.').style.display = '';
       if (!nonmetas.length) ensureEmptyMsg(nonMetaGrid, 'No non-meta characters found.').style.display = '';
 
-      const roleGroups = new Map();
-      for (const c of chars){
-        const role = tidy(c?.role) || 'Other';
-        if (!roleGroups.has(role)) roleGroups.set(role, []);
-        roleGroups.get(role).push(c);
-      }
-
-      const roles = [...roleGroups.keys()].sort((a,b) => a.localeCompare(b));
-      const roleFrag = document.createDocumentFragment();
-
-      roles.forEach(role => {
-        const arr = roleGroups.get(role) || [];
-
-        const group = document.createElement('div');
-        group.className = 'role-group';
-
-        const head = document.createElement('div');
-        head.className = 'role-head';
-
-        const left = document.createElement('b');
-        left.textContent = role;
-
-        const right = document.createElement('span');
-        right.textContent = `${arr.length} char${arr.length===1?'':'s'}`;
-
-        head.appendChild(left);
-        head.appendChild(right);
-
-        const rg = document.createElement('div');
-        rg.className = 'role-grid';
-
-        const minisFrag = document.createDocumentFragment();
-        arr.forEach(c => minisFrag.appendChild(makeMini(c)));
-        rg.appendChild(minisFrag);
-
-        group.appendChild(head);
-        group.appendChild(rg);
-        roleFrag.appendChild(group);
-      });
-
-      compactByRole.appendChild(roleFrag);
-
-      // ✅ update lang tooltip state once data is loaded
       syncLangToggleUI();
-
       applyCharacterSearch(currentSearchTerm);
     }
 
@@ -1485,27 +1391,12 @@
       ensureEmptyMsg(metaGrid).style.display = metaHasVisible ? 'none' : '';
       ensureEmptyMsg(nonMetaGrid).style.display = nonHasVisible ? 'none' : '';
 
-      document.querySelectorAll('#compactByRole .role-group').forEach(group => {
-        const minis = [...group.querySelectorAll('.mini')];
-        let groupHits = 0;
-
-        minis.forEach(mini => {
-          const blob = mini.dataset.search || '';
-          const hit = !q || blob.includes(q);
-          mini.style.display = hit ? '' : 'none';
-          if (hit) groupHits++;
-        });
-
-        group.style.display = groupHits ? '' : 'none';
-      });
-
       if (q) {
         searchCountPill.style.display = '';
         searchCountPill.textContent = `Showing: ${visibleCards} match${visibleCards===1?'':'es'}`;
       } else {
         searchCountPill.style.display = 'none';
         searchCountPill.textContent = '';
-        document.querySelectorAll('#compactByRole .role-group').forEach(g => g.style.display = '');
       }
     }
 
@@ -1538,7 +1429,6 @@
       } else {
         metaGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
         nonMetaGrid.innerHTML = '';
-        compactByRole.innerHTML = '';
       }
 
       const ctrl = new AbortController();
@@ -1558,13 +1448,15 @@
         if (!allCharacters.length){
           metaGrid.innerHTML = '<div class="empty-msg">Failed to load character.json</div>';
           nonMetaGrid.innerHTML = '';
-          compactByRole.innerHTML = '';
         }
       }finally{
         clearTimeout(t);
       }
     }
 
+    /***********************
+     * Modal
+     ***********************/
     const infoModal = document.getElementById('infoModal');
     const infoClose = document.getElementById('infoClose');
     const infoName = document.getElementById('infoName');
@@ -1596,8 +1488,6 @@
       const role = tidy(c?.role) || 'N/A';
       const st = tidy(c?.skill_type) || '—';
       const skill = tidy(c?.skill) || '—';
-
-      // ✅ uses language toggle (falls back to EN if MS not available)
       const desc = getDisplayDesc(c);
 
       infoName.textContent = name;
@@ -1653,7 +1543,7 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       syncSidebarMode();
-      syncLangToggleUI(); // ✅ set initial button label
+      syncLangToggleUI();
 
       const session = await ensureSession();
       if (!session) return;
