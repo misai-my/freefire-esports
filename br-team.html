@@ -425,12 +425,18 @@ function gerr(msg){
 const PAGES=[1,2];
 function setActiveStep(p){ document.querySelectorAll('.step').forEach(s=> s.classList.toggle('active', String(s.dataset.page)===String(p))); }
 function showPage(p){
-  const target=document.querySelector(\`.page[data-page="\${p}"]\`); if(!target) return;
+  const target=document.querySelector(`.page[data-page="${p}"]`); if(!target) return;
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active')); target.classList.add('active');
   setActiveStep(p); localStorage.setItem('ffbr_page', String(p));
   const url=new URL(window.location.href); url.searchParams.set('p', String(p)); history.replaceState(null,'',url.toString());
 }
-function currentPage(){ const url=new URL(window.location.href); const qp=Number(url.searchParams.get('p')); if(PAGES.includes(qp)) return qp; const ls=Number(localStorage.getItem('ffbr_page')); return PAGES.includes(ls)?ls:1; }
+function currentPage(){
+  const url=new URL(window.location.href);
+  const qp=Number(url.searchParams.get('p'));
+  if(PAGES.includes(qp)) return qp;
+  const ls=Number(localStorage.getItem('ffbr_page'));
+  return PAGES.includes(ls)?ls:1;
+}
 function nextPage(){ const p=currentPage(); const idx=PAGES.indexOf(p); showPage(PAGES[Math.min(PAGES.length-1, idx+1)]); }
 function prevPage(){ const p=currentPage(); const idx=PAGES.indexOf(p); showPage(PAGES[Math.max(0, idx-1)]); }
 document.querySelectorAll('.step').forEach(s=> s.addEventListener('click', ()=> showPage(Number(s.dataset.page))));
@@ -442,27 +448,70 @@ el('editFilters1').addEventListener('click', e=>{ e.preventDefault(); showPage(1
 /* ============ Session chip ============ */
 (async () => {
   const { data: { session } } = await client.auth.getSession();
-  el('user-info').textContent = session?.user?.email ? \`Logged in: \${session.user.email}\` : 'Anon access';
+  el('user-info').textContent = session?.user?.email ? `Logged in: ${session.user.email}` : 'Anon access';
 })();
 el('logoutBtn').onclick = async () => { await client.auth.signOut(); location.reload(); };
 
 /* ============ State ============ */
 let TEAMS=[]; let TEAM_BY_CODE={}; let TEAM_BY_NAME={}; let ALLOWED_TAGS=new Set();
+let TAG_CANON = new Map(); // alias/name -> canonical TAG
+
 let ALL=[]; let TEAM_ROWS=[]; let CURRENT_TEAM=null;
 let LOPS_ALL=[]; let LOPS_READY=false;
 let MATCH_API_MAP = new Map();
 let ROLE_BY_IGN = new Map();
 
 /* ============ Helpers ============ */
-function buildTeamIndexes(){
-  TEAM_BY_CODE = Object.fromEntries(TEAMS.map(t=>[t.name.toLowerCase(), t]));
-  TEAM_BY_NAME = Object.fromEntries(TEAMS.map(t=>[t.fullname.toLowerCase(), t]));
-  ALLOWED_TAGS = new Set(TEAMS.map(t => t.name.toUpperCase()));
+function splitToLines(val){
+  if (val == null) return [];
+  if (Array.isArray(val) ) return val.flat().map(x=>String(x).trim()).filter(Boolean);
+  let s=String(val).trim();
+  try{ if(/^\s*\[/.test(s)){ const arr=JSON.parse(s); if(Array.isArray(arr)) return arr.flat().map(x=>String(x).trim()).filter(Boolean); } }catch{}
+  s=s.replace(/[•\u2022\u00b7]/g,'\n');
+  let parts=s.split(/\r?\n|;|\|/); if(parts.length===1 && s.includes(',')) parts=s.split(',');
+  return parts.map(x=>x.trim()).filter(Boolean);
 }
+
+function buildTeamIndexes(){
+  TEAM_BY_CODE = {};
+  TEAM_BY_NAME = {};
+  TAG_CANON.clear();
+
+  for(const t of TEAMS){
+    const code = norm(t.name).toUpperCase();
+    if(!code) continue;
+
+    TEAM_BY_CODE[code.toLowerCase()] = t;
+    if(t.fullname) TEAM_BY_NAME[norm(t.fullname).toLowerCase()] = t;
+
+    // canonical
+    TAG_CANON.set(code, code);
+
+    // map fullname -> code (when data uses full team name)
+    const fn = norm(t.fullname).toUpperCase();
+    if(fn) TAG_CANON.set(fn, code);
+
+    // map alt names/tags -> code
+    splitToLines(t.alt).forEach(a=>{
+      const k = norm(a).toUpperCase();
+      if(k) TAG_CANON.set(k, code);
+    });
+  }
+
+  ALLOWED_TAGS = new Set(TEAMS.map(t => norm(t.name).toUpperCase()).filter(Boolean));
+}
+
+function canonicalTag(v){
+  const key = norm(v).toUpperCase();
+  if(!key) return '';
+  return TAG_CANON.get(key) || key;
+}
+
 function deriveTeamsFromData(rows){
   const codes=[...new Set(rows.map(r=> norm(r.tag||r.TAG||r._tag).toUpperCase()).filter(Boolean))].sort();
   return codes.map(code=>({ name:code, fullname:code, logo:'', ew:'', region:'', alt:'' }));
 }
+
 function normalizeRow(r){
   r._tag = norm(r.tag ?? r.TAG ?? '').toUpperCase();
   if (r.elimination == null) r.elimination = r.elims ?? r.kills ?? 0;
@@ -470,23 +519,32 @@ function normalizeRow(r){
   if (r.top3        == null) r.top3        = r.top_3 ?? 0;
   return r;
 }
+
 async function fetchAllRows(){
   const CHUNK=1000; let from=0; const out=[];
   for(;;){
     const { data, error } = await client.from('ffbr_data').select('*').order('id',{ascending:true}).range(from, from+CHUNK-1);
-    if(error){ gerr('ffbr_data fetch failed. Check RLS / table name.\\n\\n'+(error.message||error)); break; }
+    if(error){ gerr('ffbr_data fetch failed. Check RLS / table name.\n\n'+(error.message||error)); break; }
     const rows=data||[]; if(!rows.length) break;
     out.push(...rows); from+=rows.length;
   }
   return out.map(normalizeRow);
 }
+
 async function fetchHelperTeams(){
   const { data, error } = await client.from('helper_team').select('*').order('TAG');
   if(error){ console.warn('helper_team error:', error.message||error); return []; }
   const rows=data||[];
   return rows.map(r=>{
     const code = norm(r.TAG).toUpperCase();
-    return { name:code, fullname:norm(r.TEAM)||code, logo:norm(r.LOGO)||'', ew:norm(r['E/W'])||'', region:norm(r.REGION)||'', alt:norm(r['ALT NAME 1'])||'' };
+    return {
+      name:code,
+      fullname:norm(r.TEAM)||code,
+      logo:norm(r.LOGO)||'',
+      ew:norm(r['E/W'])||'',
+      region:norm(r.REGION)||'',
+      alt:norm(r['ALT NAME 1'])||''
+    };
   });
 }
 
@@ -539,6 +597,29 @@ function baseRowsByScope(rows){
   return out;
 }
 
+// Stage options must NOT depend on current Stage selection
+function rowsForStageOptions(){
+  const y = selectedYear();
+  const s = selectedSeason();
+  const t = selectedTournament();
+
+  let out = ALL;
+
+  if(y !== '__all__'){
+    const yNum = Number(y);
+    out = out.filter(r => String(r.year ?? '').trim() === String(yNum));
+  }
+  if(s !== '__all__'){
+    const lf = s.toLowerCase();
+    out = out.filter(r => norm(r.season).toLowerCase() === lf);
+  }
+  if(t !== '__all__'){
+    const lf = t.toLowerCase();
+    out = out.filter(r => norm(r.tournament).toLowerCase() === lf);
+  }
+  return out;
+}
+
 function updateFilterHint(){
   const rows = baseRowsByScope(ALL);
   const y = selectedYear(), s = selectedSeason(), t = selectedTournament(), st = selectedStage();
@@ -549,7 +630,7 @@ function updateFilterHint(){
     st==='__all__' ? 'All stages' : st
   ];
   const chip = chipParts.join(' • ');
-  el('filterHint').textContent = \`Scope: \${chip} • Rows: \${rows.length}\`;
+  el('filterHint').textContent = `Scope: ${chip} • Rows: ${rows.length}`;
   el('scopeChip').textContent = 'Scope: ' + chip;
   el('scopeChipTeam').textContent = chip;
 }
@@ -557,7 +638,7 @@ function updateFilterHint(){
 function populateYears(defaultYear='2025'){
   const sel=el('gYear'); if(!sel) return;
   const items = yearsWithMaxId(ALL);
-  sel.innerHTML = \`<option value="__all__">All years</option>\` + items.map(o=>\`<option value="\${o.name}">\${o.name}</option>\`).join('');
+  sel.innerHTML = `<option value="__all__">All years</option>` + items.map(o=>`<option value="${o.name}">${o.name}</option>`).join('');
   if(!pickInsensitiveOption(sel, defaultYear)){
     sel.value = items.length ? String(items[0].name) : '__all__';
   }
@@ -567,7 +648,7 @@ function populateSeasons(defaultSeason='Global Finals'){
   const y = selectedYear();
   const withinYear = (y==='__all__') ? ALL : ALL.filter(r => String(r.year??'').trim()===String(Number(y)));
   const items = seasonsWithMaxId(withinYear);
-  sel.innerHTML = \`<option value="__all__">All seasons</option>\` + items.map(o=>\`<option value="\${o.name.replaceAll('"','&quot;')}">\${o.name}</option>\`).join('');
+  sel.innerHTML = `<option value="__all__">All seasons</option>` + items.map(o=>`<option value="${o.name.replaceAll('"','&quot;')}">${o.name}</option>`).join('');
   if(!pickInsensitiveOption(sel, defaultSeason)){
     sel.value = items.length ? items[0].name : '__all__';
   }
@@ -581,22 +662,22 @@ function populateTournaments(){
   if(s!=='__all__') rows = rows.filter(r => norm(r.season).toLowerCase()===s.toLowerCase());
 
   const items = tournamentsWithMaxId(rows);
-  sel.innerHTML = \`<option value="__all__">All tournaments</option>\` + items.map(o=>\`<option value="\${o.name.replaceAll('"','&quot;')}">\${o.name}</option>\`).join('');
-  sel.value = '__all__'; // per your old default: tournament = all
+  sel.innerHTML = `<option value="__all__">All tournaments</option>` + items.map(o=>`<option value="${o.name.replaceAll('"','&quot;')}">${o.name}</option>`).join('');
+  sel.value = '__all__'; // default tournament = all
 }
 function populateStages(){
   const sel=el('gStage'); if(!sel) return;
-  const rows = baseRowsByScope(ALL).length ? baseRowsByScope(ALL) : ALL;
-  const items = stagesWithMaxId(rows);
-  sel.innerHTML = \`<option value="__all__">All stages</option>\` + items.map(o=>\`<option value="\${o.name.replaceAll('"','&quot;')}">\${o.name}</option>\`).join('');
+  const items = stagesWithMaxId(rowsForStageOptions());
+  sel.innerHTML = `<option value="__all__">All stages</option>` +
+    items.map(o=>`<option value="${o.name.replaceAll('"','&quot;')}">${o.name}</option>`).join('');
   sel.value = '__all__';
 }
 
 /* Tables + heat */
 function renderSimpleTable(list, cols){
   if (!list.length) return '<div class="muted">No rows.</div>';
-  const head = \`<thead><tr>\${cols.map(c=>\`<th data-key="\${c.key}" class="\${c.right?'right':''}">\${c.label}</th>\`).join('')}</tr></thead>\`;
-  const body = \`<tbody>\${list.map((r,i)=>\`<tr>\${
+  const head = `<thead><tr>${cols.map(c=>`<th data-key="${c.key}" class="${c.right?'right':''}">${c.label}</th>`).join('')}</tr></thead>`;
+  const body = `<tbody>${list.map((r,i)=>`<tr>${
     cols.map(c=>{
       let v;
       if (typeof c.html==='function'){ v=c.html(r,i); }
@@ -605,12 +686,12 @@ function renderSimpleTable(list, cols){
         if (c.format==='pct') v=isFinite(v)?(v*100).toFixed(1)+'%':'—';
         else if (c.format==='1d') v=isFinite(v)?Number(v).toFixed(1):'—';
         else if (c.format==='0d') v=isFinite(v)?Number(v).toFixed(0):'—';
-        if (c.link && v && looksLikeURL(v)) v=\`<a href="\${v}" target="_blank" rel="noopener">\${v}</a>\`;
+        if (c.link && v && looksLikeURL(v)) v=`<a href="${v}" target="_blank" rel="noopener">${v}</a>`;
       }
-      return \`<td data-key="\${c.key}" class="\${c.right?'right':''}">\${(v==null||v==='')?'—':v}</td>\`;
+      return `<td data-key="${c.key}" class="${c.right?'right':''}">${(v==null||v==='')?'—':v}</td>`;
     }).join('')
-  }</tr>\`).join('')}</tbody>\`;
-  return \`<table>\${head}\${body}</table>\`;
+  }</tr>`).join('')}</tbody>`;
+  return `<table>${head}${body}</table>`;
 }
 function applyColumnHeatmap(containerId, keys){
   const wrap=el(containerId); const table=wrap?.querySelector('table'); if(!table) return;
@@ -622,7 +703,7 @@ function applyColumnHeatmap(containerId, keys){
   const BANDS=5;
 
   for(const key of keys){
-    const cells=[...table.querySelectorAll(\`td[data-key="\${key}"]\`)];
+    const cells=[...table.querySelectorAll(`td[data-key="${key}"]`)];
     if(!cells.length) continue;
     const entries=cells.map((td,i)=>{ const raw=(td.textContent||'').trim().replace('%','').replace(/,/g,''); const v=parseFloat(raw); return {td,i,v:isFinite(v)?v:null}; }).filter(e=>e.v!=null);
     if(!entries.length) continue;
@@ -635,7 +716,7 @@ function applyColumnHeatmap(containerId, keys){
 
     cells.forEach((td,i)=>{ const band=bandByIndex.get(i); if(band==null) return;
       const alpha=minA + (band/(BANDS-1))*(maxA-minA);
-      td.style.backgroundColor=\`rgba(\${rgb}, \${alpha.toFixed(3)})\`;
+      td.style.backgroundColor=`rgba(${rgb}, ${alpha.toFixed(3)})`;
       const tv=parseFloat((td.textContent||'').trim().replace('%','').replace(/,/g,''));
       if(isFinite(tv) && tv===topVal) td.classList.add('heat-top');
     });
@@ -643,7 +724,11 @@ function applyColumnHeatmap(containerId, keys){
 }
 
 /* Aggregations (ffbr_data) */
-function codeFromRow(r){ const code=norm(r._tag).toUpperCase(); return ALLOWED_TAGS.has(code) ? code : null; }
+function codeFromRow(r){
+  const raw = r?._tag ?? r?.tag ?? r?.TAG ?? r?.team ?? r?.Team ?? '';
+  const code = canonicalTag(raw);
+  return (code && ALLOWED_TAGS.has(code)) ? code : null;
+}
 function metaFromCode(code){ return code ? TEAM_BY_CODE[code.toLowerCase()] : null; }
 
 function aggregateOverall(rows){
@@ -681,17 +766,9 @@ function uniqueMaps(rows){ const s=new Set(); for(const r of rows){ const m=norm
 /* Team + roster info helpers */
 function asListHTML(val){
   const items = splitToLines(val); if(!items.length) return '—';
-  return \`<ul style="margin:0;padding-left:16px">\${items.map(it=>\`<li>\${it}</li>\`).join('')}</ul>\`;
+  return `<ul style="margin:0;padding-left:16px">${items.map(it=>`<li>${it}</li>`).join('')}</ul>`;
 }
-function splitToLines(val){
-  if (val == null) return [];
-  if (Array.isArray(val) ) return val.flat().map(x=>String(x).trim()).filter(Boolean);
-  let s=String(val).trim();
-  try{ if(/^\\s*\\[/.test(s)){ const arr=JSON.parse(s); if(Array.isArray(arr)) return arr.flat().map(x=>String(x).trim()).filter(Boolean); } }catch{}
-  s=s.replace(/[•\\u2022\\u00b7]/g,'\\n');
-  let parts=s.split(/\\r?\\n|;|\\|/); if(parts.length===1 && s.includes(',')) parts=s.split(',');
-  return parts.map(x=>x.trim()).filter(Boolean);
-}
+
 async function fetchTeamInfoBy(codeRaw){
   const codeUp=norm(codeRaw).toUpperCase();
   try{
@@ -770,7 +847,7 @@ function renderRoster(players){
 
   const rows = players.slice().map(p=>{
     const avatar = avatarKey && p[avatarKey]
-      ? \`<img src="\${p[avatarKey]}" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:8px;border:1px solid #2a2a2a">\`
+      ? `<img src="${p[avatarKey]}" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:8px;border:1px solid #2a2a2a">`
       : '';
     const ign = (() => {
       const tryKeys = ignKey ? [ignKey] : [];
@@ -841,16 +918,22 @@ function teamMapPerf(rows){
   return out.sort((a,b)=> b.total_pm - a.total_pm || b.matches - a.matches || a.map.localeCompare(b.map));
 }
 
-/* LOPS normalize (EXTENDED) */
+/* LOPS normalize (EXTENDED + SCOPE FIELDS) */
 function normLopsRow(r){
   const get=(k,alt=[])=> r[k]!=null ? r[k] : alt.find(a=>r[a]!=null)!=null ? r[alt.find(a=>r[a]!=null)] : null;
   const toI = v => Number(v ?? 0) || 0;
-  const up = s => String(s==null?'':s).trim().toUpperCase();
 
   const teamName = norm(get('TeamName') ?? get('Team') ?? '');
   const player = norm(get('PLAYER NAME',['Player name','Player Name','Player','IGN']));
   const map = norm(get('MAP',['Map','map']));
   const day = toI(get('Day',['day','DAY']));
+
+  const year = toI(get('year',['Year','YEAR']));
+  const season = norm(get('season',['Season','SEASON']));
+  const tournament = norm(get('tournament',['Tournament','TOURNAMENT']));
+  const stage = norm(get('stage',['Stage','STAGE']));
+  const tag = norm(get('TAG',['Tag','TeamTag','TEAM_TAG','Team Initials','TeamCode','TEAM_CODE']));
+  const teamCode = canonicalTag(tag || teamName);
 
   const nadeKills = toI(get('Grenade kill')) + toI(get('Ice Grenade kill')) + toI(get('Dragon Grenade Kill'));
 
@@ -863,7 +946,12 @@ function normLopsRow(r){
   ])) || '';
 
   return {
-    _team: up(teamName), _player: player, _map: map, day,
+    year, season, tournament, stage,
+    _team: teamCode,
+    _player: player,
+    _map: map,
+    day,
+
     kills: toI(get('KILLS')), assists: toI(get('ASSISTS')),
     shots: toI(get('SHOOTS')), hits: toI(get('HITS')),
     headshots: toI(get('HEADSHOTRS')) || toI(get('Headshot Kill Times')),
@@ -886,21 +974,55 @@ function normLopsRow(r){
     char2: norm(get('Character 2') ?? get('Char2') ?? get('Character2') ?? ''),
     char3: norm(get('Character 3') ?? get('Char3') ?? get('Character3') ?? ''),
     char4: norm(get('Character 4') ?? get('Char4') ?? get('Character4') ?? ''),
-    pair_victim: up(teamName),
-    pair_killer: up(norm(get('Eliminated Team Name', ['Eliminated By','Eliminator','Killer Team'])||'')),
+    pair_victim: teamCode,
+    pair_killer: canonicalTag(norm(get('Eliminated Team Name', ['Eliminated By','Eliminator','Killer Team'])||'')),
   };
 }
+
 async function fetchAllLopsRows(){
   const CHUNK=1000; let from=0; const out=[];
   for(;;){
     const { data, error } = await client.from('ffbr_lopsdata').select('*').range(from, from+CHUNK-1);
-    if(error){ gerr('ffbr_lopsdata fetch failed. Check RLS / table name.\\n\\n'+(error.message||error)); break; }
+    if(error){ gerr('ffbr_lopsdata fetch failed. Check RLS / table name.\n\n'+(error.message||error)); break; }
     const rows=data||[]; if(!rows.length) break;
     out.push(...rows); from+=rows.length;
   }
   return out.map(normLopsRow).filter(r=>r._player && r._team);
 }
-function lopsRowsForTeam(all, teamObj){ if(!teamObj) return []; const code=(teamObj.name||'').toUpperCase(); return all.filter(r=> (r._team||'')===code); }
+
+function baseLopsRowsByScope(rows){
+  const y = selectedYear();
+  const s = selectedSeason();
+  const t = selectedTournament();
+  const st = selectedStage();
+
+  let out = rows;
+
+  if(y !== '__all__'){
+    const yNum = Number(y);
+    out = out.filter(r => Number(r.year||0) === yNum);
+  }
+  if(s !== '__all__'){
+    const lf = s.toLowerCase();
+    out = out.filter(r => norm(r.season).toLowerCase() === lf);
+  }
+  if(t !== '__all__'){
+    const lf = t.toLowerCase();
+    out = out.filter(r => norm(r.tournament).toLowerCase() === lf);
+  }
+  if(st !== '__all__'){
+    const lf = st.toLowerCase();
+    out = out.filter(r => norm(r.stage).toLowerCase() === lf);
+  }
+  return out;
+}
+
+function lopsRowsForTeam(all, teamObj){
+  if(!teamObj) return [];
+  const code = canonicalTag(teamObj.name);
+  return baseLopsRowsByScope(all).filter(r => canonicalTag(r._team) === code);
+}
+
 function countByName(rows,key){
   const m=new Map();
   for(const r of rows){
@@ -948,7 +1070,7 @@ async function fetchMatchApiMap(){
       if(id && nm) MATCH_API_MAP.set(id, nm);
     }
     el('charMapHint').textContent = MATCH_API_MAP.size
-      ? \`Character map loaded from match_api (type=2): \${MATCH_API_MAP.size} entries.\`
+      ? `Character map loaded from match_api (type=2): ${MATCH_API_MAP.size} entries.`
       : 'match_api had no rows with type=2. Using IDs/fallbacks.';
   }catch(e){
     console.warn('match_api load error:', e.message||e);
@@ -1121,7 +1243,7 @@ function renderTeamPetUsage(){
 }
 function renderPlayers(){
   const base=lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
-  if(!base.length){ el('tblPlayers').innerHTML='<div class="muted">No lops rows for team.</div>'; return; }
+  if(!base.length){ el('tblPlayers').innerHTML='<div class="muted">No lops rows for team (current scope).</div>'; return; }
 
   const g = groupBy(base, r=>r._player||'—');
   const rows=[];
@@ -1336,8 +1458,8 @@ function renderElimTeamFocus(){
     boxD.innerHTML=boxM.innerHTML='—';
     return;
   }
-  const code = CURRENT_TEAM.name.toUpperCase();
-  const rows = LOPS_ALL; // eliminations ignore scope filters (same as your source script)
+  const code = canonicalTag(CURRENT_TEAM.name);
+  const rows = LOPS_ALL; // eliminations ignore scope filters (by design)
 
   const given = {};
   rows.forEach(r=>{ if(r.pair_killer===code && r.pair_victim){ given[r.pair_victim]=(given[r.pair_victim]||0)+1; } });
@@ -1426,7 +1548,8 @@ function highlightActiveTile(){
 async function selectTeam(teamObj){
   CURRENT_TEAM = teamObj;
   const url=new URL(window.location.href); url.searchParams.set('team', CURRENT_TEAM.name); history.replaceState(null,'',url.toString());
-  TEAM_ROWS = baseRowsByScope(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === teamObj.name.toUpperCase());
+
+  TEAM_ROWS = baseRowsByScope(ALL).filter(r => canonicalTag(r._tag || r.tag || r.TAG || '') === canonicalTag(teamObj.name));
 
   kpiAndByMap();
   renderTeamCombinedMetrics();
@@ -1497,7 +1620,7 @@ function refreshAllScopeDependent(){
   renderPerMapAllTeams();
 
   if(CURRENT_TEAM){
-    TEAM_ROWS = baseRowsByScope(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === CURRENT_TEAM.name.toUpperCase());
+    TEAM_ROWS = baseRowsByScope(ALL).filter(r => canonicalTag(r._tag || r.tag || r.TAG || '') === canonicalTag(CURRENT_TEAM.name));
     kpiAndByMap();
     renderTeamCombinedMetrics();
     renderTeamActiveUsage();
@@ -1510,7 +1633,7 @@ function refreshAllScopeDependent(){
   }
 
   renderLopsActive(); renderLopsPet(); renderLopsTopKillers();
-  // Eliminations ignore scope, so no need to rerun unless you want (optional)
+  // Eliminations ignore scope by design
 }
 function wireControls(){
   el('gYear').addEventListener('change', ()=>{
@@ -1533,8 +1656,8 @@ function wireControls(){
   el('gResetAll').addEventListener('click', ()=>{
     populateYears('2025');
     populateSeasons('Global Finals');
-    populateTournaments(); // defaults tournament to __all__
-    populateStages();      // defaults stage to __all__
+    populateTournaments();
+    populateStages();
     refreshAllScopeDependent();
   });
 
@@ -1572,10 +1695,11 @@ function wireControls(){
   el('charUsageMapFilter').addEventListener('change', ()=>{ renderCharUsageActive(); renderCharUsagePassive(); });
 }
 
-/* LOPS global renders */
+/* LOPS global renders (NOW SCOPED) */
 function renderLopsActive(){
+  const scoped = baseLopsRowsByScope(LOPS_ALL);
   const limit=Number(el('lopsActiveTop').value)||10;
-  const list=countByName(LOPS_ALL,'active').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
+  const list=countByName(scoped,'active').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
   el('tblLopsActive').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
     {label:'#',key:'rank',right:true,html:(_,i)=>i+1},
     {label:'Active Skill',key:'name'},
@@ -1584,8 +1708,9 @@ function renderLopsActive(){
   applyColumnHeatmap('tblLopsActive', ['picks']);
 }
 function renderLopsPet(){
+  const scoped = baseLopsRowsByScope(LOPS_ALL);
   const limit=Number(el('lopsPetTop').value)||10;
-  const list=countByName(LOPS_ALL,'pet').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
+  const list=countByName(scoped,'pet').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
   el('tblLopsPet').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
     {label:'#',key:'rank',right:true,html:(_,i)=>i+1},
     {label:'Pet',key:'name'},
@@ -1594,8 +1719,9 @@ function renderLopsPet(){
   applyColumnHeatmap('tblLopsPet', ['picks']);
 }
 function renderLopsTopKillers(){
+  const scoped = baseLopsRowsByScope(LOPS_ALL);
   const limit=Number(el('lopsTopKillersTop').value)||10;
-  const list=lopsTopPlayersByKills(LOPS_ALL).sort((a,b)=> b.kills-a.kills || a.player.localeCompare(b.player)).slice(0,limit);
+  const list=lopsTopPlayersByKills(scoped).sort((a,b)=> b.kills-a.kills || a.player.localeCompare(b.player)).slice(0,limit);
   el('tblLopsTopKillers').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
     {label:'#',key:'rank',right:true,html:(_,i)=>i+1},
     {label:'Player',key:'player'},
@@ -1620,6 +1746,9 @@ async function initial(){
     TEAMS = await fetchHelperTeams();
     if(!TEAMS.length) TEAMS = deriveTeamsFromData(ALL);
     buildTeamIndexes();
+
+    // Canonicalize tags in ffbr_data after we have alias map
+    ALL.forEach(r => { r._tag = canonicalTag(r._tag || r.tag || r.TAG || r.team || r.Team || ''); });
 
     // Defaults: Year 2025, Season Global Finals, Tournament all, Stage all
     populateYears('2025');
@@ -1668,10 +1797,10 @@ async function initial(){
 
     document.querySelectorAll('details.accordion').forEach(d=> d.open=false);
 
-    showPage(1);
+    showPage(currentPage());   // ✅ restore saved/URL page
     el('veil').classList.add('hide');
   }catch(e){
-    gerr('Fatal error initializing page:\\n\\n'+(e.stack||e.message||e));
+    gerr('Fatal error initializing page:\n\n'+(e.stack||e.message||e));
     el('veil').classList.add('hide');
   }
 }
