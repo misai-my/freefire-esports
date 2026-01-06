@@ -1,1846 +1,461 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FFBR — Teams</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Split View</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
 
   <style>
     :root{
-      /* Dashboard theme */
-      --bg:#070709;
-      --panel:#111114;
-      --panel2:#0d0d10;
-      --ink:#f5f5f7;
-      --muted:#b6b6bc;
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.08);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+
       --brand:#ffbd59;
       --brand2:#ff7733;
+      --accent:#4dd3ff;
 
-      --line:rgba(255,255,255,.10);
-      --stroke:rgba(255,255,255,.08);
-      --shadow:0 18px 60px rgba(0,0,0,.55);
+      --radius:16px;
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
 
-      --radius:14px;
-      --radius-lg:18px;
+      --divider-w: 6px;
+      --min-pane: 240px;
 
-      /* layout */
-      --header-h:64px;
-      --step-h:48px;
+      --topbar-h: 64px;
 
-      /* tiles */
-      --tile-w:96px;
-      --tile-h:104px;
-      --logo:44px;
-      --code-fs:.74rem;
-
-      /* heatmap */
-      --heat-rgb:255,189,89;
-      --heat-min:.06;
-      --heat-max:.22;
-      --heat-top-outline:.42;
-      --heat-radius:8px;
-
-      --good:#71d083;
-      --bad:#ff6b6b;
+      color-scheme: dark;
     }
 
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      background:
-        radial-gradient(900px 500px at 20% -10%, rgba(255,189,89,.12), transparent 55%),
-        radial-gradient(900px 520px at 90% 0%, rgba(255,119,51,.10), transparent 55%),
-        var(--bg);
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
       color:var(--ink);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;
-      overflow-x:hidden;
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow:hidden;
     }
 
-    /* Header */
-    header{
-      position:sticky; top:0; z-index:30;
-      height:var(--header-h);
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 14px;
-      background:rgba(10,10,12,.86);
-      backdrop-filter: blur(10px);
-      border-bottom:2px solid rgba(255,189,89,.35);
+    body::before, body::after{
+      content:"";
+      position:fixed;
+      inset:auto auto 0 0;
+      width:520px; height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform: translate(-45%, -35%);
+      filter: blur(.2px);
+      pointer-events:none;
     }
+    body::after{
+      inset: -120px 0 auto auto;
+      width:420px; height:420px;
+      border:10px solid rgba(77,211,255,.10);
+      transform: translate(38%, 0%);
+    }
+
+    a{color:inherit}
+    button{font:inherit}
+    :focus-visible{
+      outline: 2px solid rgba(77,211,255,.65);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+
+    /* Topbar (matching your theme) */
+    .topbar{
+      height: calc(var(--topbar-h) + env(safe-area-inset-top));
+      padding: calc(12px + env(safe-area-inset-top)) 12px 12px 12px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      position: relative;
+      z-index: 50;
+    }
+
     .title{
-      display:flex; align-items:center; gap:10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
       min-width:0;
     }
-    h1{
-      margin:0;
-      font-size:1.05rem;
-      letter-spacing:.3px;
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.5px;
       color:var(--brand);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+    .title h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.6px;
+      font-size: 1.05rem;
+      color: rgba(244,246,255,.94);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
-    .user-controls{
-      display:flex; gap:10px; align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+    .title small{
+      display:block;
+      margin-top:2px;
+      color: var(--muted);
+      font-size:.78rem;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    /* Buttons / chips */
-    .chip{
-      font-size:.85rem;
-      color:#ddd;
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:999px;
-      padding:6px 10px;
-      white-space:nowrap;
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
     }
+
     .btn{
-      background:var(--brand);
-      color:#1b1b1b;
-      border:0;
-      border-radius:10px;
-      padding:9px 12px;
-      font-weight:800;
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
       cursor:pointer;
+      font-weight:900;
+      font-size:.82rem;
+      transition:.2s ease;
+      white-space:nowrap;
       text-decoration:none;
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition:transform .08s ease, filter .12s ease;
+      justify-content:center;
+      -webkit-tap-highlight-color: transparent;
       user-select:none;
     }
-    .btn:hover{ filter:brightness(1.03) }
-    .btn:active{ transform:translateY(1px) }
-    .btn.secondary{
-      background:rgba(255,255,255,.06);
-      color:#eaeaea;
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:none;
+    .btn:hover{
+      background: rgba(0,0,0,.28);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
-    .btn.ghost{
-      background:transparent;
-      color:#eaeaea;
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:none;
+    .btn.brand{
+      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
+      border-color: rgba(255,189,89,.20);
     }
-
-    /* Shell (edge-to-edge) */
-    .shell{
-      width:100%;
-      padding:14px clamp(10px, 2vw, 18px);
-      margin:0;
+    .btn.brand:hover{
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.28);
     }
 
-    .gerr{
-      display:none;
-      margin:0 0 12px;
-      background:rgba(255,107,107,.10);
-      border:1px solid rgba(255,107,107,.22);
-      color:#ffb4b4;
-      border-radius:12px;
-      padding:10px 12px;
-      white-space:pre-wrap;
-    }
-    .gerr.show{display:block}
-
-    /* Steps / pager */
-    .steps{
-      position:sticky; top:calc(var(--header-h) + 10px);
-      z-index:20;
-      background:rgba(15,15,18,.72);
-      backdrop-filter: blur(10px);
-      border:1px solid var(--stroke);
-      border-radius:14px;
-      height:var(--step-h);
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:6px 8px;
-      margin-bottom:12px;
-      box-shadow: var(--shadow);
-    }
-    .step{
-      flex:1;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      height:100%;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);
-      color:#cfcfd4;
-      font-weight:800;
-      cursor:pointer;
-      transition:filter .15s ease, outline .15s ease;
-    }
-    .step:hover{ filter:brightness(1.04) }
-    .step .num{
-      display:inline-grid; place-items:center;
-      width:24px; height:24px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(0,0,0,.22);
-      font-size:.9rem;
-    }
-    .step.active{
-      outline:2px solid rgba(255,189,89,.70);
-      color:#fff;
-      background:rgba(255,189,89,.10);
-      border-color:rgba(255,189,89,.30);
-    }
-    .pager-nav{
-      display:flex;
-      gap:10px;
-      justify-content:space-between;
-      align-items:center;
-      margin:8px 0 14px;
-    }
-    .steps-hint{
-      color:var(--muted);
-      font-size:.9rem;
-      opacity:.9;
-      white-space:nowrap;
+    /* Split layout: edge-to-edge */
+    .wrap{
+      height: calc(100vh - (var(--topbar-h) + env(safe-area-inset-top)));
+      width: 100vw;
+      padding: 0;
     }
 
-    /* Pages / sections */
-    .page{display:none}
-    .page.active{display:block}
-
-    .section{
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--stroke);
-      border-radius:var(--radius-lg);
-      padding:12px;
-      margin-bottom:14px;
-      box-shadow: var(--shadow);
-    }
-    .section h2{
-      margin:0 0 10px;
-      color:var(--brand);
-      font-size:1.02rem;
-      letter-spacing:.2px;
-    }
-
-    .grid2{display:grid; grid-template-columns:repeat(2,minmax(260px,1fr)); gap:12px}
-    .grid3{display:grid; grid-template-columns:repeat(3,minmax(220px,1fr)); gap:12px}
-
-    .card{
-      background:rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:var(--radius);
-      padding:10px;
-    }
-    .card h3{
-      margin:0 0 8px;
-      color:var(--brand2);
-      font-size:1.0rem;
-      letter-spacing:.2px;
-    }
-
-    .kpis{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0}
-    .kpi{
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:10px;
-      padding:6px 10px;
-      font-size:.9rem;
-    }
-    .kpi strong{font-weight:900}
-
-    .bar{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin-bottom:10px;
-      flex-wrap:wrap;
-    }
-    .bar label{color:var(--muted); font-size:.92rem}
-
-    .input{
-      background:rgba(0,0,0,.35);
-      color:var(--ink);
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:10px;
-      padding:8px 10px;
-      outline:none;
-    }
-    .input:focus{
-      border-color:rgba(255,189,89,.45);
-      box-shadow:0 0 0 3px rgba(255,189,89,.12);
-    }
-    .muted{color:var(--muted)}
-
-    /* Team grid */
-    .team-grid{
+    .split{
+      height: 100%;
+      width: 100%;
       display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(var(--tile-w),1fr));
-      gap:8px;
+      grid-template-columns: 1fr var(--divider-w) 1fr;
+      grid-template-rows: 1fr;
+      background: transparent;
     }
-    .team-tile{
-      height:var(--tile-h);
-      background:rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:8px 6px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      cursor:pointer;
-      transition:transform .10s ease, border-color .10s ease, filter .10s ease;
+
+    .pane{
+      min-width: var(--min-pane);
+      min-height: var(--min-pane);
       overflow:hidden;
-    }
-    .team-tile:hover{transform:translateY(-2px); border-color:rgba(255,255,255,.20); filter:brightness(1.03)}
-    .team-tile.active{outline:2px solid rgba(255,119,51,.70)}
-
-    .team-logo{
-      width:var(--logo);
-      height:var(--logo);
-      object-fit:contain;
-      filter:drop-shadow(0 0 10px rgba(0,0,0,.55));
-    }
-    .team-code{
-      font-weight:900;
-      font-size:var(--code-fs);
-      line-height:1.1;
-      letter-spacing:.2px;
-      text-align:center;
+      position:relative;
     }
 
-    /* Tables */
-    table{
+    /* Give panes the same glass edge feel but without margins */
+    .pane::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,.10);
+      pointer-events:none;
+    }
+
+    .frame{
       width:100%;
-      border-collapse:separate;
-      border-spacing:0 8px;
-      font-size:.92rem;
-    }
-    thead th{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      position:sticky;
-      top:0;
-      text-align:left;
-      border-radius:10px;
-      padding:8px 8px;
-      z-index:1;
-    }
-    th,td{padding:8px 8px; vertical-align:top}
-    .right{text-align:right}
-
-    td[data-key]{
-      transition:background-color .18s ease, box-shadow .18s ease;
-      border-radius:var(--heat-radius);
-      background-clip:padding-box;
-    }
-    td.heat-top{
-      box-shadow:inset 0 0 0 1px rgba(var(--heat-rgb), var(--heat-top-outline));
+      height:100%;
+      border:0;
+      display:block;
+      background: rgba(0,0,0,.18);
     }
 
-    /* Accordions */
-    details.accordion{
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--stroke);
-      border-radius:var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      margin-bottom:12px;
+    .divider{
+      position:relative;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border-left: 1px solid rgba(255,255,255,.10);
+      border-right: 1px solid rgba(0,0,0,.35);
+      cursor: col-resize;
+      touch-action: none;
+      user-select:none;
     }
-    details.accordion > summary{
-      list-style:none;
-      cursor:pointer;
-      padding:12px 14px;
-      color:var(--brand);
-      font-weight:900;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    details.accordion > summary::-webkit-details-marker{display:none}
-    details.accordion > summary::after{
-      content:"▾";
-      color:rgba(255,255,255,.70);
-      font-weight:900;
-      transform: translateY(-1px);
-      transition: transform .12s ease;
-    }
-    details.accordion[open] > summary::after{ transform: rotate(180deg) translateY(1px) }
-    details.accordion > .accordion-body{padding:12px}
 
-    /* Veil */
-    #veil{
-      position:fixed; inset:0;
-      display:grid; place-items:center;
-      background:rgba(6,6,8,.94);
-      z-index:9999;
+    /* drag handle */
+    .divider::after{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width: 18px; height: 44px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
-    #veil .box{
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:14px;
-      padding:14px 16px;
-      color:#ddd;
-      box-shadow: var(--shadow);
+    .divider::before{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width: 10px; height: 28px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 25%, rgba(77,211,255,.65), transparent 55%),
+        radial-gradient(circle at 50% 50%, rgba(255,189,89,.55), transparent 55%),
+        radial-gradient(circle at 50% 75%, rgba(77,211,255,.65), transparent 55%);
+      opacity:.9;
+      pointer-events:none;
     }
-    #veil.hide{display:none}
 
-    /* Responsive */
-    @media (max-width:980px){ .grid3{grid-template-columns:1fr} }
-    @media (max-width:860px){ .grid2{grid-template-columns:1fr} }
-    @media (max-width:640px){
-      header{padding:10px 10px}
-      .chip{display:none} /* reduce clutter on phone */
-      .steps-hint{display:none}
-      .btn{padding:8px 10px; border-radius:10px}
-      .team-grid{grid-template-columns:repeat(auto-fill,minmax(86px,1fr))}
-      :root{ --tile-w:86px; --tile-h:98px; --logo:40px; }
+    .divider.dragging{
+      box-shadow: inset 0 0 0 9999px rgba(77,211,255,.06);
+      border-left-color: rgba(77,211,255,.22);
+      border-right-color: rgba(77,211,255,.22);
+    }
+
+    /* Mobile: stack vertical */
+    @media (max-width: 980px){
+      body::before, body::after{display:none;}
+
+      .actions{gap:8px}
+      .btn{padding: 10px 12px; border-radius: 14px;}
+
+      .split{
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr var(--divider-w) 1fr;
+      }
+      .divider{
+        cursor: row-resize;
+        border-left: 0;
+        border-right: 0;
+        border-top: 1px solid rgba(255,255,255,.10);
+        border-bottom: 1px solid rgba(0,0,0,.35);
+      }
+      .divider::after{ width: 44px; height: 18px; }
+      .divider::before{
+        width: 28px; height: 10px;
+        background:
+          radial-gradient(circle at 25% 50%, rgba(77,211,255,.65), transparent 55%),
+          radial-gradient(circle at 50% 50%, rgba(255,189,89,.55), transparent 55%),
+          radial-gradient(circle at 75% 50%, rgba(77,211,255,.65), transparent 55%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{transition:none !important; animation:none !important}
     }
   </style>
 </head>
 
 <body>
-<header>
-  <div class="title">
-    <h1>FFBR — Teams</h1>
-  </div>
-
-  <div class="user-controls">
-    <a class="btn secondary" id="homeBtn" href="dashboard.html">← Back to Dashboard</a>
-    <span class="chip" id="scopeChip">Scope: —</span>
-    <span class="chip" id="user-info">Checking login…</span>
-    <button class="btn" id="logoutBtn">Logout</button>
-  </div>
-</header>
-
-<div id="veil"><div class="box">Loading data…</div></div>
-
-<div class="shell">
-  <div id="globalErr" class="gerr"></div>
-
-  <div class="steps" id="steps">
-    <div class="step" data-page="1"><span class="num">1</span><span class="label">Overall</span></div>
-    <div class="step" data-page="2"><span class="num">2</span><span class="label">Team + Players</span></div>
-  </div>
-
-  <div class="pager-nav">
-    <button class="btn secondary" id="prevBtn">← Prev</button>
-    <div class="steps-hint">Use ←/→ keys to navigate</div>
-    <button class="btn secondary" id="nextBtn">Next →</button>
-  </div>
-
-  <!-- PAGE 1 -->
-  <div class="page" id="page1" data-page="1">
-    <div class="section">
-      <h2>Filters</h2>
-      <div class="bar">
-        <label>Tournament
-          <select id="gTournament" class="input" style="min-width:260px">
-            <option value="__all__">All tournaments</option>
-          </select>
-        </label>
-        <button class="btn secondary" id="gTournReset">Reset</button>
-      </div>
-      <div class="muted" id="filterHint">—</div>
-    </div>
-
-    <details class="accordion" id="overallSection">
-      <summary>Overall Performance (All Teams)</summary>
-      <div class="accordion-body">
-        <div class="bar">
-          <label for="overallSortKey">Sort by</label>
-          <select id="overallSortKey" class="input">
-            <option value="total_pm">Total / m</option>
-            <option value="total" selected>Total</option>
-            <option value="elims_pm">Elims / m</option>
-            <option value="elims">Elims</option>
-            <option value="placement_pm">Placement / m</option>
-            <option value="placement">Placement</option>
-            <option value="booyah_rate">Booyah %</option>
-            <option value="booyahs">Booyahs</option>
-            <option value="matches">Matches</option>
-            <option value="top3_rate">Top-3 %</option>
-            <option value="team">Team (A→Z)</option>
-          </select>
-          <button class="btn secondary" id="overallSortDir" data-dir="desc">Desc</button>
-          <button class="btn secondary" id="overallReset">Reset</button>
-        </div>
-        <div class="card" style="margin:0">
-          <div id="tblOverall">Loading…</div>
-        </div>
-      </div>
-    </details>
-
-    <details class="accordion" id="perMapAllSection">
-      <summary>All Teams — Per-Map Breakdown</summary>
-      <div class="accordion-body">
-        <div class="bar">
-          <label for="mapFilter">Map</label>
-          <select id="mapFilter" class="input" style="min-width:220px">
-            <option value="__all__" selected>All maps</option>
-          </select>
-          <label for="perMapSortKey">Sort by</label>
-          <select id="perMapSortKey" class="input">
-            <option value="total_pm">Total / m</option>
-            <option value="total" selected>Total</option>
-            <option value="elims_pm">Elims / m</option>
-            <option value="elims">Elims</option>
-            <option value="placement_pm">Placement / m</option>
-            <option value="placement">Placement</option>
-            <option value="booyah_rate">Booyah %</option>
-            <option value="booyahs">Booyahs</option>
-            <option value="matches">Matches</option>
-            <option value="top3_rate">Top-3 %</option>
-            <option value="team">Team (A→Z)</option>
-          </select>
-          <button class="btn secondary" id="perMapSortDir" data-dir="desc">Desc</button>
-          <button class="btn secondary" id="perMapReset">Reset</button>
-        </div>
-        <div class="card" style="margin:0">
-          <div id="tblPerMapAllTeams">Loading…</div>
-        </div>
-      </div>
-    </details>
-
-    <details class="accordion" id="lopsTopKillersSection">
-      <summary>Top Players by Kills</summary>
-      <div class="accordion-body">
-        <div class="bar">
-          <label>Top</label>
-          <select id="lopsTopKillersTop" class="input">
-            <option>10</option><option>20</option><option>50</option><option>100</option>
-          </select>
-        </div>
-        <div class="card" style="margin:0"><div id="tblLopsTopKillers">Loading…</div></div>
-      </div>
-    </details>
-
-    <details class="accordion" id="lopsUsageSection">
-      <summary>Active Skill & Pet Usage</summary>
-      <div class="accordion-body">
-        <div class="grid2">
-          <div class="card">
-            <h3>Active Skill Usage</h3>
-            <div class="bar">
-              <label>Top</label>
-              <select id="lopsActiveTop" class="input">
-                <option>10</option><option>20</option><option>50</option><option>100</option>
-              </select>
-            </div>
-            <div id="tblLopsActive">Loading…</div>
-          </div>
-          <div class="card">
-            <h3>Pet Usage</h3>
-            <div class="bar">
-              <label>Top</label>
-              <select id="lopsPetTop" class="input">
-                <option>10</option><option>20</option><option>50</option><option>100</option>
-              </select>
-            </div>
-            <div id="tblLopsPet">Loading…</div>
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <details class="accordion" id="elimSummarySection">
-      <summary>Eliminations — Summary (All Teams)</summary>
-      <div class="accordion-body">
-        <div class="grid2">
-          <div class="card">
-            <h3>Who Eliminated Each Team?</h3>
-            <div id="tblEliminatedBy">Loading…</div>
-          </div>
-          <div class="card">
-            <h3>Who Did Each Team Eliminate?</h3>
-            <div id="tblGiven">Loading…</div>
-          </div>
-        </div>
-      </div>
-    </details>
-  </div>
-
-  <!-- PAGE 2 -->
-  <div class="page" id="page2" data-page="2">
-    <div class="section">
-      <h2>Team Selection</h2>
-      <div class="bar">
-        <input type="search" id="teamSearch" placeholder="Search team / region…" class="input" style="flex:1;max-width:520px">
-        <span class="chip">Scope: <span id="scopeChipTeam">—</span> • <a href="#" id="editFilters1" class="btn ghost" style="padding:6px 10px">Edit filters</a></span>
-      </div>
-      <div id="teamGrid" class="team-grid">Loading teams…</div>
-      <div id="teamGridErr"></div>
-    </div>
-
-    <div class="section" id="teamHeader">
-      <h2 id="teamTitle">Overview</h2>
-      <div class="grid2">
-        <div class="card" id="teamIdentity">
-          <h3>Identity</h3>
-          <div id="identityBody">Select a team.</div>
-        </div>
-        <div class="card" id="teamKPIs">
-          <h3>Key KPIs</h3>
-          <div id="kpiBody">—</div>
-        </div>
-      </div>
-
-      <div class="grid3" style="margin-top:12px">
-        <div class="card"><h3>Totals</h3><div id="teamTotals" class="kpis">—</div></div>
-        <div class="card"><h3>Per Match Averages</h3><div id="teamAverages" class="kpis">—</div></div>
-        <div class="card"><h3>Signals</h3><div id="teamSignals" class="kpis">—</div></div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="title">
+      <div class="logo">FF</div>
+      <div style="min-width:0">
+        <h1>Split View</h1>
+        <small>Edge-to-edge • Drag the divider</small>
       </div>
     </div>
 
-    <details class="accordion" id="playersSection">
-      <summary>Player Stats</summary>
-      <div class="accordion-body">
-        <div class="card" style="margin:0"><div id="tblPlayers">Loading…</div></div>
+    <div class="actions">
+      <a class="btn" href="home.html">← Back to Dashboard</a>
+      <button class="btn brand" id="resetBtn" type="button">Reset Split</button>
+    </div>
+  </header>
+
+  <!-- SPLIT -->
+  <div class="wrap">
+    <section class="split" id="split">
+      <div class="pane" id="paneA">
+        <iframe class="frame" id="frameA" title="Left Pane"></iframe>
       </div>
-    </details>
 
-    <details class="accordion" id="mapsDaysSection">
-      <summary>By Map & By Day Stats</summary>
-      <div class="accordion-body">
-        <div class="card" style="margin:0 0 12px 0">
-          <h3>By Map</h3>
-          <div id="tblMapTeam">—</div>
-        </div>
-        <div class="card" style="margin:0">
-          <h3>By Day (Pivot by Map)</h3>
-          <div id="tblByDay">—</div>
-        </div>
+      <div class="divider" id="divider" role="separator" aria-label="Resize split panes" aria-orientation="vertical" tabindex="0"></div>
+
+      <div class="pane" id="paneB">
+        <iframe class="frame" id="frameB" title="Right Pane"></iframe>
       </div>
-    </details>
-
-    <details class="accordion" id="teamCharsUsageSection">
-      <summary>Character and Pet Usage</summary>
-      <div class="accordion-body">
-        <div class="grid2">
-          <div class="card">
-            <h3>Active Skill Usage</h3>
-            <div class="bar"><label>Top</label>
-              <select id="teamActiveTop" class="input"><option>10</option><option>20</option><option>50</option><option>100</option></select>
-            </div>
-            <div id="tblTeamActive">Loading…</div>
-          </div>
-          <div class="card">
-            <h3>Pet Usage</h3>
-            <div class="bar"><label>Top</label>
-              <select id="teamPetTop" class="input"><option>10</option><option>20</option><option>50</option><option>100</option></select>
-            </div>
-            <div id="tblTeamPet">Loading…</div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <h3>Per-Player Character Usage — Active</h3>
-          <div class="bar">
-            <label>Top players</label>
-            <select id="charUsageTop" class="input"><option>10</option><option>20</option><option>50</option><option>100</option></select>
-            <label>Map</label>
-            <select id="charUsageMapFilter" class="input" style="min-width:180px">
-              <option value="__all__" selected>All maps</option>
-            </select>
-          </div>
-          <div id="tblCharUsageAct">Loading…</div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <h3>Per-Player Character Usage — Passive</h3>
-          <div id="tblCharUsagePas">Loading…</div>
-          <div class="muted" style="margin-top:6px" id="charMapHint">—</div>
-        </div>
-      </div>
-    </details>
-
-    <details class="accordion" id="teamInfoSection">
-      <summary>Team Info</summary>
-      <div class="accordion-body">
-        <div class="card" style="margin:0">
-          <div id="teamInfoBody" class="muted">—</div>
-        </div>
-      </div>
-    </details>
-
-    <details class="accordion" id="teamRosterSection">
-      <summary>Roster & Accolades</summary>
-      <div class="accordion-body">
-        <div class="card" style="margin:0">
-          <div id="teamRosterBody" class="muted">—</div>
-        </div>
-      </div>
-    </details>
-
-    <details class="accordion" id="elimTeamAccordion">
-      <summary>Eliminations — Team Focus & Breakdowns</summary>
-      <div class="accordion-body">
-        <div class="grid3">
-          <div class="card">
-            <h3>Top Eliminators of <span id="elimTeamCodeA">—</span></h3>
-            <div id="elimTopPredators" class="kpis">—</div>
-          </div>
-          <div class="card">
-            <h3>Top Victims of <span id="elimTeamCodeB">—</span></h3>
-            <div id="elimTopVictims" class="kpis">—</div>
-          </div>
-          <div class="card">
-            <h3>Signals</h3>
-            <div id="elimSignals" class="kpis">—</div>
-          </div>
-        </div>
-
-        <div class="grid2" style="margin-top:12px">
-          <div class="card">
-            <h3>Eliminated By — By Day</h3>
-            <div id="elimByDay">—</div>
-          </div>
-          <div class="card">
-            <h3>Eliminated By — By Map</h3>
-            <div id="elimByMap">—</div>
-          </div>
-        </div>
-      </div>
-    </details>
+    </section>
   </div>
-</div>
 
-<script>
-/* ============ Supabase init ============ */
-const client = supabase.createClient(
-  'https://gkugecflfddkpitlrmws.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWdlY2ZsZmRka3BpdGxybXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwODMwNzQsImV4cCI6MjA2MTY1OTA3NH0.OgQOx9k71DDdK1yOa7VNKGSgoFD9kNGo8j-bR91zGKE'
-);
+  <script>
+    /***********************
+     * Split View — themed to match your dashboard
+     * - No sidebar, no margins
+     * - Buttons: Back + Reset only
+     * - Drag divider (mouse/touch)
+     * - Query params supported:
+     *   split-view.html?left=character.html&right=weapon.html
+     ***********************/
+    const KEY_RATIO = 'ff_split_ratio_v1';
+    const split = document.getElementById('split');
+    const divider = document.getElementById('divider');
+    const resetBtn = document.getElementById('resetBtn');
+    const frameA = document.getElementById('frameA');
+    const frameB = document.getElementById('frameB');
 
-/* ============ Small utils ============ */
-const el = id => document.getElementById(id);
-const fmtPct = x => isFinite(x) ? (x*100).toFixed(1)+'%' : '—';
-const n = x => Number(x ?? 0) || 0;
-const norm = v => (v==null ? '' : String(v).trim());
-function sum(arr,k){ let t=0; for(const r of arr) t+= Number(r?.[k] ?? 0) || 0; return t; }
-function safeDiv(a,b){ a=Number(a??0)||0; b=Number(b??0)||0; return b? (a/b) : 0; }
-function groupBy(arr,fn){ const m=new Map(); for(const r of arr){ const k=fn(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r);} return m; }
-function looksLikeURL(v){ return /^https?:\/\//i.test(String(v||'')); }
-const nameKey = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+    const mqStack = window.matchMedia('(max-width: 980px)');
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-/* ============ Global error surface ============ */
-function gerr(msg){
-  const box=el('globalErr'); if(!box) return;
-  box.textContent = msg; box.classList.add('show');
-  console.error('[FFBR]', msg);
-}
-
-/* ============ Pager ============ */
-const PAGES=[1,2];
-function setActiveStep(p){ document.querySelectorAll('.step').forEach(s=> s.classList.toggle('active', String(s.dataset.page)===String(p))); }
-function showPage(p){
-  const target=document.querySelector(`.page[data-page="${p}"]`); if(!target) return;
-  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active')); target.classList.add('active');
-  setActiveStep(p); localStorage.setItem('ffbr_page', String(p));
-  const url=new URL(window.location.href); url.searchParams.set('p', String(p)); history.replaceState(null,'',url.toString());
-}
-function currentPage(){ const url=new URL(window.location.href); const qp=Number(url.searchParams.get('p')); if(PAGES.includes(qp)) return qp; const ls=Number(localStorage.getItem('ffbr_page')); return PAGES.includes(ls)?ls:1; }
-function nextPage(){ const p=currentPage(); const idx=PAGES.indexOf(p); showPage(PAGES[Math.min(PAGES.length-1, idx+1)]); }
-function prevPage(){ const p=currentPage(); const idx=PAGES.indexOf(p); showPage(PAGES[Math.max(0, idx-1)]); }
-document.querySelectorAll('.step').forEach(s=> s.addEventListener('click', ()=> showPage(Number(s.dataset.page))));
-el('prevBtn').addEventListener('click', prevPage);
-el('nextBtn').addEventListener('click', nextPage);
-window.addEventListener('keydown', e=>{ if(e.key==='ArrowLeft') prevPage(); if(e.key==='ArrowRight') nextPage(); });
-
-/* Jump to filters */
-el('editFilters1').addEventListener('click', e=>{ e.preventDefault(); showPage(1); window.scrollTo({top:0,behavior:'smooth'}); });
-
-/* ============ Session chip ============ */
-(async () => {
-  const { data: { session } } = await client.auth.getSession();
-  el('user-info').textContent = session?.user?.email ? `Logged in: ${session.user.email}` : 'Anon access';
-})();
-el('logoutBtn').onclick = async () => { await client.auth.signOut(); location.reload(); };
-
-/* ============ State ============ */
-let TEAMS=[]; let TEAM_BY_CODE={}; let TEAM_BY_NAME={}; let ALLOWED_TAGS=new Set();
-let ALL=[]; let TEAM_ROWS=[]; let CURRENT_TEAM=null;
-let LOPS_ALL=[];           // normalized lops rows
-let LOPS_READY=false;      // render guards
-let MATCH_API_MAP = new Map(); // id -> name for characters (type=2)
-let ROLE_BY_IGN = new Map();   // normalized IGN -> role text
-
-/* ============ Helpers ============ */
-function buildTeamIndexes(){
-  TEAM_BY_CODE = Object.fromEntries(TEAMS.map(t=>[t.name.toLowerCase(), t]));
-  TEAM_BY_NAME = Object.fromEntries(TEAMS.map(t=>[t.fullname.toLowerCase(), t]));
-  ALLOWED_TAGS = new Set(TEAMS.map(t => t.name.toUpperCase()));
-}
-function deriveTeamsFromData(rows){
-  const codes=[...new Set(rows.map(r=> norm(r.tag||r.TAG||r._tag).toUpperCase()).filter(Boolean))].sort();
-  return codes.map(code=>({ name:code, fullname:code, logo:'', ew:'', region:'', alt:'' }));
-}
-function normalizeRow(r){
-  r._tag = norm(r.tag ?? r.TAG ?? '').toUpperCase();
-  if (r.elimination == null) r.elimination = r.elims ?? r.kills ?? 0;
-  if (r.placement   == null) r.placement   = r.place ?? 0;
-  if (r.top3        == null) r.top3        = r.top_3 ?? 0;
-  return r;
-}
-async function fetchAllRows(){
-  const CHUNK=1000; let from=0; const out=[];
-  for(;;){
-    const { data, error } = await client.from('ffbr_data').select('*').order('id',{ascending:true}).range(from, from+CHUNK-1);
-    if(error){ gerr('ffbr_data fetch failed. Check RLS / table name.\n\n'+(error.message||error)); break; }
-    const rows=data||[]; if(!rows.length) break;
-    out.push(...rows); from+=rows.length;
-  }
-  return out.map(normalizeRow);
-}
-async function fetchHelperTeams(){
-  const { data, error } = await client.from('helper_team').select('*').order('TAG');
-  if(error){ console.warn('helper_team error:', error.message||error); return []; }
-  const rows=data||[];
-  return rows.map(r=>{
-    const code = norm(r.TAG).toUpperCase();
-    return { name:code, fullname:norm(r.TEAM)||code, logo:norm(r.LOGO)||'', ew:norm(r['E/W'])||'', region:norm(r.REGION)||'', alt:norm(r['ALT NAME 1'])||'' };
-  });
-}
-
-/* Tournaments */
-function tournamentsWithMaxId(rows){
-  const m=new Map();
-  for(const r of rows){
-    const t=norm(r.tournament); if(!t) continue;
-    const id=n(r.id);
-    const key=t.toLowerCase();
-    if(!m.has(key)) m.set(key, { name:t, maxId:id });
-    else m.get(key).maxId = Math.max(m.get(key).maxId, id);
-  }
-  return [...m.values()].sort((a,b)=> b.maxId - a.maxId || a.name.localeCompare(b.name));
-}
-function populateGlobalTournament(defaultToLatest=true){
-  const sel=el('gTournament'); if(!sel) return;
-  const items=tournamentsWithMaxId(ALL);
-  sel.innerHTML=`<option value="__all__">All tournaments</option>` + items.map(o=>`<option value="${o.name.replaceAll('"','&quot;')}">${o.name}</option>`).join('');
-  sel.value = (defaultToLatest && items.length) ? items[0].name : '__all__';
-  updateFilterHint();
-}
-function selectedTournament(){ return (el('gTournament')?.value || '__all__').trim(); }
-function baseRowsByTournament(rows){
-  const t=selectedTournament(); if(t==='__all__') return rows;
-  const lf=t.toLowerCase(); return rows.filter(r=> norm(r.tournament).toLowerCase()===lf);
-}
-function updateFilterHint(){
-  const t=selectedTournament(); const total=baseRowsByTournament(ALL).length;
-  el('filterHint').textContent = t==='__all__' ? `Scope: All tournaments • Rows: ${total}` : `Scope: ${t} • Rows: ${total}`;
-  const chip = t==='__all__' ? 'All tournaments' : t;
-  el('scopeChip').textContent = 'Scope: ' + chip;
-  el('scopeChipTeam').textContent = chip;
-}
-
-/* Tables + heat */
-function renderSimpleTable(list, cols){
-  if (!list.length) return '<div class="muted">No rows.</div>';
-  const head = `<thead><tr>${cols.map(c=>`<th data-key="${c.key}" class="${c.right?'right':''}">${c.label}</th>`).join('')}</tr></thead>`;
-  const body = `<tbody>${list.map((r,i)=>`<tr>${
-    cols.map(c=>{
-      let v; if (typeof c.html==='function'){ v=c.html(r,i); }
-      else { v=r[c.key];
-             if (c.format==='pct') v=isFinite(v)?(v*100).toFixed(1)+'%':'—';
-             else if (c.format==='1d') v=isFinite(v)?Number(v).toFixed(1):'—';
-             else if (c.format==='0d') v=isFinite(v)?Number(v).toFixed(0):'—';
-             if (c.link && v && looksLikeURL(v)) v=`<a href="${v}" target="_blank" rel="noopener">${v}</a>`; }
-      return `<td data-key="${c.key}" class="${c.right?'right':''}">${(v==null||v==='')?'—':v}</td>`;
-    }).join('')
-  }</tr>`).join('')}</tbody>`;
-  return `<table>${head}${body}</table>`;
-}
-function applyColumnHeatmap(containerId, keys){
-  const wrap=el(containerId); const table=wrap?.querySelector('table'); if(!table) return;
-  table.querySelectorAll('td[data-key]').forEach(td=>{ td.style.backgroundColor=''; td.classList.remove('heat-top'); });
-  const styles=getComputedStyle(document.documentElement);
-  const rgb=styles.getPropertyValue('--heat-rgb')||'255,189,89';
-  const minA=parseFloat(styles.getPropertyValue('--heat-min'))||.06;
-  const maxA=parseFloat(styles.getPropertyValue('--heat-max'))||.22;
-  const BANDS=5;
-  for(const key of keys){
-    const cells=[...table.querySelectorAll(`td[data-key="${key}"]`)];
-    if(!cells.length) continue;
-    const entries=cells.map((td,i)=>{ const raw=(td.textContent||'').trim().replace('%','').replace(/,/g,''); const v=parseFloat(raw); return {td,i,v:isFinite(v)?v:null}; }).filter(e=>e.v!=null);
-    if(!entries.length) continue;
-    const asc=entries.slice().sort((a,b)=>a.v-b.v); const n=asc.length; const bandByIndex=new Map();
-    asc.forEach((e,rank)=>{ const p=(n<=1)?1:(rank/(n-1)); const band=Math.min(BANDS-1,Math.floor(p*BANDS)); bandByIndex.set(e.i,band); });
-    const topVal=asc[n-1].v;
-    cells.forEach((td,i)=>{ const band=bandByIndex.get(i); if(band==null) return;
-      const alpha=minA + (band/(BANDS-1))*(maxA-minA);
-      td.style.backgroundColor=`rgba(${rgb}, ${alpha.toFixed(3)})`;
-      const cellV=parseFloat((td.textContent||'').replace(/,/g,''));
-      if(isFinite(cellV) && cellV===topVal) td.classList.add('heat-top');
-    });
-  }
-}
-
-/* Aggregations (ffbr_data) */
-function codeFromRow(r){ const code=norm(r._tag).toUpperCase(); return ALLOWED_TAGS.has(code) ? code : null; }
-function metaFromCode(code){ return code ? TEAM_BY_CODE[code.toLowerCase()] : null; }
-function aggregateOverall(rows){
-  const grouped=new Map();
-  for(const r of rows){ const code=codeFromRow(r); if(!code) continue; if(!grouped.has(code)) grouped.set(code,[]); grouped.get(code).push(r); }
-  const out=[];
-  for(const [code,list] of grouped.entries()){
-    const meta=metaFromCode(code); const m=list.length; if(!m||!meta) continue;
-    const booyahs=sum(list,'booyah'), elims=sum(list,'elimination'), place=sum(list,'placement'), total=sum(list,'total');
-    out.push({ team:meta.fullname, code:meta.name, region:(meta.region||'—'), ew: meta.ew||'',
-      matches:m, booyahs, elims, placement:place, total,
-      booyah_rate:booyahs/m, elims_pm:elims/m, placement_pm:place/m, total_pm:total/m, top3_rate: sum(list,'top3')/m });
-  }
-  return out;
-}
-function aggregateTeamsForMap(rows,mapValue){
-  const perTeam=new Map();
-  for(const r of rows){
-    if(mapValue && mapValue!=='__all__'){ if((norm(r.map)||'').toLowerCase()!==mapValue.toLowerCase()) continue; }
-    const code=codeFromRow(r); if(!code) continue;
-    if(!perTeam.has(code)) perTeam.set(code,[]); perTeam.get(code).push(r);
-  }
-  const out=[];
-  for(const [code,list] of perTeam.entries()){
-    const meta=metaFromCode(code); const m=list.length; if(!m||!meta) continue;
-    const booyahs=sum(list,'booyah'), elims=sum(list,'elimination'), place=sum(list,'placement'), total=sum(list,'total');
-    out.push({ team:meta.fullname, code:meta.name, region:(meta.region||'—'), ew: meta.ew||'',
-      matches:m, booyahs, elims, placement:place, total,
-      booyah_rate:booyahs/m, elims_pm:elims/m, placement_pm:place/m, total_pm:total/m, top3_rate: sum(list,'top3')/m });
-  }
-  return out;
-}
-function uniqueMaps(rows){ const s=new Set(); for(const r of rows){ const m=norm(r.map); if(m) s.add(m); } return [...s].sort((a,b)=>a.localeCompare(b)); }
-
-/* Team + roster info helpers */
-function asListHTML(val){
-  const items = splitToLines(val); if(!items.length) return '—';
-  return `<ul style="margin:0;padding-left:16px">${items.map(it=>`<li>${it}</li>`).join('')}</ul>`;
-}
-function splitToLines(val){
-  if (val == null) return [];
-  if (Array.isArray(val) ) return val.flat().map(x=>String(x).trim()).filter(Boolean);
-  let s=String(val).trim();
-  try{ if(/^\s*\[/.test(s)){ const arr=JSON.parse(s); if(Array.isArray(arr)) return arr.flat().map(x=>String(x).trim()).filter(Boolean); } }catch{}
-  s=s.replace(/[•\u2022\u00b7]/g,'\n');
-  let parts=s.split(/\r?\n|;|\|/); if(parts.length===1 && s.includes(',')) parts=s.split(',');
-  return parts.map(x=>x.trim()).filter(Boolean);
-}
-async function fetchTeamInfoBy(codeRaw){
-  const codeUp=norm(codeRaw).toUpperCase();
-  try{
-    let res=await client.from('br_team_info').select('*').eq('Team Initials', codeUp).limit(1);
-    if(res.error) throw res.error;
-    if(res.data?.length) return res.data[0];
-  }catch(e){ console.warn('br_team_info fetch error:', e.message||e); }
-  return null;
-}
-async function fetchPlayersBy(codeRaw){
-  const codeUp=norm(codeRaw).toUpperCase();
-  try{
-    const res=await client.from('br_player_info').select('*').eq('TAG', codeUp);
-    if(res.error) throw res.error;
-    return res.data||[];
-  }catch(e){ console.warn('br_player_info fetch error:', e.message||e); return []; }
-}
-function pickKey(keys, patterns){
-  for(const rx of patterns){
-    const k = keys.find(k => rx.test(k));
-    if(k) return k;
-  }
-  return null;
-}
-function setRoleMap(players){
-  ROLE_BY_IGN.clear();
-  if(!players?.length) return;
-  const keySet=new Set(); players.forEach(p=>Object.keys(p).forEach(k=>keySet.add(k)));
-  const keys=[...keySet];
-  const ignKey = pickKey(keys, [/^ign$/i,/\bplayer\s*ign\b/i,/\bin-?\s*game\s*name\b/i,/\bnick\s*name\b/i,/\bnickname\b/i,/\bhandle\b/i,/\balias\b/i,/\bplayer\s*name\b/i,/^name$/i]) || null;
-  const roleKey= pickKey(keys, [/^role$/i, /\bposition\b/i]) || 'Role';
-  for(const p of players){
-    const ign = String(
-      (ignKey && p[ignKey]) ?? p['IGN'] ?? p['In-game Name'] ?? p['Player IGN'] ?? p['Player Name'] ??
-      p['Nickname'] ?? p['Name'] ?? p['name'] ?? ''
-    ).trim();
-    const role = String(p[roleKey] ?? p['Role'] ?? p['Position'] ?? p['position'] ?? '').trim();
-    if(ign) ROLE_BY_IGN.set(nameKey(ign), role || '—');
-  }
-}
-
-/* Roster render */
-function parseAgeValue(record, ageKey, dobKey){
-  if(ageKey){
-    const raw = record[ageKey];
-    if(raw!=null && String(raw).trim()!==''){
-      const m = String(raw).match(/(\d{1,3})/);
-      if(m){ const v = Number(m[1]); if(isFinite(v) && v>=0 && v<130) return v; }
+    function getParams(){
+      const u = new URL(location.href);
+      return {
+        left:  u.searchParams.get('left')  || 'character.html',
+        right: u.searchParams.get('right') || 'weapon.html'
+      };
     }
-  }
-  if(dobKey){
-    const raw = String(record[dobKey] ?? '').trim();
-    if(raw){
-      const d = new Date(raw);
-      if(!isNaN(d.getTime())){
-        const today = new Date();
-        let age = today.getFullYear() - d.getFullYear();
-        const mo = today.getMonth() - d.getMonth();
-        if(mo < 0 || (mo === 0 && today.getDate() < d.getDate())) age--;
-        if(isFinite(age) && age>=0 && age<130) return age;
+
+    function setFrames(){
+      const { left, right } = getParams();
+      frameA.src = left;
+      frameB.src = right;
+    }
+
+    function isStacked(){ return mqStack.matches; }
+
+    function applyRatio(ratio){
+      ratio = clamp(ratio, 0.1, 0.9);
+
+      const rect = split.getBoundingClientRect();
+      const size = isStacked() ? rect.height : rect.width;
+      const minFrac = clamp(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--min-pane')) || 240, 120, 420) / Math.max(1, size);
+
+      ratio = clamp(ratio, minFrac, 1 - minFrac);
+
+      if (isStacked()){
+        const topPx = Math.round(rect.height * ratio);
+        split.style.gridTemplateRows = `${topPx}px var(--divider-w) 1fr`;
+        split.style.gridTemplateColumns = `1fr`;
+        divider.setAttribute('aria-orientation','horizontal');
+      }else{
+        const leftPx = Math.round(rect.width * ratio);
+        split.style.gridTemplateColumns = `${leftPx}px var(--divider-w) 1fr`;
+        split.style.gridTemplateRows = `1fr`;
+        divider.setAttribute('aria-orientation','vertical');
       }
-    }
-  }
-  return null;
-}
-function renderRoster(players){
-  const box=el('teamRosterBody');
-  if(!players?.length){ box.innerHTML='<div class="muted">No players found.</div>'; return; }
-  const keys=Object.keys(players[0]||{});
-  const avatarKey = pickKey(keys, [/photo|avatar|image|picture/i]);
-  const ignKey = pickKey(keys, [/^ign$/i,/\bplayer\s*ign\b/i,/\bin-?\s*game\s*name\b/i,/\bnick\s*name\b/i,/\bnickname\b/i,/\bhandle\b/i,/\balias\b/i,/\bplayer\s*name\b/i,/^name$/i]) || null;
-  const roleKey    = pickKey(keys, [/^role$/i, /\bposition\b/i]) || null;
-  const countryKey = pickKey(keys, [/^country$/i, /\bnation\b/i]) || null;
-  const ageKey = pickKey(keys, [/^age\b/i, /\bage\s*\(?(yrs|years)?\)?/i, /\byears?\s*old\b/i]) || null;
-  const dobKey = pickKey(keys, [/\b(dob|birth(date)?|date\s*of\s*birth)\b/i]) || null;
-  const accolKey = keys.includes('Accolades') ? 'Accolades' : pickKey(keys, [/accolade|achievement|title|award/i]) || null;
-  const formerKey = pickKey(keys, [/\b(former|previous|past|ex)[\s_]*teams?\b/i,/\bteam\s*history\b/i,/^Former Team(s)?$/i]) || 'Former Team';
 
-  const rows = players.slice().map(p=>{
-    const avatar = avatarKey && p[avatarKey]
-      ? `<img src="${p[avatarKey]}" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.12)">`
-      : '';
-    const ign = (() => {
-      const tryKeys = ignKey ? [ignKey] : [];
-      tryKeys.push('IGN','In-game Name','Player IGN','Player Name','Nickname','Name','name');
-      for(const k of tryKeys){
-        if(k in p && String(p[k]).trim()!=='') return String(p[k]).trim();
+      try{ localStorage.setItem(KEY_RATIO, String(ratio)); }catch(_){}
+      return ratio;
+    }
+
+    function readRatio(){
+      const raw = localStorage.getItem(KEY_RATIO);
+      const n = raw ? parseFloat(raw) : NaN;
+      return Number.isFinite(n) ? n : 0.5;
+    }
+
+    let ratio = 0.5;
+
+    function resetSplit(){
+      ratio = 0.5;
+      applyRatio(ratio);
+    }
+
+    // Pointer drag (mouse + touch)
+    let dragging = false;
+    let activePointerId = null;
+
+    function onPointerDown(e){
+      dragging = true;
+      activePointerId = e.pointerId;
+      divider.classList.add('dragging');
+      divider.setPointerCapture?.(activePointerId);
+      e.preventDefault();
+    }
+
+    function onPointerMove(e){
+      if (!dragging || e.pointerId !== activePointerId) return;
+
+      const rect = split.getBoundingClientRect();
+      if (isStacked()){
+        const y = e.clientY - rect.top;
+        ratio = y / Math.max(1, rect.height);
+      }else{
+        const x = e.clientX - rect.left;
+        ratio = x / Math.max(1, rect.width);
       }
-      return '—';
-    })();
-    const role    = roleKey    ? (p[roleKey]    ?? '—') : '—';
-    const country = countryKey ? (p[countryKey] ?? '—') : '—';
-    const ageNum = parseAgeValue(p, ageKey, dobKey);
-    const age    = (ageNum==null) ? (ageKey? String(p[ageKey]??'—'): '—') : ageNum;
-    const accHTML    = accolKey  ? asListHTML(p[accolKey])   : '—';
-    const formerHTML = formerKey ? asListHTML(p[formerKey])  : '—';
-    return { avatar, ign, role, country, age, formerHTML, accHTML };
-  });
-  rows.sort((a,b)=> String(a.role||'').localeCompare(String(b.role||'')) || String(a.ign||'').localeCompare(String(b.ign||'')));
-  box.innerHTML = renderSimpleTable(rows, [
-    {label:'', key:'avatar'},
-    {label:'IGN', key:'ign'},
-    {label:'Role', key:'role'},
-    {label:'Country', key:'country'},
-    {label:'Age', key:'age', right:true},
-    {label:'Former Team', key:'formerHTML'},
-    {label:'Accolades', key:'accHTML'},
-  ]);
-}
-
-/* Team KPIs / map performance */
-function kpiDataset(rows){
-  const matches=rows.length, booyahs=sum(rows,'booyah'), total=sum(rows,'total'), elims=sum(rows,'elimination'), place=sum(rows,'placement'), damage=sum(rows,'damage'), top3=sum(rows,'top3');
-  return {
-    matches, booyahs, elims, placement:place, total,
-    booyah_rate: matches? booyahs/matches : 0,
-    total_per_match: matches? total/matches : 0,
-    elims_per_match: matches? elims/matches : 0,
-    place_per_match: matches? place/matches : 0,
-    dmg_per_match: matches? damage/matches : 0,
-    top3_rate: matches? top3/matches : 0
-  };
-}
-function latestYwdm(rows){
-  let best=null;
-  for(const r of rows){
-    const y=n(r.year), w=n(r.week), d=n(r.day), m=n(r.match);
-    const key = (y*1e8) + (w*1e6) + (d*1e4) + (m||0);
-    if(!best || key>best.key) best={y,w,d,m,key};
-  }
-  return best;
-}
-function fmtYwdm(obj){
-  if(!obj) return '—';
-  const parts=[`Y${obj.y||'—'}`];
-  if(n(obj.w)) parts.push(`W${obj.w}`);
-  if(n(obj.d)) parts.push(`D${obj.d}`);
-  if(n(obj.m)) parts.push(`M${obj.m}`);
-  return parts.join(' ');
-}
-function teamMapPerf(rows){
-  const g = groupBy(rows, r=>r.map||'—');
-  const out=[];
-  for(const [map,list] of g.entries()){
-    const m=list.length, booyahs=sum(list,'booyah'), elims=sum(list,'elimination'), place=sum(list,'placement'), total=sum(list,'total');
-    out.push({ map, matches:m, booyahs, elims, placement:place, total,
-      booyah_rate:m?booyahs/m:0, elims_pm:m?elims/m:0, placement_pm:m?place/m:0, total_pm:m?total/m:0 });
-  }
-  return out.sort((a,b)=> b.total_pm - a.total_pm || b.matches - a.matches || a.map.localeCompare(b.map));
-}
-
-/* LOPS normalize */
-function normLopsRow(r){
-  const get=(k,alt=[])=> r[k]!=null ? r[k] : alt.find(a=>r[a]!=null)!=null ? r[alt.find(a=>r[a]!=null)] : null;
-  const toI = v => Number(v ?? 0) || 0;
-  const up = s => String(s==null?'':s).trim().toUpperCase();
-
-  const teamName = norm(get('TeamName') ?? get('Team') ?? '');
-  const player = norm(get('PLAYER NAME',['Player name','Player Name','Player','IGN']));
-  const map = norm(get('MAP',['Map','map']));
-  const day = toI(get('Day',['day','DAY']));
-
-  const nadeKills = toI(get('Grenade kill')) + toI(get('Ice Grenade kill')) + toI(get('Dragon Grenade Kill'));
-
-  const act1 = norm(get('SkillActive_1',[
-    'SkillActive','Active','Active Skill','ActiveSkill','Active Character','Active_Name','ActiveName','Active_Skill'
-  ])) || '';
-
-  const petName = norm(get('Pet Skill Name',[
-    'Pet','Pet Name','PetSkill','Pet Skill','Pet_Name','PetSkillName'
-  ])) || '';
-
-  return {
-    _team: up(teamName), _player: player, _map: map, day,
-    kills: toI(get('KILLS')), assists: toI(get('ASSISTS')),
-    shots: toI(get('SHOOTS')), hits: toI(get('HITS')),
-    headshots: toI(get('HEADSHOTRS')) || toI(get('Headshot Kill Times')),
-    damage: toI(get('DAMAGE')),
-    knockdowns: toI(get('Knock Down')),
-    vehicle: toI(get('Vehicle Kill')),
-    grenade: nadeKills,
-    gloo_used: toI(get('IcewallUse')),
-    gloo_break: toI(get('IcewallDestroyedTimes')) + toI(get('SkylerIceWallDestroy')),
-    medkits: toI(get('MedkitUse')),
-    moving_distance: toI(get('MovingDistance')),
-    vehicle_move_distance: toI(get('Vehicle Move Distance')),
-    revives: toI(get('ReviveTeammateTimes')) + toI(get('Revive Teammate Nums')),
-    revived: toI(get('RevivedTimes')),
-    survival_time: toI(get('Survival Time')),
-    active: act1,
-    pet: petName,
-    mvp: toI(get('MVP')) ? 1 : 0,
-    char1: norm(get('Character 1') ?? get('Char1') ?? get('Character1') ?? ''),
-    char2: norm(get('Character 2') ?? get('Char2') ?? get('Character2') ?? ''),
-    char3: norm(get('Character 3') ?? get('Char3') ?? get('Character3') ?? ''),
-    char4: norm(get('Character 4') ?? get('Char4') ?? get('Character4') ?? ''),
-    pair_victim: up(teamName),
-    pair_killer: up(norm(get('Eliminated Team Name', ['Eliminated By','Eliminator','Killer Team'])||'')),
-  };
-}
-async function fetchAllLopsRows(){
-  const CHUNK=1000; let from=0; const out=[];
-  for(;;){
-    const { data, error } = await client.from('ffbr_lopsdata').select('*').range(from, from+CHUNK-1);
-    if(error){ gerr('ffbr_lopsdata fetch failed. Check RLS / table name.\n\n'+(error.message||error)); break; }
-    const rows=data||[]; if(!rows.length) break;
-    out.push(...rows); from+=rows.length;
-  }
-  return out.map(normLopsRow).filter(r=>r._player && r._team);
-}
-function lopsRowsForTeam(all, teamObj){ if(!teamObj) return []; const code=(teamObj.name||'').toUpperCase(); return all.filter(r=> (r._team||'')===code); }
-function countByName(rows,key){
-  const m=new Map();
-  for(const r of rows){ const raw=norm(r[key]); if(!raw) continue; const k=raw.toLowerCase().replace(/\s+/g,' ').trim(); if(!m.has(k)) m.set(k,{name:raw,picks:0}); m.get(k).picks += 1; }
-  return [...m.values()];
-}
-function lopsTopPlayersByKills(rows){
-  const m=new Map();
-  for(const r of rows){
-    const p=r._player; if(!p) continue;
-    if(!m.has(p)) m.set(p,{player:p, team:r._team||'—', kills:0, assists:0, headshots:0, grenade:0, damage:0, rows:0});
-    const o=m.get(p); o.kills+=r.kills; o.assists+=r.assists; o.headshots+=r.headshots; o.grenade+=r.grenade; o.damage+=r.damage; o.rows++;
-  }
-  return [...m.values()];
-}
-
-/* Sorting helper */
-function sortRows(rows, key, dir, isText=false){
-  if(isText){
-    return rows.sort((a,b)=> dir==='desc'
-      ? (String(b[key]||'').localeCompare(String(a[key]||'')))
-      : (String(a[key]||'').localeCompare(String(b[key]||''))));
-  }
-  return rows.sort((a,b)=> dir==='desc'
-    ? ((b[key]??0) - (a[key]??0))
-    : ((a[key]??0) - (b[key]??0)));
-}
-
-/* match_api mapping (type=2 only) */
-async function fetchMatchApiMap(){
-  try{
-    const { data, error } = await client.from('match_api').select('id,name,type').limit(10000);
-    if(error) throw error;
-    MATCH_API_MAP.clear();
-    for(const r of (data||[])){
-      const t = (r.type===undefined||r.type===null) ? '' : String(r.type).trim();
-      const isChar = (t==='2' || Number(t)===2);
-      if(!isChar) continue;
-      const id = String(r.id ?? '').trim();
-      const nm = String(r.name ?? '').trim();
-      if(id && nm) MATCH_API_MAP.set(id, nm);
+      applyRatio(ratio);
     }
-    el('charMapHint').textContent = MATCH_API_MAP.size
-      ? `Character map loaded from match_api (type=2): ${MATCH_API_MAP.size} entries.`
-      : 'match_api had no rows with type=2. Using IDs/fallbacks.';
-  }catch(e){
-    console.warn('match_api load error:', e.message||e);
-    el('charMapHint').textContent = 'Could not load match_api (type=2). Using IDs/fallbacks.';
-  }
-}
-function mapCharName(id, fallback=''){
-  const key = String(id||'').trim();
-  if(!key) return fallback || '—';
-  if(MATCH_API_MAP.has(key)) return MATCH_API_MAP.get(key);
-  return fallback || `ID ${key}`;
-}
 
-/* Populate map dropdown for Per-Player Character Usage */
-function populateCharUsageMapFilter(){
-  const sel = el('charUsageMapFilter'); if(!sel) return;
-  if(!LOPS_READY || !CURRENT_TEAM){ sel.innerHTML = `<option value="__all__">All maps</option>`; sel.value='__all__'; return; }
-  const teamLops = lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
-  const maps = [...new Set(teamLops.map(r=>norm(r._map)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  sel.innerHTML = `<option value="__all__">All maps</option>` + maps.map(m=>`<option>${m}</option>`).join('');
-  sel.value = '__all__';
-}
-
-/* ---------- Renders: Page 1 (Teams) ---------- */
-function renderOverall(){
-  const rows = aggregateOverall(baseRowsByTournament(ALL));
-  const sortKey = el('overallSortKey').value;
-  const dir = el('overallSortDir').dataset.dir;
-  if (sortKey==='team') sortRows(rows, 'team', dir, true);
-  else sortRows(rows, sortKey, dir, false);
-  el('tblOverall').innerHTML = renderSimpleTable(rows, [
-    {label:'Team',key:'team'},{label:'Code',key:'code'},{label:'E/W',key:'ew'},{label:'Region',key:'region'},
-    {label:'Matches',key:'matches',right:true},{label:'Booyahs',key:'booyahs',right:true},{label:'Elims',key:'elims',right:true},
-    {label:'Placement',key:'placement',right:true},{label:'Total',key:'total',right:true},
-    {label:'Booyah %',key:'booyah_rate',format:'pct',right:true},{label:'Elims/m',key:'elims_pm',format:'1d',right:true},
-    {label:'Place/m',key:'placement_pm',format:'1d',right:true},{label:'Total/m',key:'total_pm',format:'1d',right:true},
-    {label:'Top3%',key:'top3_rate',format:'pct',right:true},
-  ]);
-  applyColumnHeatmap('tblOverall', ['total_pm','elims_pm','placement_pm','booyah_rate','matches','booyahs','elims','placement','total']);
-}
-function renderPerMapAllTeams(){
-  const base=baseRowsByTournament(ALL);
-  const mapSel=el('mapFilter').value;
-  const rows = aggregateTeamsForMap(base, mapSel);
-  const sortKey = el('perMapSortKey').value;
-  const dir = el('perMapSortDir').dataset.dir;
-  if (sortKey==='team') sortRows(rows, 'team', dir, true);
-  else sortRows(rows, sortKey, dir, false);
-  el('tblPerMapAllTeams').innerHTML = renderSimpleTable(rows, [
-    {label:'Team',key:'team'},{label:'Code',key:'code'},{label:'E/W',key:'ew'},{label:'Region',key:'region'},
-    {label:'Matches',key:'matches',right:true},{label:'Booyahs',key:'booyahs',right:true},{label:'Elims',key:'elims',right:true},
-    {label:'Placement',key:'placement',right:true},{label:'Total',key:'total',right:true},
-    {label:'Booyah %',key:'booyah_rate',format:'pct',right:true},{label:'Elims/m',key:'elims_pm',format:'1d',right:true},
-    {label:'Place/m',key:'placement_pm',format:'1d',right:true},{label:'Total/m',key:'total_pm',format:'1d',right:true},
-    {label:'Top3%',key:'top3_rate',format:'pct',right:true},
-  ]);
-  applyColumnHeatmap('tblPerMapAllTeams', ['total_pm','elims_pm','placement_pm','booyah_rate','matches','booyahs','elims','placement','total']);
-}
-
-/* ---------- Renders: Page 2 (Team core) ---------- */
-function kpiAndByMap(){
-  if(!CURRENT_TEAM){
-    el('teamTitle').textContent='Selected Team — Overview';
-    el('identityBody').innerHTML='Select a team.'; el('kpiBody').innerHTML='—'; return;
-  }
-  el('teamTitle').textContent = `Selected Team — Overview`;
-  el('identityBody').innerHTML = `
-    <div style="display:flex;gap:12px;align-items:center">
-      <img src="${CURRENT_TEAM.logo}" alt="${CURRENT_TEAM.fullname} logo" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(0,0,0,.55))" onerror="this.style.visibility='hidden'">
-      <div>
-        <div style="font-size:1.1rem;font-weight:900">${CURRENT_TEAM.name}</div>
-        <div class="muted">${CURRENT_TEAM.fullname} • ${CURRENT_TEAM.region||'—'} ${CURRENT_TEAM.ew?('• '+CURRENT_TEAM.ew):''}</div>
-      </div>
-    </div>`;
-  const k=kpiDataset(TEAM_ROWS);
-  el('kpiBody').innerHTML = k.matches ? `
-    <div class="kpis">
-      <div class="kpi">Rows <strong>${k.matches}</strong></div>
-      <div class="kpi">Booyahs <strong>${k.booyahs}</strong> (<strong>${fmtPct(k.booyah_rate)}</strong>)</div>
-      <div class="kpi">Elims <strong>${k.elims}</strong> • <strong>${k.elims_per_match.toFixed(1)}</strong>/m</div>
-      <div class="kpi">Placement <strong>${k.placement}</strong> • <strong>${k.place_per_match.toFixed(1)}</strong>/m</div>
-      <div class="kpi">Damage <strong>${k.dmg_per_match.toFixed(0)}</strong>/m</div>
-      <div class="kpi">Total <strong>${k.total}</strong> • <strong>${k.total_per_match.toFixed(1)}</strong>/m</div>
-      <div class="kpi">Top3 <strong>${fmtPct(k.top3_rate)}</strong></div>
-    </div>` : '<div class="muted">No rows.</div>';
-
-  const rows=teamMapPerf(TEAM_ROWS);
-  const mapWrap = document.getElementById('tblMapTeam');
-  if(mapWrap){
-    mapWrap.innerHTML = renderSimpleTable(rows, [
-      {label:'Map',key:'map'},
-      {label:'Matches',key:'matches',right:true},
-      {label:'Booyahs',key:'booyahs',right:true},
-      {label:'Elims',key:'elims',right:true},
-      {label:'Placement',key:'placement',right:true},
-      {label:'Total',key:'total',right:true},
-      {label:'Booyah %',key:'booyah_rate',format:'pct',right:true},
-      {label:'Elims / m',key:'elims_pm',format:'1d',right:true},
-      {label:'Placement / m',key:'placement_pm',format:'1d',right:true},
-      {label:'Total / m',key:'total_pm',format:'1d',right:true}
-    ]);
-    applyColumnHeatmap('tblMapTeam', ['total_pm','elims_pm','placement_pm','booyah_rate','matches','booyahs','elims','placement','total']);
-  }
-}
-function renderTeamCombinedMetrics(){
-  const totalsEl = el('teamTotals'), avgsEl = el('teamAverages'), sigEl = el('teamSignals');
-  if(!CURRENT_TEAM){ totalsEl.innerHTML=avgsEl.innerHTML=sigEl.innerHTML='—'; return; }
-
-  const teamLops=lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
-  const games=TEAM_ROWS.length||0;
-  const totals = {
-    kills:sum(teamLops,'kills'), dmg:sum(teamLops,'damage'), assists:sum(teamLops,'assists'), knock:sum(teamLops,'knockdowns'),
-    glooUsed:sum(teamLops,'gloo_used'), glooBreak:sum(teamLops,'gloo_break'),
-    revives:sum(teamLops,'revives'), nade:sum(teamLops,'grenade'), vehicle:sum(teamLops,'vehicle'), hs:sum(teamLops,'headshots'),
-    shots:sum(teamLops,'shots'), hits:sum(teamLops,'hits'), survival:sum(teamLops,'survival_time'), mvp:sum(teamLops,'mvp')
-  };
-  const acc=safeDiv(totals.hits, totals.shots);
-  const hsRate=safeDiv(totals.hs, totals.kills);
-
-  totalsEl.innerHTML = `
-    <div class="kpi">TOTAL ELIMS <strong>${totals.kills}</strong></div>
-    <div class="kpi">TOTAL DMG <strong>${totals.dmg}</strong></div>
-    <div class="kpi">TOTAL ASSISTS <strong>${totals.assists}</strong></div>
-    <div class="kpi">KNOCKDOWNS <strong>${totals.knock}</strong></div>
-    <div class="kpi">GLOO USED <strong>${totals.glooUsed}</strong></div>
-    <div class="kpi">GLOO DESTROYED <strong>${totals.glooBreak}</strong></div>
-    <div class="kpi">REVIVES <strong>${totals.revives}</strong></div>
-    <div class="kpi">NADE KILLS <strong>${totals.nade}</strong></div>
-    <div class="kpi">VEHICLE KILLS <strong>${totals.vehicle}</strong></div>
-    <div class="kpi">HEADSHOTS <strong>${totals.hs}</strong></div>
-    <div class="kpi">MVPs <strong>${totals.mvp}</strong></div>
-    <div class="kpi">GAMES PLAYED <strong>${games}</strong></div>`;
-  avgsEl.innerHTML = games ? `
-    <div class="kpi">AVG ELIMS <strong>${(totals.kills/games).toFixed(1)}</strong></div>
-    <div class="kpi">AVG DMG <strong>${(totals.dmg/games).toFixed(0)}</strong></div>
-    <div class="kpi">AVG ASSISTS <strong>${(totals.assists/games).toFixed(1)}</strong></div>
-    <div class="kpi">AVG HEADSHOTS <strong>${(totals.hs/games).toFixed(1)}</strong></div>` : '<div class="muted">No games found for averages.</div>';
-
-  const lastPlayed = fmtYwdm(latestYwdm(TEAM_ROWS));
-  sigEl.innerHTML = `
-    <div class="kpi">LAST PLAYED <strong>${lastPlayed}</strong></div>
-    <div class="kpi">ACCURACY <strong>${fmtPct(acc)}</strong></div>
-    <div class="kpi">HS / KILL <strong>${isFinite(hsRate)?hsRate.toFixed(2):'—'}</strong></div>`;
-}
-function renderTeamActiveUsage(){
-  const limit=Number(el('teamActiveTop').value)||10;
-  const list=countByName(lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM),'active')
-    .sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name))
-    .slice(0,limit).map((r,i)=>({...r,rank:i+1}));
-  el('tblTeamActive').innerHTML = renderSimpleTable(list, [
-    {label:'#',key:'rank',right:true},
-    {label:'Active Skill',key:'name'},
-    {label:'Picks',key:'picks',right:true},
-  ]);
-  applyColumnHeatmap('tblTeamActive', ['picks']);
-}
-function renderTeamPetUsage(){
-  const limit=Number(el('teamPetTop').value)||10;
-  const list=countByName(lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM),'pet')
-    .sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name))
-    .slice(0,limit).map((r,i)=>({...r,rank:i+1}));
-  el('tblTeamPet').innerHTML = renderSimpleTable(list, [
-    {label:'#',key:'rank',right:true},
-    {label:'Pet',key:'name'},
-    {label:'Picks',key:'picks',right:true},
-  ]);
-  applyColumnHeatmap('tblTeamPet', ['picks']);
-}
-function renderPlayers(){
-  const base=lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
-  if(!base.length){ el('tblPlayers').innerHTML='<div class="muted">No lops rows for team.</div>'; return; }
-  const g = groupBy(base, r=>r._player||'—');
-  const rows=[];
-  for(const [player,list] of g.entries()){
-    const kills=sum(list,'kills'), assists=sum(list,'assists'), dmg=sum(list,'damage');
-    const hs=sum(list,'headshots'), nade=sum(list,'grenade'), veh=sum(list,'vehicle'), downs=sum(list,'knockdowns');
-    const shots=sum(list,'shots'), hits=sum(list,'hits'), acc=safeDiv(hits, shots), hsRate=safeDiv(hs, kills);
-    const mode=(arr)=>{const m=new Map(); arr.map(norm).forEach(v=>{if(!v) return; m.set(v,(m.get(v)||0)+1)}); let b='',c=0; for(const [k,v] of m){ if(v>c){b=k;c=v;} } return b||'—'; }
-    rows.push({ player, rows:list.length, kills, assists, dmg, hs, nade, veh, downs, acc, hsRate, active:mode(list.map(r=>r.active)), pet:mode(list.map(r=>r.pet)) });
-  }
-  rows.sort((a,b)=> b.kills-a.kills || a.player.localeCompare(b.player));
-  el('tblPlayers').innerHTML = renderSimpleTable(rows.map((r,i)=>({...r,rank:i+1})), [
-    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Player',key:'player'},{label:'Rows',key:'rows',right:true},
-    {label:'Kills',key:'kills',right:true},{label:'Assists',key:'assists',right:true},{label:'Damage',key:'dmg',right:true},
-    {label:'HS',key:'hs',right:true},{label:'Acc',key:'acc',right:true,html:r=>isFinite(r.acc)?fmtPct(r.acc):'—'},
-    {label:'HS/K',key:'hsRate',right:true,html:r=>isFinite(r.hsRate)?r.hsRate.toFixed(2):'—'},
-    {label:'Grenade',key:'nade',right:true},{label:'Vehicle',key:'veh',right:true},{label:'Knockdowns',key:'downs',right:true},
-    {label:'Most Active',key:'active'},{label:'Most Pet',key:'pet'},
-  ]);
-  applyColumnHeatmap('tblPlayers', ['kills','assists','dmg','hs','nade','veh','downs','rows']);
-}
-
-/* Team Performance by Day by Map — Pivot (from ffbr_data) */
-function renderByDay(){
-  if(!TEAM_ROWS.length){
-    el('tblByDay').innerHTML = '<div class="muted">No rows.</div>';
-    return;
-  }
-  const dayLabel = r => `Y${n(r.year)||'—'} W${n(r.week)||'—'} D${n(r.day)||'—'}`;
-
-  const daySet = new Set(), mapSet = new Set();
-  for(const r of TEAM_ROWS){ mapSet.add(norm(r.map) || '—'); daySet.add(dayLabel(r)); }
-  const days = [...daySet].sort((a,b)=> a.localeCompare(b));
-  const maps = [...mapSet].sort((a,b)=> a.localeCompare(b));
-
-  const totals = new Map();
-  for(const r of TEAM_ROWS){
-    const m = norm(r.map) || '—';
-    const d = dayLabel(r);
-    if(!totals.has(m)) totals.set(m, new Map());
-    const row = totals.get(m);
-    row.set(d, (row.get(d) || 0) + n(r.total));
-  }
-
-  let thead = `<thead><tr><th data-key="map">Map</th>${days.map(d=>`<th data-key="${d}" class="right">${d}</th>`).join('')}</tr></thead>`;
-  let tbody = '<tbody>';
-  for(const m of maps){
-    const row = totals.get(m) || new Map();
-    tbody += `<tr><td data-key="map">${m}</td>` +
-      days.map(d=>{
-        const v = row.get(d);
-        return `<td data-key="${d}" class="right">${(v!=null && isFinite(v)) ? Number(v).toFixed(0) : '—'}</td>`;
-      }).join('') +
-      `</tr>`;
-  }
-  tbody += '</tbody>';
-
-  el('tblByDay').innerHTML = `<table>${thead}${tbody}</table>`;
-  applyColumnHeatmap('tblByDay', days);
-}
-
-/* ---------- Per-Player Character Usage (split) ---------- */
-function renderCharUsageActive(){
-  const box = el('tblCharUsageAct');
-  if(!box) return;
-  if(!CURRENT_TEAM){ box.innerHTML = '<div class="muted">Select a team.</div>'; return; }
-  if(!LOPS_READY){ box.innerHTML = '<div class="muted">Loading player usage…</div>'; return; }
-
-  const topN  = Number(el('charUsageTop')?.value) || 10;
-  const mapSel = el('charUsageMapFilter')?.value || '__all__';
-
-  let rows = lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
-  if (mapSel !== '__all__'){
-    const lf = mapSel.toLowerCase();
-    rows = rows.filter(r => (r._map || '').toLowerCase() === lf);
-  }
-  if (!rows.length){ box.innerHTML = '<div class="muted">No rows for this filter.</div>'; return; }
-
-  const counts = new Map();
-  for (const r of rows){
-    const player = r._player || '—';
-    const role   = ROLE_BY_IGN.get(nameKey(player)) || '—';
-    const active = (r.active || '').trim();
-    if (!active) continue;
-    const key = player + '||' + active;
-    if (!counts.has(key)) counts.set(key, { player, role, active, picks: 0 });
-    counts.get(key).picks += 1;
-  }
-  const list = [...counts.values()]
-    .sort((a,b)=> a.player.localeCompare(b.player) || (b.picks - a.picks) || a.active.localeCompare(b.active))
-    .slice(0, topN);
-
-  box.innerHTML = renderSimpleTable(list, [
-    { label:'Player', key:'player' },
-    { label:'Role',   key:'role' },
-    { label:'Active', key:'active' },
-    { label:'Picks',  key:'picks', right:true },
-  ]);
-  applyColumnHeatmap('tblCharUsageAct', ['picks']);
-}
-function renderCharUsagePassive(){
-  const box = el('tblCharUsagePas');
-  if(!box) return;
-  if(!CURRENT_TEAM){ box.innerHTML = '<div class="muted">Select a team.</div>'; return; }
-  if(!LOPS_READY){ box.innerHTML = '<div class="muted">Loading player usage…</div>'; return; }
-
-  const topN  = Number(el('charUsageTop')?.value) || 10;
-  const mapSel = el('charUsageMapFilter')?.value || '__all__';
-
-  let rows = lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
-  if (mapSel !== '__all__'){
-    const lf = mapSel.toLowerCase();
-    rows = rows.filter(r => (r._map || '').toLowerCase() === lf);
-  }
-  if (!rows.length){ box.innerHTML = '<div class="muted">No rows for this filter.</div>'; return; }
-
-  const counts = new Map();
-  for (const r of rows){
-    const player = r._player || '—';
-    const role   = ROLE_BY_IGN.get(nameKey(player)) || '—';
-    const activeNm = (r.active||'').trim().toLowerCase().replace(/\s+/g,' ');
-    const chars = [r.char1, r.char2, r.char3, r.char4]
-      .map(c => mapCharName(c, c))
-      .map(c => String(c||''))
-      .filter(c => c && c.toLowerCase().replace(/\s+/g,' ') !== activeNm);
-
-    for(const ch of chars){
-      const key = player + '||' + ch;
-      if(!counts.has(key)) counts.set(key, { player, role, character: ch, picks: 0 });
-      counts.get(key).picks += 1;
+    function stopDrag(){
+      if (!dragging) return;
+      dragging = false;
+      divider.classList.remove('dragging');
+      activePointerId = null;
     }
-  }
-  const list = [...counts.values()]
-    .sort((a,b)=> a.player.localeCompare(b.player) || (b.picks - a.picks) || a.character.localeCompare(b.character))
-    .slice(0, topN);
 
-  box.innerHTML = renderSimpleTable(list, [
-    { label:'Player',    key:'player' },
-    { label:'Role',      key:'role' },
-    { label:'Character', key:'character' },
-    { label:'Picks',     key:'picks', right:true },
-  ]);
-  applyColumnHeatmap('tblCharUsagePas', ['picks']);
-}
+    divider.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove, { passive:false });
+    window.addEventListener('pointerup', stopDrag);
+    window.addEventListener('pointercancel', stopDrag);
+    window.addEventListener('blur', stopDrag);
 
-/* ---------- Eliminations (global + team) ---------- */
-function elimTeams(){ const s=new Set(); for(const r of LOPS_ALL){ if(r.pair_victim) s.add(r.pair_victim); if(r.pair_killer) s.add(r.pair_killer); } return [...s].sort((a,b)=>a.localeCompare(b)); }
-function summarizeElims(rows){
-  const matrix={}, suffered={}, given={};
-  for(const r of rows){
-    const v=r.pair_victim, k=r.pair_killer;
-    if(!v || !k) continue;
-    matrix[v] ||= {};
-    matrix[v][k] = (matrix[v][k]||0)+1;
-    suffered[v] = (suffered[v]||0)+1;
-    given[k]    = (given[k]||0)+1;
-  }
-  return {matrix, suffered, given};
-}
-function renderElimLeaderboardsUsingAll(){
-  if(!LOPS_ALL.length){ el('tblEliminatedBy').innerHTML='<div class="muted">No LOPS rows.</div>'; el('tblGiven').innerHTML='<div class="muted">No LOPS rows.</div>'; return; }
-  const teams = elimTeams();
-  const sumE = summarizeElims(LOPS_ALL);
-
-  const rowsA = teams.map(t=>{
-    const row = sumE.matrix[t]||{};
-    const total = sumE.suffered[t]||0;
-    const top = Object.entries(row).sort((a,b)=>b[1]-a[1]).slice(0,3)
-      .map(([k,v])=>`${k} ${v} (${((v/Math.max(total,1))*100).toFixed(0)}%)`).join(' · ');
-    return { team:t, times: total, top };
-  }).sort((a,b)=>b.times-a.times || a.team.localeCompare(b.team));
-  el('tblEliminatedBy').innerHTML = renderSimpleTable(rowsA, [
-    {label:'Team',key:'team'},
-    {label:'Times Eliminated',key:'times',right:true},
-    {label:'Top Eliminators',key:'top'}
-  ]);
-  applyColumnHeatmap('tblEliminatedBy',['times']);
-
-  const inv={}; teams.forEach(v=>{
-    const row=sumE.matrix[v]||{};
-    Object.entries(row).forEach(([killer,cnt])=>{
-      inv[killer] ||= {};
-      inv[killer][v] = (inv[killer][v]||0)+cnt;
+    // Keyboard resize (nice bonus)
+    divider.addEventListener('keydown', (e) => {
+      const step = 0.03;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp'){
+        ratio -= step; applyRatio(ratio); e.preventDefault();
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown'){
+        ratio += step; applyRatio(ratio); e.preventDefault();
+      }
+      if (e.key === 'Enter' || e.key === ' '){
+        resetSplit(); e.preventDefault();
+      }
     });
-  });
-  const rowsB = teams.map(t=>{
-    const ents = Object.entries(inv[t]||{}).sort((a,b)=>b[1]-a[1]);
-    const total = ents.reduce((a,b)=>a+b[1],0);
-    const top = ents.slice(0,3).map(([k,v])=>`${k} ${v}`).join(' · ');
-    return { eliminator:t, total, top };
-  }).sort((a,b)=>b.total-a.total || a.eliminator.localeCompare(b.eliminator));
-  el('tblGiven').innerHTML = renderSimpleTable(rowsB, [
-    {label:'Eliminator',key:'eliminator'},
-    {label:'Eliminations Given',key:'total',right:true},
-    {label:'Top Victims',key:'top'}
-  ]);
-  applyColumnHeatmap('tblGiven',['total']);
-}
-function renderElimTeamFocus(){
-  const boxA=el('elimTopPredators'), boxB=el('elimTopVictims'), boxS=el('elimSignals'), boxD=el('elimByDay'), boxM=el('elimByMap');
-  el('elimTeamCodeA').textContent = CURRENT_TEAM ? CURRENT_TEAM.name : '—';
-  el('elimTeamCodeB').textContent = CURRENT_TEAM ? CURRENT_TEAM.name : '—';
 
-  if(!CURRENT_TEAM || !LOPS_ALL.length){
-    boxA.innerHTML=boxB.innerHTML=boxS.innerHTML='—';
-    boxD.innerHTML=boxM.innerHTML='—';
-    return;
-  }
-  const code = CURRENT_TEAM.name.toUpperCase();
-  const rows = LOPS_ALL;
+    resetBtn.addEventListener('click', resetSplit);
 
-  const given = {};
-  rows.forEach(r=>{ if(r.pair_killer===code && r.pair_victim){ given[r.pair_victim]=(given[r.pair_victim]||0)+1; } });
-  const givenTop = Object.entries(given).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  boxB.innerHTML = givenTop.length
-    ? givenTop.map(([k,v])=>`<div class="kpi">${k}: <strong>${v}</strong></div>`).join('')
-    : '<div class="muted">No eliminations as killer in dataset.</div>';
-
-  const suffered = {};
-  rows.forEach(r=>{ if(r.pair_victim===code && r.pair_killer){ suffered[r.pair_killer]=(suffered[r.pair_killer]||0)+1; } });
-  const sufferedTop = Object.entries(suffered).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  boxA.innerHTML = sufferedTop.length
-    ? sufferedTop.map(([k,v])=>`<div class="kpi">${k}: <strong>${v}</strong></div>`).join('')
-    : '<div class="muted">No times eliminated in dataset.</div>';
-
-  const totalGiven = Object.values(given).reduce((a,b)=>a+b,0);
-  const totalSuffer = Object.values(suffered).reduce((a,b)=>a+b,0);
-  boxS.innerHTML = `
-    <div class="kpi">NET Δ <strong>${(totalGiven - totalSuffer)}</strong></div>
-    <div class="kpi">GIVEN <strong>${totalGiven}</strong></div>
-    <div class="kpi">SUFFERED <strong>${totalSuffer}</strong></div>
-  `;
-
-  const byDay = {};
-  rows.forEach(r=>{
-    if(r.pair_victim!==code || !r.pair_killer || !r.day) return;
-    const d = r.day;
-    byDay[d] ||= {};
-    byDay[d][r.pair_killer] = (byDay[d][r.pair_killer]||0)+1;
-  });
-  const dayRows = Object.entries(byDay).map(([d,obj])=>{
-    const top = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k} × ${v}`).join(' · ');
-    const total = Object.values(obj).reduce((a,b)=>a+b,0);
-    return { day:Number(d), total, top };
-  }).sort((a,b)=>a.day-b.day);
-  boxD.innerHTML = renderSimpleTable(dayRows, [
-    {label:'Day',key:'day'},
-    {label:'Times Eliminated',key:'total',right:true},
-    {label:'Top Eliminators',key:'top'}
-  ]);
-  applyColumnHeatmap('elimByDay',['total']);
-
-  const byMap = {};
-  rows.forEach(r=>{
-    if(r.pair_victim!==code || !r.pair_killer) return;
-    const m = r._map || '—';
-    byMap[m] ||= {};
-    byMap[m][r.pair_killer] = (byMap[m][r.pair_killer]||0)+1;
-  });
-  const mapRows = Object.entries(byMap).map(([m,obj])=>{
-    const top = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k} × ${v}`).join(' · ');
-    const total = Object.values(obj).reduce((a,b)=>a+b,0);
-    return { map:m, total, top };
-  }).sort((a,b)=> b.total-a.total || a.map.localeCompare(b.map));
-  boxM.innerHTML = renderSimpleTable(mapRows, [
-    {label:'Map',key:'map'},
-    {label:'Times Eliminated',key:'total',right:true},
-    {label:'Top Eliminators',key:'top'}
-  ]);
-  applyColumnHeatmap('elimByMap',['total']);
-}
-
-/* ---------- Team grid & selection ---------- */
-function renderTeamGrid(filter=''){
-  const grid=el('teamGrid'); const q=(filter||'').trim().toLowerCase();
-  const items=TEAMS.filter(t=>[t.name,t.fullname,t.region,t.ew,t.alt].join(' ').toLowerCase().includes(q));
-  if(!items.length){ grid.innerHTML='<div class="muted">No matches.</div>'; return; }
-  grid.innerHTML = items.map(t=>`
-    <div class="team-tile" data-code="${t.name}" title="${t.fullname}">
-      <img class="team-logo" src="${t.logo}" alt="${t.fullname} logo" loading="lazy" onerror="this.style.visibility='hidden'">
-      <div class="team-code">${t.name}</div>
-    </div>`).join('');
-  grid.querySelectorAll('.team-tile').forEach(tile=>{
-    tile.onclick=()=>{ const code=tile.getAttribute('data-code').toLowerCase(); const info=TEAM_BY_CODE[code]; if(info){ selectTeam(info); tile.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); } };
-  });
-  highlightActiveTile();
-}
-function highlightActiveTile(){
-  const grid=el('teamGrid'); if(!grid) return;
-  [...grid.querySelectorAll('.team-tile')].forEach(div=>{
-    const code=div.getAttribute('data-code'); div.classList.toggle('active', !!CURRENT_TEAM && CURRENT_TEAM.name===code);
-  });
-}
-async function selectTeam(teamObj){
-  CURRENT_TEAM = teamObj;
-  const url=new URL(window.location.href); url.searchParams.set('team', CURRENT_TEAM.name); history.replaceState(null,'',url.toString());
-  TEAM_ROWS = baseRowsByTournament(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === teamObj.name.toUpperCase());
-
-  kpiAndByMap();
-  renderTeamCombinedMetrics();
-  renderTeamActiveUsage();
-  renderTeamPetUsage();
-  renderPlayers();
-  renderByDay();
-  highlightActiveTile();
-
-  const [info, roster] = await Promise.all([ fetchTeamInfoBy(teamObj.name), fetchPlayersBy(teamObj.name) ]);
-  setRoleMap(roster);
-  if(LOPS_READY){
-    populateCharUsageMapFilter();
-    renderCharUsageActive();
-    renderCharUsagePassive();
-  }else{
-    el('tblCharUsageAct').innerHTML = '<div class="muted">Loading player usage…</div>';
-    el('tblCharUsagePas').innerHTML = '<div class="muted">Loading player usage…</div>';
-  }
-  renderTeamInfo(info);
-  renderRoster(roster);
-
-  renderElimTeamFocus();
-}
-
-/* ---- Team Info (safe, schema-agnostic) ---- */
-function renderTeamInfo(info){
-  const box = el('teamInfoBody');
-  if (!box) return;
-
-  if (!info || !Object.keys(info).length){
-    box.innerHTML = '<div class="muted">No team info found.</div>';
-    return;
-  }
-
-  const pref = [
-    'Team Initials','Team','Full Name','Region','Country','Coach','Manager','Org','Organization',
-    'Owner','Founded','Sponsors','Twitter','Instagram','Facebook','YouTube','Twitch','Website'
-  ];
-  const keys = [...new Set([...pref, ...Object.keys(info)])]
-    .filter(k => info[k] != null && String(info[k]).trim() !== '');
-
-  const rows = keys.map(k => {
-    const val = String(info[k]);
-    const vHtml = /^https?:\/\//i.test(val) ? `<a href="${val}" target="_blank" rel="noopener">${val}</a>` : val;
-    return `<tr>
-      <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:800">${k}</th>
-      <td style="padding:6px 8px">${vHtml}</td>
-    </tr>`;
-  }).join('');
-
-  box.innerHTML = `<table style="width:100%;border-collapse:collapse">${rows}</table>`;
-}
-
-/* ---------- Controls ---------- */
-function populateMapFilter(){ el('mapFilter').innerHTML = `<option value="__all__">All maps</option>` + uniqueMaps(baseRowsByTournament(ALL)).map(m=>`<option>${m}</option>`).join(''); }
-function wireControls(){
-  el('gTournament').addEventListener('change', ()=>{
-    updateFilterHint();
-    populateMapFilter();
-    renderOverall();
-    renderPerMapAllTeams();
-    if(CURRENT_TEAM){
-      TEAM_ROWS = baseRowsByTournament(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === CURRENT_TEAM.name.toUpperCase());
-      kpiAndByMap(); renderTeamCombinedMetrics(); renderTeamActiveUsage(); renderTeamPetUsage(); renderPlayers(); renderByDay();
-      fetchPlayersBy(CURRENT_TEAM.name).then(r=>{ setRoleMap(r); renderRoster(r); if(LOPS_READY){ renderCharUsageActive(); renderCharUsagePassive(); } }).catch(()=>{});
-      fetchTeamInfoBy(CURRENT_TEAM.name).then(renderTeamInfo).catch(()=>{});
-      populateCharUsageMapFilter();
+    // Resize handling
+    function syncLayout(){
+      applyRatio(ratio);
     }
-    renderLopsActive(); renderLopsPet(); renderLopsTopKillers();
-  });
+    mqStack.addEventListener?.('change', syncLayout);
+    window.addEventListener('resize', syncLayout);
 
-  el('gTournReset').addEventListener('click', ()=>{
-    const items=tournamentsWithMaxId(ALL);
-    el('gTournament').value = items.length ? items[0].name : '__all__';
-    el('gTournament').dispatchEvent(new Event('change'));
-  });
-
-  el('overallSortKey').addEventListener('change', renderOverall);
-  el('overallSortDir').addEventListener('click', ()=>{
-    const b=el('overallSortDir'); const cur=b.dataset.dir==='desc'?'asc':'desc';
-    b.dataset.dir=cur; b.textContent=cur==='desc'?'Desc':'Asc'; renderOverall();
-  });
-  el('overallReset').addEventListener('click', ()=>{
-    el('overallSortKey').value='total';
-    el('overallSortDir').dataset.dir='desc'; el('overallSortDir').textContent='Desc';
-    renderOverall();
-  });
-
-  el('mapFilter').addEventListener('change', renderPerMapAllTeams);
-  el('perMapSortKey').addEventListener('change', renderPerMapAllTeams);
-  el('perMapSortDir').addEventListener('click', ()=>{
-    const b=el('perMapSortDir'); const cur=b.dataset.dir==='desc'?'asc':'desc';
-    b.dataset.dir=cur; b.textContent=cur==='desc'?'Desc':'Asc'; renderPerMapAllTeams();
-  });
-  el('perMapReset').addEventListener('click', ()=>{
-    el('mapFilter').value='__all__'; el('perMapSortKey').value='total';
-    el('perMapSortDir').dataset.dir='desc'; el('perMapSortDir').textContent='Desc';
-    renderPerMapAllTeams();
-  });
-
-  el('teamSearch').addEventListener('input', e=> renderTeamGrid(e.target.value||''));
-  el('teamActiveTop').addEventListener('change', renderTeamActiveUsage);
-  el('teamPetTop').addEventListener('change', renderTeamPetUsage);
-  el('lopsActiveTop').addEventListener('change', renderLopsActive);
-  el('lopsPetTop').addEventListener('change', renderLopsPet);
-  el('lopsTopKillersTop').addEventListener('change', renderLopsTopKillers);
-
-  el('charUsageTop').addEventListener('change', ()=>{ renderCharUsageActive(); renderCharUsagePassive(); });
-  el('charUsageMapFilter').addEventListener('change', ()=>{ renderCharUsageActive(); renderCharUsagePassive(); });
-}
-
-/* ---------- Init ---------- */
-async function initial(){
-  try{
-    el('scopeChip').textContent='Scope: —';
-    el('scopeChipTeam').textContent='—';
-
-    ALL = await fetchAllRows();
-    TEAMS = await fetchHelperTeams();
-    if(!TEAMS.length) TEAMS = deriveTeamsFromData(ALL);
-    buildTeamIndexes();
-
-    populateGlobalTournament(true);
-    populateMapFilter();
-
-    el('overallSortDir').dataset.dir='desc'; el('overallSortDir').textContent='Desc';
-    el('perMapSortDir').dataset.dir='desc'; el('perMapSortDir').textContent='Desc';
-    renderOverall();
-    renderPerMapAllTeams();
-
-    renderTeamGrid('');
-    const url=new URL(window.location.href);
-    const qTeam=(url.searchParams.get('team')||'').trim().toLowerCase();
-    if(qTeam && TEAM_BY_CODE[qTeam]) await selectTeam(TEAM_BY_CODE[qTeam]);
-    else if(TEAMS.length) await selectTeam(TEAMS[0]);
-
-    LOPS_ALL = await fetchAllLopsRows();
-    LOPS_READY = true;
-
-    await fetchMatchApiMap();
-    populateCharUsageMapFilter();
-    renderCharUsageActive();
-    renderCharUsagePassive();
-
-    renderTeamCombinedMetrics(); renderTeamActiveUsage(); renderTeamPetUsage(); renderPlayers(); renderByDay();
-    renderLopsActive(); renderLopsPet(); renderLopsTopKillers();
-
-    renderElimLeaderboardsUsingAll();
-    renderElimTeamFocus();
-
-    wireControls();
-
-    document.querySelectorAll('details.accordion').forEach(d=> d.open=false);
-
-    showPage(1);
-    el('veil').classList.add('hide');
-  }catch(e){
-    gerr('Fatal error initializing page:\n\n'+(e.stack||e.message||e));
-    el('veil').classList.add('hide');
-  }
-}
-
-/* LOPS global renders */
-function renderLopsActive(){
-  const limit=Number(el('lopsActiveTop').value)||10;
-  const list=countByName(LOPS_ALL,'active').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
-  el('tblLopsActive').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
-    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Active Skill',key:'name'},{label:'Picks',key:'picks',right:true}
-  ]);
-  applyColumnHeatmap('tblLopsActive', ['picks']);
-}
-function renderLopsPet(){
-  const limit=Number(el('lopsPetTop').value)||10;
-  const list=countByName(LOPS_ALL,'pet').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
-  el('tblLopsPet').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
-    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Pet',key:'name'},{label:'Picks',key:'picks',right:true}
-  ]);
-  applyColumnHeatmap('tblLopsPet', ['picks']);
-}
-function renderLopsTopKillers(){
-  const limit=Number(el('lopsTopKillersTop').value)||10;
-  const list=lopsTopPlayersByKills(LOPS_ALL).sort((a,b)=> b.kills-a.kills || a.player.localeCompare(b.player)).slice(0,limit);
-  el('tblLopsTopKillers').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
-    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Player',key:'player'},{label:'Team',key:'team'},
-    {label:'Rows',key:'rows',right:true},{label:'Kills',key:'kills',right:true},{label:'Assists',key:'assists',right:true},
-    {label:'HS',key:'headshots',right:true},{label:'Grenade',key:'grenade',right:true},{label:'Damage',key:'damage',right:true}
-  ]);
-  applyColumnHeatmap('tblLopsTopKillers', ['rows','kills','assists','headshots','grenade','damage']);
-}
-
-initial();
-</script>
+    // Init
+    setFrames();
+    ratio = readRatio();
+    applyRatio(ratio);
+  </script>
 </body>
 </html>
