@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Split View</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>FFBR — Teams</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root{
@@ -25,16 +26,23 @@
       --radius-lg:22px;
       --shadow: 0 22px 70px rgba(0,0,0,.55);
 
-      --divider-w: 6px;
-      --min-pane: 240px;
+      --sb-w: 260px;
+      --sb-w-collapsed: 82px;
 
-      --topbar-h: 64px;
+      --good:#71d083;
+      --bad:#ff6b6b;
+
+      /* heat */
+      --heat-rgb:255,189,89;
+      --heat-min:.05;
+      --heat-max:.22;
+      --heat-outline:.40;
 
       color-scheme: dark;
     }
 
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{min-height:100%}
     body{
       margin:0;
       font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
@@ -44,7 +52,8 @@
         radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
         radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
         linear-gradient(180deg, var(--bg), var(--bg2));
-      overflow:hidden;
+      overflow-x:hidden;
+      overflow-y:auto;
     }
 
     body::before, body::after{
@@ -67,35 +76,71 @@
 
     a{color:inherit}
     button{font:inherit}
+    select{
+      color-scheme: dark;
+      background: rgba(0,0,0,.28);
+      color: var(--ink);
+    }
+    select option{ background:#0b1020; color:var(--ink); }
     :focus-visible{
       outline: 2px solid rgba(77,211,255,.65);
       outline-offset: 2px;
       border-radius: 12px;
     }
 
-    /* Topbar (matching your theme) */
-    .topbar{
-      height: calc(var(--topbar-h) + env(safe-area-inset-top));
-      padding: calc(12px + env(safe-area-inset-top)) 12px 12px 12px;
-      background: var(--panel);
-      border-bottom: 1px solid var(--line);
+    /* Layout */
+    .app{
+      min-height: 100vh;
+      display:flex;
+      gap:18px;
+      padding:18px;
+      max-width: 1440px;
+      margin: 0 auto;
+      align-items:flex-start;
+      position:relative;
+    }
+
+    .sb-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 999;
+    }
+    .sb-overlay.show{opacity:1;pointer-events:auto;}
+
+    .sidebar{
+      width: var(--sb-w);
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
       display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      position: relative;
-      z-index: 50;
+      flex-direction:column;
+      position: sticky;
+      top: 18px;
+      height: calc(100vh - 36px);
+      transition: width .18s ease;
+      flex:0 0 auto;
+      z-index: 1000;
     }
+    .sidebar.collapsed{ width: var(--sb-w-collapsed); }
 
-    .title{
+    .brand{
       display:flex;
       align-items:center;
       gap:10px;
-      min-width:0;
+      padding:16px 16px 10px 16px;
+      border-bottom: 1px solid var(--line);
     }
+    .brand-left{display:flex;align-items:center;gap:10px;min-width:0;}
     .logo{
       width:36px;height:36px;border-radius:12px;
       background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
@@ -107,32 +152,305 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.35);
       flex:0 0 auto;
     }
-    .title h1{
+    .brand h1{
       margin:0;
       font-family: Orbitron, sans-serif;
-      letter-spacing:.6px;
       font-size: 1.05rem;
-      color: rgba(244,246,255,.94);
+      letter-spacing:.6px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      max-width: 150px;
     }
-    .title small{
+    .brand small{
       display:block;
-      margin-top:2px;
       color: var(--muted);
       font-size:.78rem;
-      font-weight:700;
+      margin-top:2px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      max-width: 150px;
     }
 
-    .actions{
+    .nav-search{
+      padding: 12px;
+      padding-top: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .nav-search input{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .9rem;
+    }
+    .nav-search input::placeholder{color: rgba(170,177,197,.75)}
+    .nav-search input:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+
+    .nav{
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow:auto;
+    }
+    .nav::-webkit-scrollbar{width:10px}
+    .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .nav::-webkit-scrollbar-track{background: transparent}
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid transparent;
+      color: var(--muted);
+      text-decoration:none;
+      transition: .2s ease;
+      cursor:pointer;
+      min-width:0;
+    }
+    .nav-item:hover{
+      background: rgba(255,255,255,.05);
+      border-color: rgba(255,255,255,.08);
+      color: var(--ink);
+    }
+    .nav-item.active{
+      background: linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
+      border-color: rgba(255,189,89,.22);
+      color: var(--ink);
+    }
+    .nav-ico{
+      width:26px;height:26px;border-radius:10px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      display:grid;place-items:center;
+      flex: 0 0 auto;
+    }
+    .nav-ico svg{width:14px;height:14px;opacity:.9}
+    .nav-label{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+    }
+
+    .sidebar.collapsed .brand h1,
+    .sidebar.collapsed .brand small,
+    .sidebar.collapsed .nav-label{display:none;}
+    .sidebar.collapsed .brand{justify-content:center;}
+    .sidebar.collapsed .brand-left{justify-content:center;}
+    .sidebar.collapsed .nav-item{justify-content:center;gap:0;padding:10px 8px;}
+    .sidebar.collapsed .nav-search{display:none;}
+
+    .main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .topbar{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+    }
+    .search{
+      flex:1;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      min-width: 0;
+    }
+    .search input{
+      width:100%;
+      background: transparent;
+      border:0;
+      outline:none;
+      color: var(--ink);
+      font-size: .95rem;
+    }
+    .search input::placeholder{color: rgba(170,177,197,.75)}
+
+    .top-actions{
       display:flex;
       align-items:center;
       gap:10px;
       flex:0 0 auto;
+    }
+
+    .icon-btn{
+      width:42px;height:42px;border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      color: var(--ink);
+      flex:0 0 auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
+    .icon-btn svg{width:18px;height:18px;opacity:.92}
+
+    .userchip{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      max-width: 260px;
+      min-width: 0;
+    }
+    .avatar{
+      width:28px;height:28px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .usertext{min-width:0}
+    .usertext b{
+      display:block;
+      font-size:.92rem;
+      font-family: Orbitron, sans-serif;
+      color:var(--brand);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
+
+    .logout{
+      color: rgba(255,255,255,.70);
+      text-decoration:none;
+      font-size:.85rem;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      transition:.2s ease;
+      cursor:pointer;
+      white-space:nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .logout:hover{
+      border-color: rgba(255,77,77,.35);
+      color: #ff8d8d;
+      box-shadow: 0 0 0 3px rgba(255,77,77,.10);
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+    .card-inner{padding:14px}
+
+    .hero{
+      position:relative;
+      height: 150px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.60), rgba(0,0,0,.10)),
+        url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
+    }
+    .hero::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(420px 220px at 55% 45%, rgba(255,189,89,.16), transparent 60%);
+      pointer-events:none;
+    }
+    .hero-content{
+      position:absolute;
+      left:16px; right:16px; bottom:14px;
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hero-title h2{
+      font-family: Orbitron, sans-serif;
+      font-size: 1.45rem;
+      color: var(--brand);
+      text-shadow: 0 0 18px rgba(255,189,89,.20);
+      margin:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .hero-title p{
+      margin:6px 0 0 0;
+      color: var(--muted);
+      font-size:.82rem;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+
+    /* Controls */
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
+    .controls-left{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .controls-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight:900;
+      font-size:.82rem;
+      white-space:nowrap;
     }
 
     .btn{
@@ -167,295 +485,1314 @@
       border-color: rgba(255,189,89,.28);
     }
 
-    /* Split layout: edge-to-edge */
-    .wrap{
-      height: calc(100vh - (var(--topbar-h) + env(safe-area-inset-top)));
-      width: 100vw;
-      padding: 0;
+    .select{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
+      font-weight:900;
+      font-size:.82rem;
+      outline:none;
+      cursor:pointer;
+    }
+    .select:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
 
-    .split{
-      height: 100%;
-      width: 100%;
+    .section-title{
+      margin: 12px 0 10px 0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      font-size: 1.02rem;
+      color: rgba(244,246,255,.92);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .section-title .hint{
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+      color: var(--muted);
+      font-weight:700;
+      font-size: .82rem;
+      letter-spacing: 0;
+    }
+
+    /* Team grid */
+    .grid{
       display:grid;
-      grid-template-columns: 1fr var(--divider-w) 1fr;
-      grid-template-rows: 1fr;
-      background: transparent;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
     }
 
-    .pane{
-      min-width: var(--min-pane);
-      min-height: var(--min-pane);
+    .team-card{
+      position:relative;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      overflow:hidden;
+      cursor:pointer;
+      transition:.18s ease;
+      min-width:0;
+    }
+    .team-card:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,189,89,.20);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+
+    .heat{
+      position:absolute; inset:0;
+      background: radial-gradient(420px 220px at 60% 30%, rgba(var(--heat-rgb), .18), transparent 60%);
+      opacity:.0;
+      pointer-events:none;
+    }
+
+    .team-top{
+      display:flex;
+      gap:10px;
+      padding: 12px;
+      align-items:center;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      background: linear-gradient(135deg, rgba(255,189,89,.08), rgba(77,211,255,.05));
+    }
+
+    .tlogo{
+      width:42px; height:42px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.20);
+      overflow:hidden;
+      flex:0 0 auto;
+      display:grid; place-items:center;
+    }
+    .tlogo img{
+      width:100%; height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .tmeta{min-width:0}
+    .tag{
+      font-family: Orbitron, sans-serif;
+      font-weight:900;
+      font-size:.92rem;
+      letter-spacing:.5px;
+      color: var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .tname{
+      margin-top:2px;
+      color: rgba(244,246,255,.90);
+      font-weight:900;
+      font-size:.82rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
+    }
+
+    .minirow{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding: 10px 12px 12px 12px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 7px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.16);
+      color: rgba(244,246,255,.86);
+      font-weight:900;
+      font-size:.76rem;
+      white-space:nowrap;
+    }
+    .chip b{font-weight:1000; color: rgba(244,246,255,.95)}
+    .chip .k{color: rgba(170,177,197,.90); font-weight:900}
+
+    .bars{
+      padding: 0 12px 12px 12px;
+      display:grid;
+      gap:8px;
+    }
+    .bar{
+      display:grid;
+      grid-template-columns: 64px 1fr 56px;
+      gap:8px;
+      align-items:center;
+      font-size:.74rem;
+      color: rgba(170,177,197,.95);
+      font-weight:900;
+    }
+    .bar .track{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.09);
       overflow:hidden;
       position:relative;
     }
-
-    /* Give panes the same glass edge feel but without margins */
-    .pane::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background: rgba(0,0,0,.10);
-      pointer-events:none;
+    .bar .fill{
+      height:100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(77,211,255,.75), rgba(255,189,89,.75));
+      box-shadow: 0 0 0 2px rgba(0,0,0,.12) inset;
+    }
+    .bar .v{
+      text-align:right;
+      color: rgba(244,246,255,.88);
     }
 
-    .frame{
-      width:100%;
-      height:100%;
-      border:0;
+    .empty-msg{
+      grid-column: 1 / -1;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.12);
+      background: rgba(0,0,0,.16);
+      color: var(--muted);
+      font-weight: 800;
+      text-align: center;
+    }
+
+    /* Modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 1200;
+    }
+    .modal.show{display:flex;}
+    .modal-card{
+      width: min(700px, 100%);
+      background: rgba(14, 18, 28, .92);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      box-shadow: 0 26px 80px rgba(0,0,0,.65);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      max-height: 88vh;
+    }
+    .modal-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding: 14px 14px 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .modal-top h3{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.6px;
+      color: var(--brand);
+      font-size: 1.15rem;
+      line-height: 1.25rem;
+    }
+    .modal-top p{
+      margin:6px 0 0 0;
+      color: var(--muted);
+      font-size:.82rem;
+      font-weight:700;
+      letter-spacing:.2px;
+      white-space:normal;
+    }
+    .modal-body{
+      padding: 12px 14px 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .info-block{
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 10px 12px;
+    }
+    .info-block b{
       display:block;
+      margin:0 0 6px 0;
+      color: rgba(244,246,255,.92);
+      font-size: .92rem;
+      font-weight:900;
+    }
+    .info-block .txt{
+      margin:0;
+      color: rgba(244,246,255,.86);
+      font-size: .92rem;
+      line-height: 1.28rem;
+      white-space: normal;
+    }
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      font-size:.86rem;
+      overflow:hidden;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .table th, .table td{
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      text-align:left;
+    }
+    .table th{
+      color: rgba(244,246,255,.92);
+      font-weight:1000;
       background: rgba(0,0,0,.18);
     }
-
-    .divider{
-      position:relative;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      border-left: 1px solid rgba(255,255,255,.10);
-      border-right: 1px solid rgba(0,0,0,.35);
-      cursor: col-resize;
-      touch-action: none;
-      user-select:none;
-    }
-
-    /* drag handle */
-    .divider::after{
-      content:"";
-      position:absolute;
-      left:50%; top:50%;
-      width: 18px; height: 44px;
-      transform: translate(-50%, -50%);
-      border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 12px 40px rgba(0,0,0,.45);
-    }
-    .divider::before{
-      content:"";
-      position:absolute;
-      left:50%; top:50%;
-      width: 10px; height: 28px;
-      transform: translate(-50%, -50%);
-      border-radius: 999px;
-      background:
-        radial-gradient(circle at 50% 25%, rgba(77,211,255,.65), transparent 55%),
-        radial-gradient(circle at 50% 50%, rgba(255,189,89,.55), transparent 55%),
-        radial-gradient(circle at 50% 75%, rgba(77,211,255,.65), transparent 55%);
-      opacity:.9;
-      pointer-events:none;
-    }
-
-    .divider.dragging{
-      box-shadow: inset 0 0 0 9999px rgba(77,211,255,.06);
-      border-left-color: rgba(77,211,255,.22);
-      border-right-color: rgba(77,211,255,.22);
-    }
-
-    /* Mobile: stack vertical */
-    @media (max-width: 980px){
-      body::before, body::after{display:none;}
-
-      .actions{gap:8px}
-      .btn{padding: 10px 12px; border-radius: 14px;}
-
-      .split{
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr var(--divider-w) 1fr;
-      }
-      .divider{
-        cursor: row-resize;
-        border-left: 0;
-        border-right: 0;
-        border-top: 1px solid rgba(255,255,255,.10);
-        border-bottom: 1px solid rgba(0,0,0,.35);
-      }
-      .divider::after{ width: 44px; height: 18px; }
-      .divider::before{
-        width: 28px; height: 10px;
-        background:
-          radial-gradient(circle at 25% 50%, rgba(77,211,255,.65), transparent 55%),
-          radial-gradient(circle at 50% 50%, rgba(255,189,89,.55), transparent 55%),
-          radial-gradient(circle at 75% 50%, rgba(77,211,255,.65), transparent 55%);
-      }
-    }
+    .table td{color: rgba(244,246,255,.86); font-weight:800;}
+    .right{text-align:right}
+    .muted{color: var(--muted)}
 
     @media (prefers-reduced-motion: reduce){
-      *{transition:none !important; animation:none !important}
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .icon-btn:hover,.team-card:hover{transform:none}
+    }
+
+    /* Mobile drawer */
+    @media (max-width: 980px){
+      body::before, body::after{display:none;}
+      .app{
+        padding: 10px;
+        gap: 12px;
+        flex-direction: column;
+        max-width: 100%;
+        margin: 0;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+      .sidebar{
+        position: fixed;
+        top: 0;
+        left: 0;
+        height:100vh;
+        width: var(--sb-w);
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-110%);
+        transition: transform .18s ease;
+        z-index: 1000;
+      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: var(--sb-w); }
+
+      .topbar{
+        top: env(safe-area-inset-top);
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        margin: -10px -10px 0 -10px;
+        padding: 10px 10px;
+        flex-wrap: wrap;
+        gap: 10px;
+        z-index: 50;
+      }
+      .search{width:100%; order:1; padding:11px 12px;}
+      .top-actions{width:100%; order:2; justify-content:space-between;}
+      .userchip{flex:1; max-width:none; padding:7px 9px;}
+      .usertext span{display:none;}
+      .usertext b{ max-width: 52vw; font-size: .88rem; }
+      .logout{ padding: 9px 10px; font-size: .85rem; }
+
+      .hero{height: 120px;}
+      .hero-title h2{font-size:1.18rem;}
+      .controls-left{
+        width:100%;
+        flex-wrap: nowrap;
+        overflow-x:auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .controls-left::-webkit-scrollbar{display:none;}
+      .controls-right{
+        width:100%;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap:8px;
+        align-items:stretch;
+      }
+      .controls-right .btn,
+      .controls-right .select{width:100%; border-radius:14px; padding:11px 10px;}
+      .grid{grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));}
     }
   </style>
 </head>
 
 <body>
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <div class="title">
-      <div class="logo">FF</div>
-      <div style="min-width:0">
-        <h1>Split View</h1>
-        <small>Edge-to-edge • Drag the divider</small>
+  <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
+
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+      <div class="brand">
+        <div class="brand-left">
+          <div class="logo">FF</div>
+          <div class="brand-text">
+            <h1>Free Fire</h1>
+            <small class="muted">Caster Dashboard</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-search">
+        <input id="navSearch" type="text" placeholder="Search menu..." autocomplete="off" />
+      </div>
+
+      <nav class="nav" id="nav">
+        <a class="nav-item" href="home.html" data-page="home.html" title="Dashboard">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+
+        <a class="nav-item active" href="teams.html" data-page="teams.html" title="FFBR Teams">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 20v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">FFBR Teams</span>
+        </a>
+
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Character Skills</span>
+        </a>
+
+        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Weapons</span>
+        </a>
+
+        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Split View</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="search" role="search">
+          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85" aria-hidden="true">
+            <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="searchInput" placeholder="Search teams (name / tag)..." autocomplete="off" />
+        </div>
+
+        <div class="top-actions">
+          <div class="userchip">
+            <div class="avatar" aria-hidden="true"></div>
+            <div class="usertext">
+              <b id="gamertag">PlayerOne</b>
+              <span id="userEmail" class="muted">loading…</span>
+            </div>
+          </div>
+          <a class="logout" href="#" id="logoutBtn">Logout</a>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="hero">
+          <div class="hero-content">
+            <div class="hero-title">
+              <h2>FFBR Teams</h2>
+              <p id="scopeText">Loading scope…</p>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <span class="pill" id="countPill" style="display:none"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-inner">
+          <div class="controls">
+            <div class="controls-left">
+              <select class="select" id="yearSel" title="Year"></select>
+              <select class="select" id="seasonSel" title="Season"></select>
+              <select class="select" id="tournamentSel" title="Tournament"></select>
+              <select class="select" id="stageSel" title="Stage"></select>
+              <select class="select" id="sortSel" title="Sort">
+                <option value="totalpm">Sort: Total/Match</option>
+                <option value="total">Sort: Total</option>
+                <option value="elimpm">Sort: Elims/Match</option>
+                <option value="plcpm">Sort: Placement/Match</option>
+                <option value="booyahs">Sort: Booyahs</option>
+                <option value="top3">Sort: Top3%</option>
+                <option value="name">Sort: Name</option>
+              </select>
+            </div>
+
+            <div class="controls-right">
+              <button class="btn" id="latestBtn" type="button" title="Auto-set to the latest scope found in data">Latest</button>
+              <button class="btn brand" id="resetBtn" type="button">Reset Filters</button>
+              <a class="btn" href="home.html">← Dashboard</a>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span>Teams</span>
+            <span class="hint" id="hintText">—</span>
+          </div>
+
+          <div class="grid" id="grid"></div>
+
+          <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
+            Free Fire Caster © 2026 — Misai Productions Sdn. Bhd.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Team Modal -->
+  <div class="modal" id="teamModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Team Details">
+      <div class="modal-top">
+        <div style="min-width:0">
+          <h3 id="mTitle">—</h3>
+          <p id="mSub">—</p>
+        </div>
+        <button class="icon-btn" id="mClose" aria-label="Close" title="Close" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="info-block">
+          <b>Quick KPIs</b>
+          <p class="txt" id="mKpis">—</p>
+        </div>
+
+        <div class="info-block">
+          <b>Per Map (Totals)</b>
+          <div class="txt" id="mTableWrap"></div>
+        </div>
       </div>
     </div>
-
-    <div class="actions">
-      <a class="btn" href="home.html">← Back to Dashboard</a>
-      <button class="btn brand" id="resetBtn" type="button">Reset Split</button>
-    </div>
-  </header>
-
-  <!-- SPLIT -->
-  <div class="wrap">
-    <section class="split" id="split">
-      <div class="pane" id="paneA">
-        <iframe class="frame" id="frameA" title="Left Pane"></iframe>
-      </div>
-
-      <div class="divider" id="divider" role="separator" aria-label="Resize split panes" aria-orientation="vertical" tabindex="0"></div>
-
-      <div class="pane" id="paneB">
-        <iframe class="frame" id="frameB" title="Right Pane"></iframe>
-      </div>
-    </section>
   </div>
 
   <script>
     /***********************
-     * Split View — themed to match your dashboard
-     * - No sidebar, no margins
-     * - Buttons: Back + Reset only
-     * - Drag divider (mouse/touch)
-     * - Query params supported:
-     *   split-view.html?left=character.html&right=weapon.html
+     * CONFIG
      ***********************/
-    const KEY_RATIO = 'ff_split_ratio_v1';
-    const split = document.getElementById('split');
-    const divider = document.getElementById('divider');
+    const CFG = Object.freeze({
+      SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
+      SUPABASE_ANON_KEY: 'PASTE_YOUR_ANON_KEY_HERE',
+      TABLE: 'ffbr_data',
+
+      // optional team logo lookup table (ignored if missing)
+      TEAM_TABLE: 'teams', // change if yours is different; if it errors, we just fallback
+
+      CACHE_KEY: 'ffbr_teams_cache_v1',
+      CACHE_TTL_MS: 1000 * 60 * 10, // 10 min
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1',
+      FILTER_KEY: 'ffbr_team_filters_v1'
+    });
+
+    const FALLBACK_LOGO = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="rgba(255,189,89,.28)"/>
+            <stop offset="1" stop-color="rgba(77,211,255,.18)"/>
+          </linearGradient>
+        </defs>
+        <rect width="120" height="120" rx="26" fill="rgba(0,0,0,.35)"/>
+        <rect x="10" y="10" width="100" height="100" rx="22" fill="url(#g)" opacity=".70"/>
+        <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
+          font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,.88)">TEAM</text>
+      </svg>
+    `)}`;
+
+    const client = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+    /***********************
+     * AUTH (same pattern as your character page)
+     ***********************/
+    async function ensureSession(){
+      try{
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return null; }
+        return session;
+      }catch(err){
+        console.error('ensureSession error:', err);
+        window.location.href = "index.html";
+        return null;
+      }
+    }
+    async function logout(){
+      try{ await client.auth.signOut(); }catch(_){}
+      window.location.href = "index.html";
+    }
+
+    /***********************
+     * SIDEBAR behavior (desktop collapse / mobile drawer)
+     ***********************/
+    const sidebar = document.getElementById('sidebar');
+    const sbToggle = document.getElementById('sbToggle');
+    const sbTogglePath = document.getElementById('sbTogglePath');
+    const sbOverlay = document.getElementById('sbOverlay');
+    const mobileMQ = window.matchMedia('(max-width: 980px)');
+    const isMobile = () => mobileMQ.matches;
+
+    function setToggleIcon(){
+      if (!sbTogglePath) return;
+      if (isMobile()){
+        sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
+      }else{
+        sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
+          ? 'M10 7l5 5-5 5'
+          : 'M14 7l-5 5 5 5'
+        );
+      }
+    }
+    function openDrawer(){
+      sidebar.classList.add('open');
+      sbOverlay.classList.add('show');
+      sbOverlay.setAttribute('aria-hidden','false');
+    }
+    function closeDrawer(){
+      sidebar.classList.remove('open');
+      sbOverlay.classList.remove('show');
+      sbOverlay.setAttribute('aria-hidden','true');
+    }
+    function toggleSidebar(){
+      if (isMobile()){
+        sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+      }else{
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem(CFG.SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+      }
+      setToggleIcon();
+    }
+    function syncSidebarMode(){
+      if (isMobile()){
+        sidebar.classList.remove('collapsed');
+        closeDrawer();
+      }else{
+        const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
+        sidebar.classList.toggle('collapsed', saved === '1');
+        closeDrawer();
+      }
+      setToggleIcon();
+    }
+    sbToggle?.addEventListener('click', toggleSidebar);
+    sbOverlay?.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
+      if (e.key === 'Escape' && teamModal.classList.contains('show')) closeTeam();
+    });
+    document.querySelectorAll('#nav .nav-item').forEach(a => {
+      a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
+    });
+    mobileMQ.addEventListener?.('change', syncSidebarMode);
+
+    (function setActiveNav(){
+      const here = (location.pathname.split('/').pop() || 'teams.html').toLowerCase();
+      document.querySelectorAll('.nav-item').forEach(a => {
+        const page = (a.getAttribute('data-page') || '').toLowerCase();
+        a.classList.toggle('active', page === here);
+      });
+    })();
+
+    document.getElementById('navSearch')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = (a.textContent || '').toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
+
+    /***********************
+     * UTIL
+     ***********************/
+    const tidy = (v) => (v ?? '').toString().replace(/[\u200B-\u200D\uFEFF]/g,'').trim();
+    const lower = (v) => tidy(v).toLowerCase();
+    const fmt1 = (n) => (Number.isFinite(n) ? n.toFixed(1) : '0.0');
+    const fmt0 = (n) => (Number.isFinite(n) ? Math.round(n).toString() : '0');
+    const pct = (n) => (Number.isFinite(n) ? (n*100).toFixed(1)+'%' : '0.0%');
+
+    function ensureEmpty(grid, text){
+      let msg = grid.querySelector('.empty-msg');
+      if (!msg){
+        msg = document.createElement('div');
+        msg.className = 'empty-msg';
+        grid.appendChild(msg);
+      }
+      msg.textContent = text || 'No matches.';
+      return msg;
+    }
+
+    function wireImgFallback(img){
+      img.addEventListener('error', () => {
+        if (img.dataset.fallbackApplied) return;
+        img.dataset.fallbackApplied = '1';
+        img.src = FALLBACK_LOGO;
+      }, { once:true });
+    }
+
+    /***********************
+     * DATA FETCH (pagination safe)
+     ***********************/
+    async function fetchAllRows(baseQuery, pageSize=1000){
+      let all = [];
+      let from = 0;
+      while (true){
+        const { data, error } = await baseQuery.range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = Array.isArray(data) ? data : [];
+        all = all.concat(batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
+    }
+
+    function readCache(){
+      try{
+        const raw = localStorage.getItem(CFG.CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.rows)) return null;
+        if (Date.now() - (parsed.ts || 0) > CFG.CACHE_TTL_MS) return null;
+        return parsed;
+      }catch(_){ return null; }
+    }
+    function writeCache(payload){
+      try{ localStorage.setItem(CFG.CACHE_KEY, JSON.stringify({ ts: Date.now(), ...payload })); }catch(_){}
+    }
+
+    /***********************
+     * FILTERS
+     ***********************/
+    const yearSel = document.getElementById('yearSel');
+    const seasonSel = document.getElementById('seasonSel');
+    const tournamentSel = document.getElementById('tournamentSel');
+    const stageSel = document.getElementById('stageSel');
+    const sortSel = document.getElementById('sortSel');
+    const latestBtn = document.getElementById('latestBtn');
     const resetBtn = document.getElementById('resetBtn');
-    const frameA = document.getElementById('frameA');
-    const frameB = document.getElementById('frameB');
+    const searchInput = document.getElementById('searchInput');
 
-    const mqStack = window.matchMedia('(max-width: 980px)');
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const scopeText = document.getElementById('scopeText');
+    const hintText = document.getElementById('hintText');
+    const countPill = document.getElementById('countPill');
+    const grid = document.getElementById('grid');
 
-    function getParams(){
-      const u = new URL(location.href);
-      return {
-        left:  u.searchParams.get('left')  || 'character.html',
-        right: u.searchParams.get('right') || 'weapon.html'
+    const STAGE_RANK = (s) => {
+      const x = lower(s);
+      if (x.includes('final')) return 3;
+      if (x.includes('phase 2') || x.includes('knock')) return 2;
+      if (x.includes('phase 1') || x.includes('group')) return 1;
+      return 0;
+    };
+
+    function saveFilters(f){
+      try{ localStorage.setItem(CFG.FILTER_KEY, JSON.stringify(f)); }catch(_){}
+    }
+    function loadSavedFilters(){
+      try{
+        const raw = localStorage.getItem(CFG.FILTER_KEY);
+        return raw ? JSON.parse(raw) : null;
+      }catch(_){ return null; }
+    }
+
+    function setSelectOptions(sel, values, { includeAll=true, allLabel='All' } = {}){
+      const current = sel.value;
+      sel.innerHTML = '';
+      if (includeAll){
+        const o = document.createElement('option');
+        o.value = 'ALL';
+        o.textContent = allLabel;
+        sel.appendChild(o);
+      }
+      values.forEach(v => {
+        const o = document.createElement('option');
+        o.value = String(v);
+        o.textContent = String(v);
+        sel.appendChild(o);
+      });
+      if ([...sel.options].some(o => o.value === current)) sel.value = current;
+    }
+
+    /***********************
+     * AGGREGATION
+     ***********************/
+    function aggregateTeams(rows, logosByTeam){
+      const by = new Map();
+
+      for (const r of rows){
+        const team = tidy(r.team) || '—';
+        const tag  = tidy(r.tag)  || '';
+        const grp  = tidy(r.group)|| '';
+        const stage= tidy(r.stage)|| '';
+        const tmt  = tidy(r.tournament)|| '';
+        const year = r.year ?? '';
+        const season = tidy(r.season)|| '';
+
+        const key = team; // team name primary key
+        if (!by.has(key)){
+          by.set(key, {
+            team,
+            tag,
+            group: grp,
+            stage,
+            tournament: tmt,
+            year,
+            season,
+            rows: 0,
+            booyahs: 0,
+            plc: 0,
+            elims: 0,
+            total: 0,
+            top3: 0,
+            played: 0,
+            weekMax: -1,
+            dayMax: -1,
+            maps: new Map(),
+            logo_url: logosByTeam?.get(team) || ''
+          });
+        }
+        const o = by.get(key);
+        o.rows += 1;
+
+        const b = Number(r.booyah || 0);
+        const p = Number(r.placement || 0);
+        const e = Number(r.elimination || 0);
+        const tot = Number(r.total || (b + p + e));
+        const t3 = Number(r.top3 || 0);
+        const played = Number(r.played || 0);
+
+        o.booyahs += b;
+        o.plc += p;
+        o.elims += e;
+        o.total += tot;
+        o.top3 += t3;
+        o.played += played;
+
+        const w = Number(r.week ?? -1);
+        const d = Number(r.day ?? -1);
+        if (Number.isFinite(w) && w > o.weekMax) o.weekMax = w;
+        if (Number.isFinite(d) && d > o.dayMax) o.dayMax = d;
+
+        const map = tidy(r.map) || 'Unknown';
+        if (!o.maps.has(map)){
+          o.maps.set(map, { map, rows:0, booyahs:0, plc:0, elims:0, total:0, top3:0 });
+        }
+        const m = o.maps.get(map);
+        m.rows += 1;
+        m.booyahs += b;
+        m.plc += p;
+        m.elims += e;
+        m.total += tot;
+        m.top3 += t3;
+      }
+
+      const out = [...by.values()].map(o => {
+        const matches = o.rows || 1;
+        const booyahRate = o.booyahs / matches;
+        const top3Rate = o.top3 / matches;
+
+        return {
+          ...o,
+          matches,
+          totalpm: o.total / matches,
+          elimpm: o.elims / matches,
+          plcpm: o.plc / matches,
+          booyahrate: booyahRate,
+          top3rate: top3Rate,
+          lastPlayed: (o.year ? `Y${o.year}` : 'Y?') + (o.weekMax >= 0 ? ` W${o.weekMax}` : (o.dayMax >= 0 ? ` D${o.dayMax}` : ''))
+        };
+      });
+
+      return out;
+    }
+
+    function computeHeat(teams, mode='totalpm'){
+      const vals = teams.map(t => Number(t[mode] || 0)).filter(Number.isFinite);
+      const min = Math.min(...vals, 0);
+      const max = Math.max(...vals, 1);
+      const span = Math.max(0.0001, max - min);
+
+      return (v) => {
+        const x = (Number(v||0) - min) / span; // 0..1
+        const a = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--heat-min')) || .05) +
+                  x * ((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--heat-max')) || .22) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--heat-min')) || .05));
+        return clamp(a, 0.02, 0.35);
       };
     }
 
-    function setFrames(){
-      const { left, right } = getParams();
-      frameA.src = left;
-      frameB.src = right;
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+    /***********************
+     * RENDER
+     ***********************/
+    let RAW = [];
+    let TEAMS = [];
+    let currentSearch = '';
+
+    function makeCard(t, heatAlpha){
+      const card = document.createElement('div');
+      card.className = 'team-card';
+      card.setAttribute('tabindex','0');
+      card.dataset.search = (t.team + ' ' + (t.tag||'')).toLowerCase();
+
+      const heat = document.createElement('div');
+      heat.className = 'heat';
+      heat.style.opacity = String(heatAlpha);
+
+      const top = document.createElement('div');
+      top.className = 'team-top';
+
+      const logo = document.createElement('div');
+      logo.className = 'tlogo';
+      const img = document.createElement('img');
+      img.src = t.logo_url || FALLBACK_LOGO;
+      img.alt = (t.tag || t.team || 'Team');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      wireImgFallback(img);
+      logo.appendChild(img);
+
+      const meta = document.createElement('div');
+      meta.className = 'tmeta';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = t.tag || '—';
+      const name = document.createElement('div');
+      name.className = 'tname';
+      name.textContent = t.team || '—';
+      meta.appendChild(tag);
+      meta.appendChild(name);
+
+      top.appendChild(logo);
+      top.appendChild(meta);
+
+      const mini = document.createElement('div');
+      mini.className = 'minirow';
+      mini.innerHTML = `
+        <span class="chip"><span class="k">GRP</span> <b>${t.group || '—'}</b></span>
+        <span class="chip"><span class="k">MP</span> <b>${fmt0(t.matches)}</b></span>
+        <span class="chip"><span class="k">BYH</span> <b>${fmt0(t.booyahs)}</b></span>
+        <span class="chip"><span class="k">TOT</span> <b>${fmt0(t.total)}</b></span>
+      `;
+
+      const bars = document.createElement('div');
+      bars.className = 'bars';
+
+      const mkBar = (label, value, maxValue, fmtFn) => {
+        const row = document.createElement('div');
+        row.className = 'bar';
+        const pctw = maxValue > 0 ? clamp((value / maxValue) * 100, 0, 100) : 0;
+        row.innerHTML = `
+          <div>${label}</div>
+          <div class="track"><div class="fill" style="width:${pctw.toFixed(1)}%"></div></div>
+          <div class="v">${fmtFn(value)}</div>
+        `;
+        return row;
+      };
+
+      // dynamic maxes from current TEAMS for nicer scaling
+      const maxTotalPM = Math.max(...TEAMS.map(x => x.totalpm), 1);
+      const maxElimPM  = Math.max(...TEAMS.map(x => x.elimpm), 1);
+      const maxPlcPM   = Math.max(...TEAMS.map(x => x.plcpm), 1);
+
+      bars.appendChild(mkBar('TOT/M', t.totalpm, maxTotalPM, fmt1));
+      bars.appendChild(mkBar('ELIM/M', t.elimpm, maxElimPM, fmt1));
+      bars.appendChild(mkBar('PLC/M', t.plcpm, maxPlcPM, fmt1));
+
+      card.appendChild(heat);
+      card.appendChild(top);
+      card.appendChild(mini);
+      card.appendChild(bars);
+
+      card.addEventListener('click', () => openTeam(t));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTeam(t); }
+      });
+
+      return card;
     }
 
-    function isStacked(){ return mqStack.matches; }
+    function applySearch(term){
+      const q = (term || '').toLowerCase().trim();
+      currentSearch = q;
 
-    function applyRatio(ratio){
-      ratio = clamp(ratio, 0.1, 0.9);
+      const cards = [...grid.querySelectorAll('.team-card')];
+      let visible = 0;
+      for (const el of cards){
+        const hit = !q || (el.dataset.search || '').includes(q);
+        el.style.display = hit ? '' : 'none';
+        if (hit) visible++;
+      }
 
-      const rect = split.getBoundingClientRect();
-      const size = isStacked() ? rect.height : rect.width;
-      const minFrac = clamp(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--min-pane')) || 240, 120, 420) / Math.max(1, size);
+      if (!cards.length){
+        countPill.style.display = 'none';
+        return;
+      }
 
-      ratio = clamp(ratio, minFrac, 1 - minFrac);
-
-      if (isStacked()){
-        const topPx = Math.round(rect.height * ratio);
-        split.style.gridTemplateRows = `${topPx}px var(--divider-w) 1fr`;
-        split.style.gridTemplateColumns = `1fr`;
-        divider.setAttribute('aria-orientation','horizontal');
+      if (q){
+        countPill.style.display = '';
+        countPill.textContent = `Showing: ${visible} team${visible===1?'':'s'}`;
       }else{
-        const leftPx = Math.round(rect.width * ratio);
-        split.style.gridTemplateColumns = `${leftPx}px var(--divider-w) 1fr`;
-        split.style.gridTemplateRows = `1fr`;
-        divider.setAttribute('aria-orientation','vertical');
+        countPill.style.display = '';
+        countPill.textContent = `Teams: ${visible}`;
       }
 
-      try{ localStorage.setItem(KEY_RATIO, String(ratio)); }catch(_){}
-      return ratio;
+      const hasVisible = cards.some(c => c.style.display !== 'none');
+      ensureEmpty(grid, 'No teams match your search / filters.').style.display = hasVisible ? 'none' : '';
     }
 
-    function readRatio(){
-      const raw = localStorage.getItem(KEY_RATIO);
-      const n = raw ? parseFloat(raw) : NaN;
-      return Number.isFinite(n) ? n : 0.5;
+    function renderTeams(){
+      grid.innerHTML = '';
+
+      if (!TEAMS.length){
+        ensureEmpty(grid, 'No teams found in this scope.');
+        hintText.textContent = 'No rows in scope.';
+        countPill.style.display = 'none';
+        return;
+      }
+
+      const heatFn = computeHeat(TEAMS, 'totalpm');
+      const frag = document.createDocumentFragment();
+
+      for (const t of TEAMS){
+        const alpha = heatFn(t.totalpm);
+        frag.appendChild(makeCard(t, alpha));
+      }
+      grid.appendChild(frag);
+
+      ensureEmpty(grid, 'No teams match your search / filters.').style.display = 'none';
+      hintText.textContent = `Sorted by ${sortSel.value.toUpperCase()} • Click a team for details`;
+      applySearch(currentSearch);
     }
 
-    let ratio = 0.5;
+    function sortTeams(){
+      const mode = sortSel.value;
 
-    function resetSplit(){
-      ratio = 0.5;
-      applyRatio(ratio);
+      const byName = (a,b) => tidy(a.team).localeCompare(tidy(b.team));
+      const byNumDesc = (k) => (a,b) => (Number(b[k]||0) - Number(a[k]||0)) || byName(a,b);
+
+      const fn =
+        mode === 'name' ? byName :
+        mode === 'total' ? byNumDesc('total') :
+        mode === 'elimpm' ? byNumDesc('elimpm') :
+        mode === 'plcpm' ? byNumDesc('plcpm') :
+        mode === 'booyahs' ? byNumDesc('booyahs') :
+        mode === 'top3' ? byNumDesc('top3rate') :
+        byNumDesc('totalpm');
+
+      TEAMS.sort(fn);
     }
 
-    // Pointer drag (mouse + touch)
-    let dragging = false;
-    let activePointerId = null;
-
-    function onPointerDown(e){
-      dragging = true;
-      activePointerId = e.pointerId;
-      divider.classList.add('dragging');
-      divider.setPointerCapture?.(activePointerId);
-      e.preventDefault();
+    function updateScopeText(filters, rowCount){
+      const bits = [];
+      if (filters.year && filters.year !== 'ALL') bits.push(`Year ${filters.year}`);
+      if (filters.season && filters.season !== 'ALL') bits.push(filters.season);
+      if (filters.tournament && filters.tournament !== 'ALL') bits.push(filters.tournament);
+      if (filters.stage && filters.stage !== 'ALL') bits.push(filters.stage);
+      scopeText.textContent = bits.length ? (bits.join(' • ') + ` • Rows ${rowCount}`) : `All Data • Rows ${rowCount}`;
     }
 
-    function onPointerMove(e){
-      if (!dragging || e.pointerId !== activePointerId) return;
+    /***********************
+     * TEAM MODAL
+     ***********************/
+    const teamModal = document.getElementById('teamModal');
+    const mClose = document.getElementById('mClose');
+    const mTitle = document.getElementById('mTitle');
+    const mSub = document.getElementById('mSub');
+    const mKpis = document.getElementById('mKpis');
+    const mTableWrap = document.getElementById('mTableWrap');
 
-      const rect = split.getBoundingClientRect();
-      if (isStacked()){
-        const y = e.clientY - rect.top;
-        ratio = y / Math.max(1, rect.height);
+    let lastFocus = null;
+
+    function openTeam(t){
+      lastFocus = document.activeElement;
+
+      mTitle.textContent = `${t.tag || '—'} — ${t.team || '—'}`;
+      mSub.textContent = `${t.group ? `GRP ${t.group}` : 'GRP —'} • ${t.lastPlayed || ''} • MP ${fmt0(t.matches)}`;
+
+      const booyahRate = t.matches ? (t.booyahs / t.matches) : 0;
+      const top3Rate = t.matches ? (t.top3 / t.matches) : 0;
+
+      mKpis.textContent =
+        `Total: ${fmt0(t.total)} (${fmt1(t.totalpm)}/match) • ` +
+        `Elims: ${fmt0(t.elims)} (${fmt1(t.elimpm)}/match) • ` +
+        `Placement: ${fmt0(t.plc)} (${fmt1(t.plcpm)}/match) • ` +
+        `Booyahs: ${fmt0(t.booyahs)} (${pct(booyahRate)}) • ` +
+        `Top3: ${fmt0(t.top3)} (${pct(top3Rate)})`;
+
+      const maps = [...t.maps.values()].sort((a,b) => (b.total - a.total) || a.map.localeCompare(b.map));
+      if (!maps.length){
+        mTableWrap.innerHTML = '<span class="muted">No map data found.</span>';
       }else{
-        const x = e.clientX - rect.left;
-        ratio = x / Math.max(1, rect.width);
+        const table = document.createElement('table');
+        table.className = 'table';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Map</th>
+              <th class="right">MP</th>
+              <th class="right">BYH</th>
+              <th class="right">PLC</th>
+              <th class="right">ELIM</th>
+              <th class="right">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${maps.map(m => `
+              <tr>
+                <td>${m.map}</td>
+                <td class="right">${fmt0(m.rows)}</td>
+                <td class="right">${fmt0(m.booyahs)}</td>
+                <td class="right">${fmt0(m.plc)}</td>
+                <td class="right">${fmt0(m.elims)}</td>
+                <td class="right"><b>${fmt0(m.total)}</b></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        `;
+        mTableWrap.innerHTML = '';
+        mTableWrap.appendChild(table);
       }
-      applyRatio(ratio);
+
+      teamModal.classList.add('show');
+      teamModal.setAttribute('aria-hidden','false');
+      setTimeout(() => mClose?.focus(), 0);
     }
 
-    function stopDrag(){
-      if (!dragging) return;
-      dragging = false;
-      divider.classList.remove('dragging');
-      activePointerId = null;
+    function closeTeam(){
+      teamModal.classList.remove('show');
+      teamModal.setAttribute('aria-hidden','true');
+      if (lastFocus && typeof lastFocus.focus === 'function'){
+        try{ lastFocus.focus(); }catch(_){}
+      }
+      lastFocus = null;
     }
 
-    divider.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove, { passive:false });
-    window.addEventListener('pointerup', stopDrag);
-    window.addEventListener('pointercancel', stopDrag);
-    window.addEventListener('blur', stopDrag);
+    mClose?.addEventListener('click', closeTeam);
+    teamModal?.addEventListener('click', (e) => { if (e.target === teamModal) closeTeam(); });
 
-    // Keyboard resize (nice bonus)
-    divider.addEventListener('keydown', (e) => {
-      const step = 0.03;
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp'){
-        ratio -= step; applyRatio(ratio); e.preventDefault();
+    /***********************
+     * LOAD + FILTER APPLY
+     ***********************/
+    function getFiltersFromUI(){
+      return {
+        year: yearSel.value || 'ALL',
+        season: seasonSel.value || 'ALL',
+        tournament: tournamentSel.value || 'ALL',
+        stage: stageSel.value || 'ALL',
+        sort: sortSel.value || 'totalpm'
+      };
+    }
+
+    function setUIFromFilters(f){
+      if (f?.sort) sortSel.value = f.sort;
+      if (f?.year) yearSel.value = f.year;
+      if (f?.season) seasonSel.value = f.season;
+      if (f?.tournament) tournamentSel.value = f.tournament;
+      if (f?.stage) stageSel.value = f.stage;
+    }
+
+    function rebuildFilterOptions(rows){
+      const years = [...new Set(rows.map(r => r.year).filter(v => v !== null && v !== undefined))].sort((a,b)=>b-a);
+      const seasons = [...new Set(rows.map(r => tidy(r.season)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const tournaments = [...new Set(rows.map(r => tidy(r.tournament)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const stages = [...new Set(rows.map(r => tidy(r.stage)).filter(Boolean))]
+        .sort((a,b)=>STAGE_RANK(b)-STAGE_RANK(a) || a.localeCompare(b));
+
+      setSelectOptions(yearSel, years, { includeAll:true, allLabel:'Year: All' });
+      setSelectOptions(seasonSel, seasons, { includeAll:true, allLabel:'Season: All' });
+      setSelectOptions(tournamentSel, tournaments, { includeAll:true, allLabel:'Tournament: All' });
+      setSelectOptions(stageSel, stages, { includeAll:true, allLabel:'Stage: All' });
+    }
+
+    function pickLatestScope(rows){
+      const years = rows.map(r => Number(r.year||0)).filter(Number.isFinite);
+      const maxYear = years.length ? Math.max(...years) : 0;
+
+      const rowsYear = rows.filter(r => Number(r.year||0) === maxYear);
+      const seasons = [...new Set(rowsYear.map(r => tidy(r.season)).filter(Boolean))];
+
+      // prefer "Global Finals" if present (common in your dataset), else first alpha
+      let season = seasons.find(s => lower(s).includes('global')) || seasons.sort((a,b)=>a.localeCompare(b))[0] || 'ALL';
+
+      const rowsSeason = rowsYear.filter(r => (season==='ALL') ? true : tidy(r.season) === season);
+      const tournaments = [...new Set(rowsSeason.map(r => tidy(r.tournament)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+
+      // tournament default: ALL (as per your usual)
+      const tournament = 'ALL';
+
+      // stage: latest (Finals > Phase 2 > Phase 1)
+      const stages = [...new Set(rowsSeason.map(r => tidy(r.stage)).filter(Boolean))].sort((a,b)=>STAGE_RANK(b)-STAGE_RANK(a));
+      const stage = 'ALL'; // keep all by default; change to stages[0] if you want "latest stage only"
+
+      return { year: String(maxYear || 'ALL'), season: season || 'ALL', tournament, stage, sort: 'totalpm' };
+    }
+
+    function applyFiltersToRows(rows, f){
+      return rows.filter(r => {
+        if (f.year !== 'ALL' && String(r.year) !== String(f.year)) return false;
+        if (f.season !== 'ALL' && tidy(r.season) !== tidy(f.season)) return false;
+        if (f.tournament !== 'ALL' && tidy(r.tournament) !== tidy(f.tournament)) return false;
+        if (f.stage !== 'ALL' && tidy(r.stage) !== tidy(f.stage)) return false;
+        return true;
+      });
+    }
+
+    async function tryLoadTeamLogos(){
+      // Optional: if you have a team table with logo_url, we’ll map it by team name.
+      const map = new Map();
+      try{
+        const { data, error } = await client.from(CFG.TEAM_TABLE).select('team,logo_url');
+        if (error) throw error;
+        (data || []).forEach(r => {
+          const team = tidy(r.team);
+          const url = tidy(r.logo_url);
+          if (team && url) map.set(team, url);
+        });
+      }catch(_){
+        // ignore if table doesn't exist or policy blocks it
       }
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown'){
-        ratio += step; applyRatio(ratio); e.preventDefault();
+      return map;
+    }
+
+    async function loadData(){
+      // cache first
+      const cached = readCache();
+      if (cached?.rows?.length){
+        RAW = cached.rows;
+        return;
       }
-      if (e.key === 'Enter' || e.key === ' '){
-        resetSplit(); e.preventDefault();
-      }
+
+      // minimal columns only (fast)
+      const q = client
+        .from(CFG.TABLE)
+        .select('team,tag,group,stage,day,week,map,booyah,placement,elimination,total,top3,played,tournament,year,season');
+
+      const rows = await fetchAllRows(q, 1000);
+      RAW = rows;
+      writeCache({ rows });
+    }
+
+    function rebuild(){
+      const f = getFiltersFromUI();
+      saveFilters(f);
+
+      const scoped = applyFiltersToRows(RAW, f);
+
+      // update scope text
+      updateScopeText(f, scoped.length);
+
+      // aggregate
+      // logos loaded once per session (see init)
+      TEAMS = aggregateTeams(scoped, window.__logosByTeam || new Map());
+
+      // sort
+      sortTeams();
+
+      // render
+      renderTeams();
+    }
+
+    function hardReset(){
+      // "Reset Filters" goes to latest defaults (your new format)
+      const latest = pickLatestScope(RAW);
+      setUIFromFilters(latest);
+      rebuild();
+    }
+
+    /***********************
+     * EVENTS
+     ***********************/
+    [yearSel, seasonSel, tournamentSel, stageSel, sortSel].forEach(el => {
+      el.addEventListener('change', rebuild);
     });
 
-    resetBtn.addEventListener('click', resetSplit);
+    latestBtn.addEventListener('click', () => {
+      const latest = pickLatestScope(RAW);
+      setUIFromFilters(latest);
+      rebuild();
+    });
 
-    // Resize handling
-    function syncLayout(){
-      applyRatio(ratio);
-    }
-    mqStack.addEventListener?.('change', syncLayout);
-    window.addEventListener('resize', syncLayout);
+    resetBtn.addEventListener('click', hardReset);
 
-    // Init
-    setFrames();
-    ratio = readRatio();
-    applyRatio(ratio);
+    let sRAF = 0;
+    searchInput.addEventListener('input', (e) => {
+      const v = e.target.value || '';
+      cancelAnimationFrame(sRAF);
+      sRAF = requestAnimationFrame(() => applySearch(v));
+    });
+
+    /***********************
+     * INIT
+     ***********************/
+    window.addEventListener('DOMContentLoaded', async () => {
+      syncSidebarMode();
+
+      const session = await ensureSession();
+      if (!session) return;
+
+      const email = session.user?.email || '';
+      document.getElementById('userEmail').textContent = email || 'signed in';
+      document.getElementById('gamertag').textContent = email ? email.split('@')[0] : 'PlayerOne';
+
+      document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+      });
+
+      grid.innerHTML = '<div class="empty-msg">Loading…</div>';
+
+      try{
+        window.__logosByTeam = await tryLoadTeamLogos();
+        await loadData();
+
+        rebuildFilterOptions(RAW);
+
+        // Apply saved filters if valid, else go latest (Year max, prefer Global Finals season, Tournament All)
+        const saved = loadSavedFilters();
+        if (saved){
+          // set selects after options exist
+          setUIFromFilters(saved);
+        }else{
+          setUIFromFilters(pickLatestScope(RAW));
+        }
+
+        rebuild();
+      }catch(err){
+        console.error(err);
+        grid.innerHTML = '<div class="empty-msg">Failed to load ffbr_data.</div>';
+        scopeText.textContent = 'Load failed.';
+      }
+    });
   </script>
 </body>
 </html>
