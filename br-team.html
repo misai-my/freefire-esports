@@ -282,24 +282,42 @@
     /* Split View */
     .split-grid{
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); /* true half/half */
       gap:12px;
+      align-items:start;
     }
+    
+    /* CRITICAL: allow grid children to shrink instead of expanding the column */
+    .split-grid > div{
+      min-width:0;
+    }
+    
+    /* Keep cards/tables inside their half */
+    .split-grid .card{
+      min-width:0;
+      width:100%;
+      overflow:hidden;
+    }
+    
+    /* Ensure scroll containers never exceed column width */
+    .split-grid .table-scroll{
+      max-width:100%;
+    }
+    
+    /* (Optional but safe) prevent long identity text from stretching layout */
+    .split-grid .muted,
+    .split-grid h3,
+    .split-grid #splitIdentityA,
+    .split-grid #splitIdentityB{
+      overflow-wrap:anywhere;
+    }
+    
     @media (max-width:980px){
       .grid3{grid-template-columns:1fr}
       .split-grid{grid-template-columns:1fr}
     }
     @media (max-width:860px){.grid2{grid-template-columns:1fr}}
-    .pillbtn{
-      border-radius:999px;
-      padding:6px 10px;
-      font-size:.8rem;
-      font-weight:800;
-      border:1px solid #3a3a3a;
-      background:#1f1f1f;
-      color:#ddd;
-      cursor:pointer;
-    }
+
     .pillbtn.onA{ outline:2px solid var(--brand2); }
     .pillbtn.onB{ outline:2px solid rgba(var(--heat-cool),1); }
   </style>
