@@ -1210,6 +1210,13 @@
         .replace(/\s{2,}/g, ' ')
         .trim();
     }
+    function csChipLabel(price){
+      const p = tidy(price);
+      // ✅ Only show the price when CS checkbox is ON
+      if (!currentCsOnly) return 'CS';
+      return p ? `CS ₱${p}` : 'CS';
+    }
+
     function isCS(w){
       const v = tidy(w?.clash_squad).toLowerCase();
       return v === 'cs' || v === 'yes' || v === 'true';
@@ -1326,7 +1333,7 @@
       if (cs){
         const chipCS = document.createElement('span');
         chipCS.className = 'chip cs';
-        chipCS.textContent = price ? `CS ₱${price}` : 'CS';
+        chipCS.textContent = csChipLabel(price);
         sub.appendChild(chipCS);
       }
 
@@ -1421,7 +1428,7 @@
           if (cs){
             const chipCS = document.createElement('span');
             chipCS.className = 'chip cs';
-            chipCS.textContent = price ? `CS ₱${price}` : 'CS';
+            chipCS.textContent = csChipLabel(price);
             sub.appendChild(chipCS);
           }
 
@@ -1582,7 +1589,7 @@
       infoName.textContent = name;
       infoSub.textContent = [
         type ? type.toUpperCase() : null,
-        cs ? (price ? `CS ₱${price}` : 'CS') : null,
+        cs ? (currentCsOnly && price ? `CS ₱${price}` : 'CS') : null,
         armory.length ? `ARMORY: ${armory.join(', ')}` : null
       ].filter(Boolean).join(' • ');
 
