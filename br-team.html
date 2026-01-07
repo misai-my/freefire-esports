@@ -482,7 +482,7 @@
     </div>
   </details>
 
-  <!-- ✅ ELIMINATIONS — TEAM FOCUS (LOPS_ALL) -->
+  <!-- ELIMINATIONS — TEAM FOCUS -->
   <details class="accordion" id="elimsFocusSection">
     <summary>Eliminations — Team Focus (LOPS)</summary>
     <div class="accordion-body">
@@ -614,6 +614,24 @@ const fmtPct = x => isFinite(x) ? (x*100).toFixed(1)+'%' : '—';
 function sum(arr,k){ let t=0; for(const r of arr) t+= Number(r?.[k] ?? 0) || 0; return t; }
 function groupBy(arr,fn){ const m=new Map(); for(const r of arr){ const k=fn(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r);} return m; }
 function setVisible(id, on){ const node=el(id); if(node) node.style.display = on ? '' : 'none'; }
+function optExists(selectEl, value){
+  const v = norm(value);
+  if(!selectEl || !v) return false;
+  const vl = v.toLowerCase();
+  return [...selectEl.options].some(o => norm(o.value).toLowerCase() === vl);
+}
+function setSelectValueCI(selectEl, value, fallback=null){
+  if(!selectEl) return;
+  const v = norm(value);
+  if(!v){
+    if(fallback!=null) selectEl.value = fallback;
+    return;
+  }
+  const vl = v.toLowerCase();
+  const opt = [...selectEl.options].find(o => norm(o.value).toLowerCase() === vl);
+  if(opt) selectEl.value = opt.value;
+  else if(fallback!=null) selectEl.value = fallback;
+}
 
 /* Global error surface */
 function gerr(msg){
@@ -645,7 +663,7 @@ let ALL=[]; let TEAM_ROWS=[]; let CURRENT_TEAM=null;
 let TEAM_INFO = null;
 let TEAM_PLAYERS = [];
 
-/* ✅ NEW: LOPS (for renderElimTeamFocus) */
+/* LOPS (for renderElimTeamFocus) */
 let LOPS_ALL = [];
 let LOPS_OK = false;
 
@@ -711,7 +729,7 @@ async function fetchHelperTeams(){
   });
 }
 
-/* ✅ NEW: fetch all LOPS rows (ffbr_lopsdata), normalize to match your function */
+/* LOPS fetch/normalize */
 function up(s){ return norm(s).toUpperCase(); }
 function pickFirst(r, keys){
   for(const k of keys){
@@ -720,18 +738,38 @@ function pickFirst(r, keys){
   return null;
 }
 function normalizeLOPSRow(r){
-  // Try common variants; keep original if already correct
+  // killer/victim
   const killer = pickFirst(r, ['pair_killer','PAIR_KILLER','killer_tag','KILLER_TAG','killer','KILLER','attacker_tag','ATTACKER_TAG','attacker','ATTACKER']);
   const victim = pickFirst(r, ['pair_victim','PAIR_VICTIM','victim_tag','VICTIM_TAG','victim','VICTIM','downed_tag','DOWNED_TAG','downed','DOWNED']);
-
   r.pair_killer = up(killer);
   r.pair_victim = up(victim);
 
+  // day/week/match meta
   const day = pickFirst(r, ['day','Day','match_day','MATCH_DAY','game_day','GAME_DAY']);
   r.day = (day==null || day==='') ? null : Number(day);
 
+  const week = pickFirst(r, ['week','Week','WEEK']);
+  r.week = (week==null || week==='') ? (r.week ?? null) : Number(week);
+
+  const match = pickFirst(r, ['match','Match','MATCH','game','GAME']);
+  r.match = (match==null || match==='') ? (r.match ?? null) : Number(match);
+
+  // map
   const mp = pickFirst(r, ['_map','map','Map','match_map','MATCH_MAP']);
   r._map = norm(mp) || '—';
+
+  // scope meta (so we can RESPECT CURRENT FILTERS)
+  const yr = pickFirst(r, ['year','Year','YEAR']);
+  if(yr!=null && String(yr).trim()!==''){
+    const yn = Number(yr);
+    r.year = isFinite(yn) ? yn : String(yr).trim();
+  }
+  const seas = pickFirst(r, ['season','Season','SEASON']);
+  if(seas!=null) r.season = norm(seas);
+  const tourn = pickFirst(r, ['tournament','Tournament','TOURNAMENT']);
+  if(tourn!=null) r.tournament = norm(tourn);
+  const stage = pickFirst(r, ['stage','Stage','STAGE']);
+  if(stage!=null) r.stage = norm(stage);
 
   return r;
 }
@@ -835,18 +873,14 @@ function populateYearFilter(){
   const sel=el('gYear'); if(!sel) return;
   const years = uniqueYears(ALL);
   sel.innerHTML = `<option value="__all__">All years</option>` + years.map(y=>`<option value="${y}">${y}</option>`).join('');
-  if(years.includes('2025')) sel.value = '2025';
-  else if(years.length) sel.value = years[0];
-  else sel.value = '__all__';
+  sel.value = years.length ? years[0] : '__all__';
 }
 function populateSeasonFilter(){
   const sel=el('gSeason'); if(!sel) return;
   const scoped = rowsFilteredByYearOnly(ALL);
   const seasons = uniqueSeasons(scoped);
   sel.innerHTML = `<option value="__all__">All seasons</option>` + seasons.map(s=>`<option value="${s.replaceAll('"','&quot;')}">${s}</option>`).join('');
-  const gf = seasons.find(s => s.toLowerCase()==='global finals');
-  if(gf) sel.value = gf;
-  else sel.value = '__all__';
+  sel.value = '__all__';
 }
 function populateTournamentFilter(){
   const sel=el('gTournament'); if(!sel) return;
@@ -854,7 +888,7 @@ function populateTournamentFilter(){
   const items = tournamentsWithMaxId(scoped);
   sel.innerHTML = `<option value="__all__">All tournaments</option>` +
     items.map(o=>`<option value="${o.name.replaceAll('"','&quot;')}">${o.name}</option>`).join('');
-  sel.value = '__all__';
+  sel.value = items.length ? items[0].name : '__all__';
 }
 function populateStageFilter(defaultLatest=true){
   const sel = el('gStage'); if(!sel) return;
@@ -893,6 +927,52 @@ function baseRows(rows){
   if(s!=='__all__'){
     const sf=s.toLowerCase();
     out = out.filter(r=> norm(r.stage).toLowerCase()===sf);
+  }
+  return out;
+}
+
+/* STRICT LOPS filter: respect current filters (fail-closed if metadata missing) */
+function baseRowsLOPS(rows){
+  let out = rows;
+
+  const y = selectedYear();
+  if(y!=='__all__'){
+    const yNum = Number(y);
+    out = out.filter(r=>{
+      if(r.year==null || String(r.year).trim()==='') return false;
+      if(isFinite(yNum)) return Number(r.year)===yNum;
+      return String(r.year).toLowerCase()===y.toLowerCase();
+    });
+  }
+
+  const seas = selectedSeason();
+  if(seas!=='__all__'){
+    const sl=seas.toLowerCase();
+    out = out.filter(r=>{
+      const v=norm(r.season);
+      if(!v) return false;
+      return v.toLowerCase()===sl;
+    });
+  }
+
+  const t = selectedTournament();
+  if(t!=='__all__'){
+    const tl=t.toLowerCase();
+    out = out.filter(r=>{
+      const v=norm(r.tournament);
+      if(!v) return false;
+      return v.toLowerCase()===tl;
+    });
+  }
+
+  const s = selectedStage();
+  if(s!=='__all__'){
+    const sf=s.toLowerCase();
+    out = out.filter(r=>{
+      const v=norm(r.stage);
+      if(!v) return false;
+      return v.toLowerCase()===sf;
+    });
   }
   return out;
 }
@@ -1249,7 +1329,7 @@ function renderRoster(players){
   ]);
 }
 
-/* AI prompt (kept simple) */
+/* AI prompt */
 function buildAiPrompt(){
   if(!CURRENT_TEAM) return 'Select a team from the grid above to generate an AI analysis prompt.';
   const k = kpiDataset(TEAM_ROWS);
@@ -1289,7 +1369,7 @@ function updateAiPrompt(){
   ta.value = buildAiPrompt();
 }
 
-/* ✅ YOUR FUNCTION (added) */
+/* ✅ Elims Team Focus — now respects CURRENT FILTERS via baseRowsLOPS() */
 function renderElimTeamFocus(){
   const boxA=el('elimTopPredators'), boxB=el('elimTopVictims'), boxS=el('elimSignals'), boxD=el('elimByDay'), boxM=el('elimByMap');
   el('elimTeamCodeA').textContent = CURRENT_TEAM ? CURRENT_TEAM.name : '—';
@@ -1300,8 +1380,9 @@ function renderElimTeamFocus(){
     boxD.innerHTML=boxM.innerHTML='—';
     return;
   }
+
   const code = CURRENT_TEAM.name.toUpperCase();
-  const rows = LOPS_ALL; // ignore tournament filters
+  const rows = baseRowsLOPS(LOPS_ALL); // ✅ respect current filters
 
   // victims of CUR_TEAM (they eliminated others)
   const given = {};
@@ -1309,7 +1390,7 @@ function renderElimTeamFocus(){
   const givenTop = Object.entries(given).sort((a,b)=>b[1]-a[1]).slice(0,5);
   boxB.innerHTML = givenTop.length
     ? givenTop.map(([k,v])=>`<div class="kpi">${k}: <strong>${v}</strong></div>`).join('')
-    : '<div class="muted">No eliminations as killer in dataset.</div>';
+    : '<div class="muted">No eliminations as killer in this scope.</div>';
 
   // predators of CUR_TEAM (who eliminated them)
   const suffered = {};
@@ -1317,7 +1398,7 @@ function renderElimTeamFocus(){
   const sufferedTop = Object.entries(suffered).sort((a,b)=>b[1]-a[1]).slice(0,5);
   boxA.innerHTML = sufferedTop.length
     ? sufferedTop.map(([k,v])=>`<div class="kpi">${k}: <strong>${v}</strong></div>`).join('')
-    : '<div class="muted">No times eliminated in dataset.</div>';
+    : '<div class="muted">No times eliminated in this scope.</div>';
 
   // signals
   const totalGiven = Object.values(given).reduce((a,b)=>a+b,0);
@@ -1559,7 +1640,6 @@ async function selectTeam(teamObj){
   renderRoster(roster);
   updateAiPrompt();
 
-  // ✅ LOPS-based elimination focus
   renderElimTeamFocus();
 }
 
@@ -1685,6 +1765,15 @@ async function refreshScopeAfterFilterChange(){
   renderOverall();
   renderPerMapAllTeams();
 
+  // update LOPS status line (how many rows match scope)
+  const status = el('lopsStatus');
+  if(status){
+    const scopedLOPS = baseRowsLOPS(LOPS_ALL);
+    status.textContent = LOPS_OK
+      ? `LOPS loaded: ${LOPS_ALL.length} rows • In-scope: ${scopedLOPS.length} rows (filters applied)`
+      : `LOPS not loaded (ffbr_lopsdata unavailable or RLS blocked)`;
+  }
+
   if(SPLIT_MODE){
     const a = TEAM_A && ALLOWED_TAGS.has(TEAM_A.name.toUpperCase()) ? TEAM_A : (TEAMS[0] || null);
     let b = TEAM_B && ALLOWED_TAGS.has(TEAM_B.name.toUpperCase()) ? TEAM_B : (TEAMS[1] || TEAMS[0] || null);
@@ -1765,10 +1854,8 @@ function wireControls(){
   });
 
   el('gTournReset').addEventListener('click', async ()=>{
-    populateYearFilter();
-    populateSeasonFilter();
-    populateTournamentFilter();
-    populateStageFilter(true);
+    // Reset back to latest tournament record (same as init defaults)
+    applyLatestTournamentDefaults();
     await refreshScopeAfterFilterChange();
   });
 
@@ -1855,6 +1942,44 @@ function wireControls(){
   });
 }
 
+/* ---------- Defaults: latest tournament record ---------- */
+function getLatestRecordRow(){
+  if(!ALL.length) return null;
+  return ALL.reduce((best, r)=> n(r.id) > n(best?.id) ? r : best, ALL[0]);
+}
+function applyLatestTournamentDefaults(){
+  // repopulate all dropdowns first (so the option lists exist)
+  populateYearFilter();
+
+  const latest = getLatestRecordRow();
+  const selYear = el('gYear'), selSeason=el('gSeason'), selTourn=el('gTournament'), selStage=el('gStage');
+
+  // Year
+  if(latest?.year!=null){
+    setSelectValueCI(selYear, String(latest.year), selYear?.options?.[0]?.value ?? '__all__');
+  }
+
+  // Season depends on year
+  populateSeasonFilter();
+  if(latest?.season!=null){
+    setSelectValueCI(selSeason, String(latest.season), '__all__');
+  }else{
+    selSeason.value='__all__';
+  }
+
+  // Tournament depends on year+season
+  populateTournamentFilter();
+  if(latest?.tournament!=null){
+    setSelectValueCI(selTourn, String(latest.tournament), selTourn?.options?.[1]?.value ?? '__all__');
+  }
+
+  // Stage depends on year+season+tournament
+  populateStageFilter(true);
+  if(latest?.stage!=null){
+    setSelectValueCI(selStage, String(latest.stage), selStage?.value ?? '__all__');
+  }
+}
+
 /* ---------- Init ---------- */
 async function initial(){
   try{
@@ -1865,25 +1990,26 @@ async function initial(){
     HELPER_TEAMS = await fetchHelperTeams();
     buildHelperIndex();
 
-    // ✅ Load LOPS in parallel (does NOT affect normal filters)
+    // Load LOPS
     const lopsStatus = el('lopsStatus');
     if(lopsStatus) lopsStatus.textContent = 'Loading LOPS (ffbr_lopsdata)…';
     LOPS_ALL = await fetchAllLOPS();
     LOPS_OK = LOPS_ALL.length > 0;
-    if(lopsStatus){
-      lopsStatus.textContent = LOPS_OK
-        ? `LOPS loaded: ${LOPS_ALL.length} rows (used for Team Focus eliminations — ignores tournament filters)`
-        : `LOPS not loaded (ffbr_lopsdata unavailable or RLS blocked) — Team Focus eliminations will stay empty.`;
-    }
 
-    populateYearFilter();           // default 2025 if available
-    populateSeasonFilter();         // default Global Finals if available
-    populateTournamentFilter();     // default ALL tournaments
-    populateStageFilter(true);      // default latest stage in scope
+    // ✅ default filters: latest tournament record
+    applyLatestTournamentDefaults();
 
     updateFilterHint();
     updateTeamsForCurrentScope();
     populateMapFilter();
+
+    // LOPS status with scoped count
+    if(lopsStatus){
+      const scopedLOPS = baseRowsLOPS(LOPS_ALL);
+      lopsStatus.textContent = LOPS_OK
+        ? `LOPS loaded: ${LOPS_ALL.length} rows • In-scope: ${scopedLOPS.length} rows (filters applied)`
+        : `LOPS not loaded (ffbr_lopsdata unavailable or RLS blocked)`;
+    }
 
     el('overallSortDir').dataset.dir='desc';
     el('overallSortDir').textContent='Desc';
