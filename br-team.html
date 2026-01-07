@@ -2004,43 +2004,28 @@ function renderAdvancedBlocks(payload){
           renderPivot('tblPerPlayerActive', players, topActive, mActive);
         }
 
-        // Passive matrix (combine passive columns + optional "passives list" column)
-          if((!passiveCols || !passiveCols.length) && !loadCols.passivesListCol){
-            passiveBox.innerHTML = '<div class="muted">No Passive character columns detected.</div>';
-          }else{
-            const mPass = new Map();
-            const allPass = new Map();
-            const listCol = loadCols.passivesListCol;
-          
-            for(const r of loadRows){
-              const p = norm(r[playerCol]) || 'Unknown';
-              if(!mPass.has(p)) mPass.set(p, new Map());
-              const mm = mPass.get(p);
-          
-              // multi-column passives
-              for(const pk of (passiveCols || [])){
-                const c = norm(r[pk]);
-                if(!c) continue;
-                mm.set(c, (mm.get(c)||0)+1);
-                allPass.set(c, (allPass.get(c)||0)+1);
-              }
-          
-              // single-column passives list (comma/pipe/newline/JSON array supported)
-              if(listCol){
-                const items = splitToLines(r[listCol]); // uses your existing helper
-                for(const c of items){
-                  const cc = norm(c);
-                  if(!cc) continue;
-                  mm.set(cc, (mm.get(cc)||0)+1);
-                  allPass.set(cc, (allPass.get(cc)||0)+1);
-                }
-              }
+        // Passive matrix (combine all passive columns)
+        if(!passiveCols || !passiveCols.length){
+          passiveBox.innerHTML = '<div class="muted">No Passive character columns detected.</div>';
+        }else{
+          const mPass = new Map();
+          const allPass = new Map();
+          for(const r of loadRows){
+            const p = norm(r[playerCol]) || 'Unknown';
+            if(!mPass.has(p)) mPass.set(p, new Map());
+            const mm = mPass.get(p);
+
+            for(const pk of passiveCols){
+              const c = norm(r[pk]);
+              if(!c) continue;
+              mm.set(c, (mm.get(c)||0)+1);
+              allPass.set(c, (allPass.get(c)||0)+1);
             }
-          
-            const players = [...mPass.keys()].sort((a,b)=>a.localeCompare(b));
-            const topPass = topNFromMap(allPass, 10).map(([c])=>c);
-            renderPivot('tblPerPlayerPassive', players, topPass, mPass);
           }
+          const players = [...mPass.keys()].sort((a,b)=>a.localeCompare(b));
+          const topPass = topNFromMap(allPass, 10).map(([c])=>c);
+          renderPivot('tblPerPlayerPassive', players, topPass, mPass);
+        }
       }
     }
   }
