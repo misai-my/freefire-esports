@@ -5,86 +5,524 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FFBR — Teams</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Fonts (optional but matches your theme) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --bg:#0e0e0e; --panel:#1b1b1b; --panel2:#141414; --ink:#f5f5f5; --muted:#b9b9b9;
-      --brand:#ffbd59; --brand2:#ff7733; --line:#313131;
-      --tile-w:96px; --tile-h:104px; --logo:44px; --code-fs:.74rem;
-      --heat-rgb:255,189,89; --heat-min:.06; --heat-max:.22; --heat-top-outline:.42; --heat-radius:8px;
-      --good:#62e887; --bad:#ff6b6b; --step-h:48px;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif}
-    header{position:sticky;top:0;z-index:20;background:#1f1f1f;border-bottom:3px solid var(--brand);padding:14px 16px}
-    h1{margin:0;font-size:1.1rem;letter-spacing:.3px;color:var(--brand)}
-    .user-controls{position:absolute;right:16px;top:12px;display:flex;gap:10px;align-items:center}
-    .chip{font-size:.85rem;color:#ddd;background:#272727;border:1px solid #3a3a3a;border-radius:999px;padding:4px 10px}
-    .btn{background:var(--brand);color:var(--panel);border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
-    .btn.secondary{background:#2a2a2a;color:#ddd;border:1px solid #3a3a3a}
-    .btn.ghost{background:transparent;color:#ddd;border:1px solid #3a3a3a}
-    .shell{max-width:1180px;margin:22px auto;padding:0 12px}
+      /* NEW THEME BASE */
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.08);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
 
-    .gerr{display:none;margin:0 0 12px;background:#2a1111;border:1px solid #553;color:#ffb4b4;border-radius:10px;padding:10px 12px;white-space:pre-wrap}
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
+
+      --radius:16px;
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+
+      /* keep your original sizing vars */
+      --tile-w:96px;
+      --tile-h:104px;
+      --logo:44px;
+      --code-fs:.74rem;
+      --step-h:52px;
+
+      /* ✅ heatmap vars (kept) */
+      --heat-rgb:255,189,89;
+      --heat-min:.06;
+      --heat-max:.22;
+      --heat-top-outline:.42;
+      --heat-radius:10px;
+
+      --good:#62e887;
+      --bad:#ff6b6b;
+
+      color-scheme: dark;
+    }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0;
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+    body::before, body::after{
+      content:"";
+      position:fixed;
+      inset:auto auto 0 0;
+      width:520px; height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform: translate(-45%, -35%);
+      filter: blur(.2px);
+      pointer-events:none;
+      z-index:0;
+    }
+    body::after{
+      inset: -120px 0 auto auto;
+      width:420px; height:420px;
+      border:10px solid rgba(77,211,255,.10);
+      transform: translate(38%, 0%);
+    }
+
+    a{color:inherit}
+    button{font:inherit}
+    select{color-scheme: dark;background: rgba(0,0,0,.28);color: var(--ink)}
+    select option{ background:#0b1020; color:var(--ink); }
+
+    :focus-visible{
+      outline: 2px solid rgba(77,211,255,.65);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+
+    /* Header -> glass topbar */
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+    }
+    .hdr-inner{
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing:.6px;
+      color: var(--brand);
+      text-shadow: 0 0 18px rgba(255,189,89,.20);
+      white-space:nowrap;
+    }
+    .user-controls{
+      margin-left:auto;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    /* Shell */
+    .shell{
+      position:relative;
+      z-index:1;
+      max-width:1440px;
+      margin: 16px auto;
+      padding: 0 14px 18px;
+    }
+
+    /* Errors */
+    .gerr{
+      display:none;
+      margin: 0 0 12px;
+      background: rgba(255,77,77,.12);
+      border: 1px solid rgba(255,77,77,.28);
+      color: #ffb4b4;
+      border-radius: 14px;
+      padding: 10px 12px;
+      white-space:pre-wrap;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
     .gerr.show{display:block}
 
-    .steps{position:sticky;top:61px;z-index:15;background:#151515;border:1px solid var(--line);border-radius:12px;height:var(--step-h);display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:12px}
-    .step{flex:1;display:flex;align-items:center;gap:8px;justify-content:center;height:100%;border-radius:10px;border:1px solid #2a2a2a;background:#0f0f0f;color:#cacaca;font-weight:700;cursor:pointer}
-    .step .num{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;border:1px solid #3a3a3a;background:#1a1a1a;font-size:.9rem}
-    .step.active{outline:2px solid var(--brand);color:#fff}
-    .pager-nav{display:flex;gap:8px;justify-content:space-between;margin:8px 0 16px}
+    /* Buttons / chips / inputs (theme) */
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight:800;
+      font-size:.82rem;
+      white-space:nowrap;
+      max-width: 46vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .btn{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
+      cursor:pointer;
+      font-weight:900;
+      font-size:.82rem;
+      transition:.2s ease;
+      white-space:nowrap;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+    .btn:hover{
+      background: rgba(0,0,0,.28);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+      transform: translateY(-1px);
+    }
+    .btn.secondary{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.10);
+      color: rgba(244,246,255,.88);
+    }
+    .btn.ghost{
+      background: transparent;
+      border-color: rgba(255,255,255,.12);
+      color: rgba(244,246,255,.84);
+    }
+    .btn.brand{
+      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
+      border-color: rgba(255,189,89,.20);
+    }
+    .btn.brand:hover{
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.28);
+    }
+
+    .input{
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 9px 12px;
+      outline:none;
+      min-height: 40px;
+    }
+    .input::placeholder{color: rgba(170,177,197,.75)}
+    .input:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+
+    /* Steps */
+    .steps{
+      position:sticky;
+      top: 64px; /* below header */
+      z-index:20;
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      height: var(--step-h);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 14px 45px rgba(0,0,0,.35);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .step{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      height:100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(244,246,255,.78);
+      font-weight:900;
+      cursor:pointer;
+      transition: .2s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .step:hover{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.14);
+      transform: translateY(-1px);
+    }
+    .step .num{
+      display:inline-grid;
+      place-items:center;
+      width:26px;
+      height:26px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      font-size:.9rem;
+      color: rgba(244,246,255,.88);
+    }
+    .step.active{
+      background: linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
+      border-color: rgba(255,189,89,.22);
+      color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(255,189,89,.10) inset;
+    }
+
+    .pager-nav{
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+      margin: 8px 0 16px;
+    }
     .steps-hint{color:var(--muted);font-size:.9rem}
 
+    /* Pages / sections */
     .page{display:none}
     .page.active{display:block}
-    .section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px}
-    .section h2{margin:0 0 10px;color:var(--brand)}
-    .grid2{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:12px}
-    .grid3{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}
-    .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
-    .card h3{margin:0 0 6px;color:var(--brand2);font-size:1.0rem}
-    .kpis{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
-    .kpi{background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;font-size:.9rem}
-    .kpi strong{font-weight:800}
-    .bar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-    .bar label{color:var(--muted);font-size:.9rem}
-    .input{background:#121212;color:#eaeaea;border:1px solid #2a2a2a;border-radius:8px;padding:7px 10px}
+
+    .section{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+    .section h2{
+      margin:0 0 10px;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      font-size: 1.02rem;
+      color: rgba(244,246,255,.92);
+    }
     .muted{color:var(--muted)}
 
-    .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile-w),1fr));gap:8px}
-    .team-tile{height:var(--tile-h);background:#131313;border:1px solid #2a2a2a;border-radius:10px;padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:transform .1s ease,border-color .1s ease;overflow:hidden}
-    .team-tile:hover{transform:translateY(-2px);border-color:#444}
-    .team-tile.active{outline:2px solid var(--brand2)}
-    .team-logo{width:var(--logo);height:var(--logo);object-fit:contain;filter:drop-shadow(0 0 8px rgba(0,0,0,.4))}
-    .team-code{font-weight:800;font-size:var(--code-fs);line-height:1.1;letter-spacing:.2px}
+    .grid2{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:12px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}
 
-    table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:.92rem}
-    thead th{background:#191919;position:sticky;top:0;text-align:left;border-radius:8px;padding:8px 6px;z-index:1}
-    th,td{padding:6px 6px;vertical-align:top}
+    .card{
+      background: rgba(14, 18, 28, .55);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      box-shadow: 0 14px 45px rgba(0,0,0,.30);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      overflow:hidden;
+    }
+    .card h3{
+      margin:0 0 8px;
+      color: var(--brand2);
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      font-size: .98rem;
+    }
+
+    .kpis{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+    .kpi{
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 7px 10px;
+      font-size: .88rem;
+      color: rgba(244,246,255,.88);
+    }
+    .kpi strong{font-weight:900;color:rgba(244,246,255,.96)}
+
+    .bar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom: 10px;
+      flex-wrap:wrap;
+    }
+    .bar label{color:var(--muted);font-size:.9rem;font-weight:800}
+
+    /* Team grid */
+    .team-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(var(--tile-w),1fr));
+      gap:10px;
+    }
+    .team-tile{
+      height:var(--tile-h);
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 8px 8px 10px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      cursor:pointer;
+      transition:transform .18s ease,border-color .18s ease, background .18s ease;
+      overflow:hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .team-tile:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,189,89,.22);
+      background: rgba(255,255,255,.06);
+    }
+    .team-tile.active{
+      outline: 2px solid rgba(255,119,51,.55);
+      border-color: rgba(255,119,51,.35);
+      background: linear-gradient(135deg, rgba(255,189,89,.10), rgba(77,211,255,.06));
+    }
+    .team-logo{
+      width:var(--logo);
+      height:var(--logo);
+      object-fit:contain;
+      filter:drop-shadow(0 0 10px rgba(0,0,0,.40));
+    }
+    .team-code{
+      font-weight:1000;
+      font-size:var(--code-fs);
+      line-height:1.1;
+      letter-spacing:.35px;
+      color: rgba(244,246,255,.92);
+    }
+
+    /* Tables */
+    table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:.92rem}
+    thead th{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      position:sticky;
+      top:0;
+      text-align:left;
+      border-radius: 12px;
+      padding: 10px 10px;
+      z-index:1;
+      color: rgba(244,246,255,.90);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    th,td{padding:8px 10px;vertical-align:top}
     .right{text-align:right}
-    td[data-key]{transition:background-color .18s ease, box-shadow .18s ease;border-radius:var(--heat-radius);background-clip:padding-box}
-    td.heat-top{box-shadow:inset 0 0 0 1px rgba(var(--heat-rgb), var(--heat-top-outline))}
-    .err{background:#2a1111;border:1px solid #4a1a1a;color:#ffb4b4;border-radius:8px;padding:8px 10px}
 
-    details.accordion{background:var(--panel);border:1px solid var(--line);border-radius:12px}
-    details.accordion > summary{list-style:none;cursor:pointer;padding:12px 14px;color:var(--brand);font-weight:700;border-bottom:1px solid var(--line)}
-    details.accordion > .accordion-body{padding:12px}
+    tbody tr td{
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    tbody tr td:first-child{border-radius: 12px 0 0 12px}
+    tbody tr td:last-child{border-radius: 0 12px 12px 0}
 
-    #veil{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,10,10,.95);z-index:9999}
-    #veil .box{background:#121212;border:1px solid #2a2a2a;border-radius:12px;padding:14px 16px;color:#ddd}
+    td[data-key]{
+      transition:background-color .18s ease, box-shadow .18s ease;
+      background-clip:padding-box;
+    }
+    td.heat-top{
+      box-shadow: inset 0 0 0 1px rgba(var(--heat-rgb), var(--heat-top-outline));
+    }
+
+    /* Accordions */
+    details.accordion{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+      margin-bottom: 14px;
+    }
+    details.accordion > summary{
+      list-style:none;
+      cursor:pointer;
+      padding: 12px 14px;
+      color: var(--brand);
+      font-weight: 1000;
+      font-family: Orbitron, sans-serif;
+      letter-spacing: .4px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    details.accordion > summary::-webkit-details-marker{display:none}
+    details.accordion > .accordion-body{padding: 12px 14px}
+
+    /* Veil */
+    #veil{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background: rgba(0,0,0,.70);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index:9999;
+    }
+    #veil .box{
+      background: rgba(14, 18, 28, .92);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      color: rgba(244,246,255,.88);
+      box-shadow: 0 26px 80px rgba(0,0,0,.55);
+    }
     #veil.hide{display:none}
 
-    @media (max-width:980px){.grid3{grid-template-columns:1fr}}
-    @media (max-width:860px){.grid2{grid-template-columns:1fr}}
+    /* Responsive */
+    @media (max-width: 980px){
+      body::before, body::after{display:none;}
+      .grid3{grid-template-columns:1fr}
+      .shell{padding: 0 10px 16px}
+      .hdr-inner{padding: 10px 10px}
+      .steps{top: 60px}
+    }
+    @media (max-width: 860px){
+      .grid2{grid-template-columns:1fr}
+      .pager-nav{flex-direction:column;align-items:stretch}
+      .pager-nav .steps-hint{text-align:center}
+      .user-controls{width:100%;justify-content:space-between}
+      .chip{max-width: 90vw}
+    }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .btn:hover, .step:hover, .team-tile:hover{transform:none}
+    }
   </style>
 </head>
+
 <body>
 <header>
-  <h1>FFBR — Teams</h1>
-  <div class="user-controls">
-    <a class="btn secondary" id="homeBtn" href="dashboard.html">← Back to Dashboard</a>
-    <span class="chip" id="scopeChip">Scope: —</span>
-    <span class="chip" id="user-info">Checking login…</span>
-    <button class="btn" id="logoutBtn">Logout</button>
+  <div class="hdr-inner">
+    <h1>FFBR — Teams</h1>
+    <div class="user-controls">
+      <a class="btn secondary" id="homeBtn" href="dashboard.html">← Back to Dashboard</a>
+      <span class="chip" id="scopeChip">Scope: —</span>
+      <span class="chip" id="user-info">Checking login…</span>
+      <button class="btn brand" id="logoutBtn">Logout</button>
+    </div>
   </div>
 </header>
 
@@ -97,6 +535,7 @@
     <div class="step" data-page="1"><span class="num">1</span><span class="label">Overall</span></div>
     <div class="step" data-page="2"><span class="num">2</span><span class="label">Team + Players</span></div>
   </div>
+
   <div class="pager-nav">
     <button class="btn secondary" id="prevBtn">← Prev</button>
     <div class="steps-hint">Use ←/→ keys to navigate</div>
@@ -117,7 +556,7 @@
       </div>
       <div class="muted" id="filterHint">—</div>
     </div>
-    
+
     <!-- Overall Performance (All Teams) -->
     <details class="accordion" id="overallSection">
       <summary>Overall Performance (All Teams)</summary>
@@ -145,7 +584,7 @@
         </div>
       </div>
     </details>
-    
+
     <!-- All Teams — Per-Map Breakdown -->
     <details class="accordion" id="perMapAllSection">
       <summary>All Teams — Per-Map Breakdown</summary>
@@ -219,7 +658,6 @@
       </div>
     </details>
 
-    <!-- NEW: Eliminations — Summary (filters ignored) as accordion -->
     <details class="accordion" id="elimSummarySection">
       <summary>Eliminations — Summary (All Teams)</summary>
       <div class="accordion-body">
@@ -235,7 +673,7 @@
         </div>
       </div>
     </details>
-  </div><!-- ✅ CLOSE PAGE 1 -->
+  </div><!-- CLOSE PAGE 1 -->
 
   <!-- PAGE 2 -->
   <div class="page" id="page2" data-page="2">
@@ -243,7 +681,7 @@
       <h2>Team Selection</h2>
       <div class="bar">
         <input type="search" id="teamSearch" placeholder="Search team / region…" class="input" style="flex:1;max-width:420px">
-        <span class="chip">Scope: <span id="scopeChipTeam">—</span> • <a href="#" id="editFilters1" class="btn ghost" style="padding:4px 10px">Edit filters</a></span>
+        <span class="chip">Scope: <span id="scopeChipTeam">—</span> • <a href="#" id="editFilters1" class="btn ghost" style="padding:6px 10px">Edit filters</a></span>
       </div>
       <div id="teamGrid" class="team-grid">Loading teams…</div>
       <div id="teamGridErr"></div>
@@ -309,7 +747,6 @@
           </div>
         </div>
 
-        <!-- SPLIT: Per-Player Character Usage — Active -->
         <div class="card" style="margin-top:12px">
           <h3>Per-Player Character Usage — Active</h3>
           <div class="bar">
@@ -323,7 +760,6 @@
           <div id="tblCharUsageAct">Loading…</div>
         </div>
 
-        <!-- SPLIT: Per-Player Character Usage — Passive -->
         <div class="card" style="margin-top:12px">
           <h3>Per-Player Character Usage — Passive</h3>
           <div id="tblCharUsagePas">Loading…</div>
@@ -342,7 +778,6 @@
       <div class="accordion-body"><div class="card" style="margin:0"><div id="teamRosterBody" class="muted">—</div></div></div>
     </details>
 
-    <!-- NEW: Eliminations — Team Focus + Breakdowns as one accordion -->
     <details class="accordion" id="elimTeamAccordion">
       <summary>Eliminations — Team Focus & Breakdowns</summary>
       <div class="accordion-body">
@@ -373,8 +808,8 @@
         </div>
       </div>
     </details>
-  </div><!-- ✅ CLOSE PAGE 2 -->
-</div><!-- ✅ CLOSE SHELL -->
+  </div><!-- CLOSE PAGE 2 -->
+</div><!-- CLOSE SHELL -->
 
 <script>
 /* ============ Supabase init ============ */
@@ -675,7 +1110,7 @@ function renderRoster(players){
 
   const rows = players.slice().map(p=>{
     const avatar = avatarKey && p[avatarKey]
-      ? `<img src="${p[avatarKey]}" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:8px;border:1px solid #2a2a2a">`
+      ? `<img src="${p[avatarKey]}" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.12)">`
       : '';
     const ign = (() => {
       const tryKeys = ignKey ? [ignKey] : [];
@@ -759,7 +1194,6 @@ function normLopsRow(r){
 
   const nadeKills = toI(get('Grenade kill')) + toI(get('Ice Grenade kill')) + toI(get('Dragon Grenade Kill'));
 
-  // Be generous with possible headers for active & pet
   const act1 = norm(get('SkillActive_1',[
     'SkillActive','Active','Active Skill','ActiveSkill','Active Character','Active_Name','ActiveName','Active_Skill'
   ])) || '';
@@ -919,7 +1353,7 @@ function kpiAndByMap(){
   el('identityBody').innerHTML = `
     <div style="display:flex;gap:12px;align-items:center">
       <img src="${CURRENT_TEAM.logo}" alt="${CURRENT_TEAM.fullname} logo" style="width:72px;height:72px;object-fit:contain" onerror="this.style.visibility='hidden'">
-      <div><div style="font-size:1.1rem;font-weight:800">${CURRENT_TEAM.name}</div>
+      <div><div style="font-size:1.1rem;font-weight:900; font-family: Orbitron, sans-serif; color: var(--brand)">${CURRENT_TEAM.name}</div>
       <div class="muted">${CURRENT_TEAM.fullname} • ${CURRENT_TEAM.region||'—'} ${CURRENT_TEAM.ew?('• '+CURRENT_TEAM.ew):''}</div></div>
     </div>`;
   const k=kpiDataset(TEAM_ROWS);
@@ -956,7 +1390,6 @@ function renderTeamCombinedMetrics(){
   const totalsEl = el('teamTotals'), avgsEl = el('teamAverages'), sigEl = el('teamSignals');
   if(!CURRENT_TEAM){ totalsEl.innerHTML=avgsEl.innerHTML=sigEl.innerHTML='—'; return; }
 
-  // Totals & averages from LOPS
   const teamLops=lopsRowsForTeam(LOPS_ALL, CURRENT_TEAM);
   const games=TEAM_ROWS.length||0;
   const totals = {
@@ -987,7 +1420,6 @@ function renderTeamCombinedMetrics(){
     <div class="kpi">AVG ASSISTS <strong>${(totals.assists/games).toFixed(1)}</strong></div>
     <div class="kpi">AVG HEADSHOTS <strong>${(totals.hs/games).toFixed(1)}</strong></div>` : '<div class="muted">No games found for averages.</div>';
 
-  // Signals — includes Last Played (from ffbr_data)
   const lastPlayed = fmtYwdm(latestYwdm(TEAM_ROWS));
   sigEl.innerHTML = `
     <div class="kpi">LAST PLAYED <strong>${lastPlayed}</strong></div>
@@ -1120,7 +1552,6 @@ function renderCharUsageActive(){
   ]);
   applyColumnHeatmap('tblCharUsageAct', ['picks']);
 }
-
 function renderCharUsagePassive(){
   const box = el('tblCharUsagePas');
   if(!box) return;
@@ -1185,7 +1616,6 @@ function renderElimLeaderboardsUsingAll(){
   const teams = elimTeams();
   const sumE = summarizeElims(LOPS_ALL);
 
-  // Eliminated By (suffered)
   const rowsA = teams.map(t=>{
     const row = sumE.matrix[t]||{};
     const total = sumE.suffered[t]||0;
@@ -1200,7 +1630,6 @@ function renderElimLeaderboardsUsingAll(){
   ]);
   applyColumnHeatmap('tblEliminatedBy',['times']);
 
-  // Given (killer totals)
   const inv={}; teams.forEach(v=>{
     const row=sumE.matrix[v]||{};
     Object.entries(row).forEach(([killer,cnt])=>{
@@ -1234,7 +1663,6 @@ function renderElimTeamFocus(){
   const code = CURRENT_TEAM.name.toUpperCase();
   const rows = LOPS_ALL; // ignore tournament filters
 
-  // victims of CUR_TEAM (they eliminated others)
   const given = {};
   rows.forEach(r=>{ if(r.pair_killer===code && r.pair_victim){ given[r.pair_victim]=(given[r.pair_victim]||0)+1; } });
   const givenTop = Object.entries(given).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -1242,7 +1670,6 @@ function renderElimTeamFocus(){
     ? givenTop.map(([k,v])=>`<div class="kpi">${k}: <strong>${v}</strong></div>`).join('')
     : '<div class="muted">No eliminations as killer in dataset.</div>';
 
-  // predators of CUR_TEAM (who eliminated them)
   const suffered = {};
   rows.forEach(r=>{ if(r.pair_victim===code && r.pair_killer){ suffered[r.pair_killer]=(suffered[r.pair_killer]||0)+1; } });
   const sufferedTop = Object.entries(suffered).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -1250,7 +1677,6 @@ function renderElimTeamFocus(){
     ? sufferedTop.map(([k,v])=>`<div class="kpi">${k}: <strong>${v}</strong></div>`).join('')
     : '<div class="muted">No times eliminated in dataset.</div>';
 
-  // signals
   const totalGiven = Object.values(given).reduce((a,b)=>a+b,0);
   const totalSuffer = Object.values(suffered).reduce((a,b)=>a+b,0);
   boxS.innerHTML = `
@@ -1259,7 +1685,6 @@ function renderElimTeamFocus(){
     <div class="kpi">SUFFERED <strong>${totalSuffer}</strong></div>
   `;
 
-  // By Day (predators)
   const byDay = {};
   rows.forEach(r=>{
     if(r.pair_victim!==code || !r.pair_killer || !r.day) return;
@@ -1279,7 +1704,6 @@ function renderElimTeamFocus(){
   ]);
   applyColumnHeatmap('elimByDay',['total']);
 
-  // By Map (predators)
   const byMap = {};
   rows.forEach(r=>{
     if(r.pair_victim!==code || !r.pair_killer) return;
@@ -1326,7 +1750,6 @@ async function selectTeam(teamObj){
   const url=new URL(window.location.href); url.searchParams.set('team', CURRENT_TEAM.name); history.replaceState(null,'',url.toString());
   TEAM_ROWS = baseRowsByTournament(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === teamObj.name.toUpperCase());
 
-  // Core team renders
   kpiAndByMap();
   renderTeamCombinedMetrics();
   renderTeamActiveUsage();
@@ -1335,7 +1758,6 @@ async function selectTeam(teamObj){
   renderByDay();
   highlightActiveTile();
 
-  // Roster + info, then char usage
   const [info, roster] = await Promise.all([ fetchTeamInfoBy(teamObj.name), fetchPlayersBy(teamObj.name) ]);
   setRoleMap(roster);
   if(LOPS_READY){
@@ -1349,7 +1771,6 @@ async function selectTeam(teamObj){
   renderTeamInfo(info);
   renderRoster(roster);
 
-  // Eliminations team focus
   renderElimTeamFocus();
 }
 
@@ -1374,12 +1795,12 @@ function renderTeamInfo(info){
     const val = String(info[k]);
     const vHtml = /^https?:\/\//i.test(val) ? `<a href="${val}" target="_blank" rel="noopener">${val}</a>` : val;
     return `<tr>
-      <th style="text-align:left;padding:4px 6px;color:#b9b9b9">${k}</th>
-      <td style="padding:4px 6px">${vHtml}</td>
+      <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:900">${k}</th>
+      <td style="padding:6px 10px">${vHtml}</td>
     </tr>`;
   }).join('');
 
-  box.innerHTML = `<table style="width:100%;border-collapse:collapse">${rows}</table>`;
+  box.innerHTML = `<table style="width:100%;border-collapse:separate;border-spacing:0 8px">${rows}</table>`;
 }
 
 /* ---------- Controls ---------- */
@@ -1398,7 +1819,6 @@ function wireControls(){
       populateCharUsageMapFilter();
     }
     renderLopsActive(); renderLopsPet(); renderLopsTopKillers();
-    // Eliminations ignore tournament filters
   });
 
   el('gTournReset').addEventListener('click', ()=>{
@@ -1437,7 +1857,6 @@ function wireControls(){
   el('lopsPetTop').addEventListener('change', renderLopsPet);
   el('lopsTopKillersTop').addEventListener('change', renderLopsTopKillers);
 
-  // Char usage controls drive BOTH tables
   el('charUsageTop').addEventListener('change', ()=>{ renderCharUsageActive(); renderCharUsagePassive(); });
   el('charUsageMapFilter').addEventListener('change', ()=>{ renderCharUsageActive(); renderCharUsagePassive(); });
 }
@@ -1448,7 +1867,6 @@ async function initial(){
     el('scopeChip').textContent='Scope: —';
     el('scopeChipTeam').textContent='—';
 
-    // Load ffbr_data + teams first
     ALL = await fetchAllRows();
     TEAMS = await fetchHelperTeams();
     if(!TEAMS.length) TEAMS = deriveTeamsFromData(ALL);
@@ -1468,26 +1886,22 @@ async function initial(){
     if(qTeam && TEAM_BY_CODE[qTeam]) await selectTeam(TEAM_BY_CODE[qTeam]);
     else if(TEAMS.length) await selectTeam(TEAMS[0]);
 
-    // Load LOPS AFTER core layout is ready
     LOPS_ALL = await fetchAllLopsRows();
     LOPS_READY = true;
 
-    await fetchMatchApiMap(); // character id->name map
+    await fetchMatchApiMap();
     populateCharUsageMapFilter();
     renderCharUsageActive();
     renderCharUsagePassive();
 
-    // Renders that depend on LOPS
     renderTeamCombinedMetrics(); renderTeamActiveUsage(); renderTeamPetUsage(); renderPlayers(); renderByDay();
     renderLopsActive(); renderLopsPet(); renderLopsTopKillers();
 
-    // Eliminations (global + team)
     renderElimLeaderboardsUsingAll();
     renderElimTeamFocus();
 
     wireControls();
 
-    // Collapse all accordions by default
     document.querySelectorAll('details.accordion').forEach(d=> d.open=false);
 
     showPage(1);
@@ -1499,9 +1913,42 @@ async function initial(){
 }
 
 /* LOPS global renders */
-function renderLopsActive(){ const limit=Number(el('lopsActiveTop').value)||10; const list=countByName(LOPS_ALL,'active').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit); el('tblLopsActive').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [{label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Active Skill',key:'name'},{label:'Picks',key:'picks',right:true}]); applyColumnHeatmap('tblLopsActive', ['picks']); }
-function renderLopsPet(){ const limit=Number(el('lopsPetTop').value)||10; const list=countByName(LOPS_ALL,'pet').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit); el('tblLopsPet').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [{label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Pet',key:'name'},{label:'Picks',key:'picks',right:true}]); applyColumnHeatmap('tblLopsPet', ['picks']); }
-function renderLopsTopKillers(){ const limit=Number(el('lopsTopKillersTop').value)||10; const list=lopsTopPlayersByKills(LOPS_ALL).sort((a,b)=> b.kills-a.kills || a.player.localeCompare(b.player)).slice(0,limit); el('tblLopsTopKillers').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [{label:'#',key:'rank',right:true,html:(_,i)=>i+1},{label:'Player',key:'player'},{label:'Team',key:'team'},{label:'Rows',key:'rows',right:true},{label:'Kills',key:'kills',right:true},{label:'Assists',key:'assists',right:true},{label:'HS',key:'headshots',right:true},{label:'Grenade',key:'grenade',right:true},{label:'Damage',key:'damage',right:true}]); applyColumnHeatmap('tblLopsTopKillers', ['rows','kills','assists','headshots','grenade','damage']); }
+function renderLopsActive(){
+  const limit=Number(el('lopsActiveTop').value)||10;
+  const list=countByName(LOPS_ALL,'active').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
+  el('tblLopsActive').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
+    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},
+    {label:'Active Skill',key:'name'},
+    {label:'Picks',key:'picks',right:true}
+  ]);
+  applyColumnHeatmap('tblLopsActive', ['picks']);
+}
+function renderLopsPet(){
+  const limit=Number(el('lopsPetTop').value)||10;
+  const list=countByName(LOPS_ALL,'pet').sort((a,b)=> b.picks-a.picks || a.name.localeCompare(b.name)).slice(0,limit);
+  el('tblLopsPet').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
+    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},
+    {label:'Pet',key:'name'},
+    {label:'Picks',key:'picks',right:true}
+  ]);
+  applyColumnHeatmap('tblLopsPet', ['picks']);
+}
+function renderLopsTopKillers(){
+  const limit=Number(el('lopsTopKillersTop').value)||10;
+  const list=lopsTopPlayersByKills(LOPS_ALL).sort((a,b)=> b.kills-a.kills || a.player.localeCompare(b.player)).slice(0,limit);
+  el('tblLopsTopKillers').innerHTML = renderSimpleTable(list.map((r,i)=>({...r,rank:i+1})), [
+    {label:'#',key:'rank',right:true,html:(_,i)=>i+1},
+    {label:'Player',key:'player'},
+    {label:'Team',key:'team'},
+    {label:'Rows',key:'rows',right:true},
+    {label:'Kills',key:'kills',right:true},
+    {label:'Assists',key:'assists',right:true},
+    {label:'HS',key:'headshots',right:true},
+    {label:'Grenade',key:'grenade',right:true},
+    {label:'Damage',key:'damage',right:true}
+  ]);
+  applyColumnHeatmap('tblLopsTopKillers', ['rows','kills','assists','headshots','grenade','damage']);
+}
 
 initial();
 </script>
