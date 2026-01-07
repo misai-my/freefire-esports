@@ -1652,29 +1652,34 @@ function detectDmgCol(keys){
 
 /** Loadout column detection */
 function detectLoadoutCols(keys, rows){
-  // Active
-  const activeCandidates = keys.filter(k => /active/i.test(k) && /(skill|character|char|ability)/i.test(k));
-  let activeCol = activeCandidates.find(k => looksLikeNames(rows, k)) || null;
-  if(!activeCol){
-    // sometimes just "Active"
-    const k = keys.find(k => /^active$/i.test(k));
-    if(k && looksLikeNames(rows, k)) activeCol = k;
-  }
-
-  // Passive(s) - allow multiple
-  const passiveCols = keys
-    .filter(k => /passive/i.test(k) || /passive\s*\d/i.test(k))
-    .filter(k => looksLikeNames(rows, k));
-
-  // Pet
-  const petCandidates = keys.filter(k => /pet/i.test(k));
-  const petCol = petCandidates.find(k => looksLikeNames(rows, k)) || null;
-
-  // Player + Team
   const teamCol = detectTeamCol(keys);
 
-  return { teamCol, activeCol, passiveCols, petCol };
+  // Active (keep your existing intent, but slightly broader)
+  const activeCol =
+    pickKeyFrom(keys, [
+      /active.*(skill|character|char|ability)/i,
+      /^active$/i,
+      /(character|char|skill|ability)\s*1$/i,
+      /^slot\s*1$/i
+    ]) || null;
+
+  // Passive columns can be named in many ways (skill2/3/4, char2/3/4, slot2/3/4, etc.)
+  const passiveRx = /(passive|passive[_\s-]*\d|p\s*\d|skill\s*[2-4]|char(acter)?\s*[2-4]|ability\s*[2-4]|slot\s*[2-4])/i;
+  const passiveCols = keys
+    .filter(k => passiveRx.test(k))
+    .filter(k => looksLikeNames(rows, k));
+
+  // Some schemas store passives in ONE column like "Passives" / "Passive Skills"
+  const passivesListCol =
+    pickKeyFrom(keys, [/passives?$/i, /passive.*skills?/i, /skills?_passive/i]) || null;
+
+  // Pet
+  const petKey = pickKeyFrom(keys, [/pet/i]);
+  const petCol = (petKey && looksLikeNames(rows, petKey)) ? petKey : null;
+
+  return { teamCol, activeCol, passiveCols, passivesListCol, petCol };
 }
+
 
 /** Render helpers */
 function countBy(list, getKey){
