@@ -39,79 +39,749 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; font-family: 'Roboto', sans-serif; background: #0e0e0e; color: #f5f5f5; }
-    header { background: #1f1f1f; padding: 20px; text-align: center; border-bottom: 3px solid #ffbd59; }
-    h1 { font-family: 'Orbitron', sans-serif; color: #ffbd59; margin: 0; font-size: 2rem; }
-    .user-controls { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 10px; }
-    .user-controls #user-info { font-size: 14px; color: #ccc; }
-    .user-controls .logout-btn { background: #ffbd59; color: #1c1c1c; font-weight: bold; padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; }
-    .user-controls .logout-btn:hover { background: #e0a84f; }
+    :root{
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.08);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
 
-    .draft-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 50px; margin-top: 20px; flex-wrap: nowrap; }
-    .team-container { display: flex; flex-direction: column; align-items: center; }
-    .team-label { background: transparent; border: none; color: #ff7733; font-weight: bold; font-size: 18px; margin-bottom: 10px; text-align: center; }
-    .team-label:focus { outline: none; border-bottom: 1px dashed #ffbd59; }
-    .team-row { display: flex; gap: 10px; }
-    .slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .ban-slot, .pick-slot { width: 100px; height: 150px; background: #2a2a2a; border: 2px solid #444; border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; }
-    .ban-slot { border-color: #ff5a5a; }
-    .ban-slot.disabled, .pick-slot.disabled { opacity: 0.4; pointer-events: none; }
-    .passive-slots, .weapon-slots { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
-    .passive-slot { width: 25px; height: 50px; background: #3a3a3a; border: 1px solid #555; border-radius: 4px; cursor: pointer; background-size: cover; background-position: center; }
-    .weapon-slot { width: 100px; height: 40px; background: #868686; border: 2px solid #444; border-radius: 6px; cursor: pointer; display: flex; justify-content: center; align-items: center; position: relative; }
-    .weapon-slot img { max-height: 100%; max-width: 100%; }
-    .slot-name { font-size: 12px; color: #ccc; text-align: center; }
-    .passive-name, .weapon-name { font-size: 10px; color: #ccc; text-align: center; max-width: 40px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
 
-    .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: #1f1f1f; overflow: auto; }
-    .modal-content { background: #1f1f1f; margin: 5% auto; padding: 15px; border: 2px solid #ff7733; border-radius: 8px; width: 90%; max-width: 900px; max-height: 95vh; overflow-y: auto; position: relative; display: flex; flex-direction: column; align-items: center; }
-    #heroModal h3 { margin-top: 0; font-size: 20px; color: #ff7733; }
+      --radius:16px;
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
 
-    .weapon-filter-wrapper { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; }
-    .weapon-filter-wrapper select { background-color: #2a2a2a; color: #ffbd59; border: 2px solid #444; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: bold; cursor: pointer; appearance: none; }
-    .weapon-filter-wrapper select:focus { outline: none; border-color: #ff7733; }
-    .weapon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; justify-items: center; width: 100%; }
-    #heroGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; justify-items: center; width: 100%; }
+      --danger:#ff5a5a;
+      --good:#71d083;
+    }
 
-    .hero-grid-item { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s ease; }
-    .hero-grid-item:hover { transform: scale(1.05); border-color: #ff7733; }
-    .hero-grid-item img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 6px; }
-    .hero-grid-item div { font-size: 10px; text-align: center; color: #ddd; max-width: 60px; word-wrap: break-word; }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:'Roboto',system-ui,-apple-system,Segoe UI,Inter,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, rgba(77,211,255,.18), transparent 55%),
+        radial-gradient(1000px 700px at 90% 10%, rgba(255,119,51,.16), transparent 50%),
+        radial-gradient(900px 700px at 50% 110%, rgba(255,189,89,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      overflow-x:hidden;
+    }
 
-    .close-btn { position: absolute; top: 10px; right: 15px; color: #ff7733; font-size: 18px; font-weight: bold; cursor: pointer; }
+    /* subtle noise */
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E");
+      mix-blend-mode:overlay;
+      opacity:.22;
+    }
 
-    .disabled { opacity: 0.3; pointer-events: none; }
-    .banned-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0.4); color: white; font-weight: bold; display: flex; justify-content: center; align-items: center; border-radius: 6px; font-size: 12px; }
+    /* glass primitives */
+    .glass{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      -webkit-backdrop-filter: blur(14px) saturate(135%);
+      backdrop-filter: blur(14px) saturate(135%);
+    }
+    .glass-soft{
+      background:rgba(20, 26, 38, .52);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      -webkit-backdrop-filter: blur(12px) saturate(130%);
+      backdrop-filter: blur(12px) saturate(130%);
+    }
+    .glass-hard{
+      background:rgba(14, 18, 28, .82);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      -webkit-backdrop-filter: blur(18px) saturate(145%);
+      backdrop-filter: blur(18px) saturate(145%);
+    }
 
-    .reset-btn { margin: 20px auto; display: block; background: #ff7733; color: #fff; border: none; padding: 10px 18px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    /* header */
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      padding:18px 14px;
+      border-bottom:1px solid var(--line);
+      background:rgba(14,18,28,.62);
+      -webkit-backdrop-filter: blur(16px) saturate(145%);
+      backdrop-filter: blur(16px) saturate(145%);
+    }
+    header:after{
+      content:"";
+      position:absolute;
+      left:0; right:0; bottom:-1px;
+      height:2px;
+      background:linear-gradient(90deg, transparent, rgba(255,189,89,.85), rgba(255,119,51,.65), transparent);
+      opacity:.9;
+    }
+    h1{
+      font-family:'Orbitron',sans-serif;
+      margin:0;
+      text-align:center;
+      letter-spacing:.6px;
+      color:var(--brand);
+      font-size:2rem;
+      text-shadow:0 8px 30px rgba(0,0,0,.55);
+    }
 
-    .summary-wrapper { display: flex; justify-content: center; gap: 50px; margin-top: 10px; font-size: 12px; color: #ddd; max-width: 100%; overflow-x: auto; }
-    .summary-wrapper > div { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; }
-    .summary-row { display: flex; flex-direction: row; gap: 6px; justify-content: center; align-items: stretch; }
-    .summary-card { background: #2a2a2a; border: 2px solid #444; border-radius: 8px; padding: 8px; width: 100px; display: flex; flex-direction: column; gap: 4px; font-size: 10px; text-align: center; }
-    .summary-ban { min-width: 430px; max-width: 430px; background: #2a2a2a; border: 2px solid #ff5a5a; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 10px; text-align: center; }
-    .summary-ban-row { display: flex; flex-direction: row; gap: 6px; justify-content: center; align-items: stretch; }
+    .user-controls{
+      position:absolute;
+      top:14px;
+      right:14px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .user-controls #user-info{ font-size:12px; color:var(--muted); max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    .top-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin-top: 15px; font-size: 14px; }
-    .top-controls a, .top-controls button, .top-controls select, .top-controls label { background: #ffbd59; color: #1c1c1c; padding: 6px 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-decoration: none; }
-    .top-controls select { padding: 4px 8px; font-weight: bold; background: #2a2a2a; color: #ffbd59; border: 1px solid #555; }
-    .top-controls button:hover, .top-controls a:hover { background: #e0a84f; }
-    .top-controls input[type="text"] { padding: 6px 8px; background: #2a2a2a; color: #ffbd59; border: 1px solid #555; border-radius: 5px; font-weight: bold; }
+    .btn{
+      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.95));
+      color:#141620;
+      font-weight:800;
+      border:none;
+      border-radius:12px;
+      padding:8px 12px;
+      cursor:pointer;
+      box-shadow: 0 14px 30px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .btn:active{ transform: translateY(0); }
+    .logout-btn{ composes: btn; } /* harmless if unsupported */
+    .user-controls .logout-btn{
+      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,189,89,.78));
+      color:#12131a;
+      font-weight:900;
+      border-radius:12px;
+      padding:8px 12px;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .user-controls .logout-btn:hover{ filter:brightness(1.05); }
 
-    #teamPBCounts { width: 90%; max-width: 1200px; margin: 40px auto; }
-    #teamPBCounts h2 { text-align: center; color: #ffbd59; }
-    .counts-controls { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
-    .counts-controls input[type="date"], .counts-controls select { background: #2a2a2a; color: #ffbd59; border: 1px solid #555; border-radius: 6px; padding: 6px 8px; }
-    .counts-controls button { background: #ff7733; color: #fff; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold; }
-    .counts-controls button:hover { background: #e36b2e; }
-    .counts-summary { text-align: center; margin-top: 8px; color: #ddd; }
-    .counts-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 14px; margin-top: 12px; }
-    .counts-card { background: #1c1c1c; border: 1px solid #444; border-radius: 8px; padding: 10px; }
-    .counts-card h3 { margin: 0 0 8px 0; color: #ff7733; }
-    table.counts-table { width: 100%; border-collapse: collapse; }
-    table.counts-table th, table.counts-table td { border-bottom: 1px solid #333; padding: 6px; text-align: left; font-size: 13px; }
-    table.counts-table th { background: #181818; }
+    /* inputs & selects */
+    input[type="text"], input[type="date"], input[type="number"], select{
+      color:var(--ink);
+      background:rgba(10, 14, 24, .55);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      padding:8px 10px;
+      outline:none;
+      -webkit-backdrop-filter: blur(12px) saturate(130%);
+      backdrop-filter: blur(12px) saturate(130%);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    }
+    input::placeholder{ color: rgba(170,177,197,.70); }
+    input:focus, select:focus{
+      border-color: rgba(255,119,51,.55);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.14), 0 16px 40px rgba(0,0,0,.45);
+    }
 
+    /* details (draft history) */
+    details{
+      margin: 20px auto;
+      width: 90%;
+      max-width: 1200px;
+      padding: 12px 12px 14px;
+    }
+    details.glassy{
+      background:rgba(20,26,38,.55);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow:var(--shadow);
+    }
+    details > summary{
+      list-style:none;
+      user-select:none;
+      cursor:pointer;
+      text-align:center;
+      padding:10px 0;
+      color:var(--brand);
+      font-weight:900;
+      font-size:18px;
+    }
+    details > summary::-webkit-details-marker{ display:none; }
+
+    /* top controls */
+    .top-controls{
+      width: 95%;
+      max-width: 1400px;
+      margin: 14px auto 0;
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      padding:10px;
+    }
+    .top-controls.glassbar{
+      background:rgba(20,26,38,.52);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    }
+    .top-controls a{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      font-weight:900;
+      color:#12131a;
+      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.94));
+      border-radius:14px;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .top-controls a:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .top-controls label{ color:var(--muted); font-weight:800; }
+
+    .top-controls button{
+      background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.78));
+      color:#10121a;
+      font-weight:950;
+      border:none;
+      border-radius:14px;
+      padding:10px 12px;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .top-controls button:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+
+    .reset-btn{
+      margin: 14px auto 0;
+      display:block;
+      background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
+      color:#10121a;
+      border:1px solid rgba(255,255,255,.10);
+      padding:12px 18px;
+      border-radius:16px;
+      cursor:pointer;
+      font-size:16px;
+      font-weight:950;
+      box-shadow: 0 18px 55px rgba(0,0,0,.42);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .reset-btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+
+    /* draft layout */
+    .draft-wrapper{
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      gap:46px;
+      margin-top: 16px;
+      flex-wrap: nowrap;
+      padding: 0 14px;
+    }
+
+    .team-container{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      padding:14px;
+      width: min(620px, 100%);
+    }
+    .team-container.glassbox{
+      background:rgba(20,26,38,.48);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+
+    .team-label{
+      background:transparent;
+      border:none;
+      color:var(--brand2);
+      font-weight:950;
+      font-size:18px;
+      text-align:center;
+      padding:6px 10px;
+      border-radius:12px;
+      outline:none;
+    }
+    .team-label:focus{
+      background:rgba(10,14,24,.45);
+      border:1px dashed rgba(255,189,89,.55);
+    }
+
+    .team-row{ display:flex; gap:10px; }
+    .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+
+    .ban-slot, .pick-slot{
+      width: 100px;
+      height: 150px;
+      border-radius:14px;
+      position:relative;
+      cursor:pointer;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 16px 55px rgba(0,0,0,.45);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      transition: transform .15s ease, border-color .15s ease, filter .15s ease;
+    }
+    .pick-slot{ border-color: rgba(77,211,255,.22); }
+    .ban-slot{ border-color: rgba(255,90,90,.42); }
+
+    .ban-slot:hover, .pick-slot:hover{ transform: translateY(-2px); filter:brightness(1.03); }
+    .ban-slot.disabled, .pick-slot.disabled{ opacity:0.4; pointer-events:none; }
+
+    .slot-name{ font-size:12px; color:rgba(244,246,255,.78); text-align:center; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .passive-slots, .weapon-slots{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+    .passive-slot{
+      width:26px; height:52px;
+      border-radius:10px;
+      cursor:pointer;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      background-size:cover;
+      background-position:center;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .passive-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+
+    .weapon-slot{
+      width:100px; height:44px;
+      border-radius:14px;
+      cursor:pointer;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      position:relative;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .weapon-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .weapon-slot img{ max-height:100%; max-width:100%; }
+
+    .passive-name, .weapon-name{
+      font-size:10px;
+      color:rgba(244,246,255,.72);
+      text-align:center;
+      max-width: 100px;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .player-input{
+      width: 96px;
+      font-size: 10px;
+      padding: 6px 8px;
+      text-align:center;
+      border-radius:12px;
+      margin-top: 4px;
+    }
+
+    .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
+
+    .banned-overlay{
+      position:absolute; inset:0;
+      background: rgba(255, 90, 90, .28);
+      color: var(--ink);
+      font-weight: 950;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      border-radius:14px;
+      font-size:12px;
+      border:1px solid rgba(255,90,90,.35);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+
+    /* summary */
+    .summary-wrapper{
+      width: 95%;
+      max-width: 1400px;
+      margin: 14px auto 0;
+      display:flex;
+      justify-content:center;
+      gap: 18px;
+      font-size: 12px;
+      color: rgba(244,246,255,.78);
+      overflow-x:auto;
+      padding: 10px;
+    }
+    .summary-wrapper > div{
+      min-width: 520px;
+      padding: 12px;
+      border-radius: var(--radius-lg);
+      background:rgba(20,26,38,.48);
+      border:1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    .summary-wrapper h3{
+      margin: 6px 0 12px;
+      text-align:center;
+      font-family:'Orbitron',sans-serif;
+      color: var(--brand);
+      letter-spacing:.5px;
+    }
+    .summary-row{ display:flex; flex-direction:row; gap:10px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
+    .summary-card{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px;
+      width: 120px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:10px;
+      text-align:center;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .summary-ban{
+      min-width: 460px;
+      max-width: 460px;
+      background:rgba(255,90,90,.10);
+      border:1px solid rgba(255,90,90,.35);
+      border-radius:14px;
+      padding:10px;
+      font-size:10px;
+      text-align:center;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+
+    /* modal */
+    .modal{
+      display:none;
+      position:fixed;
+      z-index:9999;
+      inset:0;
+      background: rgba(0,0,0,.62);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+      backdrop-filter: blur(10px) saturate(120%);
+      overflow:auto;
+      padding: 18px 12px;
+    }
+    .modal-content{
+      margin: 2% auto;
+      padding: 16px;
+      width: 92%;
+      max-width: 980px;
+      max-height: 92vh;
+      overflow-y:auto;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+
+      background: rgba(14,18,28,.78);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      -webkit-backdrop-filter: blur(18px) saturate(145%);
+      backdrop-filter: blur(18px) saturate(145%);
+    }
+    #heroModal h3{
+      margin: 8px 0 12px;
+      font-size: 20px;
+      color: var(--brand2);
+      font-family:'Orbitron',sans-serif;
+      letter-spacing:.4px;
+    }
+    .close-btn{
+      position:absolute;
+      top: 10px;
+      right: 14px;
+      color: var(--brand2);
+      font-size: 18px;
+      font-weight: 950;
+      cursor:pointer;
+      padding: 6px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+    .close-btn:hover{ filter:brightness(1.05); }
+
+    .weapon-filter-wrapper{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin: 0 0 10px;
+      width:100%;
+      position:sticky;
+      top:0;
+      padding: 10px 0;
+      background: rgba(14,18,28,.55);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      z-index: 2;
+    }
+    .weapon-filter-wrapper select{
+      min-width: 220px;
+      font-weight: 900;
+      color: var(--brand);
+      background: rgba(10,14,24,.62);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+    }
+
+    #heroGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 12px;
+      justify-items:center;
+      width: 100%;
+      padding: 8px 2px 2px;
+    }
+    .hero-grid-item{
+      width: 100%;
+      max-width: 110px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 10px 8px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .15s ease, filter .15s ease;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .hero-grid-item:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,119,51,.55);
+      filter:brightness(1.03);
+    }
+    .hero-grid-item img{ width:80px; height:80px; object-fit:contain; margin-bottom:6px; }
+    .hero-grid-item div{ font-size:10px; text-align:center; color: rgba(244,246,255,.82); max-width: 86px; overflow-wrap:anywhere; }
+
+    /* draft history table */
+    #recordTable{
+      width: 100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    }
+    #recordTable thead{
+      background: rgba(255,255,255,.06) !important;
+    }
+    #recordTable th, #recordTable td{
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 10px 8px !important;
+      color: rgba(244,246,255,.86);
+      font-size: 13px;
+    }
+    #recordTable tbody{
+      background: rgba(14,18,28,.35) !important;
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    #recordTable button{
+      border:none;
+      border-radius:12px;
+      padding: 8px 10px;
+      cursor:pointer;
+      font-weight: 900;
+      color:#12131a;
+      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.90));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    }
+    #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
+
+    /* Match Summary by Team cards */
+    #draftCardSummary{
+      width: 95%;
+      max-width: 1400px;
+      margin: 22px auto 0;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: rgba(20,26,38,.42);
+      border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    #draftCardSummary h2{
+      text-align:center;
+      color: var(--brand);
+      font-family:'Orbitron',sans-serif;
+      letter-spacing:.4px;
+      margin: 6px 0 14px;
+    }
+    .team-card{
+      width: 300px;
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      color: rgba(244,246,255,.86);
+    }
+    .team-card h3{
+      margin: 0 0 10px;
+      color: var(--brand2);
+      font-family:'Orbitron',sans-serif;
+      font-size: 14px;
+      letter-spacing:.3px;
+    }
+    .team-meta{
+      font-size: 12px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding-bottom: 8px;
+      color: rgba(244,246,255,.78);
+    }
+    .mini-player{
+      width: 68px;
+      text-align:center;
+      font-size: 10px;
+      color: rgba(244,246,255,.78);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 8px 6px;
+      background: rgba(14,18,28,.35);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.30);
+    }
+
+    /* Pick/Ban Counts section */
+    #teamPBCounts{
+      width: 95%;
+      max-width: 1400px;
+      margin: 22px auto 40px;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: rgba(20,26,38,.42);
+      border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    #teamPBCounts h2{
+      text-align:center;
+      color: var(--brand);
+      font-family:'Orbitron',sans-serif;
+      letter-spacing:.4px;
+      margin: 6px 0 14px;
+    }
+    .counts-controls{
+      display:flex;
+      gap: 10px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .counts-controls button{
+      background: linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
+      color:#10121a;
+      border:none;
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor:pointer;
+      font-weight: 950;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+    }
+    .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
+    .counts-summary{
+      text-align:center;
+      margin-top: 8px;
+      color: rgba(244,246,255,.78);
+    }
+    .counts-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+    .counts-card{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      padding: 12px;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .counts-card h3{
+      margin: 0 0 10px 0;
+      color: var(--brand2);
+      font-family:'Orbitron',sans-serif;
+      font-size: 14px;
+      letter-spacing:.3px;
+    }
+    table.counts-table{ width:100%; border-collapse:collapse; }
+    table.counts-table th, table.counts-table td{
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 8px 6px;
+      text-align:left;
+      font-size: 13px;
+      color: rgba(244,246,255,.82);
+    }
+    table.counts-table th{
+      background: rgba(255,255,255,.06);
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+
+    /* responsive */
+    @media (max-width: 1100px){
+      .draft-wrapper{ flex-wrap:wrap; gap:14px; }
+      .summary-wrapper > div{ min-width: 360px; }
+      .team-row{ flex-wrap:wrap; justify-content:center; }
+    }
   </style>
 </head>
 <body>
@@ -122,51 +792,52 @@
     </div>
     <h1>Clash Squad Draft</h1>
   </header>
-  
-  <details style="margin: 20px auto; width: 90%; max-width: 1200px;">
-    <summary style="font-size: 18px; font-weight: bold; color: #ffbd59; cursor: pointer; padding: 10px 0; text-align: center;">Draft History</summary>
 
-    <div style="text-align: center; margin-top: 20px;">
-      <label>
+  <details class="glassy">
+    <summary>Draft History</summary>
+
+    <div style="text-align: center; margin-top: 14px;">
+      <label style="display:inline-flex; gap:10px; align-items:center; color: var(--muted); font-weight: 900;">
         <input type="checkbox" id="multiToggle" onchange="toggleTeamFilterMode()" />
         Enable multiple selection
       </label>
 
-      <div style="margin-top:10px;">
-        <label style="display:block;margin-bottom:4px;">Tournament</label>
-        <select id="tournamentFilter" style="width:200px;" onchange="loadAllDraftRecords()"></select>
+      <div style="margin-top:12px;">
+        <label style="display:block;margin-bottom:6px; color: var(--muted); font-weight: 900;">Tournament</label>
+        <select id="tournamentFilter" style="width:240px;" onchange="loadAllDraftRecords()"></select>
       </div>
 
-      <br />
-      <select id="teamFilter" size="5" style="width: 200px; margin-top: 6px;" onchange="loadAllDraftRecords()"></select>
+      <div style="margin-top:12px;">
+        <select id="teamFilter" size="5" style="width: 240px;" onchange="loadAllDraftRecords()"></select>
+      </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 10px;">
-      <table id="recordTable" style="width: 100%; color: #fff; text-align: center; border-collapse: collapse;">
-        <thead style="background: #222;">
+    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 14px;">
+      <table id="recordTable">
+        <thead>
           <tr>
-            <th style="padding: 8px;">Date</th>
-            <th style="padding: 8px;">Game</th>
-            <th style="padding: 8px;">Team Left</th>
-            <th style="padding: 8px;">Team Left Score</th>
-            <th style="padding: 8px;">Team Right</th>
-            <th style="padding: 8px;">Team Right Score</th>
-            <th style="padding: 8px;">Map</th>
-            <th style="padding: 8px;">Tournament</th>
-            <th style="padding: 8px;">Actions</th>
+            <th>Date</th>
+            <th>Game</th>
+            <th>Team Left</th>
+            <th>Team Left Score</th>
+            <th>Team Right</th>
+            <th>Team Right Score</th>
+            <th>Map</th>
+            <th>Tournament</th>
+            <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="recordBody" style="background: #111;"></tbody>
+        <tbody id="recordBody"></tbody>
       </table>
     </div>
   </details>
-  
-  <div class="top-controls">
+
+  <div class="top-controls glassbar">
     <a href="dashboard.html">← Back to Dashboard</a>
-    
+
     <label for="matchDate">Date:</label>
     <input type="date" id="matchDate" />
-    
+
     <label for="gameNumberSelect">Game:</label>
     <select id="gameNumberSelect">
       <option value="1">Game 1</option>
@@ -196,22 +867,22 @@
   </div>
 
   <button class="reset-btn" onclick="resetDraft()">Reset All</button>
-  
+
   <div class="draft-wrapper">
-    <div class="team-container">
+    <div class="team-container glassbox">
       <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
-      <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
         <label for="teamLeftScore">Left Score:</label>
-        <input type="number" id="teamLeftScore" min="0" style="width: 60px; margin-left: 6px;" />
+        <input type="number" id="teamLeftScore" min="0" style="width: 80px; margin-left: 8px;" />
       </div>
       <div class="team-row" id="teamLeft"></div>
     </div>
-  
-    <div class="team-container">
+
+    <div class="team-container glassbox">
       <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
-      <div style="margin-bottom: 10px;">
+      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
         <label for="teamRightScore">Right Score:</label>
-        <input type="number" id="teamRightScore" min="0" style="width: 60px; margin-left: 6px;" />
+        <input type="number" id="teamRightScore" min="0" style="width: 80px; margin-left: 8px;" />
       </div>
       <div class="team-row" id="teamRight"></div>
     </div>
@@ -225,14 +896,14 @@
   <div class="modal" id="heroModal">
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal()">X</span>
-      <h3 style="color:#ff7733;" id="modalTitle">Select</h3>
+      <h3 id="modalTitle">Select</h3>
       <div class="hero-grid" id="heroGrid"></div>
     </div>
   </div>
 
-  <div id="draftCardSummary" style="margin: 40px auto; width: 90%; max-width: 1200px;">
-    <h2 style="text-align:center; color:#ffbd59;">Match Summary by Team</h2>
-    <div id="teamDraftCards" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;"></div>
+  <div id="draftCardSummary">
+    <h2>Match Summary by Team</h2>
+    <div id="teamDraftCards" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;"></div>
   </div>
 
   <div id="teamPBCounts">
@@ -270,7 +941,7 @@
       </div>
     </div>
   </div>
-  
+
 <script>
 let characters = [], weapons = [], currentSlot = null;
 
@@ -344,7 +1015,7 @@ function drawDraft(){
   for(let i=0;i<4;i++)l.appendChild(makeSlot('pick',i));
   for(let i=7;i>=4;i--)r.appendChild(makeSlot('pick',i));
   r.appendChild(makeSlot('ban',1));
-  
+
   document.getElementById('teamNameLeft').value = draftState.teamNames[0];
   document.getElementById('teamNameRight').value = draftState.teamNames[1];
 
@@ -355,7 +1026,8 @@ function makeSlot(type,index){
   const c=document.createElement('div'); c.className='slot';
   const m=document.createElement('div'); m.className=type==='ban'?'ban-slot':'pick-slot';
   const img=document.createElement('img'); img.src='https://imgur.com/AdvPwAO.png';
-  img.style.width='100%'; img.style.height='100%'; img.style.borderRadius='8px';
+  img.style.width='100%'; img.style.height='100%'; img.style.borderRadius='14px';
+  img.style.objectFit='cover';
   m.appendChild(img);
   const nameDiv=document.createElement('div'); nameDiv.className='slot-name';
 
@@ -369,19 +1041,13 @@ function makeSlot(type,index){
     m.onclick=()=>{currentSlot={type,index};openModal('Select Active Skill');};
   }
   c.appendChild(m); c.appendChild(nameDiv);
-  
+
   if (type === 'pick') {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Player Name';
     input.value = draftState.playerCards[index] || '';
-    input.style.width = '90px';
-    input.style.fontSize = '10px';
-    input.style.marginTop = '4px';
-    input.style.background = '#1f1f1f';
-    input.style.border = '1px solid #555';
-    input.style.color = '#ccc';
-    input.style.textAlign = 'center';
+    input.className = 'player-input';
     input.onchange = () => {
       draftState.playerCards[index] = input.value;
       saveDraftState();
@@ -401,7 +1067,7 @@ function makeSlot(type,index){
     c.appendChild(pDiv);
 
     const wDiv=document.createElement('div'); wDiv.className='weapon-slots';
-    draftState.weapons[index].forEach((w,i)=>{const wSlot=document.createElement('div'); wSlot.className='weapon-slot'; if(i===0)wSlot.style.border='2px solid #ffbd59';
+    draftState.weapons[index].forEach((w,i)=>{const wSlot=document.createElement('div'); wSlot.className='weapon-slot'; if(i===0)wSlot.style.border='1px solid rgba(255,189,89,.65)';
       const wn=document.createElement('div');wn.className='weapon-name';
       if(w){const wImg=document.createElement('img');wImg.src=w.image_url;wSlot.appendChild(wImg);wn.innerText=w.name;}
       wSlot.onclick=()=>{currentSlot={type:'weapon',pickIndex:index,weaponIndex:i};openModal('Select Weapon');};
@@ -438,12 +1104,12 @@ function openModal(title) {
 
       const clearCard = document.createElement('div');
       clearCard.className = 'hero-grid-item';
-      clearCard.style.border = '1px dashed #555';
+      clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
       const clearImg = document.createElement('img');
       clearImg.src = 'https://imgur.com/AdvPwAO.png';
       clearImg.alt = 'Clear';
-      clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.3'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-      const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = '#bbb'; clearLabel.style.textAlign = 'center';
+      clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
+      const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
       clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
       clearCard.onclick = () => {
         draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = null;
@@ -458,7 +1124,7 @@ function openModal(title) {
         if (filter !== 'all' && !item.armory.toLowerCase().includes(filter)) return;
         const card = document.createElement('div'); card.className = 'hero-grid-item';
         const img = document.createElement('img'); img.src = item.image_url; img.alt = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
-        const name = document.createElement('div'); name.textContent = item.name; name.style.fontSize = '10px'; name.style.color = '#ddd'; name.style.textAlign = 'center'; name.style.maxWidth = '60px'; name.style.overflowWrap = 'break-word';
+        const name = document.createElement('div'); name.textContent = item.name;
         card.appendChild(img); card.appendChild(name);
         card.onclick = () => {
           draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = item;
@@ -469,16 +1135,16 @@ function openModal(title) {
         grid.appendChild(card);
       });
     }
-    
+
     renderWeapons('all');
     armoryFilter.addEventListener('change', () => renderWeapons(armoryFilter.value));
 
   } else {
     const clearCard = document.createElement('div');
     clearCard.className = 'hero-grid-item';
-    clearCard.style.border = '1px dashed #555';
-    const clearImg = document.createElement('img'); clearImg.src = 'https://imgur.com/AdvPwAO.png'; clearImg.alt = 'Clear'; clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.3'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = '#bbb'; clearLabel.style.textAlign = 'center';
+    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+    const clearImg = document.createElement('img'); clearImg.src = 'https://imgur.com/AdvPwAO.png'; clearImg.alt = 'Clear'; clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
+    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
     clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
     clearCard.onclick = () => {
       if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = null;
@@ -496,7 +1162,7 @@ function openModal(title) {
 
     list.forEach(item => {
       const box = document.createElement('div'); box.className = 'hero-grid-item';
-      const img = document.createElement('img'); img.src = item.image_url; img.title = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
+      const img = document.createElement('img'); img.src = item.image_url; img.title = item.name;
 
       if ((currentSlot.type === 'ban' || currentSlot.type === 'pick') && used.has(item.name)) {
         img.classList.add('disabled');
@@ -509,7 +1175,7 @@ function openModal(title) {
         };
       }
 
-      const label = document.createElement('div'); label.textContent = item.name; label.style.fontSize = '10px'; label.style.color = '#ddd'; label.style.textAlign = 'center'; label.style.maxWidth = '60px'; label.style.overflowWrap = 'break-word';
+      const label = document.createElement('div'); label.textContent = item.name;
       box.appendChild(img); box.appendChild(label); grid.appendChild(box);
     });
   }
@@ -620,7 +1286,7 @@ function updateSummary() {
   left.innerHTML = `<h3>TEAM LEFT</h3>${buildTeamSummary(0, 0)}`;
   right.innerHTML = `<h3>TEAM RIGHT</h3>${buildTeamSummaryRight(4, 1)}`;
 }
-  
+
 function resetDraft() {
   draftState = {
     bans: [null, null],
@@ -827,7 +1493,6 @@ async function saveOrUpdateDraft() {
   }
 }
 
-
 function toggleTeamFilterMode() {
   const filter = document.getElementById('teamFilter');
   const selected = Array.from(filter.selectedOptions).map(o => o.value);
@@ -946,17 +1611,15 @@ async function loadAllDraftRecords() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td style="padding: 6px;">${record.match_date}</td>
-      <td style="padding: 6px;">Game ${record.game_number}</td>
-      <td style="padding: 6px; text-align: left;">${record.team_left} ${isLeftWinner ? '🏆' : ''}</td>
-      <td style="padding: 6px;">${record.team_left_score ?? '-'}</td>
-      <td style="padding: 6px; text-align: left;">${record.team_right} ${isRightWinner ? '🏆' : ''}</td>
-      <td style="padding: 6px;">${record.team_right_score ?? '-'}</td>
-      <td style="padding: 6px;">${record.map ?? '-'}</td>
-      <td style="padding: 6px;">${record.tournament_name ?? '-'}</td>
-      <td style="padding: 6px;">
-        <button onclick="loadSpecificDraft(${record.id})">Load</button>
-      </td>
+      <td>${record.match_date}</td>
+      <td>Game ${record.game_number}</td>
+      <td style="text-align:left;">${record.team_left} ${isLeftWinner ? '🏆' : ''}</td>
+      <td>${record.team_left_score ?? '-'}</td>
+      <td style="text-align:left;">${record.team_right} ${isRightWinner ? '🏆' : ''}</td>
+      <td>${record.team_right_score ?? '-'}</td>
+      <td>${record.map ?? '-'}</td>
+      <td>${record.tournament_name ?? '-'}</td>
+      <td><button onclick="loadSpecificDraft(${record.id})">Load</button></td>
     `;
     table.appendChild(row);
   });
@@ -1025,25 +1688,15 @@ function renderDraftCardSummaries(data) {
     if (selectedTeams.length && !selectedTeams.includes(team.toLowerCase())) return;
 
     const teamCard = document.createElement('div');
-    teamCard.style.background = '#1c1c1c';
-    teamCard.style.border = '1px solid #444';
-    teamCard.style.borderRadius = '8px';
-    teamCard.style.padding = '10px';
-    teamCard.style.width = '280px';
-    teamCard.style.color = '#eee';
+    teamCard.className = 'team-card';
 
     const title = document.createElement('h3');
     title.innerText = team;
-    title.style.color = '#ff7733';
-    title.style.marginBottom = '10px';
     teamCard.appendChild(title);
 
     teamMap[team].forEach(r => {
       const meta = document.createElement('div');
-      meta.style.fontSize = '12px';
-      meta.style.marginBottom = '6px';
-      meta.style.borderBottom = '1px solid #333';
-      meta.style.paddingBottom = '4px';
+      meta.className = 'team-meta';
       meta.innerHTML = `
         📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map}<br>
         🏆 ${r.tournament_name ?? '—'}<br>
@@ -1066,23 +1719,17 @@ function renderDraftCardSummaries(data) {
           const passives = draft.passives?.[i] || [];
 
           const pCard = document.createElement('div');
-          pCard.style.width = '60px';
-          pCard.style.textAlign = 'center';
-          pCard.style.fontSize = '10px';
-          pCard.style.color = '#ccc';
-          pCard.style.border = '1px solid #444';
-          pCard.style.borderRadius = '6px';
-          pCard.style.padding = '4px';
+          pCard.className = 'mini-player';
 
           const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
           const heroName = hero?.name || 'None';
           const heroSkill = hero?.skill || '';
 
           pCard.innerHTML = `
-            <img src="${heroImg}" style="width:40px;height:40px;border-radius:4px;"><br>
-            <div style="color:#fff; font-weight:bold;">${heroName}</div>
-            <div style="color:#bbb;">${playerName}</div>
-            <div style="color:#6cf;">${heroSkill}</div>
+            <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
+            <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
+            <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
+            <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
           `;
 
           passives.forEach(ps => {
@@ -1090,17 +1737,18 @@ function renderDraftCardSummaries(data) {
               const psLine = document.createElement('div');
               psLine.style.display = 'flex';
               psLine.style.alignItems = 'center';
-              psLine.style.gap = '2px';
+              psLine.style.gap = '4px';
               psLine.style.justifyContent = 'center';
               psLine.style.fontSize = '9px';
-              psLine.style.color = '#aaa';
+              psLine.style.color = 'rgba(244,246,255,.72)';
+              psLine.style.marginTop = '6px';
 
               if (ps.image_url) {
                 const img = document.createElement('img');
                 img.src = ps.image_url;
-                img.style.width = '12px';
-                img.style.height = '12px';
-                img.style.borderRadius = '2px';
+                img.style.width = '14px';
+                img.style.height = '14px';
+                img.style.borderRadius = '6px';
                 psLine.appendChild(img);
               }
 
