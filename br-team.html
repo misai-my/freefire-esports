@@ -478,6 +478,59 @@
     </div>
   </details>
 
+    <!-- NEW: PLAYER / LOADOUT / ELIMS ANALYTICS -->
+  <details class="accordion" id="playerStatsSection">
+    <summary>Player Stats</summary>
+    <div class="accordion-body">
+      <div class="card" style="margin:0">
+        <div id="tblPlayerStats">—</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="accordion" id="charPetUsageSection">
+    <summary>Character and Pet Usage</summary>
+    <div class="accordion-body">
+      <div class="grid2">
+        <div class="card" style="margin:0">
+          <h3>Team — Character Usage (Active + Passive)</h3>
+          <div id="tblTeamCharUsage">—</div>
+        </div>
+        <div class="card" style="margin:0">
+          <h3>Team — Pet Usage</h3>
+          <div id="tblTeamPetUsage">—</div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details class="accordion" id="perPlayerActiveSection">
+    <summary>Per-Player Character Usage — Active</summary>
+    <div class="accordion-body">
+      <div class="card" style="margin:0">
+        <div id="tblPerPlayerActive">—</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="accordion" id="perPlayerPassiveSection">
+    <summary>Per-Player Character Usage — Passive</summary>
+    <div class="accordion-body">
+      <div class="card" style="margin:0">
+        <div id="tblPerPlayerPassive">—</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="accordion" id="elimsFocusSection">
+    <summary>Eliminations — Team Focus &amp; Breakdowns</summary>
+    <div class="accordion-body">
+      <div class="card" style="margin:0">
+        <div id="tblElimsFocus">—</div>
+      </div>
+    </div>
+  </details>
+
   <details class="accordion" id="overallSection">
     <summary>Overall Performance (All Teams)</summary>
     <div class="accordion-body">
@@ -1399,6 +1452,618 @@ function updateAiPrompt(){
   ta.value = buildAiPrompt();
 }
 
+/* ===================== NEW: Advanced Team Analytics ===================== */
+
+/** Candidate tables (edit these to match your real schema if needed) */
+const ADV_TABLES = {
+  playerStats: [
+    'br_player_match_stats',
+    'br_player_stats',
+    'ffbr_player_match_stats',
+    'ffbr_player_stats'
+  ],
+  loadouts: [
+    'ffbr_lopsdata',
+    'br_loadouts',
+    'br_player_loadouts',
+    'ffbr_loadouts'
+  ],
+  elimLog: [
+    'br_elimination_log',
+    'ffbr_elimination_log',
+    'br_killfeed',
+    'ffbr_killfeed',
+    'br_elims',
+    'ffbr_elims'
+  ]
+};
+
+function pickKeyFrom(keys, patterns){
+  for(const rx of patterns){
+    const k = keys.find(x => rx.test(x));
+    if(k) return k;
+  }
+  return null;
+}
+function normLower(x){ return String(x ?? '').trim().toLowerCase(); }
+function isTrivialBoolSet(vals){
+  const s = new Set(vals.map(v => normLower(v)).filter(Boolean));
+  if(!s.size) return true;
+  const allowed = new Set(['0','1','true','false','yes','no','y','n']);
+  for(const v of s) if(!allowed.has(v)) return false;
+  return true;
+}
+function sampleVals(rows, key, limit=25){
+  return rows.slice(0, limit).map(r => String(r?.[key] ?? '').trim()).filter(Boolean);
+}
+function looksLikeNames(rows, key){
+  const vals = sampleVals(rows, key);
+  if(!vals.length) return false;
+  if(isTrivialBoolSet(vals)) return false;
+  // Heuristic: must have letters on average
+  const letters = vals.filter(v => /[a-z]/i.test(v)).length;
+  return letters >= Math.max(2, Math.floor(vals.length * 0.5));
+}
+
+/** Probe a table safely */
+async function probeTable(table){
+  try{
+    const res = await client.from(table).select('*').limit(1);
+    if(res.error) return { ok:false, error:res.error };
+    const sample = res.data?.[0] || null;
+    const keys = sample ? Object.keys(sample) : [];
+    return { ok:true, keys, sample };
+  }catch(e){
+    return { ok:false, error:e };
+  }
+}
+
+/** Fetch rows with pagination; applies filters only if matching columns exist */
+async function fetchPaged(table, filters = {}){
+  const CHUNK = 1000;
+  let from = 0;
+  const out = [];
+
+  for(;;){
+    let q = client.from(table).select('*');
+
+    // Apply filters if column exists
+    for(const [col, val] of Object.entries(filters)){
+      if(val == null) continue;
+      q = q.eq(col, val);
+    }
+
+    const { data, error } = await q.range(from, from + CHUNK - 1);
+    if(error) throw error;
+    const rows = data || [];
+    if(!rows.length) break;
+    out.push(...rows);
+    from += rows.length;
+    if(rows.length < CHUNK) break;
+  }
+  return out;
+}
+
+/** Try candidate tables and return { table, keys, rows } or null */
+async function fetchFromFirstWorkingTable(candidates, buildFilterFn){
+  for(const table of candidates){
+    const probe = await probeTable(table);
+    if(!probe.ok) continue;
+
+    const keys = probe.keys || [];
+    const filters = buildFilterFn ? buildFilterFn(keys) : {};
+    try{
+      const rows = await fetchPaged(table, filters);
+      return { table, keys, rows };
+    }catch(e){
+      // If RLS denies or filter col invalid, just continue to next candidate
+      continue;
+    }
+  }
+  return null;
+}
+
+function buildScopeFilter(keys){
+  const y = selectedYear(), s = selectedSeason(), t = selectedTournament(), st = selectedStage();
+
+  const yearCol = pickKeyFrom(keys, [/^year$/i]);
+  const seasonCol = pickKeyFrom(keys, [/^season$/i]);
+  const tournCol = pickKeyFrom(keys, [/tournament/i]);
+  const stageCol = pickKeyFrom(keys, [/^stage$/i]);
+
+  const f = {};
+  if(yearCol && y !== '__all__'){
+    const yNum = Number(y);
+    f[yearCol] = isFinite(yNum) ? yNum : y;
+  }
+  if(seasonCol && s !== '__all__') f[seasonCol] = s;
+  if(tournCol && t !== '__all__') f[tournCol] = t;
+  if(stageCol && st !== '__all__') f[stageCol] = st;
+  return f;
+}
+
+function detectTeamCol(keys){
+  return pickKeyFrom(keys, [/^tag$/i, /^team_tag$/i, /\bteam.*tag\b/i, /team\s*initials/i]);
+}
+function detectPlayerCol(keys, rows){
+  const candidates = [
+    /^ign$/i, /\bplayer\s*ign\b/i, /\bin-?\s*game\s*name\b/i,
+    /\bplayer\b/i, /\bnickname\b/i, /^name$/i
+  ];
+  for(const rx of candidates){
+    const k = keys.find(x => rx.test(x));
+    if(k && looksLikeNames(rows, k)) return k;
+  }
+  // fallback any column that looks like names
+  for(const k of keys){
+    if(looksLikeNames(rows, k) && /ign|player|name|nick/i.test(k)) return k;
+  }
+  return null;
+}
+
+function detectKillCol(keys){
+  return pickKeyFrom(keys, [/elims?/i, /kills?/i, /elimination/i]);
+}
+function detectDmgCol(keys){
+  return pickKeyFrom(keys, [/damage/i, /\bdmg\b/i]);
+}
+
+/** Loadout column detection */
+function detectLoadoutCols(keys, rows){
+  // Active
+  const activeCandidates = keys.filter(k => /active/i.test(k) && /(skill|character|char|ability)/i.test(k));
+  let activeCol = activeCandidates.find(k => looksLikeNames(rows, k)) || null;
+  if(!activeCol){
+    // sometimes just "Active"
+    const k = keys.find(k => /^active$/i.test(k));
+    if(k && looksLikeNames(rows, k)) activeCol = k;
+  }
+
+  // Passive(s) - allow multiple
+  const passiveCols = keys
+    .filter(k => /passive/i.test(k) || /passive\s*\d/i.test(k))
+    .filter(k => looksLikeNames(rows, k));
+
+  // Pet
+  const petCandidates = keys.filter(k => /pet/i.test(k));
+  const petCol = petCandidates.find(k => looksLikeNames(rows, k)) || null;
+
+  // Player + Team
+  const teamCol = detectTeamCol(keys);
+
+  return { teamCol, activeCol, passiveCols, petCol };
+}
+
+/** Render helpers */
+function countBy(list, getKey){
+  const m = new Map();
+  for(const r of list){
+    const k = norm(String(getKey(r) ?? '')).trim();
+    if(!k) continue;
+    const key = k;
+    m.set(key, (m.get(key) || 0) + 1);
+  }
+  return m;
+}
+function topNFromMap(m, n=12){
+  return [...m.entries()].sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,n);
+}
+function renderCountsTable(containerId, entries, totalLabel='Uses'){
+  const box = el(containerId);
+  if(!box) return;
+  if(!entries.length){
+    box.innerHTML = '<div class="muted">No data.</div>';
+    return;
+  }
+  const total = entries.reduce((acc, e)=>acc + (e.count||0), 0) || 0;
+  const rows = entries.map(([name, count]) => ({
+    name,
+    count,
+    share: total ? (count/total) : 0
+  }));
+  box.innerHTML = renderSimpleTable(rows, [
+    { label:'Name', key:'name' },
+    { label: totalLabel, key:'count', right:true },
+    { label:'Share', key:'share', format:'pct', right:true }
+  ]);
+  applyColumnHeatmap(containerId, ['count','share']);
+}
+
+function renderPivot(containerId, players, topItems, matrix){
+  const box = el(containerId);
+  if(!box) return;
+  if(!players.length || !topItems.length){
+    box.innerHTML = '<div class="muted">No data.</div>';
+    return;
+  }
+
+  const cols = [
+    { label:'Player', key:'player' },
+    { label:'Total Uses', key:'total', right:true },
+    ...topItems.map(name => ({ label:name, key:name, right:true }))
+  ];
+
+  const rows = players.map(p=>{
+    const obj = { player:p, total:0 };
+    for(const it of topItems){
+      const v = matrix.get(p)?.get(it) || 0;
+      obj[it] = v;
+      obj.total += v;
+    }
+    return obj;
+  }).sort((a,b)=> (b.total - a.total) || String(a.player).localeCompare(String(b.player)));
+
+  box.innerHTML = renderSimpleTable(rows, cols);
+  applyColumnHeatmap(containerId, ['total', ...topItems]);
+}
+
+/** Main loader */
+let ADV_CACHE = new Map();
+
+async function loadAdvancedForCurrentTeam(){
+  if(!CURRENT_TEAM || SPLIT_MODE) return;
+
+  const cacheKey = [
+    CURRENT_TEAM.name,
+    selectedYear(), selectedSeason(), selectedTournament(), selectedStage()
+  ].join('|');
+
+  // placeholders
+  const ph = '<div class="muted">Loading…</div>';
+  if(el('tblPlayerStats')) el('tblPlayerStats').innerHTML = ph;
+  if(el('tblTeamCharUsage')) el('tblTeamCharUsage').innerHTML = ph;
+  if(el('tblTeamPetUsage')) el('tblTeamPetUsage').innerHTML = ph;
+  if(el('tblPerPlayerActive')) el('tblPerPlayerActive').innerHTML = ph;
+  if(el('tblPerPlayerPassive')) el('tblPerPlayerPassive').innerHTML = ph;
+  if(el('tblElimsFocus')) el('tblElimsFocus').innerHTML = ph;
+
+  if(ADV_CACHE.has(cacheKey)){
+    const cached = ADV_CACHE.get(cacheKey);
+    renderAdvancedBlocks(cached);
+    return;
+  }
+
+  const teamCode = CURRENT_TEAM.name.toUpperCase();
+
+  // --- Player stats source ---
+  const playerStatsPack = await fetchFromFirstWorkingTable(
+    ADV_TABLES.playerStats,
+    (keys)=>{
+      const f = buildScopeFilter(keys);
+      const teamCol = detectTeamCol(keys);
+      if(teamCol) f[teamCol] = teamCode;
+      return f;
+    }
+  );
+
+  // --- Loadouts source (characters / pets) ---
+  const loadoutsPack = await fetchFromFirstWorkingTable(
+    ADV_TABLES.loadouts,
+    (keys)=>{
+      const f = buildScopeFilter(keys);
+      const teamCol = detectTeamCol(keys);
+      if(teamCol) f[teamCol] = teamCode;
+      return f;
+    }
+  );
+
+  // --- Elim log (kills/deaths) ---
+  // For elim, we might need two filters (killer OR victim). Do it as two pulls if possible.
+  let elimRows = [];
+  let elimKeys = [];
+  let elimTable = null;
+
+  for(const table of ADV_TABLES.elimLog){
+    const probe = await probeTable(table);
+    if(!probe.ok) continue;
+
+    elimKeys = probe.keys || [];
+    elimTable = table;
+
+    const killerTeamCol = pickKeyFrom(elimKeys, [/killer.*tag/i, /killer.*team/i, /^killer_tag$/i, /^killer_team$/i, /^attacker_tag$/i, /^attacker_team$/i]);
+    const victimTeamCol = pickKeyFrom(elimKeys, [/victim.*tag/i, /victim.*team/i, /^victim_tag$/i, /^victim_team$/i, /^downed_tag$/i, /^downed_team$/i]);
+
+    const scopeF = buildScopeFilter(elimKeys);
+
+    try{
+      if(killerTeamCol){
+        const f1 = { ...scopeF, [killerTeamCol]: teamCode };
+        const a = await fetchPaged(table, f1);
+        elimRows.push(...a);
+      }
+      if(victimTeamCol){
+        const f2 = { ...scopeF, [victimTeamCol]: teamCode };
+        const b = await fetchPaged(table, f2);
+        elimRows.push(...b);
+      }
+
+      // If we got something or at least table works, keep it
+      break;
+    }catch(e){
+      elimRows = [];
+      elimKeys = [];
+      elimTable = null;
+      continue;
+    }
+  }
+
+  const payload = {
+    playerStatsPack,
+    loadoutsPack,
+    elimPack: elimTable ? { table: elimTable, keys: elimKeys, rows: elimRows } : null
+  };
+
+  ADV_CACHE.set(cacheKey, payload);
+  renderAdvancedBlocks(payload);
+}
+
+function renderAdvancedBlocks(payload){
+  const teamCode = CURRENT_TEAM?.name?.toUpperCase?.() || '';
+
+  /* ---------- Player Stats ---------- */
+  {
+    const box = el('tblPlayerStats');
+    if(!box) {} else if(!payload.playerStatsPack || !payload.playerStatsPack.rows?.length){
+      box.innerHTML = '<div class="muted">No player stats rows found (check your player stats table / RLS).</div>';
+    }else{
+      const { rows, keys } = payload.playerStatsPack;
+
+      const teamCol = detectTeamCol(keys);
+      const scoped = teamCol ? rows.filter(r => norm(r[teamCol]).toUpperCase() === teamCode) : rows.slice();
+
+      const playerCol = detectPlayerCol(keys, scoped) || detectPlayerCol(keys, rows);
+      const killCol = detectKillCol(keys);
+      const dmgCol = detectDmgCol(keys);
+
+      if(!playerCol){
+        box.innerHTML = '<div class="muted">Player column not detected in stats table. (Need something like IGN / Player Name.)</div>';
+      }else{
+        const g = groupBy(scoped, r => norm(r[playerCol]) || 'Unknown');
+        const out = [];
+        for(const [player, list] of g.entries()){
+          const m = list.length;
+          const elims = killCol ? sum(list, killCol) : 0;
+          const dmg = dmgCol ? sum(list, dmgCol) : 0;
+          out.push({
+            player,
+            matches: m,
+            elims,
+            elims_pm: m ? elims/m : 0,
+            damage: dmg,
+            dmg_pm: m ? dmg/m : 0
+          });
+        }
+        out.sort((a,b)=> (b.elims - a.elims) || (b.damage - a.damage) || a.player.localeCompare(b.player));
+
+        box.innerHTML = renderSimpleTable(out, [
+          { label:'Player', key:'player' },
+          { label:'Matches', key:'matches', right:true },
+          { label:'Elims', key:'elims', right:true },
+          { label:'Elims / m', key:'elims_pm', format:'1d', right:true },
+          { label:'Damage', key:'damage', right:true },
+          { label:'Dmg / m', key:'dmg_pm', format:'1d', right:true },
+        ]);
+        applyColumnHeatmap('tblPlayerStats', ['elims','elims_pm','damage','dmg_pm','matches']);
+      }
+    }
+  }
+
+  /* ---------- Character + Pet Usage + Per-Player Usage ---------- */
+  let loadRows = [];
+  let loadCols = null;
+
+  if(payload.loadoutsPack?.rows?.length){
+    loadRows = payload.loadoutsPack.rows.slice();
+    const keys = payload.loadoutsPack.keys || Object.keys(loadRows[0]||{});
+    loadCols = detectLoadoutCols(keys, loadRows);
+
+    // If team col exists, enforce again client-side
+    if(loadCols.teamCol){
+      const tc = loadCols.teamCol;
+      loadRows = loadRows.filter(r => norm(r[tc]).toUpperCase() === teamCode);
+    }
+  }
+
+  // Character & Pet usage
+  {
+    const charBox = el('tblTeamCharUsage');
+    const petBox  = el('tblTeamPetUsage');
+
+    if(!charBox || !petBox) {} else if(!loadRows.length || !loadCols){
+      charBox.innerHTML = '<div class="muted">No loadout rows found (check your loadout/LOPS table / RLS).</div>';
+      petBox.innerHTML  = '<div class="muted">No loadout rows found (check your loadout/LOPS table / RLS).</div>';
+    }else{
+      const { activeCol, passiveCols, petCol } = loadCols;
+
+      // Characters = active + passives
+      const charCount = new Map();
+      const addChar = (name)=>{
+        const k = norm(name);
+        if(!k) return;
+        charCount.set(k, (charCount.get(k)||0) + 1);
+      };
+
+      for(const r of loadRows){
+        if(activeCol) addChar(r[activeCol]);
+        for(const pk of (passiveCols||[])) addChar(r[pk]);
+      }
+
+      const topChars = topNFromMap(charCount, 20).map(([name,count]) => ({ name, count }));
+      if(!topChars.length) charBox.innerHTML = '<div class="muted">No character columns detected (active/passives).</div>';
+      else{
+        const total = topChars.reduce((a,b)=>a+(b.count||0),0) || 0;
+        const rows = topChars.map(o=>({ ...o, share: total ? o.count/total : 0 }));
+        charBox.innerHTML = renderSimpleTable(rows, [
+          { label:'Character', key:'name' },
+          { label:'Uses', key:'count', right:true },
+          { label:'Share', key:'share', format:'pct', right:true }
+        ]);
+        applyColumnHeatmap('tblTeamCharUsage', ['count','share']);
+      }
+
+      // Pets
+      if(!petCol){
+        petBox.innerHTML = '<div class="muted">No pet column detected.</div>';
+      }else{
+        const petCount = countBy(loadRows, r => r[petCol]);
+        const petTop = topNFromMap(petCount, 20).map(([name,count]) => ({ name, count }));
+        const total = petTop.reduce((a,b)=>a+(b.count||0),0) || 0;
+        const rows = petTop.map(o=>({ ...o, share: total ? o.count/total : 0 }));
+        petBox.innerHTML = renderSimpleTable(rows, [
+          { label:'Pet', key:'name' },
+          { label:'Uses', key:'count', right:true },
+          { label:'Share', key:'share', format:'pct', right:true }
+        ]);
+        applyColumnHeatmap('tblTeamPetUsage', ['count','share']);
+      }
+    }
+  }
+
+  // Per-player Active / Passive pivots
+  {
+    const activeBox = el('tblPerPlayerActive');
+    const passiveBox = el('tblPerPlayerPassive');
+
+    if(!activeBox || !passiveBox) {} else if(!loadRows.length || !loadCols){
+      activeBox.innerHTML = '<div class="muted">No loadout rows found.</div>';
+      passiveBox.innerHTML = '<div class="muted">No loadout rows found.</div>';
+    }else{
+      const keys = payload.loadoutsPack.keys || Object.keys(loadRows[0]||{});
+      const playerCol = detectPlayerCol(keys, loadRows);
+
+      if(!playerCol){
+        activeBox.innerHTML = '<div class="muted">Player column not detected in loadout table (need IGN / Player Name).</div>';
+        passiveBox.innerHTML = '<div class="muted">Player column not detected in loadout table (need IGN / Player Name).</div>';
+      }else{
+        const { activeCol, passiveCols } = loadCols;
+
+        // Active matrix
+        if(!activeCol){
+          activeBox.innerHTML = '<div class="muted">No Active character column detected.</div>';
+        }else{
+          const mActive = new Map(); // player -> Map(char->count)
+          const allActive = new Map(); // char->count
+          for(const r of loadRows){
+            const p = norm(r[playerCol]) || 'Unknown';
+            const c = norm(r[activeCol]);
+            if(!c) continue;
+            if(!mActive.has(p)) mActive.set(p, new Map());
+            const mm = mActive.get(p);
+            mm.set(c, (mm.get(c)||0)+1);
+            allActive.set(c, (allActive.get(c)||0)+1);
+          }
+          const players = [...mActive.keys()].sort((a,b)=>a.localeCompare(b));
+          const topActive = topNFromMap(allActive, 10).map(([c])=>c);
+          renderPivot('tblPerPlayerActive', players, topActive, mActive);
+        }
+
+        // Passive matrix (combine all passive columns)
+        if(!passiveCols || !passiveCols.length){
+          passiveBox.innerHTML = '<div class="muted">No Passive character columns detected.</div>';
+        }else{
+          const mPass = new Map();
+          const allPass = new Map();
+          for(const r of loadRows){
+            const p = norm(r[playerCol]) || 'Unknown';
+            if(!mPass.has(p)) mPass.set(p, new Map());
+            const mm = mPass.get(p);
+
+            for(const pk of passiveCols){
+              const c = norm(r[pk]);
+              if(!c) continue;
+              mm.set(c, (mm.get(c)||0)+1);
+              allPass.set(c, (allPass.get(c)||0)+1);
+            }
+          }
+          const players = [...mPass.keys()].sort((a,b)=>a.localeCompare(b));
+          const topPass = topNFromMap(allPass, 10).map(([c])=>c);
+          renderPivot('tblPerPlayerPassive', players, topPass, mPass);
+        }
+      }
+    }
+  }
+
+  /* ---------- Elims Focus ---------- */
+  {
+    const box = el('tblElimsFocus');
+    if(!box) {} else if(!payload.elimPack?.rows?.length){
+      box.innerHTML = '<div class="muted">No elimination log rows found (check your elim log table / RLS).</div>';
+    }else{
+      const { rows, keys } = payload.elimPack;
+
+      const killerTeamCol = pickKeyFrom(keys, [/killer.*tag/i, /killer.*team/i, /^killer_tag$/i, /^killer_team$/i, /^attacker_tag$/i, /^attacker_team$/i]);
+      const victimTeamCol = pickKeyFrom(keys, [/victim.*tag/i, /victim.*team/i, /^victim_tag$/i, /^victim_team$/i, /^downed_tag$/i, /^downed_team$/i]);
+      const killerPlayerCol = pickKeyFrom(keys, [/killer.*ign/i, /killer.*player/i, /^killer$/i, /^attacker$/i]);
+      const victimPlayerCol = pickKeyFrom(keys, [/victim.*ign/i, /victim.*player/i, /^victim$/i, /^downed$/i]);
+
+      const kills = rows.filter(r => killerTeamCol && norm(r[killerTeamCol]).toUpperCase() === teamCode);
+      const deaths = rows.filter(r => victimTeamCol && norm(r[victimTeamCol]).toUpperCase() === teamCode);
+
+      const killsVs = victimTeamCol
+        ? topNFromMap(countBy(kills, r => r[victimTeamCol]), 12).map(([team,count]) => ({ team, count }))
+        : [];
+      const deathsVs = killerTeamCol
+        ? topNFromMap(countBy(deaths, r => r[killerTeamCol]), 12).map(([team,count]) => ({ team, count }))
+        : [];
+
+      const topFraggers = killerPlayerCol
+        ? topNFromMap(countBy(kills, r => r[killerPlayerCol]), 12).map(([player,count]) => ({ player, count }))
+        : [];
+      const mostDowned = victimPlayerCol
+        ? topNFromMap(countBy(deaths, r => r[victimPlayerCol]), 12).map(([player,count]) => ({ player, count }))
+        : [];
+
+      const tbl1 = killsVs.length
+        ? renderSimpleTable(killsVs, [{label:'Enemy Team', key:'team'}, {label:'Elims', key:'count', right:true}])
+        : '<div class="muted">No “kills vs teams” breakdown (missing victim team column).</div>';
+
+      const tbl2 = deathsVs.length
+        ? renderSimpleTable(deathsVs, [{label:'Enemy Team', key:'team'}, {label:'Deaths', key:'count', right:true}])
+        : '<div class="muted">No “deaths to teams” breakdown (missing killer team column).</div>';
+
+      const tbl3 = topFraggers.length
+        ? renderSimpleTable(topFraggers, [{label:'Player', key:'player'}, {label:'Elims', key:'count', right:true}])
+        : '<div class="muted">No “top fraggers” breakdown (missing killer player column).</div>';
+
+      const tbl4 = mostDowned.length
+        ? renderSimpleTable(mostDowned, [{label:'Player', key:'player'}, {label:'Deaths', key:'count', right:true}])
+        : '<div class="muted">No “most eliminated” breakdown (missing victim player column).</div>';
+
+      box.innerHTML = `
+        <div class="grid2">
+          <div class="card" style="margin:0">
+            <h3>Kills vs Teams</h3>
+            <div id="elimsKillsVs">${tbl1}</div>
+          </div>
+          <div class="card" style="margin:0">
+            <h3>Deaths to Teams</h3>
+            <div id="elimsDeathsVs">${tbl2}</div>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="grid2">
+          <div class="card" style="margin:0">
+            <h3>Top Fraggers</h3>
+            <div id="elimsFraggers">${tbl3}</div>
+          </div>
+          <div class="card" style="margin:0">
+            <h3>Most Eliminated Players</h3>
+            <div id="elimsDowned">${tbl4}</div>
+          </div>
+        </div>
+      `;
+
+      // Heatmaps (if present)
+      try{
+        applyColumnHeatmap('elimsKillsVs', ['count']);
+        applyColumnHeatmap('elimsDeathsVs', ['count']);
+        applyColumnHeatmap('elimsFraggers', ['count']);
+        applyColumnHeatmap('elimsDowned', ['count']);
+      }catch{}
+    }
+  }
+}
+
 /* ---------- Single team render ---------- */
 function kpiAndByMap(){
   if(!CURRENT_TEAM){
@@ -1588,6 +2253,9 @@ async function selectTeam(teamObj){
   renderTeamInfo(info);
   renderRoster(roster);
   updateAiPrompt();
+  
+  await loadAdvancedForCurrentTeam();
+
 }
 
 /* Split view */
