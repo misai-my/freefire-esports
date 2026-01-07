@@ -66,6 +66,9 @@
       border-radius:999px;
       padding:4px 10px;
       white-space:nowrap;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
     }
     .btn{
       background:var(--brand);
@@ -166,6 +169,8 @@
     }
     .team-tile:hover{ transform:translateY(-2px); border-color:#444 }
     .team-tile.active{ outline:2px solid var(--brand2) }
+    .team-tile.activeA{ outline:2px solid var(--brand2) }
+    .team-tile.activeB{ outline:2px solid rgba(var(--heat-cool),1) }
 
     .team-logo{
       width:var(--logo);
@@ -274,8 +279,29 @@
     }
     #veil.hide{display:none}
 
-    @media (max-width:980px){.grid3{grid-template-columns:1fr}}
+    /* Split View */
+    .split-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width:980px){
+      .grid3{grid-template-columns:1fr}
+      .split-grid{grid-template-columns:1fr}
+    }
     @media (max-width:860px){.grid2{grid-template-columns:1fr}}
+    .pillbtn{
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:.8rem;
+      font-weight:800;
+      border:1px solid #3a3a3a;
+      background:#1f1f1f;
+      color:#ddd;
+      cursor:pointer;
+    }
+    .pillbtn.onA{ outline:2px solid var(--brand2); }
+    .pillbtn.onB{ outline:2px solid rgba(var(--heat-cool),1); }
   </style>
 </head>
 <body>
@@ -284,6 +310,10 @@
     <h1>FFBR — Teams</h1>
     <div class="user-controls">
       <a class="btn secondary" id="homeBtn" href="dashboard.html">← Back to Dashboard</a>
+
+      <button class="btn ghost" id="splitToggleBtn" type="button">Split View</button>
+      <button class="btn secondary" id="splitResetBtn" type="button" style="display:none">Reset Split</button>
+
       <span class="chip" id="scopeChip">Scope: —</span>
       <span class="chip" id="user-info">Checking login…</span>
       <button class="btn" id="logoutBtn">Logout</button>
@@ -300,15 +330,79 @@
     <h2>Team Selection</h2>
     <div class="bar">
       <input type="search" id="teamSearch" placeholder="Search team / region…" class="input" style="flex:1;max-width:420px">
+
       <span class="chip">
         Scope: <span id="scopeChipTeam">—</span> •
         <a href="#" id="editFilters1" class="btn ghost" style="padding:4px 10px">Edit filters</a>
       </span>
+
+      <span class="chip" id="splitPickChip" style="display:none">
+        Pick side:
+        <button class="pillbtn onA" id="pickSideA" type="button">Left</button>
+        <button class="pillbtn" id="pickSideB" type="button">Right</button>
+        <span class="muted" id="splitPickHint">Click a team tile to assign.</span>
+      </span>
     </div>
+
     <div id="teamGrid" class="team-grid">Loading teams…</div>
     <div id="teamGridErr"></div>
   </div>
 
+  <!-- SPLIT VIEW -->
+  <div class="section" id="splitSection" style="display:none">
+    <h2>Split View — Team Comparison</h2>
+    <div class="bar" style="margin-bottom:10px">
+      <label>Left Team
+        <select id="splitSelA" class="input" style="min-width:220px"></select>
+      </label>
+      <label>Right Team
+        <select id="splitSelB" class="input" style="min-width:220px"></select>
+      </label>
+      <span class="chip" id="splitActiveChip">Active pick: Left</span>
+    </div>
+
+    <div class="split-grid">
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Left — Identity</h3>
+          <div id="splitIdentityA" class="muted">—</div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Left — Key KPIs</h3>
+          <div id="splitKpisA" class="muted">—</div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Left — By Map</h3>
+          <div id="splitMapA" class="muted">—</div>
+        </div>
+        <div class="card">
+          <h3>Left — By Day (Pivot by Map)</h3>
+          <div id="splitDayA" class="muted">—</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Right — Identity</h3>
+          <div id="splitIdentityB" class="muted">—</div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Right — Key KPIs</h3>
+          <div id="splitKpisB" class="muted">—</div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Right — By Map</h3>
+          <div id="splitMapB" class="muted">—</div>
+        </div>
+        <div class="card">
+          <h3>Right — By Day (Pivot by Map)</h3>
+          <div id="splitDayB" class="muted">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SINGLE TEAM HEADER -->
   <div class="section" id="teamHeader">
     <h2 id="teamTitle">Overview</h2>
     <div class="grid2">
@@ -482,6 +576,7 @@ function safeDiv(a,b){ a=Number(a??0)||0; b=Number(b??0)||0; return b? (a/b) : 0
 function groupBy(arr,fn){ const m=new Map(); for(const r of arr){ const k=fn(r); if(!m.has(k)) m.set(k,[]); m.get(k).push(r);} return m; }
 function looksLikeURL(v){ return /^https?:\/\//i.test(String(v||'')); }
 const nameKey = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+function setVisible(id, on){ const node=el(id); if(node) node.style.display = on ? '' : 'none'; }
 
 /* ============ Global error surface ============ */
 function gerr(msg){
@@ -515,6 +610,12 @@ let TEAMS=[]; let TEAM_BY_CODE={}; let TEAM_BY_NAME={}; let ALLOWED_TAGS=new Set
 let ALL=[]; let TEAM_ROWS=[]; let CURRENT_TEAM=null;
 let TEAM_INFO = null;
 let TEAM_PLAYERS = [];
+
+/* Split */
+let SPLIT_MODE = false;
+let SPLIT_ACTIVE_SIDE = 'A'; // A=Left, B=Right
+let TEAM_A = null, TEAM_B = null;
+let ROWS_A = [], ROWS_B = [];
 
 /* ============ Helpers ============ */
 function buildHelperIndex(){
@@ -654,8 +755,6 @@ function populateYearFilter(){
   const sel=el('gYear'); if(!sel) return;
   const years = uniqueYears(ALL);
   sel.innerHTML = `<option value="__all__">All years</option>` + years.map(y=>`<option value="${y}">${y}</option>`).join('');
-
-  // default: 2025 if exists, else latest year, else all
   if(years.includes('2025')) sel.value = '2025';
   else if(years.length) sel.value = years[0];
   else sel.value = '__all__';
@@ -665,8 +764,6 @@ function populateSeasonFilter(){
   const scoped = rowsFilteredByYearOnly(ALL);
   const seasons = uniqueSeasons(scoped);
   sel.innerHTML = `<option value="__all__">All seasons</option>` + seasons.map(s=>`<option value="${s.replaceAll('"','&quot;')}">${s}</option>`).join('');
-
-  // default: Global Finals if exists (case-insensitive)
   const gf = seasons.find(s => s.toLowerCase()==='global finals');
   if(gf) sel.value = gf;
   else sel.value = '__all__';
@@ -677,8 +774,6 @@ function populateTournamentFilter(){
   const items = tournamentsWithMaxId(scoped);
   sel.innerHTML = `<option value="__all__">All tournaments</option>` +
     items.map(o=>`<option value="${o.name.replaceAll('"','&quot;')}">${o.name}</option>`).join('');
-
-  // default: ALL tournaments (per your requirement)
   sel.value = '__all__';
 }
 function populateStageFilter(defaultLatest=true){
@@ -687,15 +782,13 @@ function populateStageFilter(defaultLatest=true){
   const items = stagesWithMaxId(scoped);
   sel.innerHTML = `<option value="__all__">All stages</option>` +
     items.map(v=>`<option value="${v.name.replaceAll('"','&quot;')}">${v.name}</option>`).join('');
-
-  if(defaultLatest && items.length) sel.value = items[0].name; // latest stage
+  if(defaultLatest && items.length) sel.value = items[0].name;
   else sel.value = '__all__';
 }
 
 function baseRows(rows){
   let out = rows;
 
-  // year
   const y = selectedYear();
   if(y!=='__all__'){
     const yNum = Number(y);
@@ -704,21 +797,18 @@ function baseRows(rows){
       : out.filter(r => String(r.year??'').toLowerCase()===y.toLowerCase());
   }
 
-  // season
   const seas = selectedSeason();
   if(seas!=='__all__'){
     const sl = seas.toLowerCase();
     out = out.filter(r=> norm(r.season).toLowerCase()===sl);
   }
 
-  // tournament
   const t = selectedTournament();
   if(t!=='__all__'){
     const tl=t.toLowerCase();
     out = out.filter(r=> norm(r.tournament).toLowerCase()===tl);
   }
 
-  // stage
   const s = selectedStage();
   if(s!=='__all__'){
     const sf=s.toLowerCase();
@@ -751,6 +841,7 @@ function updateTeamsForCurrentScope(){
   buildTeamIndexes();
   const searchVal = el('teamSearch') ? el('teamSearch').value : '';
   renderTeamGrid(searchVal);
+  populateSplitSelects();
 }
 
 /* ============ Tables + heat ============ */
@@ -827,15 +918,15 @@ function applyColumnHeatmap(containerId, keys){
     if(!entries.length) continue;
 
     const asc=entries.slice().sort((a,b)=>a.v-b.v);
-    const n=asc.length;
+    const n2=asc.length;
     const bandByIndex=new Map();
     asc.forEach((e,rank)=>{
-      const p=(n<=1)?1:(rank/(n-1));
+      const p=(n2<=1)?1:(rank/(n2-1));
       const band=Math.min(BANDS-1,Math.floor(p*BANDS));
       bandByIndex.set(e.i,band);
     });
 
-    const topVal=asc[n-1].v;
+    const topVal=asc[n2-1].v;
 
     cells.forEach((td,i)=>{
       const band=bandByIndex.get(i);
@@ -898,7 +989,7 @@ function aggregateTeamsForMap(rows,mapValue){
 }
 function uniqueMaps(rows){ const s=new Set(); for(const r of rows){ const m=norm(r.map); if(m) s.add(m); } return [...s].sort((a,b)=>a.localeCompare(b)); }
 
-/* Team info/roster fetch (unchanged) */
+/* Team info/roster fetch (single view only) */
 function splitToLines(val){
   if (val == null) return [];
   if (Array.isArray(val) ) return val.flat().map(x=>String(x).trim()).filter(Boolean);
@@ -1088,18 +1179,18 @@ function teamMapPerf(rows){
   return out.sort((a,b)=> b.total_pm - a.total_pm || b.matches - a.matches || a.map.localeCompare(b.map));
 }
 
-/* By Day pivot */
-function renderByDay(){
-  const box = el('tblByDay');
+/* By Day pivot (generic) */
+function renderByDayInto(containerId, rows){
+  const box = el(containerId);
   if(!box) return;
-  if(!TEAM_ROWS.length){
+  if(!rows.length){
     box.innerHTML = '<div class="muted">No rows.</div>';
     return;
   }
   const dayLabel = r => `Y${n(r.year)||'—'} W${n(r.week)||'—'} D${n(r.day)||'—'}`;
 
   const daySet = new Set(), mapSet = new Set();
-  for(const r of TEAM_ROWS){
+  for(const r of rows){
     mapSet.add(norm(r.map) || '—');
     daySet.add(dayLabel(r));
   }
@@ -1107,7 +1198,7 @@ function renderByDay(){
   const maps = [...mapSet].sort((a,b)=> a.localeCompare(b));
 
   const totals = new Map();
-  for(const r of TEAM_ROWS){
+  for(const r of rows){
     const m = norm(r.map) || '—';
     const d = dayLabel(r);
     if(!totals.has(m)) totals.set(m, new Map());
@@ -1136,10 +1227,10 @@ function renderByDay(){
   tbody += '</tbody>';
 
   box.innerHTML = `<div class="table-scroll"><table>${thead}${tbody}</table></div>`;
-  applyColumnHeatmap('tblByDay', days);
+  applyColumnHeatmap(containerId, days);
 }
 
-/* AI prompt (left as-is from your baseline) */
+/* AI prompt (single view) */
 function buildRosterTextForAi(players){
   if(!players || !players.length) return 'No roster data available.';
   const example = players[0];
@@ -1308,7 +1399,7 @@ function updateAiPrompt(){
   ta.value = buildAiPrompt();
 }
 
-/* ---------- Renders: Team core ---------- */
+/* ---------- Single team render ---------- */
 function kpiAndByMap(){
   if(!CURRENT_TEAM){
     const tTitle = el('teamTitle'); if(tTitle) tTitle.textContent='Selected Team — Overview';
@@ -1356,6 +1447,7 @@ function kpiAndByMap(){
     ]);
     applyColumnHeatmap('tblMapTeam', ['total_pm','placement_pm','elims_pm','booyah_rate','matches','booyahs','elims','placement','total']);
   }
+  renderByDayInto('tblByDay', TEAM_ROWS);
   updateAiPrompt();
 }
 
@@ -1439,24 +1531,39 @@ function renderTeamGrid(filter=''){
       <div class="team-code">${t.name}</div>
     </div>`).join('');
   grid.querySelectorAll('.team-tile').forEach(tile=>{
-    tile.onclick=()=>{
+    tile.onclick=async ()=>{
       const code=tile.getAttribute('data-code').toLowerCase();
       const info=TEAM_BY_CODE[code];
-      if(info){
-        selectTeam(info);
+      if(!info) return;
+
+      if(SPLIT_MODE){
+        await selectTeamForSide(SPLIT_ACTIVE_SIDE, info);
+      }else{
+        await selectTeam(info);
         tile.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
       }
     };
   });
-  highlightActiveTile();
+  highlightActiveTiles();
 }
-function highlightActiveTile(){
+function highlightActiveTiles(){
   const grid=el('teamGrid'); if(!grid) return;
+  const a = TEAM_A?.name || null;
+  const b = TEAM_B?.name || null;
+
   [...grid.querySelectorAll('.team-tile')].forEach(div=>{
     const code=div.getAttribute('data-code');
-    div.classList.toggle('active', !!CURRENT_TEAM && CURRENT_TEAM.name===code);
+    div.classList.remove('active','activeA','activeB');
+    if(SPLIT_MODE){
+      if(a && code===a) div.classList.add('activeA');
+      if(b && code===b) div.classList.add('activeB');
+    }else{
+      div.classList.toggle('active', !!CURRENT_TEAM && CURRENT_TEAM.name===code);
+    }
   });
 }
+
+/* Single team select */
 async function selectTeam(teamObj){
   CURRENT_TEAM = teamObj;
   const url=new URL(window.location.href);
@@ -1468,8 +1575,7 @@ async function selectTeam(teamObj){
   );
 
   kpiAndByMap();
-  highlightActiveTile();
-  renderByDay();
+  highlightActiveTiles();
 
   const [info, roster] = await Promise.all([
     fetchTeamInfoBy(teamObj.name),
@@ -1484,22 +1590,146 @@ async function selectTeam(teamObj){
   updateAiPrompt();
 }
 
+/* Split view */
+function populateSplitSelects(){
+  const selA = el('splitSelA');
+  const selB = el('splitSelB');
+  if(!selA || !selB) return;
+
+  const opts = TEAMS.map(t => `<option value="${t.name}">${t.name} — ${t.fullname}</option>`).join('');
+  selA.innerHTML = `<option value="">—</option>` + opts;
+  selB.innerHTML = `<option value="">—</option>` + opts;
+
+  if(TEAM_A?.name) selA.value = TEAM_A.name;
+  if(TEAM_B?.name) selB.value = TEAM_B.name;
+}
+async function selectTeamForSide(side, teamObj){
+  if(!teamObj) return;
+  if(side==='A') TEAM_A = teamObj;
+  else TEAM_B = teamObj;
+
+  const rows = baseRows(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === teamObj.name.toUpperCase());
+  if(side==='A') ROWS_A = rows;
+  else ROWS_B = rows;
+
+  renderSplitSide(side);
+  populateSplitSelects();
+  highlightActiveTiles();
+}
+function renderSplitSide(side){
+  const team = side==='A' ? TEAM_A : TEAM_B;
+  const rows = side==='A' ? ROWS_A : ROWS_B;
+
+  const idIdentity = side==='A' ? 'splitIdentityA' : 'splitIdentityB';
+  const idKpis     = side==='A' ? 'splitKpisA'     : 'splitKpisB';
+  const idMap      = side==='A' ? 'splitMapA'      : 'splitMapB';
+  const idDay      = side==='A' ? 'splitDayA'      : 'splitDayB';
+
+  if(!team){
+    el(idIdentity).innerHTML = '<div class="muted">Select a team.</div>';
+    el(idKpis).innerHTML = '—';
+    el(idMap).innerHTML = '—';
+    el(idDay).innerHTML = '—';
+    return;
+  }
+
+  el(idIdentity).innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center">
+      <img src="${team.logo}" alt="${team.fullname} logo" style="width:64px;height:64px;object-fit:contain" onerror="this.style.visibility='hidden'">
+      <div>
+        <div style="font-size:1.05rem;font-weight:900">${team.name}</div>
+        <div class="muted">${team.fullname} • ${team.region||'—'} ${team.ew?('• '+team.ew):''}</div>
+      </div>
+    </div>`;
+
+  const k = kpiDataset(rows);
+  el(idKpis).innerHTML = k.matches ? `
+    <div class="kpis">
+      <div class="kpi">Rows <strong>${k.matches}</strong></div>
+      <div class="kpi">Booyahs <strong>${k.booyahs}</strong> (<strong>${fmtPct(k.booyah_rate)}</strong>)</div>
+      <div class="kpi">Elims <strong>${k.elims}</strong> • <strong>${k.elims_per_match.toFixed(1)}</strong>/m</div>
+      <div class="kpi">Placement <strong>${k.placement}</strong> • <strong>${k.place_per_match.toFixed(1)}</strong>/m</div>
+      <div class="kpi">Total <strong>${k.total}</strong> • <strong>${k.total_per_match.toFixed(1)}</strong>/m</div>
+      <div class="kpi">Top3 <strong>${fmtPct(k.top3_rate)}</strong></div>
+      <div class="kpi">Last Played <strong>${fmtYwdm(latestYwdm(rows))}</strong></div>
+    </div>` : '<div class="muted">No rows.</div>';
+
+  const mapRows = teamMapPerf(rows);
+  el(idMap).innerHTML = renderSimpleTable(mapRows, [
+    {label:'Map',key:'map'},
+    {label:'Matches',key:'matches',right:true},
+    {label:'Booyahs',key:'booyahs',right:true},
+    {label:'Elims',key:'elims',right:true},
+    {label:'Placement',key:'placement',right:true},
+    {label:'Total',key:'total',right:true},
+    {label:'Booyah %',key:'booyah_rate',format:'pct',right:true},
+    {label:'Elims / m',key:'elims_pm',format:'1d',right:true},
+    {label:'Placement / m',key:'placement_pm',format:'1d',right:true},
+    {label:'Total / m',key:'total_pm',format:'1d',right:true}
+  ]);
+  applyColumnHeatmap(idMap, ['total_pm','placement_pm','elims_pm','booyah_rate','matches','booyahs','elims','placement','total']);
+
+  renderByDayInto(idDay, rows);
+}
+function updateSplitPickUI(){
+  const aBtn = el('pickSideA'), bBtn = el('pickSideB');
+  const chip = el('splitActiveChip');
+  if(!aBtn || !bBtn) return;
+  aBtn.classList.toggle('onA', SPLIT_ACTIVE_SIDE==='A');
+  bBtn.classList.toggle('onB', SPLIT_ACTIVE_SIDE==='B');
+  if(chip) chip.textContent = `Active pick: ${SPLIT_ACTIVE_SIDE==='A' ? 'Left' : 'Right'}`;
+}
+function setSplitMode(on){
+  SPLIT_MODE = !!on;
+
+  setVisible('splitSection', SPLIT_MODE);
+  setVisible('splitPickChip', SPLIT_MODE);
+  el('splitResetBtn').style.display = SPLIT_MODE ? '' : 'none';
+  el('splitToggleBtn').textContent = SPLIT_MODE ? 'Single View' : 'Split View';
+
+  // hide single-team-only blocks while split is on
+  setVisible('teamHeader', !SPLIT_MODE);
+  setVisible('teamInfoSection', !SPLIT_MODE);
+  setVisible('mapsDaysSection', !SPLIT_MODE);
+  setVisible('teamRosterSection', !SPLIT_MODE);
+  setVisible('aiAnalysisSection', !SPLIT_MODE);
+
+  updateSplitPickUI();
+  highlightActiveTiles();
+}
+
 /* Controls */
 function populateMapFilter(){
   el('mapFilter').innerHTML =
     `<option value="__all__">All maps</option>` +
     uniqueMaps(baseRows(ALL)).map(m=>`<option>${m}</option>`).join('');
 }
-async function refreshScopeAfterFilterChange(rebuildStageDefault=false){
-  if(rebuildStageDefault){
-    populateStageFilter(true);
-  }
+
+async function refreshScopeAfterFilterChange(){
   updateFilterHint();
   updateTeamsForCurrentScope();
   populateMapFilter();
   renderOverall();
   renderPerMapAllTeams();
 
+  if(SPLIT_MODE){
+    // keep same teams if still present; else pick first two
+    const aOk = TEAM_A && ALLOWED_TAGS.has(TEAM_A.name.toUpperCase());
+    const bOk = TEAM_B && ALLOWED_TAGS.has(TEAM_B.name.toUpperCase());
+
+    let nextA = aOk ? TEAM_A : (TEAMS[0] || null);
+    let nextB = bOk ? TEAM_B : (TEAMS[1] || TEAMS[0] || null);
+
+    if(nextA && nextB && nextA.name===nextB.name){
+      nextB = TEAMS.find(t => t.name!==nextA.name) || nextB;
+    }
+
+    await selectTeamForSide('A', nextA);
+    await selectTeamForSide('B', nextB);
+    return;
+  }
+
+  // single view behavior
   let nextTeam = null;
   if (CURRENT_TEAM && ALLOWED_TAGS.has(CURRENT_TEAM.name.toUpperCase())){
     nextTeam = CURRENT_TEAM;
@@ -1555,31 +1785,30 @@ function wireControls(){
     populateSeasonFilter();
     populateTournamentFilter();
     populateStageFilter(true);
-    await refreshScopeAfterFilterChange(false);
+    await refreshScopeAfterFilterChange();
   });
 
   el('gSeason').addEventListener('change', async ()=>{
     populateTournamentFilter();
     populateStageFilter(true);
-    await refreshScopeAfterFilterChange(false);
+    await refreshScopeAfterFilterChange();
   });
 
   el('gTournament').addEventListener('change', async ()=>{
     populateStageFilter(true);
-    await refreshScopeAfterFilterChange(false);
+    await refreshScopeAfterFilterChange();
   });
 
   el('gStage').addEventListener('change', async ()=>{
-    await refreshScopeAfterFilterChange(false);
+    await refreshScopeAfterFilterChange();
   });
 
   el('gTournReset').addEventListener('click', async ()=>{
-    // Reset defaults: Year 2025, Season Global Finals, Tournament All, Stage latest
     populateYearFilter();
     populateSeasonFilter();
     populateTournamentFilter();
     populateStageFilter(true);
-    await refreshScopeAfterFilterChange(false);
+    await refreshScopeAfterFilterChange();
   });
 
   el('overallSortKey').addEventListener('change', renderOverall);
@@ -1620,6 +1849,55 @@ function wireControls(){
   if(copyBtn) copyBtn.addEventListener('click', copyAiPrompt);
   const refreshBtn = el('refreshAiPromptBtn');
   if(refreshBtn) refreshBtn.addEventListener('click', updateAiPrompt);
+
+  /* Split controls */
+  el('splitToggleBtn').addEventListener('click', async ()=>{
+    setSplitMode(!SPLIT_MODE);
+
+    if(SPLIT_MODE){
+      // choose defaults
+      const a = CURRENT_TEAM || TEAMS[0] || null;
+      const b = TEAMS.find(t => !a || t.name!==a.name) || TEAMS[1] || a || null;
+
+      await selectTeamForSide('A', a);
+      await selectTeamForSide('B', b);
+
+      // keep selects in sync
+      populateSplitSelects();
+    }else{
+      // back to single view: keep left as current if possible
+      const back = TEAM_A || CURRENT_TEAM || TEAMS[0] || null;
+      if(back) await selectTeam(back);
+      updateAiPrompt();
+    }
+  });
+
+  el('splitResetBtn').addEventListener('click', async ()=>{
+    const a = TEAMS[0] || null;
+    const b = TEAMS[1] || TEAMS[0] || null;
+    await selectTeamForSide('A', a);
+    await selectTeamForSide('B', b);
+  });
+
+  el('pickSideA').addEventListener('click', ()=>{
+    SPLIT_ACTIVE_SIDE='A';
+    updateSplitPickUI();
+  });
+  el('pickSideB').addEventListener('click', ()=>{
+    SPLIT_ACTIVE_SIDE='B';
+    updateSplitPickUI();
+  });
+
+  el('splitSelA').addEventListener('change', async (e)=>{
+    const code = (e.target.value||'').toLowerCase();
+    const t = TEAM_BY_CODE[code];
+    if(t) await selectTeamForSide('A', t);
+  });
+  el('splitSelB').addEventListener('change', async (e)=>{
+    const code = (e.target.value||'').toLowerCase();
+    const t = TEAM_BY_CODE[code];
+    if(t) await selectTeamForSide('B', t);
+  });
 }
 
 /* ---------- Init ---------- */
@@ -1654,11 +1932,13 @@ async function initial(){
     let starter=null;
     if(qTeam && TEAM_BY_CODE[qTeam]) starter=TEAM_BY_CODE[qTeam];
     else if(TEAMS.length) starter=TEAMS[0];
+
     if(starter) await selectTeam(starter);
     else updateAiPrompt();
 
     wireControls();
     document.querySelectorAll('details.accordion').forEach(d=> d.open=false);
+    setSplitMode(false);
     el('veil').classList.add('hide');
   }catch(e){
     gerr('Fatal error initializing page:\n\n'+(e.stack||e.message||e));
