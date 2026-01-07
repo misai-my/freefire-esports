@@ -58,6 +58,9 @@
 
       --danger:#ff5a5a;
       --good:#71d083;
+
+      /* draft history scroll sizing */
+      --rowH: 48px; /* header + 5 rows => 6 * rowH */
     }
 
     *{ box-sizing:border-box; }
@@ -147,7 +150,14 @@
       align-items:center;
       gap:10px;
     }
-    .user-controls #user-info{ font-size:12px; color:var(--muted); max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .user-controls #user-info{
+      font-size:12px;
+      color:var(--muted);
+      max-width:320px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
     .btn{
       background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.95));
@@ -191,14 +201,13 @@
       box-shadow: 0 0 0 3px rgba(77,211,255,.14), 0 16px 40px rgba(0,0,0,.45);
     }
 
-    /* details (draft history) */
-    details{
+    /* details (Draft History ONLY) */
+    details.glassy{
       margin: 20px auto;
       width: 90%;
       max-width: 1200px;
       padding: 12px 12px 14px;
-    }
-    details.glassy{
+
       background:rgba(20,26,38,.55);
       border:1px solid var(--line);
       border-radius:var(--radius-lg);
@@ -206,7 +215,7 @@
       backdrop-filter: blur(14px) saturate(140%);
       box-shadow:var(--shadow);
     }
-    details > summary{
+    details.glassy > summary{
       list-style:none;
       user-select:none;
       cursor:pointer;
@@ -216,7 +225,7 @@
       font-weight:900;
       font-size:18px;
     }
-    details > summary::-webkit-details-marker{ display:none; }
+    details.glassy > summary::-webkit-details-marker{ display:none; }
 
     /* top controls */
     .top-controls{
@@ -599,13 +608,23 @@
     .hero-grid-item div{ font-size:10px; text-align:center; color: rgba(244,246,255,.82); max-width: 86px; overflow-wrap:anywhere; }
 
     /* draft history table */
+    .table-scroll{
+      width: 100%;
+      max-height: calc(var(--rowH) * 6); /* header + 5 rows */
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    }
+
     #recordTable{
       width: 100%;
       border-collapse: collapse;
       overflow:hidden;
       border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+      border: none;
+      box-shadow: none;
     }
     #recordTable thead{
       background: rgba(255,255,255,.06) !important;
@@ -615,6 +634,17 @@
       padding: 10px 8px !important;
       color: rgba(244,246,255,.86);
       font-size: 13px;
+      height: var(--rowH);
+      vertical-align: middle;
+      background: transparent;
+    }
+    #recordTable thead th{
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      background: rgba(255,255,255,.08) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     #recordTable tbody{
       background: rgba(14,18,28,.35) !important;
@@ -634,8 +664,8 @@
     }
     #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
 
-    /* Match Summary by Team cards */
-    #draftCardSummary{
+    /* Filter bar (moved from PB Counts) */
+    #pbFilterBar{
       width: 95%;
       max-width: 1400px;
       margin: 22px auto 0;
@@ -647,72 +677,15 @@
       backdrop-filter: blur(14px) saturate(140%);
       box-shadow: 0 18px 60px rgba(0,0,0,.45);
     }
-    #draftCardSummary h2{
+    #pbFilterBar h2{
       text-align:center;
       color: var(--brand);
       font-family:'Orbitron',sans-serif;
       letter-spacing:.4px;
       margin: 6px 0 14px;
-    }
-    .team-card{
-      width: 300px;
-      border-radius: 18px;
-      padding: 12px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-      color: rgba(244,246,255,.86);
-    }
-    .team-card h3{
-      margin: 0 0 10px;
-      color: var(--brand2);
-      font-family:'Orbitron',sans-serif;
-      font-size: 14px;
-      letter-spacing:.3px;
-    }
-    .team-meta{
-      font-size: 12px;
-      margin-bottom: 8px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding-bottom: 8px;
-      color: rgba(244,246,255,.78);
-    }
-    .mini-player{
-      width: 68px;
-      text-align:center;
-      font-size: 10px;
-      color: rgba(244,246,255,.78);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      padding: 8px 6px;
-      background: rgba(14,18,28,.35);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 24px rgba(0,0,0,.30);
     }
 
-    /* Pick/Ban Counts section */
-    #teamPBCounts{
-      width: 95%;
-      max-width: 1400px;
-      margin: 22px auto 40px;
-      padding: 14px;
-      border-radius: var(--radius-lg);
-      background: rgba(20,26,38,.42);
-      border: 1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-    #teamPBCounts h2{
-      text-align:center;
-      color: var(--brand);
-      font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-      margin: 6px 0 14px;
-    }
+    /* shared controls look */
     .counts-controls{
       display:flex;
       gap: 10px;
@@ -735,6 +708,146 @@
       box-shadow: 0 16px 40px rgba(0,0,0,.35);
     }
     .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
+
+    /* Match Summary by Team (ACCORDION) */
+    #draftCardSummary{
+      width: 95%;
+      max-width: 1400px;
+      margin: 14px auto 0;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: rgba(20,26,38,.42);
+      border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    #draftCardSummary h2{
+      text-align:center;
+      color: var(--brand);
+      font-family:'Orbitron',sans-serif;
+      letter-spacing:.4px;
+      margin: 6px 0 14px;
+    }
+
+    #teamDraftCards{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 14px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    details.team-accordion{
+      width: 340px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+
+    details.team-accordion > summary{
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      padding: 12px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    details.team-accordion > summary::-webkit-details-marker{ display:none; }
+
+    .acc-left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .acc-title{
+      color: var(--brand2);
+      font-family:'Orbitron',sans-serif;
+      font-size: 14px;
+      letter-spacing:.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 230px;
+    }
+    .acc-badge{
+      font-size: 11px;
+      font-weight: 950;
+      color: rgba(244,246,255,.88);
+      background: rgba(14,18,28,.35);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+    .acc-chevron{
+      width: 26px;
+      height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(14,18,28,.30);
+      color: rgba(244,246,255,.82);
+      font-weight: 950;
+      transition: transform .15s ease, filter .15s ease;
+      flex: 0 0 auto;
+    }
+    details.team-accordion[open] .acc-chevron{ transform: rotate(180deg); }
+
+    .team-accordion-body{
+      padding: 0 12px 12px;
+    }
+
+    .team-meta{
+      font-size: 12px;
+      margin: 8px 0 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding-bottom: 10px;
+      color: rgba(244,246,255,.78);
+    }
+    .mini-player{
+      width: 68px;
+      text-align:center;
+      font-size: 10px;
+      color: rgba(244,246,255,.78);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 8px 6px;
+      background: rgba(14,18,28,.35);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.30);
+    }
+
+    /* Pick/Ban Counts section */
+    #teamPBCounts{
+      width: 95%;
+      max-width: 1400px;
+      margin: 14px auto 40px;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: rgba(20,26,38,.42);
+      border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    #teamPBCounts h2{
+      text-align:center;
+      color: var(--brand);
+      font-family:'Orbitron',sans-serif;
+      letter-spacing:.4px;
+      margin: 6px 0 14px;
+    }
     .counts-summary{
       text-align:center;
       margin-top: 8px;
@@ -781,6 +894,7 @@
       .draft-wrapper{ flex-wrap:wrap; gap:14px; }
       .summary-wrapper > div{ min-width: 360px; }
       .team-row{ flex-wrap:wrap; justify-content:center; }
+      details.team-accordion{ width: min(520px, 100%); }
     }
   </style>
 </head>
@@ -812,28 +926,31 @@
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 14px;">
-      <table id="recordTable">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Game</th>
-            <th>Team Left</th>
-            <th>Team Left Score</th>
-            <th>Team Right</th>
-            <th>Team Right Score</th>
-            <th>Map</th>
-            <th>Tournament</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="recordBody"></tbody>
-      </table>
+    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 14px; width:100%;">
+      <!-- ✅ scroll wrapper: shows ~5 rows -->
+      <div class="table-scroll">
+        <table id="recordTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Game</th>
+              <th>Team Left</th>
+              <th>Team Left Score</th>
+              <th>Team Right</th>
+              <th>Team Right Score</th>
+              <th>Map</th>
+              <th>Tournament</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordBody"></tbody>
+        </table>
+      </div>
     </div>
   </details>
 
   <div class="top-controls glassbar">
-    <a href="home.html">← Back to Dashboard</a>
+    <a href="dashboard.html">← Back to Dashboard</a>
 
     <label for="matchDate">Date:</label>
     <input type="date" id="matchDate" />
@@ -901,24 +1018,30 @@
     </div>
   </div>
 
+  <!-- ✅ moved PB filters ABOVE match summary; removed date range -->
+  <div id="pbFilterBar">
+    <h2>Filters</h2>
+    <div class="counts-controls">
+      <label>Team
+        <select id="teamCountSelect" style="min-width:220px;" onchange="applyPBFilters()"></select>
+      </label>
+      <label>Tournament
+        <select id="countTournamentSelect" style="min-width:220px;" onchange="applyPBFilters()"></select>
+      </label>
+      <button onclick="applyPBFilters()">Apply</button>
+    </div>
+    <div style="text-align:center; color: rgba(244,246,255,.70); font-size:12px; font-weight:800;">
+      Affects: Match Summary + Pick/Ban Counts
+    </div>
+  </div>
+
   <div id="draftCardSummary">
     <h2>Match Summary by Team</h2>
-    <div id="teamDraftCards" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;"></div>
+    <div id="teamDraftCards"></div>
   </div>
 
   <div id="teamPBCounts">
-    <h2>Team Pick/Ban Counts (by Date Range)</h2>
-    <div class="counts-controls">
-      <label>Team
-        <select id="teamCountSelect" style="min-width:220px;"></select>
-      </label>
-      <label>Tournament
-        <select id="countTournamentSelect" style="min-width:220px;"></select>
-      </label>
-      <label>From <input type="date" id="countFrom"></label>
-      <label>To <input type="date" id="countTo"></label>
-      <button onclick="computeTeamPickBanCounts()">Compute</button>
-    </div>
+    <h2>Team Pick/Ban Counts</h2>
     <div class="counts-summary" id="teamPBMeta"></div>
     <div class="counts-grid">
       <div class="counts-card">
@@ -945,6 +1068,9 @@
 <script>
 let characters = [], weapons = [], currentSlot = null;
 
+let ALL_DRAFT_RECORDS = [];
+let LAST_MATCHED_RECORDS = [];
+
 // state now includes tournamentName
 let draftState = {
   bans: [null, null],
@@ -968,9 +1094,6 @@ async function initDraftPage() {
 
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;
-  document.getElementById('countTo').valueAsDate = today;
-  const from = new Date(2025, 7, 28);
-  document.getElementById('countFrom').valueAsDate = from;
 
   // auto-save header changes into public.draft
   document.getElementById('matchDate').addEventListener('change', saveDraftState);
@@ -1504,7 +1627,7 @@ function toggleTeamFilterMode() {
 async function loadAllDraftRecords() {
   const { data, error } = await client
     .from('draft_records')
-    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name')
+    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
     .order('match_date', { ascending: false })
     .order('id', { ascending: false });
 
@@ -1512,6 +1635,8 @@ async function loadAllDraftRecords() {
     console.error("❌ Failed to fetch draft records:", error);
     return;
   }
+
+  ALL_DRAFT_RECORDS = data || [];
 
   const filterSelect = document.getElementById('teamFilter');
   const teamCountSelect = document.getElementById('teamCountSelect');
@@ -1624,7 +1749,8 @@ async function loadAllDraftRecords() {
     table.appendChild(row);
   });
 
-  renderDraftCardSummaries(matchedRecords);
+  LAST_MATCHED_RECORDS = matchedRecords;
+  applyPBFilters(); // renders accordion + counts (no date range)
 }
 
 async function loadSpecificDraft(id) {
@@ -1669,137 +1795,191 @@ async function loadSpecificDraft(id) {
   console.log("✅ Specific draft loaded and synced to draft.");
 }
 
-function renderDraftCardSummaries(data) {
+/* -----------------------------
+   ✅ PB FILTERS + MATCH SUMMARY
+------------------------------*/
+function applyPBFiltersToRecords(records){
+  const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
+  const tourn = document.getElementById('countTournamentSelect')?.value || '__ALL__';
+
+  return (records || []).filter(r => {
+    const okTeam = (team === '__ALL__') || (r.team_left === team) || (r.team_right === team);
+    const okTourn = (tourn === '__ALL__') || (r.tournament_name === tourn);
+    return okTeam && okTourn;
+  });
+}
+
+function applyPBFilters(){
+  const filtered = applyPBFiltersToRecords(LAST_MATCHED_RECORDS);
+  renderTeamAccordionSummaries(filtered);
+  computeTeamPickBanCountsFromRecords(filtered);
+}
+
+/* -----------------------------
+   ✅ MATCH SUMMARY ACCORDION
+------------------------------*/
+function renderTeamAccordionSummaries(records) {
   const container = document.getElementById('teamDraftCards');
   container.innerHTML = '';
 
+  const focusTeam = document.getElementById('teamCountSelect')?.value || '__ALL__';
+
   const teamMap = {};
-  data.forEach(record => {
+  records.forEach(record => {
+    if (focusTeam !== '__ALL__') {
+      if (!teamMap[focusTeam]) teamMap[focusTeam] = [];
+      teamMap[focusTeam].push(record);
+      return;
+    }
     [record.team_left, record.team_right].forEach(team => {
       if (!teamMap[team]) teamMap[team] = [];
       teamMap[team].push(record);
     });
   });
 
-  const filterSelect = document.getElementById('teamFilter');
-  const selectedTeams = Array.from(filterSelect.selectedOptions).map(opt => opt.value.toLowerCase());
+  const teams = Object.keys(teamMap).sort((a,b)=>a.localeCompare(b));
+  if (!teams.length){
+    container.innerHTML = `<div style="text-align:center; color:rgba(244,246,255,.72); font-weight:900; padding:14px;">
+      — No records for current filter —
+    </div>`;
+    return;
+  }
 
-  Object.keys(teamMap).forEach(team => {
-    if (selectedTeams.length && !selectedTeams.includes(team.toLowerCase())) return;
+  teams.forEach(team => {
+    const d = document.createElement('details');
+    d.className = 'team-accordion';
 
-    const teamCard = document.createElement('div');
-    teamCard.className = 'team-card';
+    const sum = document.createElement('summary');
+    const left = document.createElement('div');
+    left.className = 'acc-left';
+    left.innerHTML = `<div class="acc-title">${team}</div>`;
 
-    const title = document.createElement('h3');
-    title.innerText = team;
-    teamCard.appendChild(title);
+    const badge = document.createElement('div');
+    badge.className = 'acc-badge';
+    badge.textContent = `${teamMap[team].length} match${teamMap[team].length===1?'':'es'}`;
+
+    const chev = document.createElement('div');
+    chev.className = 'acc-chevron';
+    chev.textContent = '▾';
+
+    sum.appendChild(left);
+    sum.appendChild(badge);
+    sum.appendChild(chev);
+
+    const body = document.createElement('div');
+    body.className = 'team-accordion-body';
 
     teamMap[team].forEach(r => {
       const meta = document.createElement('div');
       meta.className = 'team-meta';
       meta.innerHTML = `
-        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map}<br>
+        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map ?? '—'}<br>
         🏆 ${r.tournament_name ?? '—'}<br>
         🆚 ${r.team_left} ${r.team_left_score ?? '-'} - ${r.team_right_score ?? '-'} ${r.team_right}
       `;
-      teamCard.appendChild(meta);
+      body.appendChild(meta);
 
-      const draft = r.state;
-      if (draft && draft.picks) {
-        const pickIndexes = (team === r.team_left) ? [0, 1, 2, 3] : [7, 6, 5, 4];
-        const playerGrid = document.createElement('div');
-        playerGrid.style.display = 'flex';
-        playerGrid.style.gap = '8px';
-        playerGrid.style.marginBottom = '12px';
-        playerGrid.style.flexWrap = 'wrap';
+      const draft = r.state || {};
+      if (!draft.picks) return;
 
-        pickIndexes.forEach(i => {
-          const hero = draft.picks[i];
-          const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
-          const passives = draft.passives?.[i] || [];
+      const isLeft = (team === r.team_left);
+      const isRight = (team === r.team_right);
 
-          const pCard = document.createElement('div');
-          pCard.className = 'mini-player';
+      let pickIndexes;
+      if (focusTeam !== '__ALL__') {
+        // when focused, show the focused team side for each match
+        const focused = focusTeam;
+        const focusedIsLeft = (focused === r.team_left);
+        pickIndexes = focusedIsLeft ? [0,1,2,3] : [7,6,5,4];
+      } else {
+        // when showing all teams, show current team side
+        if (isLeft) pickIndexes = [0,1,2,3];
+        else if (isRight) pickIndexes = [7,6,5,4];
+        else pickIndexes = [0,1,2,3];
+      }
 
-          const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
-          const heroName = hero?.name || 'None';
-          const heroSkill = hero?.skill || '';
+      const playerGrid = document.createElement('div');
+      playerGrid.style.display = 'flex';
+      playerGrid.style.gap = '8px';
+      playerGrid.style.marginBottom = '12px';
+      playerGrid.style.flexWrap = 'wrap';
 
-          pCard.innerHTML = `
-            <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
-            <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
-            <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
-            <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
-          `;
+      pickIndexes.forEach(i => {
+        const hero = draft.picks[i];
+        const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
+        const passives = draft.passives?.[i] || [];
 
-          passives.forEach(ps => {
-            if (ps) {
-              const psLine = document.createElement('div');
-              psLine.style.display = 'flex';
-              psLine.style.alignItems = 'center';
-              psLine.style.gap = '4px';
-              psLine.style.justifyContent = 'center';
-              psLine.style.fontSize = '9px';
-              psLine.style.color = 'rgba(244,246,255,.72)';
-              psLine.style.marginTop = '6px';
+        const pCard = document.createElement('div');
+        pCard.className = 'mini-player';
 
-              if (ps.image_url) {
-                const img = document.createElement('img');
-                img.src = ps.image_url;
-                img.style.width = '14px';
-                img.style.height = '14px';
-                img.style.borderRadius = '6px';
-                psLine.appendChild(img);
-              }
+        const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
+        const heroName = hero?.name || 'None';
+        const heroSkill = hero?.skill || '';
 
-              const label = document.createElement('span');
-              label.textContent = ps.name;
-              psLine.appendChild(label);
+        pCard.innerHTML = `
+          <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
+          <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
+          <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
+          <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
+        `;
 
-              pCard.appendChild(psLine);
-            }
-          });
+        passives.forEach(ps => {
+          if (!ps) return;
+          const psLine = document.createElement('div');
+          psLine.style.display = 'flex';
+          psLine.style.alignItems = 'center';
+          psLine.style.gap = '4px';
+          psLine.style.justifyContent = 'center';
+          psLine.style.fontSize = '9px';
+          psLine.style.color = 'rgba(244,246,255,.72)';
+          psLine.style.marginTop = '6px';
 
-          playerGrid.appendChild(pCard);
+          if (ps.image_url) {
+            const img = document.createElement('img');
+            img.src = ps.image_url;
+            img.style.width = '14px';
+            img.style.height = '14px';
+            img.style.borderRadius = '6px';
+            psLine.appendChild(img);
+          }
+
+          const label = document.createElement('span');
+          label.textContent = ps.name;
+          psLine.appendChild(label);
+
+          pCard.appendChild(psLine);
         });
 
-        teamCard.appendChild(playerGrid);
-      }
+        playerGrid.appendChild(pCard);
+      });
+
+      body.appendChild(playerGrid);
     });
 
-    container.appendChild(teamCard);
+    d.appendChild(sum);
+    d.appendChild(body);
+    container.appendChild(d);
+  });
+
+  // ✅ true accordion behavior: opening one closes others
+  const acc = Array.from(container.querySelectorAll('details.team-accordion'));
+  acc.forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      acc.forEach(o => { if (o !== d) o.open = false; });
+    });
   });
 }
 
-async function computeTeamPickBanCounts() {
-  const team = document.getElementById('teamCountSelect').value;
-  const tourn = (document.getElementById('countTournamentSelect')?.value) || '__ALL__';
-  const from = document.getElementById('countFrom').value;
-  const to = document.getElementById('countTo').value;
+/* -----------------------------
+   ✅ PICK/BAN COUNTS (no date)
+------------------------------*/
+function computeTeamPickBanCountsFromRecords(records) {
+  const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
+  const tourn = document.getElementById('countTournamentSelect')?.value || '__ALL__';
 
-  if (!team) { alert('Please choose a team.'); return; }
-  if (!from || !to) { alert('Please set a From and To date.'); return; }
-
-  let query = client
-    .from('draft_records')
-    .select('team_left, team_right, match_date, state, tournament_name')
-    .gte('match_date', from)
-    .lte('match_date', to);
-
-  if (team !== '__ALL__') {
-    query = query.or(`team_left.eq.${team},team_right.eq.${team}`);
-  }
-  if (tourn !== '__ALL__') {
-    query = query.eq('tournament_name', tourn);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('❌ Failed to fetch for counts:', error);
-    alert('Failed to fetch records for the selected range.');
-    return;
-  }
+  const teamLabel = (team === '__ALL__') ? 'All teams' : team;
+  const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
 
   let totalMatches = 0;
   let totalPicks = 0;
@@ -1807,7 +1987,7 @@ async function computeTeamPickBanCounts() {
   const pickCounts = new Map();
   const banCounts = new Map();
 
-  data.forEach(r => {
+  (records || []).forEach(r => {
     const s = r.state || {};
     const picks = s.picks || [];
     const bans = s.bans || [];
@@ -1832,42 +2012,41 @@ async function computeTeamPickBanCounts() {
           totalBans += 1;
         }
       });
-    } else {
-      const isLeft = r.team_left === team;
-      const isRight = r.team_right === team;
-      if (!isLeft && !isRight) return;
 
-      totalMatches += 1;
+      return;
+    }
 
-      const idx = isLeft ? [0,1,2,3] : [4,5,6,7];
-      idx.forEach(i => {
-        const hero = picks[i];
-        const skillName = hero?.name || null;
-        if (skillName) {
-          pickCounts.set(skillName, (pickCounts.get(skillName) || 0) + 1);
-          totalPicks += 1;
-        }
-      });
+    const isLeft = r.team_left === team;
+    const isRight = r.team_right === team;
+    if (!isLeft && !isRight) return;
 
-      const banHero = bans[isLeft ? 0 : 1];
-      const banName = banHero?.name || null;
-      if (banName) {
-        banCounts.set(banName, (banCounts.get(banName) || 0) + 1);
-        totalBans += 1;
+    totalMatches += 1;
+
+    const idx = isLeft ? [0,1,2,3] : [4,5,6,7];
+    idx.forEach(i => {
+      const hero = picks[i];
+      const skillName = hero?.name || null;
+      if (skillName) {
+        pickCounts.set(skillName, (pickCounts.get(skillName) || 0) + 1);
+        totalPicks += 1;
       }
+    });
+
+    const banHero = bans[isLeft ? 0 : 1];
+    const banName = banHero?.name || null;
+    if (banName) {
+      banCounts.set(banName, (banCounts.get(banName) || 0) + 1);
+      totalBans += 1;
     }
   });
 
-  const teamLabel = (team === '__ALL__') ? 'All teams' : team;
-  const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
-
   document.getElementById('teamPBMeta').textContent =
-    `Team: ${teamLabel} • Tournament: ${tournLabel} • Range: ${from} → ${to} • Matches: ${totalMatches}`;
+    `Team: ${teamLabel} • Tournament: ${tournLabel} • Matches: ${totalMatches}`;
 
   const totalsEl = document.getElementById('teamPBTotals');
   totalsEl.innerHTML =
     (totalMatches === 0)
-      ? 'No matches in range.'
+      ? 'No matches for current filter.'
       : `<div><b>Total Picks:</b> ${totalPicks}</div>
          <div><b>Total Bans:</b> ${totalBans}</div>`;
 
@@ -1893,7 +2072,7 @@ async function computeTeamPickBanCounts() {
     });
 
   if (totalMatches === 0) {
-    document.getElementById('teamPBTotals').innerHTML = 'No matches in range.';
+    document.getElementById('teamPBTotals').innerHTML = 'No matches for current filter.';
   }
 }
 </script>
