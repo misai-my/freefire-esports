@@ -8,8 +8,8 @@
 
   <script>
     const client = supabase.createClient(
-      'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+      'https://gkugecflfddkpitlrmws.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWdlY2ZsZmRka3BpdGxybXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwODMwNzQsImV4cCI6MjA2MTY1OTA3NH0.OgQOx9k71DDdK1yOa7VNKGSgoFD9kNGo8j-bR91zGKE'
     );
 
     function logout() {
@@ -20,7 +20,7 @@
 
     // IMPORTANT: wait for session BEFORE running any DB logic
     document.addEventListener('DOMContentLoaded', async () => {
-      const { data: { session }, error } = await client.auth.getSession();
+      const { data: { session } } = await client.auth.getSession();
 
       if (!session) {
         window.location.href = "index.html";
@@ -37,7 +37,8 @@
     });
   </script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --bg:#07090f;
@@ -56,689 +57,580 @@
       --radius-lg:22px;
       --shadow: 0 22px 70px rgba(0,0,0,.55);
 
+      --skill-active:#4dd3ff;
+      --skill-passive:#ff59c7;
+
       --danger:#ff5a5a;
-      --good:#71d083;
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
       font-family:'Roboto',system-ui,-apple-system,Segoe UI,Inter,Arial,sans-serif;
       color:var(--ink);
       background:
-        radial-gradient(1200px 700px at 10% -10%, rgba(77,211,255,.18), transparent 55%),
-        radial-gradient(1000px 700px at 90% 10%, rgba(255,119,51,.16), transparent 50%),
-        radial-gradient(900px 700px at 50% 110%, rgba(255,189,89,.10), transparent 55%),
+        radial-gradient(1200px 600px at 20% -10%, rgba(77,211,255,.16), transparent 60%),
+        radial-gradient(1200px 600px at 80% 0%, rgba(255,189,89,.14), transparent 55%),
+        radial-gradient(900px 500px at 50% 120%, rgba(255,119,51,.10), transparent 60%),
         linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
       overflow-x:hidden;
     }
 
-    /* subtle noise */
+    /* subtle grid */
     body:before{
       content:"";
-      position:fixed;
-      inset:0;
+      position:fixed; inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 46px 46px;
+      opacity:.18;
       pointer-events:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E");
-      mix-blend-mode:overlay;
-      opacity:.22;
+      mask-image: radial-gradient(circle at 50% 0%, black 0%, transparent 70%);
     }
 
-    /* glass primitives */
     .glass{
       background:var(--panel);
       border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      -webkit-backdrop-filter: blur(14px) saturate(135%);
-      backdrop-filter: blur(14px) saturate(135%);
-    }
-    .glass-soft{
-      background:rgba(20, 26, 38, .52);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      -webkit-backdrop-filter: blur(12px) saturate(130%);
-      backdrop-filter: blur(12px) saturate(130%);
-    }
-    .glass-hard{
-      background:rgba(14, 18, 28, .82);
-      border:1px solid rgba(255,255,255,.10);
       border-radius:var(--radius-lg);
       box-shadow:var(--shadow);
-      -webkit-backdrop-filter: blur(18px) saturate(145%);
-      backdrop-filter: blur(18px) saturate(145%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .glass-soft{
+      background:var(--panel2);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
-    /* header */
     header{
-      position:sticky;
-      top:0;
-      z-index:50;
-      padding:18px 14px;
+      position:sticky; top:0; z-index:50;
+      padding:16px 18px;
       border-bottom:1px solid var(--line);
-      background:rgba(14,18,28,.62);
-      -webkit-backdrop-filter: blur(16px) saturate(145%);
-      backdrop-filter: blur(16px) saturate(145%);
+      background:rgba(10,12,20,.58);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
-    header:after{
-      content:"";
-      position:absolute;
-      left:0; right:0; bottom:-1px;
-      height:2px;
-      background:linear-gradient(90deg, transparent, rgba(255,189,89,.85), rgba(255,119,51,.65), transparent);
-      opacity:.9;
+    header .inner{
+      max-width:1200px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      gap:12px;
     }
     h1{
       font-family:'Orbitron',sans-serif;
       margin:0;
-      text-align:center;
-      letter-spacing:.6px;
+      font-size:1.8rem;
+      letter-spacing:.4px;
       color:var(--brand);
-      font-size:2rem;
-      text-shadow:0 8px 30px rgba(0,0,0,.55);
+      text-shadow:0 0 24px rgba(255,189,89,.12);
     }
 
     .user-controls{
       position:absolute;
-      top:14px;
-      right:14px;
+      right:0;
       display:flex;
       align-items:center;
       gap:10px;
     }
-    .user-controls #user-info{ font-size:12px; color:var(--muted); max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .user-controls #user-info{ font-size:13px; color:var(--muted); }
 
     .btn{
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.95));
-      color:#141620;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      padding:8px 12px;
       font-weight:800;
-      border:none;
-      border-radius:12px;
-      padding:8px 12px;
       cursor:pointer;
-      box-shadow: 0 14px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
+      transition: transform .12s ease, filter .12s ease, border-color .12s ease;
+      background: linear-gradient(180deg, rgba(255,189,89,.95), rgba(255,119,51,.92));
+      color:#10131b;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
-    .btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .btn:active{ transform: translateY(0); }
-    .logout-btn{ composes: btn; } /* harmless if unsupported */
-    .user-controls .logout-btn{
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,189,89,.78));
-      color:#12131a;
-      font-weight:900;
-      border-radius:12px;
-      padding:8px 12px;
-      border:1px solid rgba(255,255,255,.10);
-    }
-    .user-controls .logout-btn:hover{ filter:brightness(1.05); }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.03); border-color: rgba(255,255,255,.18); }
+    .btn:active{ transform: translateY(0px) scale(.99); }
 
-    /* inputs & selects */
-    input[type="text"], input[type="date"], input[type="number"], select{
-      color:var(--ink);
-      background:rgba(10, 14, 24, .55);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:12px;
-      padding:8px 10px;
-      outline:none;
-      -webkit-backdrop-filter: blur(12px) saturate(130%);
-      backdrop-filter: blur(12px) saturate(130%);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-    }
-    input::placeholder{ color: rgba(170,177,197,.70); }
-    input:focus, select:focus{
-      border-color: rgba(255,119,51,.55);
-      box-shadow: 0 0 0 3px rgba(77,211,255,.14), 0 16px 40px rgba(0,0,0,.45);
-    }
-
-    /* details (draft history) */
-    details{
-      margin: 20px auto;
-      width: 90%;
-      max-width: 1200px;
-      padding: 12px 12px 14px;
-    }
-    details.glassy{
-      background:rgba(20,26,38,.55);
+    .btn-ghost{
+      background: rgba(255,255,255,.06);
+      color: var(--ink);
       border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow:var(--shadow);
+      box-shadow:none;
     }
-    details > summary{
+    .btn-ghost:hover{ background: rgba(255,255,255,.085); }
+
+    .wrap{ max-width:1200px; margin:18px auto 30px; padding:0 14px; }
+
+    /* Draft history collapsible */
+    details.history{
+      margin:14px auto 18px;
+      max-width:1200px;
+    }
+    details.history > summary{
       list-style:none;
-      user-select:none;
       cursor:pointer;
-      text-align:center;
-      padding:10px 0;
-      color:var(--brand);
+      padding:12px 14px;
+      font-size:16px;
       font-weight:900;
-      font-size:18px;
+      color:var(--brand);
+      border-radius:var(--radius-lg);
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      user-select:none;
     }
-    details > summary::-webkit-details-marker{ display:none; }
+    details.history[open] > summary{ border-bottom-left-radius:14px; border-bottom-right-radius:14px; }
+    details.history > summary::-webkit-details-marker{ display:none; }
+
+    .history-body{ margin-top:12px; padding:14px; }
+    .center-col{ text-align:center; }
+
+    .field{
+      display:flex; flex-direction:column; gap:6px;
+      align-items:center;
+      margin:10px auto 0;
+    }
+    .label{ font-size:12px; color:var(--muted); font-weight:700; }
+
+    select, input[type="text"], input[type="date"], input[type="number"]{
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-weight: 700;
+      outline: none;
+    }
+    select:focus, input:focus{ border-color: rgba(77,211,255,.45); box-shadow: 0 0 0 3px rgba(77,211,255,.12); }
+
+    #teamFilter{ width:220px; }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius:16px;
+    }
+    thead tr{
+      background: rgba(255,255,255,.06);
+      border-bottom:1px solid var(--line);
+    }
+    th, td{
+      padding:10px 8px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      font-size:13px;
+      color:var(--ink);
+    }
+    tbody tr:hover{ background: rgba(255,255,255,.04); }
 
     /* top controls */
     .top-controls{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
+      margin:16px auto 10px;
       display:flex;
       flex-wrap:wrap;
       justify-content:center;
       align-items:center;
       gap:10px;
-      padding:10px;
-    }
-    .top-controls.glassbar{
-      background:rgba(20,26,38,.52);
-      border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
     }
     .top-controls a{
+      text-decoration:none;
       display:inline-flex;
       align-items:center;
       gap:8px;
-      text-decoration:none;
+    }
+    .top-controls a, .top-controls button{
+      border-radius:12px;
+      padding:8px 12px;
       font-weight:900;
-      color:#12131a;
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.94));
-      border-radius:14px;
-      padding:10px 12px;
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
     }
-    .top-controls a:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .top-controls label{ color:var(--muted); font-weight:800; }
-
-    .top-controls button{
-      background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.78));
-      color:#10121a;
-      font-weight:950;
-      border:none;
-      border-radius:14px;
-      padding:10px 12px;
-      cursor:pointer;
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .top-controls button:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .top-controls a.btn-ghost{ border:1px solid var(--line); }
 
     .reset-btn{
-      margin: 14px auto 0;
+      margin: 14px auto 6px;
       display:block;
-      background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
-      color:#10121a;
-      border:1px solid rgba(255,255,255,.10);
-      padding:12px 18px;
-      border-radius:16px;
+      width: fit-content;
+      padding: 10px 16px;
+      border-radius: 14px;
+      font-weight: 900;
+      border:1px solid rgba(255,255,255,.12);
       cursor:pointer;
-      font-size:16px;
-      font-weight:950;
-      box-shadow: 0 18px 55px rgba(0,0,0,.42);
-      transition: transform .15s ease, filter .15s ease;
+      background: linear-gradient(180deg, rgba(255,119,51,.92), rgba(255,119,51,.72));
+      color: #11131a;
+      box-shadow: 0 16px 48px rgba(0,0,0,.35);
     }
-    .reset-btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .reset-btn:hover{ filter:brightness(1.05); }
 
-    /* draft layout */
+    /* Draft layout */
     .draft-wrapper{
       display:flex;
       justify-content:center;
       align-items:flex-start;
-      gap:46px;
-      margin-top: 16px;
-      flex-wrap: nowrap;
-      padding: 0 14px;
+      gap:34px;
+      margin-top: 12px;
+      flex-wrap:wrap;
     }
-
     .team-container{
       display:flex;
       flex-direction:column;
       align-items:center;
       gap:10px;
       padding:14px;
-      width: min(620px, 100%);
+      min-width: 420px;
     }
-    .team-container.glassbox{
-      background:rgba(20,26,38,.48);
-      border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-
     .team-label{
-      background:transparent;
-      border:none;
-      color:var(--brand2);
-      font-weight:950;
-      font-size:18px;
+      width:100%;
+      background: transparent;
+      border:1px dashed rgba(255,255,255,.18);
+      color: var(--brand2);
+      font-weight: 900;
+      font-size: 18px;
       text-align:center;
-      padding:6px 10px;
-      border-radius:12px;
+      padding:10px;
+      border-radius:14px;
       outline:none;
     }
-    .team-label:focus{
-      background:rgba(10,14,24,.45);
-      border:1px dashed rgba(255,189,89,.55);
-    }
+    .team-label:focus{ border-color: rgba(255,189,89,.45); box-shadow: 0 0 0 3px rgba(255,189,89,.10); }
 
+    .score-row{
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      color:var(--muted);
+      font-weight:800;
+      font-size:13px;
+    }
     .team-row{ display:flex; gap:10px; }
+
     .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; }
 
     .ban-slot, .pick-slot{
-      width: 100px;
-      height: 150px;
-      border-radius:14px;
-      position:relative;
-      cursor:pointer;
+      width: 102px;
+      height: 152px;
+      border-radius: 14px;
       display:flex;
       justify-content:center;
       align-items:center;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      cursor:pointer;
+      position:relative;
+      background: rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 55px rgba(0,0,0,.45);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      transition: transform .15s ease, border-color .15s ease, filter .15s ease;
+      overflow:hidden;
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
     }
-    .pick-slot{ border-color: rgba(77,211,255,.22); }
-    .ban-slot{ border-color: rgba(255,90,90,.42); }
+    .ban-slot{ border-color: rgba(255,90,90,.55); }
+    .ban-slot:hover, .pick-slot:hover{ border-color: rgba(77,211,255,.35); }
 
-    .ban-slot:hover, .pick-slot:hover{ transform: translateY(-2px); filter:brightness(1.03); }
     .ban-slot.disabled, .pick-slot.disabled{ opacity:0.4; pointer-events:none; }
 
-    .slot-name{ font-size:12px; color:rgba(244,246,255,.78); text-align:center; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-    .passive-slots, .weapon-slots{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
-    .passive-slot{
-      width:26px; height:52px;
-      border-radius:10px;
-      cursor:pointer;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      background-size:cover;
-      background-position:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
+    .slot-name{
+      font-size:12px;
+      color: var(--muted);
+      text-align:center;
+      max-width: 110px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .passive-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
 
+    .passive-slots, .weapon-slots{
+      display:flex;
+      gap:6px;
+      justify-content:center;
+      flex-wrap:wrap;
+      width: 112px;
+    }
+    .passive-slot{
+      width: 26px;
+      height: 52px;
+      border-radius: 8px;
+      cursor:pointer;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      background-size: cover;
+      background-position: center;
+    }
     .weapon-slot{
-      width:100px; height:44px;
-      border-radius:14px;
+      width: 102px;
+      height: 42px;
+      border-radius: 12px;
       cursor:pointer;
       display:flex;
       justify-content:center;
       align-items:center;
-      position:relative;
-      background:rgba(255,255,255,.06);
+      background: rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.10);
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
+      overflow:hidden;
     }
-    .weapon-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .weapon-slot img{ max-height:100%; max-width:100%; }
+    .weapon-slot.primary{ border-color: rgba(255,189,89,.55); }
+    .weapon-slot img{ max-height: 100%; max-width: 100%; }
 
     .passive-name, .weapon-name{
       font-size:10px;
-      color:rgba(244,246,255,.72);
+      color: var(--muted);
       text-align:center;
-      max-width: 100px;
+      max-width: 96px;
       overflow:hidden;
       white-space:nowrap;
       text-overflow:ellipsis;
     }
 
+    /* player name input under pick */
     .player-input{
-      width: 96px;
+      width: 102px;
       font-size: 10px;
-      padding: 6px 8px;
+      padding: 7px 8px;
+      border-radius: 12px;
       text-align:center;
-      border-radius:12px;
-      margin-top: 4px;
-    }
-
-    .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
-
-    .banned-overlay{
-      position:absolute; inset:0;
-      background: rgba(255, 90, 90, .28);
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.12);
       color: var(--ink);
-      font-weight: 950;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      border-radius:14px;
-      font-size:12px;
-      border:1px solid rgba(255,90,90,.35);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
     }
 
-    /* summary */
+    /* Summary wrapper (old left/right summary at mid page) */
     .summary-wrapper{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
       display:flex;
       justify-content:center;
-      gap: 18px;
-      font-size: 12px;
-      color: rgba(244,246,255,.78);
+      gap:22px;
+      margin-top: 14px;
+      max-width: 100%;
       overflow-x:auto;
-      padding: 10px;
+      padding: 0 10px 6px;
     }
     .summary-wrapper > div{
-      min-width: 520px;
       padding: 12px;
-      border-radius: var(--radius-lg);
-      background:rgba(20,26,38,.48);
-      border:1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      min-width: 520px;
     }
     .summary-wrapper h3{
-      margin: 6px 0 12px;
-      text-align:center;
-      font-family:'Orbitron',sans-serif;
+      margin:0 0 10px 0;
       color: var(--brand);
-      letter-spacing:.5px;
+      font-family:'Orbitron',sans-serif;
+      font-size: 16px;
+      letter-spacing:.3px;
     }
-    .summary-row{ display:flex; flex-direction:row; gap:10px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
+    .summary-row{
+      display:flex;
+      flex-direction:row;
+      gap:8px;
+      justify-content:center;
+      align-items:stretch;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
     .summary-card{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:10px;
-      width: 120px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 10px;
+      width: 118px;
       display:flex;
       flex-direction:column;
       gap:6px;
-      font-size:10px;
+      font-size: 10px;
       text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      color: var(--ink);
     }
     .summary-ban{
-      min-width: 460px;
-      max-width: 460px;
-      background:rgba(255,90,90,.10);
-      border:1px solid rgba(255,90,90,.35);
-      border-radius:14px;
-      padding:10px;
-      font-size:10px;
+      width: 100%;
+      max-width: 520px;
+      background: rgba(255,90,90,.08);
+      border: 1px solid rgba(255,90,90,.35);
+      border-radius: 14px;
+      padding: 10px;
+      font-size: 10px;
       text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      color: var(--ink);
     }
 
-    /* modal */
+    /* Modal */
     .modal{
       display:none;
       position:fixed;
       z-index:9999;
-      inset:0;
-      background: rgba(0,0,0,.62);
-      -webkit-backdrop-filter: blur(10px) saturate(120%);
-      backdrop-filter: blur(10px) saturate(120%);
+      left:0; top:0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,.66);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       overflow:auto;
-      padding: 18px 12px;
     }
     .modal-content{
-      margin: 2% auto;
-      padding: 16px;
+      margin: 4% auto;
+      padding: 14px;
       width: 92%;
       max-width: 980px;
       max-height: 92vh;
       overflow-y:auto;
       position:relative;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-
-      background: rgba(14,18,28,.78);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      -webkit-backdrop-filter: blur(18px) saturate(145%);
-      backdrop-filter: blur(18px) saturate(145%);
     }
     #heroModal h3{
-      margin: 8px 0 12px;
-      font-size: 20px;
+      margin: 6px 0 10px;
+      font-size: 18px;
       color: var(--brand2);
       font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
+      letter-spacing:.3px;
     }
     .close-btn{
       position:absolute;
-      top: 10px;
-      right: 14px;
+      top:10px; right:14px;
       color: var(--brand2);
       font-size: 18px;
-      font-weight: 950;
+      font-weight: 900;
       cursor:pointer;
       padding: 6px 10px;
       border-radius: 12px;
+      background: rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
     }
-    .close-btn:hover{ filter:brightness(1.05); }
 
     .weapon-filter-wrapper{
       display:flex;
       justify-content:center;
       align-items:center;
-      margin: 0 0 10px;
+      margin-bottom: 10px;
       width:100%;
-      position:sticky;
-      top:0;
+      position: sticky;
+      top: 0;
       padding: 10px 0;
-      background: rgba(14,18,28,.55);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(10,12,20,.55);
+      border-bottom: 1px solid var(--line);
       backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 12px;
       z-index: 2;
     }
-    .weapon-filter-wrapper select{
-      min-width: 220px;
-      font-weight: 900;
-      color: var(--brand);
-      background: rgba(10,14,24,.62);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 14px;
-    }
 
-    #heroGrid{
+    .weapon-grid{
       display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px;
       justify-items:center;
       width: 100%;
-      padding: 8px 2px 2px;
+    }
+    #heroGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 10px;
+      justify-items:center;
+      width: 100%;
     }
     .hero-grid-item{
       width: 100%;
-      max-width: 110px;
-      background: rgba(255,255,255,.05);
+      max-width: 128px;
+      padding: 10px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      text-align:center;
+      background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 16px;
-      padding: 10px 8px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      cursor:pointer;
-      transition: transform .15s ease, border-color .15s ease, filter .15s ease;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
     }
     .hero-grid-item:hover{
       transform: translateY(-2px);
-      border-color: rgba(255,119,51,.55);
-      filter:brightness(1.03);
+      border-color: rgba(255,119,51,.45);
+      background: rgba(255,255,255,.06);
     }
-    .hero-grid-item img{ width:80px; height:80px; object-fit:contain; margin-bottom:6px; }
-    .hero-grid-item div{ font-size:10px; text-align:center; color: rgba(244,246,255,.82); max-width: 86px; overflow-wrap:anywhere; }
-
-    /* draft history table */
-    #recordTable{
-      width: 100%;
-      border-collapse: collapse;
-      overflow:hidden;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    .hero-grid-item img{
+      width: 78px; height: 78px;
+      object-fit: contain;
+      margin-bottom: 6px;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
     }
-    #recordTable thead{
-      background: rgba(255,255,255,.06) !important;
-    }
-    #recordTable th, #recordTable td{
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding: 10px 8px !important;
-      color: rgba(244,246,255,.86);
-      font-size: 13px;
-    }
-    #recordTable tbody{
-      background: rgba(14,18,28,.35) !important;
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-    }
-    #recordTable button{
-      border:none;
-      border-radius:12px;
-      padding: 8px 10px;
-      cursor:pointer;
-      font-weight: 900;
-      color:#12131a;
-      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.90));
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-    }
-    #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
-
-    /* Match Summary by Team cards */
-    #draftCardSummary{
-      width: 95%;
-      max-width: 1400px;
-      margin: 22px auto 0;
-      padding: 14px;
-      border-radius: var(--radius-lg);
-      background: rgba(20,26,38,.42);
-      border: 1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-    #draftCardSummary h2{
-      text-align:center;
-      color: var(--brand);
-      font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-      margin: 6px 0 14px;
-    }
-    .team-card{
-      width: 300px;
-      border-radius: 18px;
-      padding: 12px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-      color: rgba(244,246,255,.86);
-    }
-    .team-card h3{
-      margin: 0 0 10px;
-      color: var(--brand2);
-      font-family:'Orbitron',sans-serif;
-      font-size: 14px;
-      letter-spacing:.3px;
-    }
-    .team-meta{
-      font-size: 12px;
-      margin-bottom: 8px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding-bottom: 8px;
-      color: rgba(244,246,255,.78);
-    }
-    .mini-player{
-      width: 68px;
-      text-align:center;
+    .hero-grid-item div{
       font-size: 10px;
-      color: rgba(244,246,255,.78);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      padding: 8px 6px;
-      background: rgba(14,18,28,.35);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 24px rgba(0,0,0,.30);
+      color: var(--ink);
+      opacity:.92;
+      word-wrap: break-word;
+    }
+    .disabled{ opacity: .35; pointer-events:none; }
+
+    /* Collapsible Match Summary */
+    details.summary{
+      margin: 18px auto 12px;
+      max-width:1200px;
+    }
+    details.summary > summary{
+      list-style:none;
+      cursor:pointer;
+      padding:12px 14px;
+      font-size:16px;
+      font-weight:900;
+      color:var(--brand);
+      border-radius:var(--radius-lg);
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      user-select:none;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    details.summary > summary::-webkit-details-marker{ display:none; }
+    .summary-badge{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
     }
 
-    /* Pick/Ban Counts section */
-    #teamPBCounts{
-      width: 95%;
-      max-width: 1400px;
-      margin: 22px auto 40px;
+    /* Summary filter bar (moved from counts section) */
+    #summaryFilterBar{
+      margin: 18px auto 12px;
+      max-width: 1200px;
       padding: 14px;
-      border-radius: var(--radius-lg);
-      background: rgba(20,26,38,.42);
-      border: 1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
     }
-    #teamPBCounts h2{
-      text-align:center;
-      color: var(--brand);
+    #summaryFilterBar h2{
+      margin:0 0 10px 0;
       font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-      margin: 6px 0 14px;
+      font-size: 16px;
+      color: var(--brand);
+      letter-spacing:.3px;
     }
     .counts-controls{
       display:flex;
       gap: 10px;
       justify-content:center;
-      align-items:center;
+      align-items:flex-end;
       flex-wrap:wrap;
-      margin-bottom: 10px;
-      color: var(--muted);
-      font-weight: 800;
+      margin-bottom: 6px;
     }
-    .counts-controls button{
-      background: linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
-      color:#10121a;
-      border:none;
-      border-radius: 14px;
-      padding: 10px 12px;
-      cursor:pointer;
-      font-weight: 950;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+    .counts-controls label{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:flex-start;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+      min-width: 220px;
     }
-    .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
+    .counts-controls select{
+      width:100%;
+    }
     .counts-summary{
       text-align:center;
       margin-top: 8px;
-      color: rgba(244,246,255,.78);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    /* Pick/Ban counts display */
+    #teamPBCounts{
+      max-width: 1200px;
+      margin: 10px auto 40px;
+      padding: 14px;
+    }
+    #teamPBCounts h2{
+      margin:0 0 10px 0;
+      font-family:'Orbitron',sans-serif;
+      font-size: 16px;
+      color: var(--brand);
+      letter-spacing:.3px;
+      text-align:center;
     }
     .counts-grid{
       display:grid;
@@ -747,167 +639,230 @@
       margin-top: 12px;
     }
     .counts-card{
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
       padding: 12px;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
     }
     .counts-card h3{
-      margin: 0 0 10px 0;
+      margin:0 0 10px 0;
+      color: var(--brand2);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing:.2px;
+    }
+    table.counts-table th, table.counts-table td{
+      padding: 8px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      font-size: 13px;
+    }
+    table.counts-table th{
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    /* Draft card summaries grid */
+    #draftCardSummaryInner{
+      margin: 12px auto 0;
+      max-width: 1200px;
+      padding: 12px;
+    }
+    #teamDraftCards{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 14px;
+      justify-content:center;
+    }
+    .teamSummaryCard{
+      width: 290px;
+      padding: 12px;
+    }
+    .teamSummaryCard h3{
+      margin:0 0 10px 0;
       color: var(--brand2);
       font-family:'Orbitron',sans-serif;
       font-size: 14px;
-      letter-spacing:.3px;
+      letter-spacing:.2px;
     }
-    table.counts-table{ width:100%; border-collapse:collapse; }
-    table.counts-table th, table.counts-table td{
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding: 8px 6px;
-      text-align:left;
-      font-size: 13px;
-      color: rgba(244,246,255,.82);
+    .summaryMeta{
+      font-size:12px;
+      color:var(--muted);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      padding-bottom:8px;
+      margin-bottom:10px;
     }
-    table.counts-table th{
-      background: rgba(255,255,255,.06);
-      border-top-left-radius: 10px;
-      border-top-right-radius: 10px;
+    .playerGrid{
+      display:flex;
+      gap: 8px;
+      flex-wrap:wrap;
     }
+    .playerMini{
+      width: 62px;
+      padding: 6px 6px 8px;
+      text-align:center;
+      font-size:10px;
+      color:var(--muted);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+    }
+    .playerMini img{
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      object-fit: contain;
+      margin-bottom: 6px;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+    }
+    .playerMini .heroName{ color: var(--ink); font-weight:900; }
+    .playerMini .heroSkill{ color: var(--accent); font-weight:800; }
 
-    /* responsive */
-    @media (max-width: 1100px){
-      .draft-wrapper{ flex-wrap:wrap; gap:14px; }
-      .summary-wrapper > div{ min-width: 360px; }
-      .team-row{ flex-wrap:wrap; justify-content:center; }
+    @media (max-width: 980px){
+      .team-container{ min-width: 360px; }
+      .summary-wrapper > div{ min-width: 520px; }
+    }
+    @media (max-width: 620px){
+      .user-controls{ position: static; justify-content:center; margin-top: 10px; }
+      header .inner{ flex-direction:column; }
+      .team-container{ min-width: 100%; }
+      .summary-wrapper > div{ min-width: 92vw; }
     }
   </style>
 </head>
+
 <body>
   <header>
-    <div class="user-controls">
-      <span id="user-info">Checking login...</span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+    <div class="inner">
+      <h1>Clash Squad Draft</h1>
+
+      <div class="user-controls">
+        <span id="user-info">Checking login...</span>
+        <button class="btn btn-ghost" onclick="logout()">Logout</button>
+      </div>
     </div>
-    <h1>Clash Squad Draft</h1>
   </header>
 
-  <details class="glassy">
+  <!-- Draft History -->
+  <details class="history wrap">
     <summary>Draft History</summary>
 
-    <div style="text-align: center; margin-top: 14px;">
-      <label style="display:inline-flex; gap:10px; align-items:center; color: var(--muted); font-weight: 900;">
-        <input type="checkbox" id="multiToggle" onchange="toggleTeamFilterMode()" />
-        Enable multiple selection
-      </label>
+    <div class="history-body glass">
+      <div class="center-col">
+        <label class="label" style="display:inline-flex; gap:10px; align-items:center;">
+          <input type="checkbox" id="multiToggle" onchange="toggleTeamFilterMode()" />
+          Enable multiple selection
+        </label>
 
-      <div style="margin-top:12px;">
-        <label style="display:block;margin-bottom:6px; color: var(--muted); font-weight: 900;">Tournament</label>
-        <select id="tournamentFilter" style="width:240px;" onchange="loadAllDraftRecords()"></select>
+        <div class="field">
+          <div class="label">Tournament</div>
+          <select id="tournamentFilter" style="width:240px;" onchange="loadAllDraftRecords()"></select>
+        </div>
+
+        <div class="field" style="margin-top:10px;">
+          <div class="label">Teams</div>
+          <select id="teamFilter" size="5" onchange="loadAllDraftRecords()"></select>
+        </div>
       </div>
 
-      <div style="margin-top:12px;">
-        <select id="teamFilter" size="5" style="width: 240px;" onchange="loadAllDraftRecords()"></select>
+      <div style="margin-top:14px;">
+        <div class="glass-soft" style="overflow:hidden;">
+          <table id="recordTable" style="text-align:center;">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Game</th>
+                <th>Team Left</th>
+                <th>Left Score</th>
+                <th>Team Right</th>
+                <th>Right Score</th>
+                <th>Map</th>
+                <th>Tournament</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recordBody"></tbody>
+          </table>
+        </div>
       </div>
-    </div>
-
-    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 14px;">
-      <table id="recordTable">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Game</th>
-            <th>Team Left</th>
-            <th>Team Left Score</th>
-            <th>Team Right</th>
-            <th>Team Right Score</th>
-            <th>Map</th>
-            <th>Tournament</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="recordBody"></tbody>
-      </table>
     </div>
   </details>
 
-  <div class="top-controls glassbar">
-    <a href="dashboard.html">← Back to Dashboard</a>
+  <div class="wrap">
+    <div class="top-controls">
+      <a class="btn btn-ghost" href="dashboard.html">← Back to Dashboard</a>
 
-    <label for="matchDate">Date:</label>
-    <input type="date" id="matchDate" />
+      <label class="label" for="matchDate">Date:</label>
+      <input type="date" id="matchDate" />
 
-    <label for="gameNumberSelect">Game:</label>
-    <select id="gameNumberSelect">
-      <option value="1">Game 1</option>
-      <option value="2">Game 2</option>
-      <option value="3">Game 3</option>
-      <option value="4">Game 4</option>
-      <option value="5">Game 5</option>
-      <option value="6">Game 6</option>
-      <option value="7">Game 7</option>
-    </select>
+      <label class="label" for="gameNumberSelect">Game:</label>
+      <select id="gameNumberSelect">
+        <option value="1">Game 1</option>
+        <option value="2">Game 2</option>
+        <option value="3">Game 3</option>
+        <option value="4">Game 4</option>
+        <option value="5">Game 5</option>
+        <option value="6">Game 6</option>
+        <option value="7">Game 7</option>
+      </select>
 
-    <select id="mapSelect">
-      <option value="Bermuda">Bermuda</option>
-      <option value="Kalahari">Kalahari</option>
-      <option value="Purgatory">Purgatory</option>
-      <option value="Alpine">Alpine</option>
-      <option value="Nexterra">Nexterra</option>
-      <option value="Solara">Solara</option>
-    </select>
+      <select id="mapSelect">
+        <option value="Bermuda">Bermuda</option>
+        <option value="Kalahari">Kalahari</option>
+        <option value="Purgatory">Purgatory</option>
+        <option value="Alpine">Alpine</option>
+        <option value="Nexterra">Nexterra</option>
+        <option value="Solara">Solara</option>
+      </select>
 
-    <label for="tournamentInput">Tournament:</label>
-    <input type="text" id="tournamentInput" placeholder="Enter tournament name" list="tournamentList" />
-    <datalist id="tournamentList"></datalist>
+      <label class="label" for="tournamentInput">Tournament:</label>
+      <input type="text" id="tournamentInput" placeholder="Enter tournament name" list="tournamentList" />
+      <datalist id="tournamentList"></datalist>
 
-    <button onclick="saveOrUpdateDraft()">Save/Update</button>
-    <button onclick="loadDraftRecord()">Load</button>
-  </div>
-
-  <button class="reset-btn" onclick="resetDraft()">Reset All</button>
-
-  <div class="draft-wrapper">
-    <div class="team-container glassbox">
-      <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
-      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
-        <label for="teamLeftScore">Left Score:</label>
-        <input type="number" id="teamLeftScore" min="0" style="width: 80px; margin-left: 8px;" />
-      </div>
-      <div class="team-row" id="teamLeft"></div>
+      <button class="btn" onclick="saveOrUpdateDraft()">Save/Update</button>
+      <button class="btn btn-ghost" onclick="loadDraftRecord()">Load</button>
     </div>
 
-    <div class="team-container glassbox">
-      <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
-      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
-        <label for="teamRightScore">Right Score:</label>
-        <input type="number" id="teamRightScore" min="0" style="width: 80px; margin-left: 8px;" />
+    <button class="reset-btn" onclick="resetDraft()">Reset All</button>
+
+    <div class="draft-wrapper">
+      <div class="team-container glass">
+        <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
+        <div class="score-row">
+          <span>Left Score</span>
+          <input type="number" id="teamLeftScore" min="0" style="width:84px;" />
+        </div>
+        <div class="team-row" id="teamLeft"></div>
       </div>
-      <div class="team-row" id="teamRight"></div>
+
+      <div class="team-container glass">
+        <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
+        <div class="score-row">
+          <span>Right Score</span>
+          <input type="number" id="teamRightScore" min="0" style="width:84px;" />
+        </div>
+        <div class="team-row" id="teamRight"></div>
+      </div>
+    </div>
+
+    <div class="summary-wrapper">
+      <div class="glass" style="padding:14px;">
+        <div class="summary-team" id="summaryLeft"></div>
+      </div>
+      <div class="glass" style="padding:14px;">
+        <div class="summary-team" id="summaryRight"></div>
+      </div>
     </div>
   </div>
 
-  <div class="summary-wrapper">
-    <div><div class="summary-team" id="summaryLeft"></div></div>
-    <div><div class="summary-team" id="summaryRight"></div></div>
-  </div>
-
+  <!-- Modal -->
   <div class="modal" id="heroModal">
-    <div class="modal-content">
+    <div class="modal-content glass">
       <span class="close-btn" onclick="closeModal()">X</span>
       <h3 id="modalTitle">Select</h3>
       <div class="hero-grid" id="heroGrid"></div>
     </div>
   </div>
 
-  <div id="draftCardSummary">
-    <h2>Match Summary by Team</h2>
-    <div id="teamDraftCards" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;"></div>
-  </div>
-
-  <div id="teamPBCounts">
-    <h2>Team Pick/Ban Counts (by Date Range)</h2>
+  <!-- MOVED FILTER (from Team Pick/Ban Counts) ABOVE MATCH SUMMARY, removed date filter -->
+  <div id="summaryFilterBar" class="glass">
+    <h2>Summary Filters</h2>
     <div class="counts-controls">
       <label>Team
         <select id="teamCountSelect" style="min-width:220px;"></select>
@@ -915,24 +870,41 @@
       <label>Tournament
         <select id="countTournamentSelect" style="min-width:220px;"></select>
       </label>
-      <label>From <input type="date" id="countFrom"></label>
-      <label>To <input type="date" id="countTo"></label>
-      <button onclick="computeTeamPickBanCounts()">Compute</button>
+      <button class="btn" onclick="computeTeamPickBanCounts()">Apply</button>
     </div>
-    <div class="counts-summary" id="teamPBMeta"></div>
+    <div class="counts-summary" id="teamPBMeta">—</div>
+  </div>
+
+  <!-- Match Summary by Team (now collapsible) -->
+  <details class="summary" id="matchSummaryDetails" open>
+    <summary>
+      <span>Match Summary by Team</span>
+      <span class="summary-badge" id="matchSummaryBadge">—</span>
+    </summary>
+
+    <div id="draftCardSummaryInner" class="glass" style="margin:12px auto 0;">
+      <div id="teamDraftCards"></div>
+    </div>
+  </details>
+
+  <!-- Pick/Ban Counts display (controls removed from here) -->
+  <div id="teamPBCounts" class="glass">
+    <h2>Pick/Ban Counts</h2>
     <div class="counts-grid">
-      <div class="counts-card">
+      <div class="counts-card glass-soft">
         <h3>Totals</h3>
         <div id="teamPBTotals">—</div>
       </div>
-      <div class="counts-card">
+
+      <div class="counts-card glass-soft">
         <h3>Pick Breakdown</h3>
         <table class="counts-table">
           <thead><tr><th>Skill</th><th>Count</th></tr></thead>
           <tbody id="teamPickBreakdown"></tbody>
         </table>
       </div>
-      <div class="counts-card">
+
+      <div class="counts-card glass-soft">
         <h3>Ban Breakdown</h3>
         <table class="counts-table">
           <thead><tr><th>Skill</th><th>Count</th></tr></thead>
@@ -944,6 +916,7 @@
 
 <script>
 let characters = [], weapons = [], currentSlot = null;
+let ALL_DRAFT_RECORDS = [];
 
 // state now includes tournamentName
 let draftState = {
@@ -961,24 +934,23 @@ let draftState = {
   tournamentName: ''
 };
 
+const $ = (id) => document.getElementById(id);
+
 // called from top-level DOMContentLoaded AFTER session is ready
 async function initDraftPage() {
   characters = await (await fetch('https://neptuneg1.github.io/freefire-caster/character.json')).json();
   weapons = await (await fetch('https://neptuneg1.github.io/freefire-caster/weapon.json')).json();
 
   const today = new Date();
-  document.getElementById('matchDate').valueAsDate = today;
-  document.getElementById('countTo').valueAsDate = today;
-  const from = new Date(2025, 7, 28);
-  document.getElementById('countFrom').valueAsDate = from;
+  $('matchDate').valueAsDate = today;
 
   // auto-save header changes into public.draft
-  document.getElementById('matchDate').addEventListener('change', saveDraftState);
-  document.getElementById('gameNumberSelect').addEventListener('change', saveDraftState);
-  document.getElementById('mapSelect').addEventListener('change', saveDraftState);
-  document.getElementById('teamLeftScore').addEventListener('change', saveDraftState);
-  document.getElementById('teamRightScore').addEventListener('change', saveDraftState);
-  document.getElementById('tournamentInput').addEventListener('change', saveDraftState);
+  $('matchDate').addEventListener('change', saveDraftState);
+  $('gameNumberSelect').addEventListener('change', saveDraftState);
+  $('mapSelect').addEventListener('change', saveDraftState);
+  $('teamLeftScore').addEventListener('change', saveDraftState);
+  $('teamRightScore').addEventListener('change', saveDraftState);
+  $('tournamentInput').addEventListener('change', saveDraftState);
 
   await loadDraftState(); // from public.draft
 
@@ -1008,16 +980,16 @@ async function initDraftPage() {
 }
 
 function drawDraft(){
-  const l=document.getElementById('teamLeft'),r=document.getElementById('teamRight');
+  const l=$('teamLeft'), r=$('teamRight');
   l.innerHTML=''; r.innerHTML='';
 
   l.appendChild(makeSlot('ban',0));
-  for(let i=0;i<4;i++)l.appendChild(makeSlot('pick',i));
-  for(let i=7;i>=4;i--)r.appendChild(makeSlot('pick',i));
+  for(let i=0;i<4;i++) l.appendChild(makeSlot('pick',i));
+  for(let i=7;i>=4;i--) r.appendChild(makeSlot('pick',i));
   r.appendChild(makeSlot('ban',1));
 
-  document.getElementById('teamNameLeft').value = draftState.teamNames[0];
-  document.getElementById('teamNameRight').value = draftState.teamNames[1];
+  $('teamNameLeft').value = draftState.teamNames[0];
+  $('teamNameRight').value = draftState.teamNames[1];
 
   updateSummary();
 }
@@ -1029,6 +1001,7 @@ function makeSlot(type,index){
   img.style.width='100%'; img.style.height='100%'; img.style.borderRadius='14px';
   img.style.objectFit='cover';
   m.appendChild(img);
+
   const nameDiv=document.createElement('div'); nameDiv.className='slot-name';
 
   if(type==='ban'){
@@ -1058,35 +1031,63 @@ function makeSlot(type,index){
   if(type==='pick'){
     const passives=draftState.passives[index];
     const pDiv=document.createElement('div'); pDiv.className='passive-slots';
-    passives.forEach((ps,i)=>{const p=document.createElement('div'); p.className='passive-slot';
-      const pn=document.createElement('div');pn.className='passive-name';
-      if(ps){p.style.backgroundImage=`url(${ps.image_url})`;pn.innerText=ps.name;}
+
+    passives.forEach((ps,i)=>{
+      const p=document.createElement('div'); p.className='passive-slot';
+      const pn=document.createElement('div'); pn.className='passive-name';
+
+      if(ps){ p.style.backgroundImage=`url(${ps.image_url})`; pn.innerText=ps.name; }
       p.onclick=()=>{currentSlot={type:'passive',pickIndex:index,passiveIndex:i};openModal('Select Passive Skill');};
-      const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';
-      box.style.alignItems='center';box.appendChild(p);box.appendChild(pn);pDiv.appendChild(box);});
+
+      const box=document.createElement('div');
+      box.style.display='flex';
+      box.style.flexDirection='column';
+      box.style.alignItems='center';
+      box.style.gap='4px';
+      box.appendChild(p);
+      box.appendChild(pn);
+      pDiv.appendChild(box);
+    });
+
     c.appendChild(pDiv);
 
     const wDiv=document.createElement('div'); wDiv.className='weapon-slots';
-    draftState.weapons[index].forEach((w,i)=>{const wSlot=document.createElement('div'); wSlot.className='weapon-slot'; if(i===0)wSlot.style.border='1px solid rgba(255,189,89,.65)';
-      const wn=document.createElement('div');wn.className='weapon-name';
-      if(w){const wImg=document.createElement('img');wImg.src=w.image_url;wSlot.appendChild(wImg);wn.innerText=w.name;}
+    draftState.weapons[index].forEach((w,i)=>{
+      const wSlot=document.createElement('div');
+      wSlot.className='weapon-slot' + (i===0 ? ' primary' : '');
+
+      const wn=document.createElement('div'); wn.className='weapon-name';
+      if(w){
+        const wImg=document.createElement('img'); wImg.src=w.image_url;
+        wSlot.appendChild(wImg);
+        wn.innerText=w.name;
+      }
       wSlot.onclick=()=>{currentSlot={type:'weapon',pickIndex:index,weaponIndex:i};openModal('Select Weapon');};
-      const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';box.style.alignItems='center';
-      box.appendChild(wSlot);box.appendChild(wn);wDiv.appendChild(box);}); c.appendChild(wDiv);
+
+      const box=document.createElement('div');
+      box.style.display='flex';
+      box.style.flexDirection='column';
+      box.style.alignItems='center';
+      box.style.gap='4px';
+      box.appendChild(wSlot);
+      box.appendChild(wn);
+      wDiv.appendChild(box);
+    });
+    c.appendChild(wDiv);
   }
 
   return c;
 }
 
 function updateTeamName(teamIndex) {
-  const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
+  const input = $(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
   draftState.teamNames[teamIndex] = input.value;
   saveDraftState();
 }
 
 function openModal(title) {
-  document.getElementById('modalTitle').innerText = title;
-  const grid = document.getElementById('heroGrid');
+  $('modalTitle').innerText = title;
+  const grid = $('heroGrid');
   grid.innerHTML = '';
 
   if (currentSlot.type === 'weapon') {
@@ -1095,7 +1096,12 @@ function openModal(title) {
 
     const armoryFilter = document.createElement('select');
     const armoryOptions = ['All', 'Andrew', 'Kelly', 'Laura', 'Mocco', 'Hayato', 'Tatsuya'];
-    armoryOptions.forEach(name => { const option = document.createElement('option'); option.value = name.toLowerCase(); option.textContent = name; armoryFilter.appendChild(option); });
+    armoryOptions.forEach(name => {
+      const option = document.createElement('option');
+      option.value = name.toLowerCase();
+      option.textContent = name;
+      armoryFilter.appendChild(option);
+    });
     filterWrapper.appendChild(armoryFilter);
     grid.appendChild(filterWrapper);
 
@@ -1104,33 +1110,37 @@ function openModal(title) {
 
       const clearCard = document.createElement('div');
       clearCard.className = 'hero-grid-item';
-      clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+      clearCard.style.border = '1px dashed rgba(255,255,255,.22)';
       const clearImg = document.createElement('img');
       clearImg.src = 'https://imgur.com/AdvPwAO.png';
       clearImg.alt = 'Clear';
-      clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-      const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
-      clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
+      clearImg.style.width = '60px'; clearImg.style.height = '60px';
+      clearImg.style.opacity = '0.25'; clearImg.style.objectFit = 'contain';
+      clearImg.style.marginBottom = '6px';
+      const clearLabel = document.createElement('div');
+      clearLabel.textContent = 'Clear';
+      clearLabel.style.fontSize = '10px';
+      clearLabel.style.color = 'rgba(244,246,255,.75)';
+      clearCard.appendChild(clearImg);
+      clearCard.appendChild(clearLabel);
       clearCard.onclick = () => {
         draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = null;
-        closeModal();
-        drawDraft();
-        saveDraftState();
+        closeModal(); drawDraft(); saveDraftState();
       };
       grid.appendChild(clearCard);
 
       weapons.forEach(item => {
         if (!item.armory) return;
         if (filter !== 'all' && !item.armory.toLowerCase().includes(filter)) return;
+
         const card = document.createElement('div'); card.className = 'hero-grid-item';
-        const img = document.createElement('img'); img.src = item.image_url; img.alt = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
+        const img = document.createElement('img'); img.src = item.image_url; img.alt = item.name;
         const name = document.createElement('div'); name.textContent = item.name;
+
         card.appendChild(img); card.appendChild(name);
         card.onclick = () => {
           draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = item;
-          closeModal();
-          drawDraft();
-          saveDraftState();
+          closeModal(); drawDraft(); saveDraftState();
         };
         grid.appendChild(card);
       });
@@ -1142,10 +1152,18 @@ function openModal(title) {
   } else {
     const clearCard = document.createElement('div');
     clearCard.className = 'hero-grid-item';
-    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
-    const clearImg = document.createElement('img'); clearImg.src = 'https://imgur.com/AdvPwAO.png'; clearImg.alt = 'Clear'; clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
+    clearCard.style.border = '1px dashed rgba(255,255,255,.22)';
+    const clearImg = document.createElement('img'); clearImg.src = 'https://imgur.com/AdvPwAO.png';
+    clearImg.alt = 'Clear';
+    clearImg.style.width = '60px'; clearImg.style.height = '60px';
+    clearImg.style.opacity = '0.25'; clearImg.style.objectFit = 'contain';
+    clearImg.style.marginBottom = '6px';
+    const clearLabel = document.createElement('div');
+    clearLabel.textContent = 'Clear';
+    clearLabel.style.fontSize = '10px';
+    clearLabel.style.color = 'rgba(244,246,255,.75)';
     clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
+
     clearCard.onclick = () => {
       if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = null;
       if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = null;
@@ -1176,45 +1194,51 @@ function openModal(title) {
       }
 
       const label = document.createElement('div'); label.textContent = item.name;
-      box.appendChild(img); box.appendChild(label); grid.appendChild(box);
+      box.appendChild(img); box.appendChild(label);
+      grid.appendChild(box);
     });
   }
 
-  document.getElementById('heroModal').style.display = 'block';
+  $('heroModal').style.display = 'block';
 }
 
-function closeModal(){document.getElementById('heroModal').style.display='none';}
+function closeModal(){ $('heroModal').style.display='none'; }
 
 function updateSummary() {
-  const left = document.getElementById('summaryLeft');
-  const right = document.getElementById('summaryRight');
+  const left = $('summaryLeft');
+  const right = $('summaryRight');
   left.innerHTML = ""; right.innerHTML = "";
 
   const makeCard = (title, content) => `
     <div class="summary-card">
-      <strong>${title}</strong><br>${content}
+      <strong style="color:rgba(244,246,255,.92)">${title}</strong>
+      <div style="opacity:.92">${content}</div>
     </div>
   `;
 
   function buildTeamSummary(startIndex, banIndex) {
     let html = "";
     const ban = draftState.bans[banIndex];
-    html += `<div class="summary-row summary-ban-row">
-      <div class="summary-ban"><strong>BAN</strong><br>${ban ? `${ban.name}<br>${ban.description || ''}` : "None"}</div>
+    html += `<div class="summary-row">
+      <div class="summary-ban"><strong style="color:rgba(244,246,255,.92)">BAN</strong><br>
+        ${ban ? `${ban.name}<br><span style="color:rgba(244,246,255,.78)">${ban.description || ''}</span>` : "None"}
+      </div>
     </div>`;
+
     html += `<div class="summary-row">`;
     for (let i = startIndex; i < startIndex + 4; i++) {
       const hero = draftState.picks[i];
       html += makeCard(
         `Player ${i - startIndex + 1}`,
-        hero ? `${hero.name}<br>Skill: ${hero.skill}<br>${hero.description || ''}` : "None"
+        hero ? `${hero.name}<br><span style="color:var(--accent);font-weight:800">Skill: ${hero.skill}</span><br>${hero.description || ''}` : "None"
       );
     }
     html += `</div>`;
+
     html += `<div class="summary-row">`;
     for (let i = startIndex; i < startIndex + 4; i++) {
       let wContent = "";
-      draftState.weapons[i].forEach(w => {
+      (draftState.weapons[i] || []).forEach(w => {
         if (w) {
           wContent += `${w.name}<br>Dmg:${w.damage} RoF:${w.rate_of_fire}<br>Rng:${w.range} Mag:${w.magazine_size}<br>`;
           const armory = getWeaponArmory(w.name);
@@ -1225,12 +1249,12 @@ function updateSummary() {
       html += makeCard("Weapons", wContent || "None");
     }
     html += `</div>`;
+
     html += `<div class="summary-row">`;
     for (let i = startIndex; i < startIndex + 4; i++) {
       let pContent = "";
-      draftState.passives[i].forEach(ps => {
-        if (ps)
-          pContent += `${ps.name}<br>Skill: ${ps.skill}<br>${ps.description || ''}<br><br>`;
+      (draftState.passives[i] || []).forEach(ps => {
+        if (ps) pContent += `${ps.name}<br><span style="color:var(--skill-passive);font-weight:800">Skill: ${ps.skill}</span><br>${ps.description || ''}<br><br>`;
       });
       html += makeCard("Passives", pContent || "None");
     }
@@ -1241,24 +1265,28 @@ function updateSummary() {
   function buildTeamSummaryRight(startIndex, banIndex) {
     let html = "";
     const ban = draftState.bans[banIndex];
-    html += `<div class="summary-row summary-ban-row">
-      <div class="summary-ban"><strong>BAN</strong><br>${ban ? `${ban.name}<br>${ban.description || ''}` : "None"}</div>
+    html += `<div class="summary-row">
+      <div class="summary-ban"><strong style="color:rgba(244,246,255,.92)">BAN</strong><br>
+        ${ban ? `${ban.name}<br><span style="color:rgba(244,246,255,.78)">${ban.description || ''}</span>` : "None"}
+      </div>
     </div>`;
+
     html += `<div class="summary-row">`;
     for (let offset = 3; offset >= 0; offset--) {
       const i = startIndex + offset;
       const hero = draftState.picks[i];
       html += makeCard(
         `Player ${4 - offset}`,
-        hero ? `${hero.name}<br>Skill: ${hero.skill}<br>${hero.description || ''}` : "None"
+        hero ? `${hero.name}<br><span style="color:var(--accent);font-weight:800">Skill: ${hero.skill}</span><br>${hero.description || ''}` : "None"
       );
     }
     html += `</div>`;
+
     html += `<div class="summary-row">`;
     for (let offset = 3; offset >= 0; offset--) {
       const i = startIndex + offset;
       let wContent = "";
-      draftState.weapons[i].forEach(w => {
+      (draftState.weapons[i] || []).forEach(w => {
         if (w) {
           wContent += `${w.name}<br>Dmg:${w.damage} RoF:${w.rate_of_fire}<br>Rng:${w.range} Mag:${w.magazine_size}<br>`;
           const armory = getWeaponArmory(w.name);
@@ -1269,13 +1297,13 @@ function updateSummary() {
       html += makeCard("Weapons", wContent || "None");
     }
     html += `</div>`;
+
     html += `<div class="summary-row">`;
     for (let offset = 3; offset >= 0; offset--) {
       const i = startIndex + offset;
       let pContent = "";
-      draftState.passives[i].forEach(ps => {
-        if (ps)
-          pContent += `${ps.name}<br>Skill: ${ps.skill}<br>${ps.description || ''}<br><br>`;
+      (draftState.passives[i] || []).forEach(ps => {
+        if (ps) pContent += `${ps.name}<br><span style="color:var(--skill-passive);font-weight:800">Skill: ${ps.skill}</span><br>${ps.description || ''}<br><br>`;
       });
       html += makeCard("Passives", pContent || "None");
     }
@@ -1283,8 +1311,8 @@ function updateSummary() {
     return html;
   }
 
-  left.innerHTML = `<h3>TEAM LEFT</h3>${buildTeamSummary(0, 0)}`;
-  right.innerHTML = `<h3>TEAM RIGHT</h3>${buildTeamSummaryRight(4, 1)}`;
+  left.innerHTML = `<h3>${draftState.teamNames[0] || 'TEAM LEFT'}</h3>${buildTeamSummary(0, 0)}`;
+  right.innerHTML = `<h3>${draftState.teamNames[1] || 'TEAM RIGHT'}</h3>${buildTeamSummaryRight(4, 1)}`;
 }
 
 function resetDraft() {
@@ -1295,16 +1323,16 @@ function resetDraft() {
     weapons: Array(8).fill(0).map(() => [null, null, null]),
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
-    matchDate: document.getElementById('matchDate').value || '',
-    gameNumber: parseInt(document.getElementById('gameNumberSelect').value || '1', 10),
+    matchDate: $('matchDate').value || '',
+    gameNumber: parseInt($('gameNumberSelect').value || '1', 10),
     teamLeftScore: 0,
     teamRightScore: 0,
-    map: document.getElementById('mapSelect').value || 'Bermuda',
+    map: $('mapSelect').value || 'Bermuda',
     tournamentName: ''
   };
-  document.getElementById('teamLeftScore').value = 0;
-  document.getElementById('teamRightScore').value = 0;
-  document.getElementById('tournamentInput').value = '';
+  $('teamLeftScore').value = 0;
+  $('teamRightScore').value = 0;
+  $('tournamentInput').value = '';
   drawDraft();
   saveDraftState();
 }
@@ -1316,23 +1344,21 @@ function getWeaponArmory(weaponName) {
 
 // sync form controls from draftState
 function applyStateToControls() {
-  if (draftState.matchDate) {
-    document.getElementById('matchDate').value = draftState.matchDate;
-  }
-  document.getElementById('gameNumberSelect').value = draftState.gameNumber || 1;
-  document.getElementById('teamLeftScore').value = draftState.teamLeftScore ?? 0;
-  document.getElementById('teamRightScore').value = draftState.teamRightScore ?? 0;
-  document.getElementById('mapSelect').value = draftState.map || 'Bermuda';
-  document.getElementById('tournamentInput').value = draftState.tournamentName || '';
+  if (draftState.matchDate) $('matchDate').value = draftState.matchDate;
+  $('gameNumberSelect').value = draftState.gameNumber || 1;
+  $('teamLeftScore').value = draftState.teamLeftScore ?? 0;
+  $('teamRightScore').value = draftState.teamRightScore ?? 0;
+  $('mapSelect').value = draftState.map || 'Bermuda';
+  $('tournamentInput').value = draftState.tournamentName || '';
 }
 
 async function saveDraftState() {
-  draftState.matchDate = document.getElementById('matchDate')?.value || '';
-  draftState.gameNumber = parseInt(document.getElementById('gameNumberSelect')?.value || '1', 10);
-  draftState.teamLeftScore = parseInt(document.getElementById('teamLeftScore')?.value || '0', 10);
-  draftState.teamRightScore = parseInt(document.getElementById('teamRightScore')?.value || '0', 10);
-  draftState.map = document.getElementById('mapSelect')?.value || 'Bermuda';
-  draftState.tournamentName = document.getElementById('tournamentInput')?.value || '';
+  draftState.matchDate = $('matchDate')?.value || '';
+  draftState.gameNumber = parseInt($('gameNumberSelect')?.value || '1', 10);
+  draftState.teamLeftScore = parseInt($('teamLeftScore')?.value || '0', 10);
+  draftState.teamRightScore = parseInt($('teamRightScore')?.value || '0', 10);
+  draftState.map = $('mapSelect')?.value || 'Bermuda';
+  draftState.tournamentName = $('tournamentInput')?.value || '';
 
   if (!draftState || Object.keys(draftState).length === 0) {
     console.warn('⚠️ Draft state is empty. Skipping save.');
@@ -1347,11 +1373,8 @@ async function saveDraftState() {
       updated_at: new Date().toISOString()
     });
 
-  if (error) {
-    console.error('❌ Failed to save draft state:', error);
-  } else {
-    console.log('✅ Draft state saved → public.draft');
-  }
+  if (error) console.error('❌ Failed to save draft state:', error);
+  else console.log('✅ Draft state saved → public.draft');
 }
 
 async function loadDraftState() {
@@ -1394,8 +1417,8 @@ async function loadDraftState() {
 }
 
 async function loadDraftRecord() {
-  const gameNumber = parseInt(document.getElementById('gameNumberSelect').value, 10);
-  const matchDate = document.getElementById('matchDate').value;
+  const gameNumber = parseInt($('gameNumberSelect').value, 10);
+  const matchDate = $('matchDate').value;
   const teamLeft = draftState.teamNames[0];
   const teamRight = draftState.teamNames[1];
 
@@ -1443,25 +1466,21 @@ async function loadDraftRecord() {
     applyStateToControls();
     drawDraft();
     await saveDraftState();
-
     console.log("✅ Draft record loaded from draft_records and synced to draft.");
   }
 }
 
 async function saveOrUpdateDraft() {
-  const gameNumber    = parseInt(document.getElementById('gameNumberSelect').value, 10);
+  const gameNumber    = parseInt($('gameNumberSelect').value, 10);
   const teamLeft      = draftState.teamNames[0];
   const teamRight     = draftState.teamNames[1];
-  const matchDate     = document.getElementById('matchDate').value;
-  const teamLeftScore = parseInt(document.getElementById('teamLeftScore').value || '0', 10);
-  const teamRightScore= parseInt(document.getElementById('teamRightScore').value || '0', 10);
-  const map           = document.getElementById('mapSelect').value;
-  const tournamentName= (document.getElementById('tournamentInput').value || '').trim();
+  const matchDate     = $('matchDate').value;
+  const teamLeftScore = parseInt($('teamLeftScore').value || '0', 10);
+  const teamRightScore= parseInt($('teamRightScore').value || '0', 10);
+  const map           = $('mapSelect').value;
+  const tournamentName= ($('tournamentInput').value || '').trim();
 
-  if (!matchDate) {
-    alert("⚠️ Please select a match date.");
-    return;
-  }
+  if (!matchDate) { alert("⚠️ Please select a match date."); return; }
 
   const payload = {
     game_number:      gameNumber,
@@ -1476,13 +1495,9 @@ async function saveOrUpdateDraft() {
     updated_at:       new Date().toISOString()
   };
 
-  console.log("📦 Upserting payload:", payload);
-
   const { error } = await client
     .from('draft_records')
-    .upsert(payload, {
-      onConflict: 'match_date,game_number,team_left,team_right'
-    });
+    .upsert(payload, { onConflict: 'match_date,game_number,team_left,team_right' });
 
   if (error) {
     alert("❌ Failed to save draft:\n" + error.message);
@@ -1494,9 +1509,9 @@ async function saveOrUpdateDraft() {
 }
 
 function toggleTeamFilterMode() {
-  const filter = document.getElementById('teamFilter');
+  const filter = $('teamFilter');
   const selected = Array.from(filter.selectedOptions).map(o => o.value);
-  const isMulti = document.getElementById('multiToggle').checked;
+  const isMulti = $('multiToggle').checked;
   filter.multiple = isMulti;
   Array.from(filter.options).forEach(o => { o.selected = selected.includes(o.value); });
 }
@@ -1504,7 +1519,7 @@ function toggleTeamFilterMode() {
 async function loadAllDraftRecords() {
   const { data, error } = await client
     .from('draft_records')
-    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name')
+    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
     .order('match_date', { ascending: false })
     .order('id', { ascending: false });
 
@@ -1513,24 +1528,26 @@ async function loadAllDraftRecords() {
     return;
   }
 
-  const filterSelect = document.getElementById('teamFilter');
-  const teamCountSelect = document.getElementById('teamCountSelect');
-  const tournamentFilter = document.getElementById('tournamentFilter');
-  const countTournamentSelect = document.getElementById('countTournamentSelect');
-  const tournamentInputList = document.getElementById('tournamentList');
+  ALL_DRAFT_RECORDS = data || [];
+
+  const filterSelect = $('teamFilter');
+  const teamCountSelect = $('teamCountSelect');
+  const tournamentFilter = $('tournamentFilter');
+  const countTournamentSelect = $('countTournamentSelect');
+  const tournamentInputList = $('tournamentList');
 
   const selectedTeams = Array.from(filterSelect.selectedOptions).map(opt => opt.value.toLowerCase());
   const prevTournamentHistory = tournamentFilter.value || '__ALL__';
   const prevTournamentCounts  = countTournamentSelect.value || '__ALL__';
 
-  const table = document.getElementById('recordBody');
+  const table = $('recordBody');
   table.innerHTML = '';
 
   const allTeams = new Set();
   const allTournaments = new Set();
   const matchedRecords = [];
 
-  data.forEach(record => {
+  ALL_DRAFT_RECORDS.forEach(record => {
     allTeams.add(record.team_left);
     allTeams.add(record.team_right);
     if (record.tournament_name) allTournaments.add(record.tournament_name);
@@ -1539,6 +1556,7 @@ async function loadAllDraftRecords() {
   const prevSelectedTeams = new Set(selectedTeams);
   const prevTeamCount = teamCountSelect.value || '__ALL__';
 
+  // rebuild teamFilter (Draft History)
   filterSelect.innerHTML = '';
   Array.from(allTeams).sort().forEach(team => {
     const option1 = document.createElement('option');
@@ -1548,6 +1566,7 @@ async function loadAllDraftRecords() {
     filterSelect.appendChild(option1);
   });
 
+  // rebuild teamCountSelect (Summary filter)
   teamCountSelect.innerHTML = '';
   const allOpt = document.createElement('option');
   allOpt.value = '__ALL__';
@@ -1561,6 +1580,7 @@ async function loadAllDraftRecords() {
   });
   teamCountSelect.value = prevTeamCount || '__ALL__';
 
+  // rebuild tournaments
   const tournamentsSorted = ['__ALL__', ...Array.from(allTournaments).sort()];
 
   tournamentFilter.innerHTML = '';
@@ -1592,7 +1612,8 @@ async function loadAllDraftRecords() {
 
   const selectedTournament = tournamentFilter.value || '__ALL__';
 
-  data.forEach(record => {
+  // Draft History table filtering (stays as-is)
+  ALL_DRAFT_RECORDS.forEach(record => {
     const matchTeam =
       selectedTeams.length === 0 ||
       selectedTeams.includes(record.team_left.toLowerCase()) ||
@@ -1619,14 +1640,16 @@ async function loadAllDraftRecords() {
       <td>${record.team_right_score ?? '-'}</td>
       <td>${record.map ?? '-'}</td>
       <td>${record.tournament_name ?? '-'}</td>
-      <td><button onclick="loadSpecificDraft(${record.id})">Load</button></td>
+      <td><button class="btn btn-ghost" style="padding:6px 10px;border-radius:10px;" onclick="loadSpecificDraft(${record.id})">Load</button></td>
     `;
     table.appendChild(row);
   });
 
-  renderDraftCardSummaries(matchedRecords);
+  // whenever history loads, re-apply summary filter (this also updates match summary + counts)
+  applySummaryFilter();
 }
 
+// load a specific record by id
 async function loadSpecificDraft(id) {
   const { data, error } = await client
     .from('draft_records')
@@ -1634,10 +1657,7 @@ async function loadSpecificDraft(id) {
     .eq('id', id)
     .single();
 
-  if (error || !data) {
-    alert("❌ Failed to load specific draft.");
-    return;
-  }
+  if (error || !data) { alert("❌ Failed to load specific draft."); return; }
 
   draftState = {
     bans: [null, null],
@@ -1665,159 +1685,69 @@ async function loadSpecificDraft(id) {
   applyStateToControls();
   drawDraft();
   await saveDraftState();
-
-  console.log("✅ Specific draft loaded and synced to draft.");
 }
 
-function renderDraftCardSummaries(data) {
-  const container = document.getElementById('teamDraftCards');
-  container.innerHTML = '';
-
-  const teamMap = {};
-  data.forEach(record => {
-    [record.team_left, record.team_right].forEach(team => {
-      if (!teamMap[team]) teamMap[team] = [];
-      teamMap[team].push(record);
-    });
-  });
-
-  const filterSelect = document.getElementById('teamFilter');
-  const selectedTeams = Array.from(filterSelect.selectedOptions).map(opt => opt.value.toLowerCase());
-
-  Object.keys(teamMap).forEach(team => {
-    if (selectedTeams.length && !selectedTeams.includes(team.toLowerCase())) return;
-
-    const teamCard = document.createElement('div');
-    teamCard.className = 'team-card';
-
-    const title = document.createElement('h3');
-    title.innerText = team;
-    teamCard.appendChild(title);
-
-    teamMap[team].forEach(r => {
-      const meta = document.createElement('div');
-      meta.className = 'team-meta';
-      meta.innerHTML = `
-        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map}<br>
-        🏆 ${r.tournament_name ?? '—'}<br>
-        🆚 ${r.team_left} ${r.team_left_score ?? '-'} - ${r.team_right_score ?? '-'} ${r.team_right}
-      `;
-      teamCard.appendChild(meta);
-
-      const draft = r.state;
-      if (draft && draft.picks) {
-        const pickIndexes = (team === r.team_left) ? [0, 1, 2, 3] : [7, 6, 5, 4];
-        const playerGrid = document.createElement('div');
-        playerGrid.style.display = 'flex';
-        playerGrid.style.gap = '8px';
-        playerGrid.style.marginBottom = '12px';
-        playerGrid.style.flexWrap = 'wrap';
-
-        pickIndexes.forEach(i => {
-          const hero = draft.picks[i];
-          const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
-          const passives = draft.passives?.[i] || [];
-
-          const pCard = document.createElement('div');
-          pCard.className = 'mini-player';
-
-          const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
-          const heroName = hero?.name || 'None';
-          const heroSkill = hero?.skill || '';
-
-          pCard.innerHTML = `
-            <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
-            <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
-            <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
-            <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
-          `;
-
-          passives.forEach(ps => {
-            if (ps) {
-              const psLine = document.createElement('div');
-              psLine.style.display = 'flex';
-              psLine.style.alignItems = 'center';
-              psLine.style.gap = '4px';
-              psLine.style.justifyContent = 'center';
-              psLine.style.fontSize = '9px';
-              psLine.style.color = 'rgba(244,246,255,.72)';
-              psLine.style.marginTop = '6px';
-
-              if (ps.image_url) {
-                const img = document.createElement('img');
-                img.src = ps.image_url;
-                img.style.width = '14px';
-                img.style.height = '14px';
-                img.style.borderRadius = '6px';
-                psLine.appendChild(img);
-              }
-
-              const label = document.createElement('span');
-              label.textContent = ps.name;
-              psLine.appendChild(label);
-
-              pCard.appendChild(psLine);
-            }
-          });
-
-          playerGrid.appendChild(pCard);
-        });
-
-        teamCard.appendChild(playerGrid);
-      }
-    });
-
-    container.appendChild(teamCard);
-  });
+function getSummaryFilter(){
+  const team = $('teamCountSelect')?.value || '__ALL__';
+  const tourn = $('countTournamentSelect')?.value || '__ALL__';
+  return { team, tourn };
 }
 
-async function computeTeamPickBanCounts() {
-  const team = document.getElementById('teamCountSelect').value;
-  const tourn = (document.getElementById('countTournamentSelect')?.value) || '__ALL__';
-  const from = document.getElementById('countFrom').value;
-  const to = document.getElementById('countTo').value;
+/**
+ * Applies summary filter to:
+ *  - Match Summary by Team (collapsible section)
+ *  - Pick/Ban Counts (totals + breakdown)
+ */
+function applySummaryFilter(){
+  const { team, tourn } = getSummaryFilter();
 
-  if (!team) { alert('Please choose a team.'); return; }
-  if (!from || !to) { alert('Please set a From and To date.'); return; }
+  let filtered = (ALL_DRAFT_RECORDS || []).slice();
 
-  let query = client
-    .from('draft_records')
-    .select('team_left, team_right, match_date, state, tournament_name')
-    .gte('match_date', from)
-    .lte('match_date', to);
-
-  if (team !== '__ALL__') {
-    query = query.or(`team_left.eq.${team},team_right.eq.${team}`);
-  }
   if (tourn !== '__ALL__') {
-    query = query.eq('tournament_name', tourn);
+    filtered = filtered.filter(r => (r.tournament_name || null) === tourn);
+  }
+  if (team !== '__ALL__') {
+    filtered = filtered.filter(r => r.team_left === team || r.team_right === team);
   }
 
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('❌ Failed to fetch for counts:', error);
-    alert('Failed to fetch records for the selected range.');
-    return;
+  // update badge text
+  const badge = $('matchSummaryBadge');
+  if (badge) {
+    const teamLabel = (team === '__ALL__') ? 'All teams' : team;
+    const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
+    badge.textContent = `${teamLabel} • ${tournLabel} • ${filtered.length} matches`;
   }
 
+  // render match summary cards
+  renderDraftCardSummaries(filtered, team);
+
+  // compute counts from same filtered records
+  computeCountsFromRecords(filtered, team, tourn);
+}
+
+/** Button action: now simply applies filter (no date range) */
+async function computeTeamPickBanCounts() {
+  applySummaryFilter();
+}
+
+function computeCountsFromRecords(records, team, tourn){
   let totalMatches = 0;
   let totalPicks = 0;
   let totalBans = 0;
   const pickCounts = new Map();
   const banCounts = new Map();
 
-  data.forEach(r => {
+  records.forEach(r => {
     const s = r.state || {};
     const picks = s.picks || [];
     const bans = s.bans || [];
 
-    if (team === '__ALL__') {
-      totalMatches += 1;
+    totalMatches += 1;
 
+    if (team === '__ALL__') {
+      // all picks (8) and both bans (2)
       [0,1,2,3,4,5,6,7].forEach(i => {
-        const hero = picks[i];
-        const name = hero?.name;
+        const name = picks[i]?.name;
         if (name) {
           pickCounts.set(name, (pickCounts.get(name) || 0) + 1);
           totalPicks += 1;
@@ -1825,8 +1755,7 @@ async function computeTeamPickBanCounts() {
       });
 
       [0,1].forEach(bi => {
-        const b = bans[bi];
-        const bName = b?.name;
+        const bName = bans[bi]?.name;
         if (bName) {
           banCounts.set(bName, (banCounts.get(bName) || 0) + 1);
           totalBans += 1;
@@ -1837,20 +1766,19 @@ async function computeTeamPickBanCounts() {
       const isRight = r.team_right === team;
       if (!isLeft && !isRight) return;
 
-      totalMatches += 1;
-
+      // picks for that team only
       const idx = isLeft ? [0,1,2,3] : [4,5,6,7];
       idx.forEach(i => {
-        const hero = picks[i];
-        const skillName = hero?.name || null;
-        if (skillName) {
-          pickCounts.set(skillName, (pickCounts.get(skillName) || 0) + 1);
+        const name = picks[i]?.name;
+        if (name) {
+          pickCounts.set(name, (pickCounts.get(name) || 0) + 1);
           totalPicks += 1;
         }
       });
 
+      // ban for that team only
       const banHero = bans[isLeft ? 0 : 1];
-      const banName = banHero?.name || null;
+      const banName = banHero?.name;
       if (banName) {
         banCounts.set(banName, (banCounts.get(banName) || 0) + 1);
         totalBans += 1;
@@ -1861,18 +1789,18 @@ async function computeTeamPickBanCounts() {
   const teamLabel = (team === '__ALL__') ? 'All teams' : team;
   const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
 
-  document.getElementById('teamPBMeta').textContent =
-    `Team: ${teamLabel} • Tournament: ${tournLabel} • Range: ${from} → ${to} • Matches: ${totalMatches}`;
+  $('teamPBMeta').textContent =
+    `Team: ${teamLabel} • Tournament: ${tournLabel} • Matches: ${totalMatches}`;
 
-  const totalsEl = document.getElementById('teamPBTotals');
+  const totalsEl = $('teamPBTotals');
   totalsEl.innerHTML =
     (totalMatches === 0)
-      ? 'No matches in range.'
+      ? 'No matches found for this filter.'
       : `<div><b>Total Picks:</b> ${totalPicks}</div>
          <div><b>Total Bans:</b> ${totalBans}</div>`;
 
-  const pickBody = document.getElementById('teamPickBreakdown');
-  const banBody = document.getElementById('teamBanBreakdown');
+  const pickBody = $('teamPickBreakdown');
+  const banBody = $('teamBanBreakdown');
   pickBody.innerHTML = '';
   banBody.innerHTML = '';
 
@@ -1893,8 +1821,99 @@ async function computeTeamPickBanCounts() {
     });
 
   if (totalMatches === 0) {
-    document.getElementById('teamPBTotals').innerHTML = 'No matches in range.';
+    $('teamPBTotals').innerHTML = 'No matches found for this filter.';
   }
+}
+
+/**
+ * Match Summary by Team rendering (now driven by Summary Filter)
+ * @param {Array} data - already filtered records
+ * @param {string} filterTeam - '__ALL__' or specific team
+ */
+function renderDraftCardSummaries(data, filterTeam) {
+  const container = $('teamDraftCards');
+  container.innerHTML = '';
+
+  // group records per team
+  const teamMap = {};
+  data.forEach(record => {
+    [record.team_left, record.team_right].forEach(team => {
+      if (filterTeam !== '__ALL__' && team !== filterTeam) return;
+      if (!teamMap[team]) teamMap[team] = [];
+      teamMap[team].push(record);
+    });
+  });
+
+  const teams = Object.keys(teamMap).sort((a,b)=>a.localeCompare(b));
+  if (!teams.length) {
+    container.innerHTML = `<div class="glass-soft" style="padding:14px;max-width:520px;text-align:center;color:var(--muted);font-weight:800;">
+      No match summaries for this filter.
+    </div>`;
+    return;
+  }
+
+  teams.forEach(team => {
+    const teamCard = document.createElement('div');
+    teamCard.className = 'teamSummaryCard glass-soft';
+
+    const title = document.createElement('h3');
+    title.innerText = team;
+    teamCard.appendChild(title);
+
+    teamMap[team].forEach(r => {
+      const meta = document.createElement('div');
+      meta.className = 'summaryMeta';
+      meta.innerHTML = `
+        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map ?? '—'}<br>
+        🏆 ${r.tournament_name ?? '—'}<br>
+        🆚 ${r.team_left} ${r.team_left_score ?? '-'} - ${r.team_right_score ?? '-'} ${r.team_right}
+      `;
+      teamCard.appendChild(meta);
+
+      const draft = r.state || {};
+      if (draft && draft.picks) {
+        const pickIndexes = (team === r.team_left) ? [0, 1, 2, 3] : [7, 6, 5, 4];
+
+        const playerGrid = document.createElement('div');
+        playerGrid.className = 'playerGrid';
+
+        pickIndexes.forEach(i => {
+          const hero = draft.picks?.[i];
+          const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
+          const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
+          const heroName = hero?.name || 'None';
+          const heroSkill = hero?.skill || '';
+
+          const pCard = document.createElement('div');
+          pCard.className = 'playerMini';
+          pCard.innerHTML = `
+            <img src="${heroImg}" alt="">
+            <div class="heroName">${heroName}</div>
+            <div style="opacity:.9">${playerName}</div>
+            <div class="heroSkill">${heroSkill}</div>
+          `;
+
+          // passive mini lines (optional)
+          const passives = draft.passives?.[i] || [];
+          passives.forEach(ps => {
+            if (!ps) return;
+            const line = document.createElement('div');
+            line.style.marginTop = '4px';
+            line.style.fontSize = '9px';
+            line.style.opacity = '.85';
+            line.textContent = ps.name;
+            pCard.appendChild(line);
+          });
+
+          playerGrid.appendChild(pCard);
+        });
+
+        teamCard.appendChild(playerGrid);
+      }
+    });
+
+    container.appendChild(teamCard);
+  });
 }
 </script>
 </body>
