@@ -932,6 +932,15 @@ function baseRowsByTournament(rows){
   const t=selectedTournament(); if(t==='__all__') return rows;
   const lf=t.toLowerCase(); return rows.filter(r=> norm(r.tournament).toLowerCase()===lf);
 }
+function scopeTeamCodes(){
+  const rows = baseRowsByTournament(ALL);
+  const set = new Set();
+  for(const r of rows){
+    const code = norm(r._tag).toUpperCase();
+    if(code) set.add(code);
+  }
+  return set;
+}
 function updateFilterHint(){
   const t=selectedTournament(); const total=baseRowsByTournament(ALL).length;
   el('filterHint').textContent = t==='__all__' ? `Scope: All tournaments • Rows: ${total}` : `Scope: ${t} • Rows: ${total}`;
@@ -1726,19 +1735,48 @@ function renderElimTeamFocus(){
 
 /* ---------- Team grid & selection ---------- */
 function renderTeamGrid(filter=''){
-  const grid=el('teamGrid'); const q=(filter||'').trim().toLowerCase();
-  const items=TEAMS.filter(t=>[t.name,t.fullname,t.region,t.ew,t.alt].join(' ').toLowerCase().includes(q));
-  if(!items.length){ grid.innerHTML='<div class="muted">No matches.</div>'; return; }
+  const grid = el('teamGrid');
+  const q = (filter||'').trim().toLowerCase();
+
+  const tSel = selectedTournament();
+  const scoped = scopeTeamCodes(); // teams present in current tournament scope
+
+  // If user picked a specific tournament but it has zero rows
+  if(tSel !== '__all__' && scoped.size === 0){
+    grid.innerHTML = '<div class="muted">No teams found for this tournament scope.</div>';
+    return;
+  }
+
+  const items = TEAMS
+    .filter(t => (tSel === '__all__') ? true : scoped.has(String(t.name||'').toUpperCase()))
+    .filter(t => [t.name,t.fullname,t.region,t.ew,t.alt].join(' ').toLowerCase().includes(q));
+
+  if(!items.length){
+    grid.innerHTML = '<div class="muted">No matches.</div>';
+    return;
+  }
+
   grid.innerHTML = items.map(t=>`
     <div class="team-tile" data-code="${t.name}" title="${t.fullname}">
-      <img class="team-logo" src="${t.logo}" alt="${t.fullname} logo" loading="lazy" onerror="this.style.visibility='hidden'">
+      <img class="team-logo" src="${t.logo}" alt="${t.fullname} logo" loading="lazy"
+           onerror="this.style.visibility='hidden'">
       <div class="team-code">${t.name}</div>
     </div>`).join('');
+
   grid.querySelectorAll('.team-tile').forEach(tile=>{
-    tile.onclick=()=>{ const code=tile.getAttribute('data-code').toLowerCase(); const info=TEAM_BY_CODE[code]; if(info){ selectTeam(info); tile.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); } };
+    tile.onclick = ()=>{
+      const code = (tile.getAttribute('data-code')||'').toLowerCase();
+      const info = TEAM_BY_CODE[code];
+      if(info){
+        selectTeam(info);
+        tile.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+      }
+    };
   });
+
   highlightActiveTile();
 }
+
 function highlightActiveTile(){
   const grid=el('teamGrid'); if(!grid) return;
   [...grid.querySelectorAll('.team-tile')].forEach(div=>{
@@ -1806,19 +1844,75 @@ function renderTeamInfo(info){
 /* ---------- Controls ---------- */
 function populateMapFilter(){ el('mapFilter').innerHTML = `<option value="__all__">All maps</option>` + uniqueMaps(baseRowsByTournament(ALL)).map(m=>`<option>${m}</option>`).join(''); }
 function wireControls(){
-  el('gTournament').addEventListener('change', ()=>{
+    el('gTournament').addEventListener('change', async ()=>{
     updateFilterHint();
     populateMapFilter();
+  
+    // Page 1 tables
     renderOverall();
     renderPerMapAllTeams();
-    if(CURRENT_TEAM){
+  
+    // ✅ Page 2 logos now respect scope
+    renderTeamGrid(el('teamSearch')?.value || '');
+  
+    // If current team is NOT in scope anymore, auto-pick the first available team
+    const tSel = selectedTournament();
+    const scoped = scopeTeamCodes();
+  
+    const currentOk = !!CURRENT_TEAM && (tSel === '__all__' || scoped.has(CURRENT_TEAM.name.toUpperCase()));
+  
+    if(!currentOk){
+      const first = TEAMS.find(t => (tSel === '__all__') ? true : scoped.has(String(t.name||'').toUpperCase()));
+      if(first){
+        await selectTeam(first);
+      }else{
+        // no team in scope -> clear the right side safely
+        CURRENT_TEAM = null;
+        TEAM_ROWS = [];
+        highlightActiveTile();
+        kpiAndByMap();
+        el('tblPlayers').innerHTML = '<div class="muted">No team in scope.</div>';
+        el('tblMapTeam').innerHTML = '<div class="muted">—</div>';
+        el('tblByDay').innerHTML = '<div class="muted">—</div>';
+        el('tblTeamActive').innerHTML = '<div class="muted">—</div>';
+        el('tblTeamPet').innerHTML = '<div class="muted">—</div>';
+        el('tblCharUsageAct').innerHTML = '<div class="muted">—</div>';
+        el('tblCharUsagePas').innerHTML = '<div class="muted">—</div>';
+        renderElimTeamFocus();
+      }
+    }else{
+      // keep current team, just refresh its scoped rows + visuals
       TEAM_ROWS = baseRowsByTournament(ALL).filter(r => (norm(r._tag).toUpperCase()||'') === CURRENT_TEAM.name.toUpperCase());
-      kpiAndByMap(); renderTeamCombinedMetrics(); renderTeamActiveUsage(); renderTeamPetUsage(); renderPlayers(); renderByDay();
-      fetchPlayersBy(CURRENT_TEAM.name).then(r=>{ setRoleMap(r); renderRoster(r); if(LOPS_READY){ renderCharUsageActive(); renderCharUsagePassive(); } }).catch(()=>{});
-      fetchTeamInfoBy(CURRENT_TEAM.name).then(renderTeamInfo).catch(()=>{});
-      populateCharUsageMapFilter();
+      kpiAndByMap();
+      renderTeamCombinedMetrics();
+      renderTeamActiveUsage();
+      renderTeamPetUsage();
+      renderPlayers();
+      renderByDay();
+  
+      // refresh roster/roles + char usage
+      try{
+        const roster = await fetchPlayersBy(CURRENT_TEAM.name);
+        setRoleMap(roster);
+        renderRoster(roster);
+        if(LOPS_READY){
+          populateCharUsageMapFilter();
+          renderCharUsageActive();
+          renderCharUsagePassive();
+        }
+      }catch(e){}
+      try{
+        const info = await fetchTeamInfoBy(CURRENT_TEAM.name);
+        renderTeamInfo(info);
+      }catch(e){}
+  
+      renderElimTeamFocus();
     }
-    renderLopsActive(); renderLopsPet(); renderLopsTopKillers();
+  
+    // Page 1 LOPS sections (still global; unchanged)
+    renderLopsActive();
+    renderLopsPet();
+    renderLopsTopKillers();
   });
 
   el('gTournReset').addEventListener('click', ()=>{
@@ -1884,7 +1978,13 @@ async function initial(){
     const url=new URL(window.location.href);
     const qTeam=(url.searchParams.get('team')||'').trim().toLowerCase();
     if(qTeam && TEAM_BY_CODE[qTeam]) await selectTeam(TEAM_BY_CODE[qTeam]);
-    else if(TEAMS.length) await selectTeam(TEAMS[0]);
+    else {
+    const tSel = selectedTournament();
+    const scoped = scopeTeamCodes();
+    const first = TEAMS.find(t => (tSel === '__all__') ? true : scoped.has(String(t.name||'').toUpperCase()));
+    if(first) await selectTeam(first);
+  }
+
 
     LOPS_ALL = await fetchAllLopsRows();
     LOPS_READY = true;
