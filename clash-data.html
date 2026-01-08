@@ -276,11 +276,6 @@
       }
       tbody tr:hover{ background: rgba(255,255,255,.04); }
     
-      /* allow horizontal scroll for wide tables */
-      .block table{ display:block; overflow:auto; border-radius:14px; }
-      .block thead, .block tbody{ display:table; width:100%; table-layout:fixed; }
-      /* NOTE: fixed layout keeps things tidy; players column still works due to inner grid */
-    
       .wl{
         font-weight:900;
         padding:3px 10px;
@@ -474,6 +469,99 @@
         .controls select, .controls input{ min-width: 0; width: 100%; }
         .bar a.btn{ flex:1 1 240px; }
       }
+
+      /* =========================
+   MATCHES: prevent overflow
+   ========================= */
+    
+    /* Make sure nothing forces page sideways */
+    html, body { max-width:100%; overflow-x:hidden; }
+    
+    /* Horizontal scroll on desktop/tablet */
+    .tableWrap{
+      width:100%;
+      max-width:100%;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius:16px;
+      border:1px solid var(--line);
+    }
+    
+    /* Let table be wider than the screen without pushing the page */
+    .tableWrap table{
+      width:max(1100px, 100%);
+      border-collapse:separate;
+      border-spacing:0;
+    }
+    
+    /* Keep sticky header working inside scroll area */
+    .tableWrap thead th{
+      position:sticky;
+      top:0;
+      z-index:5;
+    }
+    
+    /* Optional nicer scrollbar */
+    .tableWrap::-webkit-scrollbar{ height:10px; }
+    .tableWrap::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+    }
+    .tableWrap::-webkit-scrollbar-track{
+      background: rgba(255,255,255,.04);
+      border-radius:999px;
+    }
+    
+    /* ========== Mobile: switch Matches to "cards" (no overflow at all) ========== */
+    @media (max-width: 720px){
+      /* stop scrolling container because table becomes cards */
+      .matchWrap{ overflow:visible; border:none; }
+      .matchWrap table{ width:100%; min-width:0; }
+    
+      #sec-match table thead{ display:none; }
+    
+      #sec-match table tbody{ display:block; }
+      #sec-match table tbody tr{
+        display:block;
+        margin:10px 0;
+        padding:10px;
+        border-radius:16px;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.03);
+      }
+    
+      #sec-match table tbody td{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        padding:10px 6px;
+        border-bottom:1px solid rgba(255,255,255,.06);
+      }
+      #sec-match table tbody td:last-child{ border-bottom:none; }
+    
+      #sec-match table tbody td::before{
+        font-size:.72rem;
+        color:var(--muted);
+        text-transform:uppercase;
+        letter-spacing:.08em;
+      }
+    
+      /* Labels (based on your column order) */
+      #sec-match table tbody td:nth-child(1)::before{ content:"Date"; }
+      #sec-match table tbody td:nth-child(2)::before{ content:"Game"; }
+      #sec-match table tbody td:nth-child(3)::before{ content:"Map"; }
+      #sec-match table tbody td:nth-child(4)::before{ content:"Team"; }
+      #sec-match table tbody td:nth-child(5)::before{ content:"Opponent"; }
+      #sec-match table tbody td:nth-child(6)::before{ content:"Score"; }
+      #sec-match table tbody td:nth-child(7)::before{ content:"Result"; }
+      #sec-match table tbody td:nth-child(8)::before{ content:"Ban"; }
+      #sec-match table tbody td:nth-child(9)::before{ content:"Players"; }
+    
+      /* Players grid already becomes 1-col at 900px, but enforce here too */
+      .playersWrap{ grid-template-columns: 1fr; }
+    }
+
     </style>
 
 </head>
@@ -553,7 +641,8 @@
     <!-- MATCH LIST -->
     <div id="sec-match" class="block js-section active">
       <h2>Per-Match Team Rows</h2>
-      <table>
+      <div class="tableWrap matchWrap">
+      <table class="matchTable">
         <thead>
           <tr>
             <th>Date</th>
@@ -569,6 +658,7 @@
         </thead>
         <tbody id="rowsBody"></tbody>
       </table>
+      </div>
       <div id="rowsPager" class="bar" style="justify-content:space-between;"></div>
     </div>
 
