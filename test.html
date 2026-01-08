@@ -2,42 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Clash Squad Draft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Character Skills</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script>
-    const client = supabase.createClient(
-      'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
-    );
-
-    function logout() {
-      client.auth.signOut().then(() => {
-        window.location.href = "index.html";
-      });
-    }
-
-    // IMPORTANT: wait for session BEFORE running any DB logic
-    document.addEventListener('DOMContentLoaded', async () => {
-      const { data: { session }, error } = await client.auth.getSession();
-
-      if (!session) {
-        window.location.href = "index.html";
-        return;
-      }
-
-      const userInfo = document.getElementById("user-info");
-      if (userInfo && session.user?.email) {
-        userInfo.textContent = "Logged in as: " + session.user.email;
-      }
-
-      // Now it’s safe to hit DB with authenticated user
-      await initDraftPage();
-    });
-  </script>
-
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto&display=swap" rel="stylesheet">
   <style>
     :root{
       --bg:#07090f;
@@ -56,2025 +26,1598 @@
       --radius-lg:22px;
       --shadow: 0 22px 70px rgba(0,0,0,.55);
 
-      --danger:#ff5a5a;
-      --good:#71d083;
+      --sb-w: 260px;
+      --sb-w-collapsed: 82px;
 
-      /* draft history scroll sizing */
-      --rowH: 48px; /* header + 5 rows => 6 * rowH */
+      --skill-active:#4dd3ff;
+      --skill-passive:#ff59c7;
+
+      /* ✅ category colors */
+      --cat-attack:#ff5a5a;     /* Red */
+      --cat-info:#ffe36b;       /* Yellow */
+      --cat-survival:#8be27a;   /* Green */
+      --cat-teamwork:#ff59c7;   /* Pink */
+
+      /* ✅ Pet-style sizing knobs (now for characters) */
+      --char-min: 128px;
+      --char-gap: 10px;
+      --char-pad: 8px;
+      --char-radius: 14px;
+      --char-thumb-radius: 12px;
+
+      color-scheme: dark;
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
     body{
       margin:0;
-      font-family:'Roboto',system-ui,-apple-system,Segoe UI,Inter,Arial,sans-serif;
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
       color:var(--ink);
       background:
-        radial-gradient(1200px 700px at 10% -10%, rgba(77,211,255,.18), transparent 55%),
-        radial-gradient(1000px 700px at 90% 10%, rgba(255,119,51,.16), transparent 50%),
-        radial-gradient(900px 700px at 50% 110%, rgba(255,189,89,.10), transparent 55%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
       overflow-x:hidden;
+      overflow-y:auto;
     }
+    /* ✅ match Pet Skills behavior */
+    body.sb-lock{ overflow:hidden; }
 
-    /* subtle noise */
-    body:before{
+    body::before, body::after{
       content:"";
       position:fixed;
-      inset:0;
+      inset:auto auto 0 0;
+      width:520px; height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform: translate(-45%, -35%);
+      filter: blur(.2px);
       pointer-events:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E");
-      mix-blend-mode:overlay;
-      opacity:.22;
+    }
+    body::after{
+      inset: -120px 0 auto auto;
+      width:420px; height:420px;
+      border:10px solid rgba(77,211,255,.10);
+      transform: translate(38%, 0%);
     }
 
-    /* glass primitives */
-    .glass{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      -webkit-backdrop-filter: blur(14px) saturate(135%);
-      backdrop-filter: blur(14px) saturate(135%);
+    a{color:inherit}
+    select, input{
+      color-scheme: dark;
+      background: rgba(0,0,0,.28);
+      color: var(--ink);
     }
-    .glass-soft{
-      background:rgba(20, 26, 38, .52);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      -webkit-backdrop-filter: blur(12px) saturate(130%);
-      backdrop-filter: blur(12px) saturate(130%);
-    }
-    .glass-hard{
-      background:rgba(14, 18, 28, .82);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:var(--radius-lg);
-      box-shadow:var(--shadow);
-      -webkit-backdrop-filter: blur(18px) saturate(145%);
-      backdrop-filter: blur(18px) saturate(145%);
+    select option{ background:#0b1020; color:var(--ink); }
+    button{font:inherit}
+    :focus-visible{
+      outline: 2px solid rgba(77,211,255,.65);
+      outline-offset: 2px;
+      border-radius: 12px;
     }
 
-    /* header */
-    header{
-      position:sticky;
-      top:0;
-      z-index:50;
-      padding:18px 14px;
-      border-bottom:1px solid var(--line);
-      background:rgba(14,18,28,.62);
-      -webkit-backdrop-filter: blur(16px) saturate(145%);
-      backdrop-filter: blur(16px) saturate(145%);
-    }
-    header:after{
-      content:"";
-      position:absolute;
-      left:0; right:0; bottom:-1px;
-      height:2px;
-      background:linear-gradient(90deg, transparent, rgba(255,189,89,.85), rgba(255,119,51,.65), transparent);
-      opacity:.9;
-    }
-    h1{
-      font-family:'Orbitron',sans-serif;
-      margin:0;
-      text-align:center;
-      letter-spacing:.6px;
-      color:var(--brand);
-      font-size:2rem;
-      text-shadow:0 8px 30px rgba(0,0,0,.55);
+    /* Layout */
+    .app{
+      min-height: 100vh;
+      display:flex;
+      gap:18px;
+      padding:18px;
+      max-width: 1440px;
+      margin: 0 auto;
+      align-items:flex-start;
+      position:relative;
     }
 
-    .user-controls{
-      position:absolute;
-      top:14px;
-      right:14px;
+    /* Sidebar overlay (mobile drawer) */
+    .sb-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.60);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 999;
+    }
+    .sb-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width: var(--sb-w);
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      position: sticky;
+      top: 18px;
+      height: calc(100vh - 36px);
+      transition: width .18s ease;
+      flex:0 0 auto;
+      z-index: 1000;
+    }
+    .sidebar.collapsed{ width: var(--sb-w-collapsed); }
+
+    .brand{
       display:flex;
       align-items:center;
       gap:10px;
+      padding:16px 16px 10px 16px;
+      border-bottom: 1px solid var(--line);
     }
-    .user-controls #user-info{
-      font-size:12px;
-      color:var(--muted);
-      max-width:320px;
+    .brand-left{display:flex;align-items:center;gap:10px;min-width:0;}
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.5px;
+      color:var(--brand);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing:.6px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      max-width: 150px;
+    }
+    .brand small{
+      display:block;
+      color: var(--muted);
+      font-size:.78rem;
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
     }
 
-    .btn{
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.95));
-      color:#141620;
-      font-weight:800;
-      border:none;
-      border-radius:12px;
-      padding:8px 12px;
-      cursor:pointer;
-      box-shadow: 0 14px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
+    .nav-search{
+      padding: 12px;
+      padding-top: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
     }
-    .btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .btn:active{ transform: translateY(0); }
-    .logout-btn{ composes: btn; } /* harmless if unsupported */
-    .user-controls .logout-btn{
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,189,89,.78));
-      color:#12131a;
-      font-weight:900;
-      border-radius:12px;
-      padding:8px 12px;
-      border:1px solid rgba(255,255,255,.10);
-    }
-    .user-controls .logout-btn:hover{ filter:brightness(1.05); }
-
-    /* inputs & selects */
-    input[type="text"], input[type="date"], input[type="number"], select{
-      color:var(--ink);
-      background:rgba(10, 14, 24, .55);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:12px;
-      padding:8px 10px;
+    .nav-search input{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
       outline:none;
-      -webkit-backdrop-filter: blur(12px) saturate(130%);
-      backdrop-filter: blur(12px) saturate(130%);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      font-size: .9rem;
     }
-    input::placeholder{ color: rgba(170,177,197,.70); }
-    input:focus, select:focus{
-      border-color: rgba(255,119,51,.55);
-      box-shadow: 0 0 0 3px rgba(77,211,255,.14), 0 16px 40px rgba(0,0,0,.45);
+    .nav-search input::placeholder{color: rgba(170,177,197,.75)}
+    .nav-search input:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
 
-    /* details (Draft History ONLY) */
-    details.glassy{
-      margin: 20px auto;
-      width: 90%;
-      max-width: 1200px;
-      padding: 12px 12px 14px;
-
-      background:rgba(20,26,38,.55);
-      border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow:var(--shadow);
-    }
-    details.glassy > summary{
-      list-style:none;
-      user-select:none;
-      cursor:pointer;
-      text-align:center;
-      padding:10px 0;
-      color:var(--brand);
-      font-weight:900;
-      font-size:18px;
-    }
-    details.glassy > summary::-webkit-details-marker{ display:none; }
-
-    /* top controls */
-    .top-controls{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
+    .nav{
+      padding: 12px;
       display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
+      flex-direction:column;
+      gap:8px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .nav::-webkit-scrollbar{width:10px}
+    .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .nav::-webkit-scrollbar-track{background: transparent}
+
+    .nav-item{
+      display:flex;
       align-items:center;
       gap:10px;
-      padding:10px;
+      padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid transparent;
+      color: var(--muted);
+      text-decoration:none;
+      transition: .2s ease;
+      cursor:pointer;
+      min-width:0;
+      -webkit-tap-highlight-color: transparent;
     }
-    .top-controls.glassbar{
-      background:rgba(20,26,38,.52);
-      border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    .nav-item:hover{
+      background: rgba(255,255,255,.05);
+      border-color: rgba(255,255,255,.08);
+      color: var(--ink);
     }
-    .top-controls a{
+    .nav-item.active{
+      background: linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
+      border-color: rgba(255,189,89,.22);
+      color: var(--ink);
+    }
+    .nav-ico{
+      width:26px;height:26px;border-radius:10px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      display:grid;place-items:center;
+      flex: 0 0 auto;
+    }
+    .nav-ico svg{width:14px;height:14px;opacity:.9}
+    .nav-label{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+    }
+
+    .sidebar.collapsed .brand h1,
+    .sidebar.collapsed .brand small,
+    .sidebar.collapsed .nav-label{display:none;}
+    .sidebar.collapsed .brand{justify-content:center;}
+    .sidebar.collapsed .brand-left{justify-content:center;}
+    .sidebar.collapsed .nav-item{
+      justify-content:center;
+      gap:0;
+      padding:10px 8px;
+    }
+    .sidebar.collapsed .nav-search{display:none;}
+
+    /* Main */
+    .main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    /* Topbar */
+    .topbar{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+    }
+    .search{
+      flex:1;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      min-width: 0;
+    }
+    .search input{
+      width:100%;
+      background: transparent;
+      border:0;
+      outline:none;
+      color: var(--ink);
+      font-size: .95rem;
+      min-width: 0;
+    }
+    .search input::placeholder{color: rgba(170,177,197,.75)}
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    .icon-btn{
+      width:42px;height:42px;border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      color: var(--ink);
+      flex:0 0 auto;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
+    .icon-btn svg{width:18px;height:18px;opacity:.92}
+
+    .userchip{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      max-width: 260px;
+      min-width: 0;
+    }
+    .avatar{
+      width:28px;height:28px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .usertext{min-width:0}
+    .usertext b{
+      display:block;
+      font-size:.92rem;
+      font-family: Orbitron, sans-serif;
+      color:var(--brand);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .usertext span{display:block; font-size:.78rem; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+    .logout{
+      color: rgba(255,255,255,.70);
+      text-decoration:none;
+      font-size:.85rem;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      transition:.2s ease;
+      cursor:pointer;
+      white-space:nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .logout:hover{
+      border-color: rgba(255,77,77,.35);
+      color: #ff8d8d;
+      box-shadow: 0 0 0 3px rgba(255,77,77,.10);
+    }
+
+    /* Card shell */
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+    .card-inner{padding:14px}
+
+    .hero{
+      position:relative;
+      height: 150px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.10)),
+        url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
+    }
+    .hero::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(420px 220px at 55% 45%, rgba(255,189,89,.16), transparent 60%);
+      pointer-events:none;
+    }
+    .hero-content{
+      position:absolute;
+      left:16px; right:16px; bottom:14px;
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hero-title h2{
+      font-family: Orbitron, sans-serif;
+      font-size: 1.45rem;
+      color: var(--brand);
+      text-shadow: 0 0 18px rgba(255,189,89,.20);
+      margin:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Controls */
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
+    .controls-left{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .controls-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
       display:inline-flex;
       align-items:center;
       gap:8px;
-      text-decoration:none;
-      font-weight:900;
-      color:#12131a;
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.94));
-      border-radius:14px;
-      padding:10px 12px;
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .top-controls a:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .top-controls label{ color:var(--muted); font-weight:800; }
-
-    .top-controls button{
-      background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.78));
-      color:#10121a;
-      font-weight:950;
-      border:none;
-      border-radius:14px;
-      padding:10px 12px;
-      cursor:pointer;
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .top-controls button:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-
-    .reset-btn{
-      margin: 14px auto 0;
-      display:block;
-      background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
-      color:#10121a;
-      border:1px solid rgba(255,255,255,.10);
-      padding:12px 18px;
-      border-radius:16px;
-      cursor:pointer;
-      font-size:16px;
-      font-weight:950;
-      box-shadow: 0 18px 55px rgba(0,0,0,.42);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .reset-btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-
-    /* draft layout */
-    .draft-wrapper{
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-      gap:46px;
-      margin-top: 16px;
-      flex-wrap: nowrap;
-      padding: 0 14px;
-    }
-
-    .team-container{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:10px;
-      padding:14px;
-      width: min(620px, 100%);
-    }
-    .team-container.glassbox{
-      background:rgba(20,26,38,.48);
-      border:1px solid var(--line);
-      border-radius:var(--radius-lg);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-
-    .team-label{
-      background:transparent;
-      border:none;
-      color:var(--brand2);
-      font-weight:950;
-      font-size:18px;
-      text-align:center;
-      padding:6px 10px;
-      border-radius:12px;
-      outline:none;
-    }
-    .team-label:focus{
-      background:rgba(10,14,24,.45);
-      border:1px dashed rgba(255,189,89,.55);
-    }
-
-    .team-row{ display:flex; gap:10px; }
-    .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-
-    .ban-slot, .pick-slot{
-      width: 100px;
-      height: 150px;
-      border-radius:14px;
-      position:relative;
-      cursor:pointer;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 55px rgba(0,0,0,.45);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      transition: transform .15s ease, border-color .15s ease, filter .15s ease;
-    }
-    .pick-slot{ border-color: rgba(77,211,255,.22); }
-    .ban-slot{ border-color: rgba(255,90,90,.42); }
-
-    .ban-slot:hover, .pick-slot:hover{ transform: translateY(-2px); filter:brightness(1.03); }
-    .ban-slot.disabled, .pick-slot.disabled{ opacity:0.4; pointer-events:none; }
-
-    .slot-name{ font-size:12px; color:rgba(244,246,255,.78); text-align:center; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-    .passive-slots, .weapon-slots{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
-    .passive-slot{
-      width:26px; height:52px;
-      border-radius:10px;
-      cursor:pointer;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      background-size:cover;
-      background-position:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .passive-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-
-    .weapon-slot{
-      width:100px; height:44px;
-      border-radius:14px;
-      cursor:pointer;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      position:relative;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .weapon-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .weapon-slot img{ max-height:100%; max-width:100%; }
-
-    .passive-name, .weapon-name{
-      font-size:10px;
-      color:rgba(244,246,255,.72);
-      text-align:center;
-      max-width: 100px;
-      overflow:hidden;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight:800;
+      font-size:.82rem;
       white-space:nowrap;
-      text-overflow:ellipsis;
     }
-
-    .player-input{
-      width: 96px;
-      font-size: 10px;
-      padding: 6px 8px;
-      text-align:center;
-      border-radius:12px;
-      margin-top: 4px;
+    .dot{
+      width:9px;height:9px;border-radius:50%;
+      display:inline-block;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.06);
     }
+    .dot.active{ background: var(--skill-active); }
+    .dot.passive{ background: var(--skill-passive); }
+    .dot.meta{ background: var(--brand); }
 
-    .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
+    .dot.cat-attack{ background: var(--cat-attack); }
+    .dot.cat-info{ background: var(--cat-info); }
+    .dot.cat-survival{ background: var(--cat-survival); }
+    .dot.cat-teamwork{ background: var(--cat-teamwork); }
 
-    .banned-overlay{
-      position:absolute; inset:0;
-      background: rgba(255, 90, 90, .28);
-      color: var(--ink);
-      font-weight: 950;
-      display:flex;
-      justify-content:center;
+    .btn{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
+      cursor:pointer;
+      font-weight:900;
+      font-size:.82rem;
+      transition:.2s ease;
+      white-space:nowrap;
+      text-decoration:none;
+      display:inline-flex;
       align-items:center;
-      border-radius:14px;
-      font-size:12px;
-      border:1px solid rgba(255,90,90,.35);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
+      justify-content:center;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    .btn:hover{
+      background: rgba(0,0,0,.28);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+    .btn.brand{
+      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
+      border-color: rgba(255,189,89,.20);
+    }
+    .btn.brand:hover{
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.28);
     }
 
-    /* summary */
-    .summary-wrapper{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
-      display:flex;
-      justify-content:center;
-      gap: 18px;
-      font-size: 12px;
-      color: rgba(244,246,255,.78);
-      overflow-x:auto;
-      padding: 10px;
+    .section-title{
+      margin: 16px 0 10px 0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      font-size: 1.02rem;
+      color: rgba(244,246,255,.92);
     }
-    .summary-wrapper > div{
-      min-width: 520px;
-      padding: 12px;
-      border-radius: var(--radius-lg);
-      background:rgba(20,26,38,.48);
-      border:1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    .section-title .hint{
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+      color: var(--muted);
+      font-weight:700;
+      font-size: .82rem;
+      margin-left: 8px;
+      letter-spacing: 0;
     }
-    .summary-wrapper h3{
-      margin: 6px 0 12px;
-      text-align:center;
-      font-family:'Orbitron',sans-serif;
-      color: var(--brand);
-      letter-spacing:.5px;
+
+    /* ✅ Pet-style grid sizing */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(var(--char-min), 1fr));
+      gap: var(--char-gap);
     }
-    .summary-row{ display:flex; flex-direction:row; gap:10px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
-    .summary-card{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:10px;
-      width: 120px;
+
+    /* Character card (now Pet-sized controls) */
+    .char-card{
+      position:relative;
+      padding: var(--char-pad);
+      border-radius: var(--char-radius);
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+      cursor:pointer;
+      transition:.18s ease;
       display:flex;
       flex-direction:column;
       gap:6px;
-      font-size:10px;
-      text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-    .summary-ban{
-      min-width: 460px;
-      max-width: 460px;
-      background:rgba(255,90,90,.10);
-      border:1px solid rgba(255,90,90,.35);
-      border-radius:14px;
-      padding:10px;
-      font-size:10px;
-      text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-
-    /* modal */
-    .modal{
-      display:none;
-      position:fixed;
-      z-index:9999;
-      inset:0;
-      background: rgba(0,0,0,.62);
-      -webkit-backdrop-filter: blur(10px) saturate(120%);
-      backdrop-filter: blur(10px) saturate(120%);
-      overflow:auto;
-      padding: 18px 12px;
-    }
-    .modal-content{
-      margin: 2% auto;
-      padding: 16px;
-      width: 92%;
-      max-width: 980px;
-      max-height: 92vh;
-      overflow-y:auto;
-      position:relative;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-
-      background: rgba(14,18,28,.78);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      -webkit-backdrop-filter: blur(18px) saturate(145%);
-      backdrop-filter: blur(18px) saturate(145%);
-    }
-    #heroModal h3{
-      margin: 8px 0 12px;
-      font-size: 20px;
-      color: var(--brand2);
-      font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-    }
-    .close-btn{
-      position:absolute;
-      top: 10px;
-      right: 14px;
-      color: var(--brand2);
-      font-size: 18px;
-      font-weight: 950;
-      cursor:pointer;
-      padding: 6px 10px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-    }
-    .close-btn:hover{ filter:brightness(1.05); }
-
-    .weapon-filter-wrapper{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      margin: 0 0 10px;
-      width:100%;
-      position:sticky;
-      top:0;
-      padding: 10px 0;
-      background: rgba(14,18,28,.55);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      -webkit-backdrop-filter: blur(14px);
-      backdrop-filter: blur(14px);
-      z-index: 2;
-    }
-    .weapon-filter-wrapper select{
-      min-width: 220px;
-      font-weight: 900;
-      color: var(--brand);
-      background: rgba(10,14,24,.62);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 14px;
-    }
-
-    #heroGrid{
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 12px;
-      justify-items:center;
-      width: 100%;
-      padding: 8px 2px 2px;
-    }
-    .hero-grid-item{
-      width: 100%;
-      max-width: 110px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 10px 8px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      cursor:pointer;
-      transition: transform .15s ease, border-color .15s ease, filter .15s ease;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-    .hero-grid-item:hover{
-      transform: translateY(-2px);
-      border-color: rgba(255,119,51,.55);
-      filter:brightness(1.03);
-    }
-    .hero-grid-item img{ width:80px; height:80px; object-fit:contain; margin-bottom:6px; }
-    .hero-grid-item div{ font-size:10px; text-align:center; color: rgba(244,246,255,.82); max-width: 86px; overflow-wrap:anywhere; }
-
-    /* draft history table */
-    .table-scroll{
-      width: 100%;
-      max-height: calc(var(--rowH) * 6); /* header + 5 rows */
-      overflow-y: auto;
-      overflow-x: hidden;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
-    }
-
-    #recordTable{
-      width: 100%;
-      border-collapse: collapse;
+      min-width:0;
       overflow:hidden;
-      border-radius: 16px;
-      border: none;
-      box-shadow: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    #recordTable thead{
-      background: rgba(255,255,255,.06) !important;
+    .char-card:hover{
+      background: rgba(255,255,255,.08);
+      transform: translateY(-1px);
+      border-color: rgba(255,189,89,.18);
     }
-    #recordTable th, #recordTable td{
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding: 10px 8px !important;
-      color: rgba(244,246,255,.86);
-      font-size: 13px;
-      height: var(--rowH);
-      vertical-align: middle;
-      background: transparent;
-    }
-    #recordTable thead th{
-      position: sticky;
-      top: 0;
-      z-index: 4;
-      background: rgba(255,255,255,.08) !important;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    #recordTable tbody{
-      background: rgba(14,18,28,.35) !important;
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-    }
-    #recordTable button{
-      border:none;
-      border-radius:12px;
-      padding: 8px 10px;
-      cursor:pointer;
-      font-weight: 900;
-      color:#12131a;
-      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.90));
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-    }
-    #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
 
-    /* Filter bar (moved from PB Counts) */
-    #pbFilterBar{
-      width: 95%;
-      max-width: 1400px;
-      margin: 22px auto 0;
-      padding: 14px;
-      border-radius: var(--radius-lg);
-      background: rgba(20,26,38,.42);
-      border: 1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    .char-thumb{
+      width:100%;
+      aspect-ratio: 3 / 4;
+      border-radius: var(--char-thumb-radius);
+      background: rgba(0,0,0,.18);
+      border: 2px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      position:relative;
     }
-    #pbFilterBar h2{
+    .char-thumb img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      object-position: top center;
+      display:block;
+      background: rgba(255,255,255,.02);
+    }
+
+    .char-card.active-skill .char-thumb{ border-color: rgba(77,211,255,.95); }
+    .char-card.passive-skill .char-thumb{ border-color: rgba(255,89,199,.95); }
+
+    /* ✅ Pet-like category dot badge (top-left) */
+    .cat-badge{
+      position:absolute;
+      top:8px; left:8px;
+      width:9px; height:9px;
+      border-radius:50%;
+      box-shadow: 0 0 0 3px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(170,177,197,.70);
+      pointer-events:none;
+    }
+    .cat-badge.cat-attack{ background: var(--cat-attack); }
+    .cat-badge.cat-info{ background: var(--cat-info); }
+    .cat-badge.cat-survival{ background: var(--cat-survival); }
+    .cat-badge.cat-teamwork{ background: var(--cat-teamwork); }
+
+    .meta-dot{
+      position:absolute;
+      top:8px; right:8px;
+      width:10px; height:10px;
+      border-radius:50%;
+      background: var(--brand);
+      box-shadow: 0 0 0 3px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.22);
+      display:none;
+      pointer-events:none;
+    }
+    .char-card.is-meta .meta-dot{ display:block; }
+
+    .char-name{
+      font-size:.82rem;
+      font-weight:1000;
+      color: rgba(244,246,255,.92);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
       text-align:center;
-      color: var(--brand);
-      font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-      margin: 6px 0 14px;
+      padding: 0 2px;
     }
 
-    /* shared controls look */
-    .counts-controls{
+    /* Skill line under name */
+    .char-skill{
       display:flex;
-      gap: 10px;
+      align-items:flex-start;
       justify-content:center;
-      align-items:center;
-      flex-wrap:wrap;
-      margin-bottom: 10px;
+      gap:6px;
+      text-align:center;
+
+      font-size:.72rem;
+      font-weight:1000;
+      line-height: 1.05rem;
+
+      white-space: normal;
+      overflow: visible;
+      padding: 0 2px;
+      min-height: 2.1rem;
+    }
+    .char-skill .skill-text{
+      display:block;
+      overflow-wrap:anywhere;
+      word-break: break-word;
+    }
+
+    .char-skill.cat-attack{ color: var(--cat-attack); }
+    .char-skill.cat-info{ color: var(--cat-info); }
+    .char-skill.cat-survival{ color: var(--cat-survival); }
+    .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
+
+    .char-skill .cat-dot{
+      width:8px;height:8px;border-radius:50%;
+      flex:0 0 auto;
+      margin-top: .22rem;
+      box-shadow: 0 0 0 3px rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.20);
+      background: rgba(170,177,197,.70);
+    }
+    .char-skill .cat-dot.cat-attack{ background: var(--cat-attack); }
+    .char-skill .cat-dot.cat-info{ background: var(--cat-info); }
+    .char-skill .cat-dot.cat-survival{ background: var(--cat-survival); }
+    .char-skill .cat-dot.cat-teamwork{ background: var(--cat-teamwork); }
+
+    .empty-msg{
+      grid-column: 1 / -1;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.12);
+      background: rgba(0,0,0,.16);
       color: var(--muted);
       font-weight: 800;
-    }
-    .counts-controls button{
-      background: linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
-      color:#10121a;
-      border:none;
-      border-radius: 14px;
-      padding: 10px 12px;
-      cursor:pointer;
-      font-weight: 950;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
-    }
-    .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
-
-    /* Match Summary by Team (ACCORDION) */
-    #draftCardSummary{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
-      padding: 14px;
-      border-radius: var(--radius-lg);
-      background: rgba(20,26,38,.42);
-      border: 1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-    #draftCardSummary h2{
-      text-align:center;
-      color: var(--brand);
-      font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-      margin: 6px 0 14px;
+      text-align: center;
     }
 
-    #teamDraftCards{
-      display:flex;
-      flex-wrap:wrap;
-      gap: 14px;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
-    details.team-accordion{
-      width: 340px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-      overflow: hidden;
-    }
-
-    details.team-accordion > summary{
-      list-style: none;
-      cursor: pointer;
-      user-select: none;
-      padding: 12px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    details.team-accordion > summary::-webkit-details-marker{ display:none; }
-
-    .acc-left{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      min-width: 0;
-    }
-    .acc-title{
-      color: var(--brand2);
-      font-family:'Orbitron',sans-serif;
-      font-size: 14px;
-      letter-spacing:.3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 230px;
-    }
-    .acc-badge{
-      font-size: 11px;
-      font-weight: 950;
-      color: rgba(244,246,255,.88);
-      background: rgba(14,18,28,.35);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 999px;
-      padding: 4px 8px;
-      white-space: nowrap;
-    }
-    .acc-chevron{
-      width: 26px;
-      height: 26px;
-      display:flex;
+    /* Modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display:none;
       align-items:center;
       justify-content:center;
-      border-radius: 12px;
+      padding: 18px;
+      z-index: 1200;
+    }
+    .modal.show{display:flex;}
+
+    .modal-card{
+      width: min(560px, 100%);
+      background: rgba(14, 18, 28, .92);
       border: 1px solid rgba(255,255,255,.10);
-      background: rgba(14,18,28,.30);
-      color: rgba(244,246,255,.82);
-      font-weight: 950;
-      transition: transform .15s ease, filter .15s ease;
-      flex: 0 0 auto;
-    }
-    details.team-accordion[open] .acc-chevron{ transform: rotate(180deg); }
-
-    .team-accordion-body{
-      padding: 0 12px 12px;
+      border-radius: 22px;
+      box-shadow: 0 26px 80px rgba(0,0,0,.65);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      max-height: 88vh;
     }
 
-    .team-meta{
-      font-size: 12px;
-      margin: 8px 0 10px;
+    .modal-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding: 14px 14px 10px 14px;
       border-bottom: 1px solid rgba(255,255,255,.08);
-      padding-bottom: 10px;
-      color: rgba(244,246,255,.78);
     }
-    .mini-player{
-      width: 68px;
-      text-align:center;
-      font-size: 10px;
-      color: rgba(244,246,255,.78);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      padding: 8px 6px;
-      background: rgba(14,18,28,.35);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 24px rgba(0,0,0,.30);
-    }
-
-    /* Pick/Ban Counts section */
-    #teamPBCounts{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 40px;
-      padding: 14px;
-      border-radius: var(--radius-lg);
-      background: rgba(20,26,38,.42);
-      border: 1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-    #teamPBCounts h2{
-      text-align:center;
+    .modal-top h3{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.6px;
       color: var(--brand);
-      font-family:'Orbitron',sans-serif;
-      letter-spacing:.4px;
-      margin: 6px 0 14px;
+      font-size: 1.15rem;
+      line-height: 1.25rem;
     }
-    .counts-summary{
-      text-align:center;
-      margin-top: 8px;
-      color: rgba(244,246,255,.78);
-    }
-    .counts-grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
-      gap: 14px;
-      margin-top: 12px;
-    }
-    .counts-card{
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      padding: 12px;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-    .counts-card h3{
-      margin: 0 0 10px 0;
-      color: var(--brand2);
-      font-family:'Orbitron',sans-serif;
-      font-size: 14px;
-      letter-spacing:.3px;
-    }
-    table.counts-table{ width:100%; border-collapse:collapse; }
-    table.counts-table th, table.counts-table td{
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding: 8px 6px;
-      text-align:left;
-      font-size: 13px;
-      color: rgba(244,246,255,.82);
-    }
-    table.counts-table th{
-      background: rgba(255,255,255,.06);
-      border-top-left-radius: 10px;
-      border-top-right-radius: 10px;
+    .modal-top p{
+      margin:6px 0 0 0;
+      color: var(--muted);
+      font-size:.82rem;
+      font-weight:700;
+      letter-spacing:.2px;
+      white-space:normal;
     }
 
-    /* responsive */
-    @media (max-width: 1100px){
-      .draft-wrapper{ flex-wrap:wrap; gap:14px; }
-      .summary-wrapper > div{ min-width: 360px; }
-      .team-row{ flex-wrap:wrap; justify-content:center; }
-      details.team-accordion{ width: min(520px, 100%); }
+    .modal-body{
+      padding: 12px 14px 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      justify-content:flex-start;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .badge-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin: 0;
+      padding: 0;
+    }
+
+    .info-block{
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 10px 12px;
+    }
+    .info-block b{
+      display:block;
+      margin:0 0 6px 0;
+      color: rgba(244,246,255,.92);
+      font-size: .92rem;
+      font-weight:900;
+    }
+    .info-block .txt{
+      margin:0;
+      color: rgba(244,246,255,.86);
+      font-size: .92rem;
+      line-height: 1.28rem;
+      white-space: normal;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .icon-btn:hover{transform:none}
+      .char-card:hover{transform:none}
+    }
+
+    /* Mobile drawer */
+    @media (max-width: 980px){
+      body::before, body::after{display:none;}
+
+      .app{
+        padding: 10px;
+        gap: 12px;
+        flex-direction: column;
+        max-width: 100%;
+        margin: 0;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+
+      /* Match Pet Skills: smaller tiles on mobile */
+      :root{ --char-min: 118px; }
+
+      .sidebar{
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: 0;
+        height: calc(100dvh - env(safe-area-inset-top));
+        width: min(88vw, 340px);
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-110%);
+        transition: transform .18s ease;
+        z-index: 1000;
+      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: min(88vw, 340px); }
+
+      .topbar{
+        top: env(safe-area-inset-top);
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        margin: -10px -10px 0 -10px;
+        padding: 10px 10px;
+        flex-wrap: wrap;
+        gap: 10px;
+        z-index: 50;
+      }
+
+      .search{
+        width: 100%;
+        flex: 1 1 100%;
+        order: 1;
+        padding: 11px 12px;
+      }
+      .search input{font-size: 1rem;}
+
+      .top-actions{
+        width: 100%;
+        order: 2;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .userchip{
+        flex: 1;
+        max-width: none;
+        padding: 7px 9px;
+      }
+      .usertext span{display:none;}
+      .usertext b{ max-width: 52vw; font-size: .88rem; }
+      .logout{ padding: 9px 10px; font-size: .85rem; }
+
+      .hero{height: 120px;}
+      .hero-content{left:12px;right:12px;bottom:12px;}
+      .hero-title h2{font-size: 1.18rem;}
+
+      .controls{gap: 10px;}
+      .controls-left{
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .controls-left::-webkit-scrollbar{display:none;}
+      .controls-right{
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        align-items: stretch;
+      }
+      .controls-right .pill{
+        grid-column: 1 / -1;
+        width: 100%;
+        justify-content: space-between;
+      }
+      .controls-right .btn{
+        width: 100%;
+        padding: 11px 10px;
+        border-radius: 14px;
+      }
+
+      .card-inner{padding: 12px;}
+
+      /* Modal becomes bottom sheet */
+      .modal{
+        align-items:flex-end;
+        padding: 10px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+      .modal-card{
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 18px;
+      }
+    }
+
+    @media (max-width: 560px){
+      :root{ --char-min: 96px; }
+      .char-name{font-size: .75rem;}
+      .char-skill{font-size:.68rem; min-height: 2.0rem;}
+      .modal-top{padding: 12px;}
+      .modal-top h3{font-size: 1.05rem;}
     }
   </style>
 </head>
+
 <body>
-  <header>
-    <div class="user-controls">
-      <span id="user-info">Checking login...</span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    </div>
-    <h1>Clash Squad Draft</h1>
-  </header>
+  <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
-  <details class="glassy">
-    <summary>Draft History</summary>
-
-    <div style="text-align: center; margin-top: 14px;">
-      <label style="display:inline-flex; gap:10px; align-items:center; color: var(--muted); font-weight: 900;">
-        <input type="checkbox" id="multiToggle" onchange="toggleTeamFilterMode()" />
-        Enable multiple selection
-      </label>
-
-      <div style="margin-top:12px;">
-        <label style="display:block;margin-bottom:6px; color: var(--muted); font-weight: 900;">Tournament</label>
-        <select id="tournamentFilter" style="width:240px;" onchange="loadAllDraftRecords()"></select>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+      <div class="brand">
+        <div class="brand-left">
+          <div class="logo">FF</div>
+          <div class="brand-text">
+            <h1>Free Fire</h1>
+            <small class="muted">Caster Dashboard</small>
+          </div>
+        </div>
       </div>
 
-      <div style="margin-top:12px;">
-        <select id="teamFilter" size="5" style="width: 240px;" onchange="loadAllDraftRecords()"></select>
+      <div class="nav-search">
+        <input id="navSearch" type="text" placeholder="Search menu..." autocomplete="off" />
       </div>
-    </div>
 
-    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 14px; width:100%;">
-      <!-- ✅ scroll wrapper: shows ~5 rows -->
-      <div class="table-scroll">
-        <table id="recordTable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Game</th>
-              <th>Team Left</th>
-              <th>Team Left Score</th>
-              <th>Team Right</th>
-              <th>Team Right Score</th>
-              <th>Map</th>
-              <th>Tournament</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="recordBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </details>
+      <nav class="nav" id="nav">
+        <a class="nav-item active" href="home.html" data-page="home.html" title="Dashboard">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
 
-  <div class="top-controls glassbar">
-    <a href="dashboard.html">← Back to Dashboard</a>
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Character Skills</span>
+        </a>
 
-    <label for="matchDate">Date:</label>
-    <input type="date" id="matchDate" />
+        <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Pets</span>
+        </a>
 
-    <label for="gameNumberSelect">Game:</label>
-    <select id="gameNumberSelect">
-      <option value="1">Game 1</option>
-      <option value="2">Game 2</option>
-      <option value="3">Game 3</option>
-      <option value="4">Game 4</option>
-      <option value="5">Game 5</option>
-      <option value="6">Game 6</option>
-      <option value="7">Game 7</option>
-    </select>
+        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Weapons</span>
+        </a>
 
-    <select id="mapSelect">
-      <option value="Bermuda">Bermuda</option>
-      <option value="Kalahari">Kalahari</option>
-      <option value="Purgatory">Purgatory</option>
-      <option value="Alpine">Alpine</option>
-      <option value="Nexterra">Nexterra</option>
-      <option value="Solara">Solara</option>
-    </select>
+        <a class="nav-item" href="map.html" data-page="map.html" title="Map">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6 4 8v14l6-2 4 2 6-2V6l-6 2-4-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Map</span>
+        </a>
 
-    <label for="tournamentInput">Tournament:</label>
-    <input type="text" id="tournamentInput" placeholder="Enter tournament name" list="tournamentList" />
-    <datalist id="tournamentList"></datalist>
+        <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M4 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 17V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 17V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M16 17V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 11l4-3 4 5 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">BR Data</span>
+        </a>
 
-    <button onclick="saveOrUpdateDraft()">Save/Update</button>
-    <button onclick="loadDraftRecord()">Load</button>
+        <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft.html" title="CS Draft">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 3v4a2 2 0 0 0 2 2h4"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11 16l1-3 6-6 2 2-6 6-3 1Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Draft</span>
+        </a>
+
+        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 5h7v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 5h7v14h-7V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Split View</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="search" role="search">
+          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85" aria-hidden="true">
+            <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="searchInput" placeholder="Search characters (name / role / skill)..." autocomplete="off" />
+        </div>
+
+        <div class="top-actions">
+          <div class="userchip">
+            <div class="avatar" aria-hidden="true"></div>
+            <div class="usertext">
+              <b id="gamertag">PlayerOne</b>
+              <span id="userEmail" class="muted">loading…</span>
+            </div>
+          </div>
+
+          <a class="logout" href="#" id="logoutBtn">Logout</a>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="hero">
+          <div class="hero-content">
+            <div class="hero-title">
+              <h2>Character Gallery</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-inner">
+          <div class="controls">
+            <div class="controls-left">
+              <span class="pill"><span class="dot active"></span>Active Skill</span>
+              <span class="pill"><span class="dot passive"></span>Passive Skill</span>
+              <span class="pill"><span class="dot meta"></span>Meta</span>
+
+              <span class="pill"><span class="dot cat-attack"></span>Attack</span>
+              <span class="pill"><span class="dot cat-info"></span>Info</span>
+              <span class="pill"><span class="dot cat-survival"></span>Survival</span>
+              <span class="pill"><span class="dot cat-teamwork"></span>Teamwork</span>
+
+              <span class="pill" id="searchCountPill" style="display:none;" aria-live="polite"></span>
+            </div>
+
+            <div class="controls-right">
+              <button class="btn" id="langToggleBtn" type="button" title="Toggle description language (auto-works once description_ms exists)">
+                Desc: EN
+              </button>
+
+              <span class="pill" style="border-color: rgba(255,189,89,.18)">
+                Show Meta For:
+                <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
+              </span>
+
+              <a class="btn" href="home.html">← Dashboard</a>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span id="metaTitleText">Meta Characters</span>
+            <span class="hint" id="metaHint">(Battle Royale)</span>
+          </div>
+          <div class="grid" id="metaGrid"></div>
+
+          <div class="section-title" style="margin-top:18px;">Non-Meta Characters</div>
+          <div class="grid" id="nonMetaGrid"></div>
+
+          <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
+            Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <button class="reset-btn" onclick="resetDraft()">Reset All</button>
-
-  <div class="draft-wrapper">
-    <div class="team-container glassbox">
-      <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
-      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
-        <label for="teamLeftScore">Left Score:</label>
-        <input type="number" id="teamLeftScore" min="0" style="width: 80px; margin-left: 8px;" />
+  <!-- Info Modal -->
+  <div class="modal" id="infoModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Character Info">
+      <div class="modal-top">
+        <div style="min-width:0">
+          <h3 id="infoName">—</h3>
+          <p id="infoSub">—</p>
+        </div>
+        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
-      <div class="team-row" id="teamLeft"></div>
-    </div>
 
-    <div class="team-container glassbox">
-      <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
-      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
-        <label for="teamRightScore">Right Score:</label>
-        <input type="number" id="teamRightScore" min="0" style="width: 80px; margin-left: 8px;" />
-      </div>
-      <div class="team-row" id="teamRight"></div>
-    </div>
-  </div>
+      <div class="modal-body">
+        <div class="badge-row" id="infoBadges"></div>
 
-  <div class="summary-wrapper">
-    <div><div class="summary-team" id="summaryLeft"></div></div>
-    <div><div class="summary-team" id="summaryRight"></div></div>
-  </div>
+        <div class="info-block">
+          <b id="infoSkillTitle">Skill: —</b>
+          <p class="txt" id="infoSkillDesc">—</p>
+        </div>
 
-  <div class="modal" id="heroModal">
-    <div class="modal-content">
-      <span class="close-btn" onclick="closeModal()">X</span>
-      <h3 id="modalTitle">Select</h3>
-      <div class="hero-grid" id="heroGrid"></div>
-    </div>
-  </div>
-
-  <!-- ✅ moved PB filters ABOVE match summary; removed date range -->
-  <div id="pbFilterBar">
-    <h2>Filters</h2>
-    <div class="counts-controls">
-      <label>Team
-        <select id="teamCountSelect" style="min-width:220px;" onchange="applyPBFilters()"></select>
-      </label>
-      <label>Tournament
-        <select id="countTournamentSelect" style="min-width:220px;" onchange="applyPBFilters()"></select>
-      </label>
-      <button onclick="applyPBFilters()">Apply</button>
-    </div>
-    <div style="text-align:center; color: rgba(244,246,255,.70); font-size:12px; font-weight:800;">
-      Affects: Match Summary + Pick/Ban Counts
-    </div>
-  </div>
-
-  <div id="draftCardSummary">
-    <h2>Match Summary by Team</h2>
-    <div id="teamDraftCards"></div>
-  </div>
-
-  <div id="teamPBCounts">
-    <h2>Team Pick/Ban Counts</h2>
-    <div class="counts-summary" id="teamPBMeta"></div>
-    <div class="counts-grid">
-      <div class="counts-card">
-        <h3>Totals</h3>
-        <div id="teamPBTotals">—</div>
-      </div>
-      <div class="counts-card">
-        <h3>Pick Breakdown</h3>
-        <table class="counts-table">
-          <thead><tr><th>Skill</th><th>Count</th></tr></thead>
-          <tbody id="teamPickBreakdown"></tbody>
-        </table>
-      </div>
-      <div class="counts-card">
-        <h3>Ban Breakdown</h3>
-        <table class="counts-table">
-          <thead><tr><th>Skill</th><th>Count</th></tr></thead>
-          <tbody id="teamBanBreakdown"></tbody>
-        </table>
+        <div class="info-block">
+          <b>Role</b>
+          <p class="txt" id="infoRole">—</p>
+        </div>
       </div>
     </div>
   </div>
 
-<script>
-let characters = [], weapons = [], currentSlot = null;
+  <script>
+    const CFG = Object.freeze({
+      SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
+      CHAR_URL: 'https://misai-my.github.io/freefire-esports/character.json',
+      CACHE_KEY: 'ff_chars_cache_v2',
+      CACHE_TTL_MS: 1000 * 60 * 60 * 6,
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
+    });
 
-let ALL_DRAFT_RECORDS = [];
-let LAST_MATCHED_RECORDS = [];
+    const FALLBACK_IMG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="rgba(255,189,89,.28)"/>
+            <stop offset="1" stop-color="rgba(77,211,255,.18)"/>
+          </linearGradient>
+        </defs>
+        <rect width="300" height="400" rx="26" fill="rgba(0,0,0,.35)"/>
+        <rect x="18" y="18" width="264" height="364" rx="22" fill="url(#g)" opacity=".65"/>
+        <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle"
+          font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,.88)">NO IMAGE</text>
+      </svg>
+    `)}`;
 
-// state now includes tournamentName
-let draftState = {
-  bans: [null, null],
-  picks: Array(8).fill(null),
-  passives: Array(8).fill(0).map(() => [null, null, null]),
-  weapons: Array(8).fill(0).map(() => [null, null, null]),
-  teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-  playerCards: Array(8).fill(''),
-  matchDate: '',
-  gameNumber: 1,
-  teamLeftScore: 0,
-  teamRightScore: 0,
-  map: 'Bermuda',
-  tournamentName: ''
-};
+    const client = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
-// called from top-level DOMContentLoaded AFTER session is ready
-async function initDraftPage() {
-  characters = await (await fetch('https://neptuneg1.github.io/freefire-caster/character.json')).json();
-  weapons = await (await fetch('https://neptuneg1.github.io/freefire-caster/weapon.json')).json();
-
-  const today = new Date();
-  document.getElementById('matchDate').valueAsDate = today;
-
-  // auto-save header changes into public.draft
-  document.getElementById('matchDate').addEventListener('change', saveDraftState);
-  document.getElementById('gameNumberSelect').addEventListener('change', saveDraftState);
-  document.getElementById('mapSelect').addEventListener('change', saveDraftState);
-  document.getElementById('teamLeftScore').addEventListener('change', saveDraftState);
-  document.getElementById('teamRightScore').addEventListener('change', saveDraftState);
-  document.getElementById('tournamentInput').addEventListener('change', saveDraftState);
-
-  await loadDraftState(); // from public.draft
-
-  // realtime sync for public.draft
-  client
-    .channel('public:draft')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'draft' }, payload => {
-      if (payload.new.id === 1 && payload.new.state) {
-        draftState = { ...draftState, ...payload.new.state };
-        applyStateToControls();
-        drawDraft();
-        console.log('🔄 Draft state synced from realtime');
+    async function ensureSession(){
+      try{
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return null; }
+        return session;
+      }catch(err){
+        console.error('ensureSession error:', err);
+        window.location.href = "index.html";
+        return null;
       }
-    })
-    .subscribe();
-
-  // realtime refresh for history
-  client
-    .channel('public:draft_records')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_records' }, payload => {
-      console.log('📡 draft_records changed', payload);
-      loadAllDraftRecords();
-    })
-    .subscribe();
-
-  loadAllDraftRecords();
-}
-
-function drawDraft(){
-  const l=document.getElementById('teamLeft'),r=document.getElementById('teamRight');
-  l.innerHTML=''; r.innerHTML='';
-
-  l.appendChild(makeSlot('ban',0));
-  for(let i=0;i<4;i++)l.appendChild(makeSlot('pick',i));
-  for(let i=7;i>=4;i--)r.appendChild(makeSlot('pick',i));
-  r.appendChild(makeSlot('ban',1));
-
-  document.getElementById('teamNameLeft').value = draftState.teamNames[0];
-  document.getElementById('teamNameRight').value = draftState.teamNames[1];
-
-  updateSummary();
-}
-
-function makeSlot(type,index){
-  const c=document.createElement('div'); c.className='slot';
-  const m=document.createElement('div'); m.className=type==='ban'?'ban-slot':'pick-slot';
-  const img=document.createElement('img'); img.src='https://imgur.com/AdvPwAO.png';
-  img.style.width='100%'; img.style.height='100%'; img.style.borderRadius='14px';
-  img.style.objectFit='cover';
-  m.appendChild(img);
-  const nameDiv=document.createElement('div'); nameDiv.className='slot-name';
-
-  if(type==='ban'){
-    const h=draftState.bans[index];
-    if(h){img.src=h.image_url;nameDiv.innerText=h.name;}
-    m.onclick=()=>{currentSlot={type,index};openModal('Select Hero to Ban');};
-  } else {
-    const h=draftState.picks[index];
-    if(h){img.src=h.image_url;nameDiv.innerText=h.name;}
-    m.onclick=()=>{currentSlot={type,index};openModal('Select Active Skill');};
-  }
-  c.appendChild(m); c.appendChild(nameDiv);
-
-  if (type === 'pick') {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Player Name';
-    input.value = draftState.playerCards[index] || '';
-    input.className = 'player-input';
-    input.onchange = () => {
-      draftState.playerCards[index] = input.value;
-      saveDraftState();
-    };
-    c.appendChild(input);
-  }
-
-  if(type==='pick'){
-    const passives=draftState.passives[index];
-    const pDiv=document.createElement('div'); pDiv.className='passive-slots';
-    passives.forEach((ps,i)=>{const p=document.createElement('div'); p.className='passive-slot';
-      const pn=document.createElement('div');pn.className='passive-name';
-      if(ps){p.style.backgroundImage=`url(${ps.image_url})`;pn.innerText=ps.name;}
-      p.onclick=()=>{currentSlot={type:'passive',pickIndex:index,passiveIndex:i};openModal('Select Passive Skill');};
-      const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';
-      box.style.alignItems='center';box.appendChild(p);box.appendChild(pn);pDiv.appendChild(box);});
-    c.appendChild(pDiv);
-
-    const wDiv=document.createElement('div'); wDiv.className='weapon-slots';
-    draftState.weapons[index].forEach((w,i)=>{const wSlot=document.createElement('div'); wSlot.className='weapon-slot'; if(i===0)wSlot.style.border='1px solid rgba(255,189,89,.65)';
-      const wn=document.createElement('div');wn.className='weapon-name';
-      if(w){const wImg=document.createElement('img');wImg.src=w.image_url;wSlot.appendChild(wImg);wn.innerText=w.name;}
-      wSlot.onclick=()=>{currentSlot={type:'weapon',pickIndex:index,weaponIndex:i};openModal('Select Weapon');};
-      const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';box.style.alignItems='center';
-      box.appendChild(wSlot);box.appendChild(wn);wDiv.appendChild(box);}); c.appendChild(wDiv);
-  }
-
-  return c;
-}
-
-function updateTeamName(teamIndex) {
-  const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
-  draftState.teamNames[teamIndex] = input.value;
-  saveDraftState();
-}
-
-function openModal(title) {
-  document.getElementById('modalTitle').innerText = title;
-  const grid = document.getElementById('heroGrid');
-  grid.innerHTML = '';
-
-  if (currentSlot.type === 'weapon') {
-    const filterWrapper = document.createElement('div');
-    filterWrapper.className = 'weapon-filter-wrapper';
-
-    const armoryFilter = document.createElement('select');
-    const armoryOptions = ['All', 'Andrew', 'Kelly', 'Laura', 'Mocco', 'Hayato', 'Tatsuya'];
-    armoryOptions.forEach(name => { const option = document.createElement('option'); option.value = name.toLowerCase(); option.textContent = name; armoryFilter.appendChild(option); });
-    filterWrapper.appendChild(armoryFilter);
-    grid.appendChild(filterWrapper);
-
-    function renderWeapons(filter) {
-      Array.from(grid.children).forEach((child, index) => { if (index !== 0) child.remove(); });
-
-      const clearCard = document.createElement('div');
-      clearCard.className = 'hero-grid-item';
-      clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
-      const clearImg = document.createElement('img');
-      clearImg.src = 'https://imgur.com/AdvPwAO.png';
-      clearImg.alt = 'Clear';
-      clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-      const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
-      clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
-      clearCard.onclick = () => {
-        draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = null;
-        closeModal();
-        drawDraft();
-        saveDraftState();
-      };
-      grid.appendChild(clearCard);
-
-      weapons.forEach(item => {
-        if (!item.armory) return;
-        if (filter !== 'all' && !item.armory.toLowerCase().includes(filter)) return;
-        const card = document.createElement('div'); card.className = 'hero-grid-item';
-        const img = document.createElement('img'); img.src = item.image_url; img.alt = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
-        const name = document.createElement('div'); name.textContent = item.name;
-        card.appendChild(img); card.appendChild(name);
-        card.onclick = () => {
-          draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = item;
-          closeModal();
-          drawDraft();
-          saveDraftState();
-        };
-        grid.appendChild(card);
-      });
     }
 
-    renderWeapons('all');
-    armoryFilter.addEventListener('change', () => renderWeapons(armoryFilter.value));
+    async function logout(){
+      try{ await client.auth.signOut(); }catch(_){}
+      window.location.href = "index.html";
+    }
 
-  } else {
-    const clearCard = document.createElement('div');
-    clearCard.className = 'hero-grid-item';
-    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
-    const clearImg = document.createElement('img'); clearImg.src = 'https://imgur.com/AdvPwAO.png'; clearImg.alt = 'Clear'; clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
-    clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
-    clearCard.onclick = () => {
-      if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = null;
-      if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = null;
-      if (currentSlot.type === 'passive') draftState.passives[currentSlot.pickIndex][currentSlot.passiveIndex] = null;
-      closeModal(); drawDraft(); saveDraftState();
-    };
-    grid.appendChild(clearCard);
+    /***********************
+     * Sidebar behavior (desktop collapse / mobile drawer)
+     ***********************/
+    const sidebar = document.getElementById('sidebar');
+    const sbToggle = document.getElementById('sbToggle');
+    const sbTogglePath = document.getElementById('sbTogglePath');
+    const sbOverlay = document.getElementById('sbOverlay');
+    const mobileMQ = window.matchMedia('(max-width: 980px)');
 
-    const used = new Set();
-    draftState.bans.forEach(h => h && used.add(h.name));
-    draftState.picks.forEach(h => h && used.add(h.name));
+    function isMobile(){ return mobileMQ.matches; }
 
-    let list = characters.filter(h => (currentSlot.type === 'passive') ? h.skill_type === 'Passive' : h.skill_type === 'Active');
+    function setToggleIcon(){
+      if (!sbTogglePath) return;
+      if (isMobile()){
+        sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
+      }else{
+        sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
+          ? 'M10 7l5 5-5 5'
+          : 'M14 7l-5 5 5 5'
+        );
+      }
+    }
 
-    list.forEach(item => {
-      const box = document.createElement('div'); box.className = 'hero-grid-item';
-      const img = document.createElement('img'); img.src = item.image_url; img.title = item.name;
+    function openDrawer(){
+      sidebar.classList.add('open');
+      sbOverlay.classList.add('show');
+      sbOverlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('sb-lock'); // ✅ Pet-style scroll lock
+    }
+    function closeDrawer(){
+      sidebar.classList.remove('open');
+      sbOverlay.classList.remove('show');
+      sbOverlay.setAttribute('aria-hidden','true');
+      document.body.classList.remove('sb-lock'); // ✅
+    }
+    function toggleSidebar(){
+      if (isMobile()){
+        sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+      }else{
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem(CFG.SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+      }
+      setToggleIcon();
+    }
 
-      if ((currentSlot.type === 'ban' || currentSlot.type === 'pick') && used.has(item.name)) {
-        img.classList.add('disabled');
+    function syncSidebarMode(){
+      if (isMobile()){
+        sidebar.classList.remove('collapsed');
+        closeDrawer();
+      }else{
+        const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
+        sidebar.classList.toggle('collapsed', saved === '1');
+        closeDrawer();
+      }
+      setToggleIcon();
+    }
+
+    sbToggle?.addEventListener('click', toggleSidebar);
+    sbOverlay?.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
+    });
+
+    document.querySelectorAll('#nav .nav-item').forEach(a => {
+      a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
+    });
+
+    mobileMQ.addEventListener?.('change', syncSidebarMode);
+
+    (function setActiveNav(){
+      const here = (location.pathname.split('/').pop() || 'character.html').toLowerCase();
+      document.querySelectorAll('.nav-item').forEach(a => {
+        const page = (a.getAttribute('data-page') || '').toLowerCase();
+        a.classList.toggle('active', page === here);
+      });
+    })();
+
+    document.getElementById('navSearch')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = (a.textContent || '').toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
+
+    /***********************
+     * Character Data + Rendering
+     ***********************/
+    const metaGrid = document.getElementById('metaGrid');
+    const nonMetaGrid = document.getElementById('nonMetaGrid');
+    const metaTitleText = document.getElementById('metaTitleText');
+    const metaHint = document.getElementById('metaHint');
+    const toggleModeBtn = document.getElementById('toggleModeBtn');
+    const searchCountPill = document.getElementById('searchCountPill');
+    const topSearch = document.getElementById('searchInput');
+
+    let allCharacters = [];
+    let currentMetaMode = 'meta';
+    let currentSearchTerm = '';
+
+    const safeText = (v) => (v ?? '').toString();
+    const tidy = (v) => safeText(v)
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\s*\n+\s*/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    const lower = (v) => tidy(v).toLowerCase();
+    const isPassive = (c) => lower(c?.skill_type) === 'passive';
+    const isMeta = (c) => lower(c?.[currentMetaMode] || 'no') === 'yes';
+    const modeLabel = () => (currentMetaMode === 'meta' ? 'BR' : 'CS');
+
+    function setModeUI(){
+      const isBR = currentMetaMode === 'meta';
+      toggleModeBtn.textContent = isBR ? 'Battle Royale' : 'Clash Squad';
+      metaTitleText.textContent = 'Meta Characters';
+      metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
+    }
+
+    /***********************
+     * Desc language toggle (auto-works if description_ms exists)
+     ***********************/
+    const KEY_LANG = 'ff_char_desc_lang_v1';
+    let useMS = (localStorage.getItem(KEY_LANG) === '1');
+
+    const langToggleBtn = document.getElementById('langToggleBtn');
+    let lastOpenedChar = null;
+    let lastOpenedMetaFlag = false;
+
+    function getMSDesc(c){ return tidy(c?.description_ms ?? ''); }
+    function getDisplayDesc(c){
+      const en = tidy(c?.description ?? '');
+      const ms = getMSDesc(c);
+      if (useMS) return ms || en || '—';
+      return en || ms || '—';
+    }
+    function anyMSAvailable(){
+      return Array.isArray(allCharacters) && allCharacters.some(c => !!getMSDesc(c));
+    }
+    function syncLangToggleUI(){
+      if (!langToggleBtn) return;
+      langToggleBtn.textContent = useMS ? 'Desc: MS' : 'Desc: EN';
+      langToggleBtn.title = anyMSAvailable()
+        ? 'Toggle description language'
+        : 'No translated data yet for characters. This will auto-work once description_ms is added.';
+    }
+
+    langToggleBtn?.addEventListener('click', () => {
+      useMS = !useMS;
+      localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
+      syncLangToggleUI();
+      if (infoModal.classList.contains('show') && lastOpenedChar){
+        openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
+      }
+    });
+
+    /***********************
+     * Category mapping (Attack/Info/Survival/Teamwork)
+     ***********************/
+    function getCategoryClass(c){
+      const r = lower(c?.role);
+      if (!r) return '';
+      if (r.includes('attack')) return 'cat-attack';
+      if (r.includes('info')) return 'cat-info';
+      if (r.includes('survival')) return 'cat-survival';
+      if (r.includes('team')) return 'cat-teamwork';
+      return '';
+    }
+
+    function makeSearchBlob(c){
+      return [
+        tidy(c?.name),
+        tidy(c?.role),
+        tidy(c?.skill_type),
+        tidy(c?.skill),
+        tidy(c?.description),
+        getMSDesc(c)
+      ].filter(Boolean).join(' ').toLowerCase();
+    }
+
+    function ensureEmptyMsg(grid, text){
+      let msg = grid.querySelector('.empty-msg');
+      if (!msg){
+        msg = document.createElement('div');
+        msg.className = 'empty-msg';
+        grid.appendChild(msg);
+      }
+      msg.textContent = text || 'No matches.';
+      return msg;
+    }
+
+    function wireImgFallback(img){
+      img.addEventListener('error', () => {
+        if (img.dataset.fallbackApplied) return;
+        img.dataset.fallbackApplied = '1';
+        img.src = FALLBACK_IMG;
+      }, { once: true });
+    }
+
+    function makeCard(c){
+      const passive = isPassive(c);
+      const meta = isMeta(c);
+
+      const card = document.createElement('div');
+      card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '');
+      card.setAttribute('tabindex','0');
+      card.dataset.search = makeSearchBlob(c);
+
+      const thumb = document.createElement('div');
+      thumb.className = 'char-thumb';
+
+      const img = document.createElement('img');
+      img.src = c.image_url || FALLBACK_IMG;
+      img.alt = tidy(c.name) || 'Character';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      wireImgFallback(img);
+
+      // ✅ category badge like pets
+      const catCls = getCategoryClass(c);
+      const catBadge = document.createElement('span');
+      catBadge.className = 'cat-badge' + (catCls ? (' ' + catCls) : '');
+
+      const metaDot = document.createElement('span');
+      metaDot.className = 'meta-dot';
+
+      thumb.appendChild(img);
+      thumb.appendChild(catBadge);
+      thumb.appendChild(metaDot);
+
+      const name = document.createElement('div');
+      name.className = 'char-name';
+      name.textContent = tidy(c.name) || '—';
+
+      const skillLine = document.createElement('div');
+      skillLine.className = 'char-skill' + (catCls ? (' ' + catCls) : '');
+
+      const dot = document.createElement('span');
+      dot.className = 'cat-dot' + (catCls ? (' ' + catCls) : '');
+
+      const skillText = document.createElement('span');
+      skillText.className = 'skill-text';
+      skillText.textContent = tidy(c?.skill) || '—';
+
+      skillLine.appendChild(dot);
+      skillLine.appendChild(skillText);
+
+      card.appendChild(thumb);
+      card.appendChild(name);
+      card.appendChild(skillLine);
+
+      card.addEventListener('click', () => openInfo(c, meta));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInfo(c, meta); }
+      });
+
+      return card;
+    }
+
+    function renderGrids(){
+      metaGrid.innerHTML = '';
+      nonMetaGrid.innerHTML = '';
+
+      const chars = Array.isArray(allCharacters) ? allCharacters.slice() : [];
+      chars.sort((a,b) => tidy(a?.name).localeCompare(tidy(b?.name)));
+
+      const metas = [];
+      const nonmetas = [];
+      for (const c of chars){ (isMeta(c) ? metas : nonmetas).push(c); }
+
+      const metaFrag = document.createDocumentFragment();
+      metas.forEach(c => metaFrag.appendChild(makeCard(c)));
+      metaGrid.appendChild(metaFrag);
+
+      const nonFrag = document.createDocumentFragment();
+      nonmetas.forEach(c => nonFrag.appendChild(makeCard(c)));
+      nonMetaGrid.appendChild(nonFrag);
+
+      if (!metas.length) ensureEmptyMsg(metaGrid, 'No meta characters found for this mode.').style.display = '';
+      if (!nonmetas.length) ensureEmptyMsg(nonMetaGrid, 'No non-meta characters found.').style.display = '';
+
+      syncLangToggleUI();
+      applyCharacterSearch(currentSearchTerm);
+    }
+
+    function applyCharacterSearch(term){
+      const q = (term || '').toLowerCase().trim();
+
+      const allCards = [
+        ...metaGrid.querySelectorAll('.char-card'),
+        ...nonMetaGrid.querySelectorAll('.char-card')
+      ];
+
+      let visibleCards = 0;
+      for (const el of allCards){
+        const hit = !q || (el.dataset.search || '').includes(q);
+        el.style.display = hit ? '' : 'none';
+        if (hit) visibleCards++;
+      }
+
+      const metaHasVisible = [...metaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
+      const nonHasVisible  = [...nonMetaGrid.querySelectorAll('.char-card')].some(c => c.style.display !== 'none');
+      ensureEmptyMsg(metaGrid).style.display = metaHasVisible ? 'none' : '';
+      ensureEmptyMsg(nonMetaGrid).style.display = nonHasVisible ? 'none' : '';
+
+      if (q) {
+        searchCountPill.style.display = '';
+        searchCountPill.textContent = `Showing: ${visibleCards} match${visibleCards===1?'':'es'}`;
       } else {
-        img.onclick = () => {
-          if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = item;
-          if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = item;
-          if (currentSlot.type === 'passive') draftState.passives[currentSlot.pickIndex][currentSlot.passiveIndex] = item;
-          closeModal(); drawDraft(); saveDraftState();
-        };
+        searchCountPill.style.display = 'none';
+        searchCountPill.textContent = '';
       }
-
-      const label = document.createElement('div'); label.textContent = item.name;
-      box.appendChild(img); box.appendChild(label); grid.appendChild(box);
-    });
-  }
-
-  document.getElementById('heroModal').style.display = 'block';
-}
-
-function closeModal(){document.getElementById('heroModal').style.display='none';}
-
-function updateSummary() {
-  const left = document.getElementById('summaryLeft');
-  const right = document.getElementById('summaryRight');
-  left.innerHTML = ""; right.innerHTML = "";
-
-  const makeCard = (title, content) => `
-    <div class="summary-card">
-      <strong>${title}</strong><br>${content}
-    </div>
-  `;
-
-  function buildTeamSummary(startIndex, banIndex) {
-    let html = "";
-    const ban = draftState.bans[banIndex];
-    html += `<div class="summary-row summary-ban-row">
-      <div class="summary-ban"><strong>BAN</strong><br>${ban ? `${ban.name}<br>${ban.description || ''}` : "None"}</div>
-    </div>`;
-    html += `<div class="summary-row">`;
-    for (let i = startIndex; i < startIndex + 4; i++) {
-      const hero = draftState.picks[i];
-      html += makeCard(
-        `Player ${i - startIndex + 1}`,
-        hero ? `${hero.name}<br>Skill: ${hero.skill}<br>${hero.description || ''}` : "None"
-      );
     }
-    html += `</div>`;
-    html += `<div class="summary-row">`;
-    for (let i = startIndex; i < startIndex + 4; i++) {
-      let wContent = "";
-      draftState.weapons[i].forEach(w => {
-        if (w) {
-          wContent += `${w.name}<br>Dmg:${w.damage} RoF:${w.rate_of_fire}<br>Rng:${w.range} Mag:${w.magazine_size}<br>`;
-          const armory = getWeaponArmory(w.name);
-          if (armory) wContent += `Armory: ${armory}<br>`;
-          wContent += `<br>`;
-        }
-      });
-      html += makeCard("Weapons", wContent || "None");
+
+    let searchRAF = 0;
+    function scheduleSearchApply(val){
+      cancelAnimationFrame(searchRAF);
+      searchRAF = requestAnimationFrame(() => applyCharacterSearch(val));
     }
-    html += `</div>`;
-    html += `<div class="summary-row">`;
-    for (let i = startIndex; i < startIndex + 4; i++) {
-      let pContent = "";
-      draftState.passives[i].forEach(ps => {
-        if (ps)
-          pContent += `${ps.name}<br>Skill: ${ps.skill}<br>${ps.description || ''}<br><br>`;
-      });
-      html += makeCard("Passives", pContent || "None");
+
+    function readCache(){
+      try{
+        const raw = localStorage.getItem(CFG.CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.data)) return null;
+        if (Date.now() - (parsed.ts || 0) > CFG.CACHE_TTL_MS) return null;
+        return parsed.data;
+      }catch(_){ return null; }
     }
-    html += `</div>`;
-    return html;
-  }
 
-  function buildTeamSummaryRight(startIndex, banIndex) {
-    let html = "";
-    const ban = draftState.bans[banIndex];
-    html += `<div class="summary-row summary-ban-row">
-      <div class="summary-ban"><strong>BAN</strong><br>${ban ? `${ban.name}<br>${ban.description || ''}` : "None"}</div>
-    </div>`;
-    html += `<div class="summary-row">`;
-    for (let offset = 3; offset >= 0; offset--) {
-      const i = startIndex + offset;
-      const hero = draftState.picks[i];
-      html += makeCard(
-        `Player ${4 - offset}`,
-        hero ? `${hero.name}<br>Skill: ${hero.skill}<br>${hero.description || ''}` : "None"
-      );
+    function writeCache(data){
+      try{ localStorage.setItem(CFG.CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); }catch(_){}
     }
-    html += `</div>`;
-    html += `<div class="summary-row">`;
-    for (let offset = 3; offset >= 0; offset--) {
-      const i = startIndex + offset;
-      let wContent = "";
-      draftState.weapons[i].forEach(w => {
-        if (w) {
-          wContent += `${w.name}<br>Dmg:${w.damage} RoF:${w.rate_of_fire}<br>Rng:${w.range} Mag:${w.magazine_size}<br>`;
-          const armory = getWeaponArmory(w.name);
-          if (armory) wContent += `Armory: ${armory}<br>`;
-          wContent += `<br>`;
-        }
-      });
-      html += makeCard("Weapons", wContent || "None");
-    }
-    html += `</div>`;
-    html += `<div class="summary-row">`;
-    for (let offset = 3; offset >= 0; offset--) {
-      const i = startIndex + offset;
-      let pContent = "";
-      draftState.passives[i].forEach(ps => {
-        if (ps)
-          pContent += `${ps.name}<br>Skill: ${ps.skill}<br>${ps.description || ''}<br><br>`;
-      });
-      html += makeCard("Passives", pContent || "None");
-    }
-    html += `</div>`;
-    return html;
-  }
 
-  left.innerHTML = `<h3>TEAM LEFT</h3>${buildTeamSummary(0, 0)}`;
-  right.innerHTML = `<h3>TEAM RIGHT</h3>${buildTeamSummaryRight(4, 1)}`;
-}
-
-function resetDraft() {
-  draftState = {
-    bans: [null, null],
-    picks: Array(8).fill(null),
-    passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
-    teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-    playerCards: Array(8).fill(''),
-    matchDate: document.getElementById('matchDate').value || '',
-    gameNumber: parseInt(document.getElementById('gameNumberSelect').value || '1', 10),
-    teamLeftScore: 0,
-    teamRightScore: 0,
-    map: document.getElementById('mapSelect').value || 'Bermuda',
-    tournamentName: ''
-  };
-  document.getElementById('teamLeftScore').value = 0;
-  document.getElementById('teamRightScore').value = 0;
-  document.getElementById('tournamentInput').value = '';
-  drawDraft();
-  saveDraftState();
-}
-
-function getWeaponArmory(weaponName) {
-  const weapon = weapons.find(w => w.name === weaponName);
-  return weapon && weapon.armory ? weapon.armory : "";
-}
-
-// sync form controls from draftState
-function applyStateToControls() {
-  if (draftState.matchDate) {
-    document.getElementById('matchDate').value = draftState.matchDate;
-  }
-  document.getElementById('gameNumberSelect').value = draftState.gameNumber || 1;
-  document.getElementById('teamLeftScore').value = draftState.teamLeftScore ?? 0;
-  document.getElementById('teamRightScore').value = draftState.teamRightScore ?? 0;
-  document.getElementById('mapSelect').value = draftState.map || 'Bermuda';
-  document.getElementById('tournamentInput').value = draftState.tournamentName || '';
-}
-
-async function saveDraftState() {
-  draftState.matchDate = document.getElementById('matchDate')?.value || '';
-  draftState.gameNumber = parseInt(document.getElementById('gameNumberSelect')?.value || '1', 10);
-  draftState.teamLeftScore = parseInt(document.getElementById('teamLeftScore')?.value || '0', 10);
-  draftState.teamRightScore = parseInt(document.getElementById('teamRightScore')?.value || '0', 10);
-  draftState.map = document.getElementById('mapSelect')?.value || 'Bermuda';
-  draftState.tournamentName = document.getElementById('tournamentInput')?.value || '';
-
-  if (!draftState || Object.keys(draftState).length === 0) {
-    console.warn('⚠️ Draft state is empty. Skipping save.');
-    return;
-  }
-
-  const { error } = await client
-    .from('draft')
-    .upsert({
-      id: 1,
-      state: draftState,
-      updated_at: new Date().toISOString()
-    });
-
-  if (error) {
-    console.error('❌ Failed to save draft state:', error);
-  } else {
-    console.log('✅ Draft state saved → public.draft');
-  }
-}
-
-async function loadDraftState() {
-  const { data, error } = await client
-    .from('draft')
-    .select('state')
-    .eq('id', 1)
-    .maybeSingle();
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('❌ Failed to load draft state:', error);
-    return;
-  }
-
-  if (!data || !data.state) {
-    applyStateToControls();
-    await saveDraftState();
-    return;
-  }
-
-  draftState = {
-    bans: [null, null],
-    picks: Array(8).fill(null),
-    passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
-    teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-    playerCards: Array(8).fill(''),
-    matchDate: '',
-    gameNumber: 1,
-    teamLeftScore: 0,
-    teamRightScore: 0,
-    map: 'Bermuda',
-    tournamentName: '',
-    ...data.state
-  };
-
-  applyStateToControls();
-  drawDraft();
-  console.log('✅ Draft state loaded from public.draft');
-}
-
-async function loadDraftRecord() {
-  const gameNumber = parseInt(document.getElementById('gameNumberSelect').value, 10);
-  const matchDate = document.getElementById('matchDate').value;
-  const teamLeft = draftState.teamNames[0];
-  const teamRight = draftState.teamNames[1];
-
-  if (!matchDate) {
-    alert("⚠️ Please select a match date.");
-    return;
-  }
-
-  const { data, error } = await client
-    .from('draft_records')
-    .select('state, team_left_score, team_right_score, map, tournament_name, match_date, game_number')
-    .eq('game_number', gameNumber)
-    .eq('match_date', matchDate)
-    .eq('team_left', teamLeft)
-    .eq('team_right', teamRight)
-    .single();
-
-  if (error || !data) {
-    console.error("❌ Failed to load draft record:", error);
-    alert(`No saved draft for Game ${gameNumber} on ${matchDate}`);
-  } else {
-    draftState = {
-      bans: [null, null],
-      picks: Array(8).fill(null),
-      passives: Array(8).fill(0).map(() => [null, null, null]),
-      weapons: Array(8).fill(0).map(() => [null, null, null]),
-      teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-      playerCards: Array(8).fill(''),
-      teamLeftScore: 0,
-      teamRightScore: 0,
-      map: 'Bermuda',
-      matchDate: '',
-      gameNumber: 1,
-      tournamentName: '',
-      ...data.state
-    };
-
-    draftState.teamLeftScore = data.team_left_score ?? draftState.teamLeftScore;
-    draftState.teamRightScore = data.team_right_score ?? draftState.teamRightScore;
-    draftState.map = data.map ?? draftState.map;
-    draftState.matchDate = data.match_date || draftState.matchDate;
-    draftState.gameNumber = data.game_number || draftState.gameNumber;
-    draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
-
-    applyStateToControls();
-    drawDraft();
-    await saveDraftState();
-
-    console.log("✅ Draft record loaded from draft_records and synced to draft.");
-  }
-}
-
-async function saveOrUpdateDraft() {
-  const gameNumber    = parseInt(document.getElementById('gameNumberSelect').value, 10);
-  const teamLeft      = draftState.teamNames[0];
-  const teamRight     = draftState.teamNames[1];
-  const matchDate     = document.getElementById('matchDate').value;
-  const teamLeftScore = parseInt(document.getElementById('teamLeftScore').value || '0', 10);
-  const teamRightScore= parseInt(document.getElementById('teamRightScore').value || '0', 10);
-  const map           = document.getElementById('mapSelect').value;
-  const tournamentName= (document.getElementById('tournamentInput').value || '').trim();
-
-  if (!matchDate) {
-    alert("⚠️ Please select a match date.");
-    return;
-  }
-
-  const payload = {
-    game_number:      gameNumber,
-    team_left:        teamLeft,
-    team_right:       teamRight,
-    match_date:       matchDate,
-    team_left_score:  teamLeftScore,
-    team_right_score: teamRightScore,
-    map,
-    state:            draftState,
-    tournament_name:  tournamentName || null,
-    updated_at:       new Date().toISOString()
-  };
-
-  console.log("📦 Upserting payload:", payload);
-
-  const { error } = await client
-    .from('draft_records')
-    .upsert(payload, {
-      onConflict: 'match_date,game_number,team_left,team_right'
-    });
-
-  if (error) {
-    alert("❌ Failed to save draft:\n" + error.message);
-    console.error("Upsert Error:", error);
-  } else {
-    alert("✅ Draft saved/updated.");
-    loadAllDraftRecords();
-  }
-}
-
-function toggleTeamFilterMode() {
-  const filter = document.getElementById('teamFilter');
-  const selected = Array.from(filter.selectedOptions).map(o => o.value);
-  const isMulti = document.getElementById('multiToggle').checked;
-  filter.multiple = isMulti;
-  Array.from(filter.options).forEach(o => { o.selected = selected.includes(o.value); });
-}
-
-async function loadAllDraftRecords() {
-  const { data, error } = await client
-    .from('draft_records')
-    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
-    .order('match_date', { ascending: false })
-    .order('id', { ascending: false });
-
-  if (error) {
-    console.error("❌ Failed to fetch draft records:", error);
-    return;
-  }
-
-  ALL_DRAFT_RECORDS = data || [];
-
-  const filterSelect = document.getElementById('teamFilter');
-  const teamCountSelect = document.getElementById('teamCountSelect');
-  const tournamentFilter = document.getElementById('tournamentFilter');
-  const countTournamentSelect = document.getElementById('countTournamentSelect');
-  const tournamentInputList = document.getElementById('tournamentList');
-
-  const selectedTeams = Array.from(filterSelect.selectedOptions).map(opt => opt.value.toLowerCase());
-  const prevTournamentHistory = tournamentFilter.value || '__ALL__';
-  const prevTournamentCounts  = countTournamentSelect.value || '__ALL__';
-
-  const table = document.getElementById('recordBody');
-  table.innerHTML = '';
-
-  const allTeams = new Set();
-  const allTournaments = new Set();
-  const matchedRecords = [];
-
-  data.forEach(record => {
-    allTeams.add(record.team_left);
-    allTeams.add(record.team_right);
-    if (record.tournament_name) allTournaments.add(record.tournament_name);
-  });
-
-  const prevSelectedTeams = new Set(selectedTeams);
-  const prevTeamCount = teamCountSelect.value || '__ALL__';
-
-  filterSelect.innerHTML = '';
-  Array.from(allTeams).sort().forEach(team => {
-    const option1 = document.createElement('option');
-    option1.value = team;
-    option1.textContent = team;
-    if (prevSelectedTeams.has(team.toLowerCase())) option1.selected = true;
-    filterSelect.appendChild(option1);
-  });
-
-  teamCountSelect.innerHTML = '';
-  const allOpt = document.createElement('option');
-  allOpt.value = '__ALL__';
-  allOpt.textContent = 'All teams';
-  teamCountSelect.appendChild(allOpt);
-  Array.from(allTeams).sort().forEach(team => {
-    const option2 = document.createElement('option');
-    option2.value = team;
-    option2.textContent = team;
-    teamCountSelect.appendChild(option2);
-  });
-  teamCountSelect.value = prevTeamCount || '__ALL__';
-
-  const tournamentsSorted = ['__ALL__', ...Array.from(allTournaments).sort()];
-
-  tournamentFilter.innerHTML = '';
-  tournamentsSorted.forEach(tn => {
-    const o = document.createElement('option');
-    o.value = tn;
-    o.textContent = (tn === '__ALL__') ? 'All tournaments' : tn;
-    tournamentFilter.appendChild(o);
-  });
-  tournamentFilter.value = prevTournamentHistory || '__ALL__';
-
-  countTournamentSelect.innerHTML = '';
-  tournamentsSorted.forEach(tn => {
-    const o2 = document.createElement('option');
-    o2.value = tn;
-    o2.textContent = (tn === '__ALL__') ? 'All tournaments' : tn;
-    countTournamentSelect.appendChild(o2);
-  });
-  countTournamentSelect.value = prevTournamentCounts || '__ALL__';
-
-  if (tournamentInputList) {
-    tournamentInputList.innerHTML = '';
-    Array.from(allTournaments).sort().forEach(tn => {
-      const opt = document.createElement('option');
-      opt.value = tn;
-      tournamentInputList.appendChild(opt);
-    });
-  }
-
-  const selectedTournament = tournamentFilter.value || '__ALL__';
-
-  data.forEach(record => {
-    const matchTeam =
-      selectedTeams.length === 0 ||
-      selectedTeams.includes(record.team_left.toLowerCase()) ||
-      selectedTeams.includes(record.team_right.toLowerCase());
-
-    const matchTournament =
-      selectedTournament === '__ALL__' ||
-      record.tournament_name === selectedTournament;
-
-    if (!matchTeam || !matchTournament) return;
-
-    matchedRecords.push(record);
-
-    const isLeftWinner = record.team_left_score === 6;
-    const isRightWinner = record.team_right_score === 6;
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${record.match_date}</td>
-      <td>Game ${record.game_number}</td>
-      <td style="text-align:left;">${record.team_left} ${isLeftWinner ? '🏆' : ''}</td>
-      <td>${record.team_left_score ?? '-'}</td>
-      <td style="text-align:left;">${record.team_right} ${isRightWinner ? '🏆' : ''}</td>
-      <td>${record.team_right_score ?? '-'}</td>
-      <td>${record.map ?? '-'}</td>
-      <td>${record.tournament_name ?? '-'}</td>
-      <td><button onclick="loadSpecificDraft(${record.id})">Load</button></td>
-    `;
-    table.appendChild(row);
-  });
-
-  LAST_MATCHED_RECORDS = matchedRecords;
-  applyPBFilters(); // renders accordion + counts (no date range)
-}
-
-async function loadSpecificDraft(id) {
-  const { data, error } = await client
-    .from('draft_records')
-    .select('state, match_date, game_number, team_left_score, team_right_score, map, tournament_name')
-    .eq('id', id)
-    .single();
-
-  if (error || !data) {
-    alert("❌ Failed to load specific draft.");
-    return;
-  }
-
-  draftState = {
-    bans: [null, null],
-    picks: Array(8).fill(null),
-    passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
-    teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-    playerCards: Array(8).fill(''),
-    teamLeftScore: 0,
-    teamRightScore: 0,
-    map: 'Bermuda',
-    matchDate: '',
-    gameNumber: 1,
-    tournamentName: '',
-    ...data.state
-  };
-
-  draftState.teamLeftScore = data.team_left_score ?? draftState.teamLeftScore;
-  draftState.teamRightScore = data.team_right_score ?? draftState.teamRightScore;
-  draftState.map = data.map ?? draftState.map;
-  draftState.matchDate = data.match_date || draftState.matchDate;
-  draftState.gameNumber = data.game_number || draftState.gameNumber;
-  draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
-
-  applyStateToControls();
-  drawDraft();
-  await saveDraftState();
-
-  console.log("✅ Specific draft loaded and synced to draft.");
-}
-
-/* -----------------------------
-   ✅ PB FILTERS + MATCH SUMMARY
-------------------------------*/
-function applyPBFiltersToRecords(records){
-  const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
-  const tourn = document.getElementById('countTournamentSelect')?.value || '__ALL__';
-
-  return (records || []).filter(r => {
-    const okTeam = (team === '__ALL__') || (r.team_left === team) || (r.team_right === team);
-    const okTourn = (tourn === '__ALL__') || (r.tournament_name === tourn);
-    return okTeam && okTourn;
-  });
-}
-
-function applyPBFilters(){
-  const filtered = applyPBFiltersToRecords(LAST_MATCHED_RECORDS);
-  renderTeamAccordionSummaries(filtered);
-  computeTeamPickBanCountsFromRecords(filtered);
-}
-
-/* -----------------------------
-   ✅ MATCH SUMMARY ACCORDION
-------------------------------*/
-function renderTeamAccordionSummaries(records) {
-  const container = document.getElementById('teamDraftCards');
-  container.innerHTML = '';
-
-  const focusTeam = document.getElementById('teamCountSelect')?.value || '__ALL__';
-
-  const teamMap = {};
-  records.forEach(record => {
-    if (focusTeam !== '__ALL__') {
-      if (!teamMap[focusTeam]) teamMap[focusTeam] = [];
-      teamMap[focusTeam].push(record);
-      return;
-    }
-    [record.team_left, record.team_right].forEach(team => {
-      if (!teamMap[team]) teamMap[team] = [];
-      teamMap[team].push(record);
-    });
-  });
-
-  const teams = Object.keys(teamMap).sort((a,b)=>a.localeCompare(b));
-  if (!teams.length){
-    container.innerHTML = `<div style="text-align:center; color:rgba(244,246,255,.72); font-weight:900; padding:14px;">
-      — No records for current filter —
-    </div>`;
-    return;
-  }
-
-  teams.forEach(team => {
-    const d = document.createElement('details');
-    d.className = 'team-accordion';
-
-    const sum = document.createElement('summary');
-    const left = document.createElement('div');
-    left.className = 'acc-left';
-    left.innerHTML = `<div class="acc-title">${team}</div>`;
-
-    const badge = document.createElement('div');
-    badge.className = 'acc-badge';
-    badge.textContent = `${teamMap[team].length} match${teamMap[team].length===1?'':'es'}`;
-
-    const chev = document.createElement('div');
-    chev.className = 'acc-chevron';
-    chev.textContent = '▾';
-
-    sum.appendChild(left);
-    sum.appendChild(badge);
-    sum.appendChild(chev);
-
-    const body = document.createElement('div');
-    body.className = 'team-accordion-body';
-
-    teamMap[team].forEach(r => {
-      const meta = document.createElement('div');
-      meta.className = 'team-meta';
-      meta.innerHTML = `
-        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map ?? '—'}<br>
-        🏆 ${r.tournament_name ?? '—'}<br>
-        🆚 ${r.team_left} ${r.team_left_score ?? '-'} - ${r.team_right_score ?? '-'} ${r.team_right}
-      `;
-      body.appendChild(meta);
-
-      const draft = r.state || {};
-      if (!draft.picks) return;
-
-      const isLeft = (team === r.team_left);
-      const isRight = (team === r.team_right);
-
-      let pickIndexes;
-      if (focusTeam !== '__ALL__') {
-        // when focused, show the focused team side for each match
-        const focused = focusTeam;
-        const focusedIsLeft = (focused === r.team_left);
-        pickIndexes = focusedIsLeft ? [0,1,2,3] : [7,6,5,4];
+    async function loadCharacters(){
+      const cached = readCache();
+      if (cached && !allCharacters.length){
+        allCharacters = cached;
+        renderGrids();
       } else {
-        // when showing all teams, show current team side
-        if (isLeft) pickIndexes = [0,1,2,3];
-        else if (isRight) pickIndexes = [7,6,5,4];
-        else pickIndexes = [0,1,2,3];
+        metaGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
+        nonMetaGrid.innerHTML = '';
       }
 
-      const playerGrid = document.createElement('div');
-      playerGrid.style.display = 'flex';
-      playerGrid.style.gap = '8px';
-      playerGrid.style.marginBottom = '12px';
-      playerGrid.style.flexWrap = 'wrap';
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 12000);
 
-      pickIndexes.forEach(i => {
-        const hero = draft.picks[i];
-        const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
-        const passives = draft.passives?.[i] || [];
-
-        const pCard = document.createElement('div');
-        pCard.className = 'mini-player';
-
-        const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
-        const heroName = hero?.name || 'None';
-        const heroSkill = hero?.skill || '';
-
-        pCard.innerHTML = `
-          <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
-          <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
-          <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
-          <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
-        `;
-
-        passives.forEach(ps => {
-          if (!ps) return;
-          const psLine = document.createElement('div');
-          psLine.style.display = 'flex';
-          psLine.style.alignItems = 'center';
-          psLine.style.gap = '4px';
-          psLine.style.justifyContent = 'center';
-          psLine.style.fontSize = '9px';
-          psLine.style.color = 'rgba(244,246,255,.72)';
-          psLine.style.marginTop = '6px';
-
-          if (ps.image_url) {
-            const img = document.createElement('img');
-            img.src = ps.image_url;
-            img.style.width = '14px';
-            img.style.height = '14px';
-            img.style.borderRadius = '6px';
-            psLine.appendChild(img);
-          }
-
-          const label = document.createElement('span');
-          label.textContent = ps.name;
-          psLine.appendChild(label);
-
-          pCard.appendChild(psLine);
-        });
-
-        playerGrid.appendChild(pCard);
-      });
-
-      body.appendChild(playerGrid);
-    });
-
-    d.appendChild(sum);
-    d.appendChild(body);
-    container.appendChild(d);
-  });
-
-  // ✅ true accordion behavior: opening one closes others
-  const acc = Array.from(container.querySelectorAll('details.team-accordion'));
-  acc.forEach(d => {
-    d.addEventListener('toggle', () => {
-      if (!d.open) return;
-      acc.forEach(o => { if (o !== d) o.open = false; });
-    });
-  });
-}
-
-/* -----------------------------
-   ✅ PICK/BAN COUNTS (no date)
-------------------------------*/
-function computeTeamPickBanCountsFromRecords(records) {
-  const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
-  const tourn = document.getElementById('countTournamentSelect')?.value || '__ALL__';
-
-  const teamLabel = (team === '__ALL__') ? 'All teams' : team;
-  const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
-
-  let totalMatches = 0;
-  let totalPicks = 0;
-  let totalBans = 0;
-  const pickCounts = new Map();
-  const banCounts = new Map();
-
-  (records || []).forEach(r => {
-    const s = r.state || {};
-    const picks = s.picks || [];
-    const bans = s.bans || [];
-
-    if (team === '__ALL__') {
-      totalMatches += 1;
-
-      [0,1,2,3,4,5,6,7].forEach(i => {
-        const hero = picks[i];
-        const name = hero?.name;
-        if (name) {
-          pickCounts.set(name, (pickCounts.get(name) || 0) + 1);
-          totalPicks += 1;
+      try{
+        const url = CFG.CHAR_URL + (CFG.CHAR_URL.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+        allCharacters = arr;
+        writeCache(arr);
+        renderGrids();
+      }catch(err){
+        console.warn('Character fetch failed:', err);
+        if (!allCharacters.length){
+          metaGrid.innerHTML = '<div class="empty-msg">Failed to load character.json</div>';
+          nonMetaGrid.innerHTML = '';
         }
-      });
-
-      [0,1].forEach(bi => {
-        const b = bans[bi];
-        const bName = b?.name;
-        if (bName) {
-          banCounts.set(bName, (banCounts.get(bName) || 0) + 1);
-          totalBans += 1;
-        }
-      });
-
-      return;
-    }
-
-    const isLeft = r.team_left === team;
-    const isRight = r.team_right === team;
-    if (!isLeft && !isRight) return;
-
-    totalMatches += 1;
-
-    const idx = isLeft ? [0,1,2,3] : [4,5,6,7];
-    idx.forEach(i => {
-      const hero = picks[i];
-      const skillName = hero?.name || null;
-      if (skillName) {
-        pickCounts.set(skillName, (pickCounts.get(skillName) || 0) + 1);
-        totalPicks += 1;
+      }finally{
+        clearTimeout(t);
       }
-    });
-
-    const banHero = bans[isLeft ? 0 : 1];
-    const banName = banHero?.name || null;
-    if (banName) {
-      banCounts.set(banName, (banCounts.get(banName) || 0) + 1);
-      totalBans += 1;
     }
-  });
 
-  document.getElementById('teamPBMeta').textContent =
-    `Team: ${teamLabel} • Tournament: ${tournLabel} • Matches: ${totalMatches}`;
+    /***********************
+     * Modal
+     ***********************/
+    const infoModal = document.getElementById('infoModal');
+    const infoClose = document.getElementById('infoClose');
+    const infoName = document.getElementById('infoName');
+    const infoSub = document.getElementById('infoSub');
+    const infoBadges = document.getElementById('infoBadges');
+    const infoSkillTitle = document.getElementById('infoSkillTitle');
+    const infoSkillDesc = document.getElementById('infoSkillDesc');
+    const infoRole = document.getElementById('infoRole');
 
-  const totalsEl = document.getElementById('teamPBTotals');
-  totalsEl.innerHTML =
-    (totalMatches === 0)
-      ? 'No matches for current filter.'
-      : `<div><b>Total Picks:</b> ${totalPicks}</div>
-         <div><b>Total Bans:</b> ${totalBans}</div>`;
+    let lastFocusEl = null;
 
-  const pickBody = document.getElementById('teamPickBreakdown');
-  const banBody = document.getElementById('teamBanBreakdown');
-  pickBody.innerHTML = '';
-  banBody.innerHTML = '';
+    function badgeDot(cls, label){
+      const el = document.createElement('span');
+      el.className = 'pill';
+      const d = document.createElement('span');
+      d.className = 'dot ' + cls;
+      el.appendChild(d);
+      el.appendChild(document.createTextNode(label));
+      return el;
+    }
 
-  [...pickCounts.entries()]
-    .sort((a,b) => b[1] - a[1])
-    .forEach(([name, count]) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
-      pickBody.appendChild(tr);
+    function openInfo(c, metaFlag, keepOpen=false){
+      lastOpenedChar = c;
+      lastOpenedMetaFlag = !!metaFlag;
+
+      if (!keepOpen) lastFocusEl = document.activeElement;
+
+      const name = tidy(c?.name) || '—';
+      const role = tidy(c?.role) || 'N/A';
+      const st = tidy(c?.skill_type) || '—';
+      const skill = tidy(c?.skill) || '—';
+      const desc = getDisplayDesc(c);
+
+      infoName.textContent = name;
+
+      const chips = [];
+      if (role && role !== 'N/A') chips.push(role.toUpperCase());
+      if (metaFlag) chips.push('META');
+      chips.push(modeLabel());
+      if (st) chips.push(st);
+      infoSub.textContent = chips.join(' • ');
+
+      infoBadges.innerHTML = '';
+      infoBadges.appendChild(badgeDot(isPassive(c) ? 'passive' : 'active', isPassive(c) ? 'Passive Skill' : 'Active Skill'));
+      if (metaFlag) infoBadges.appendChild(badgeDot('meta', 'Meta'));
+
+      infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • (MS)' : '');
+      infoSkillDesc.textContent = (st ? (st + ' — ') : '') + (desc || '—');
+      infoRole.textContent = role;
+
+      if (!keepOpen){
+        infoModal.classList.add('show');
+        infoModal.setAttribute('aria-hidden','false');
+        setTimeout(() => infoClose?.focus(), 0);
+      }
+    }
+
+    function closeInfo(){
+      infoModal.classList.remove('show');
+      infoModal.setAttribute('aria-hidden','true');
+      if (lastFocusEl && typeof lastFocusEl.focus === 'function'){
+        try{ lastFocusEl.focus(); }catch(_){}
+      }
+      lastFocusEl = null;
+    }
+
+    infoClose?.addEventListener('click', closeInfo);
+    infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
     });
 
-  [...banCounts.entries()]
-    .sort((a,b) => b[1] - a[1])
-    .forEach(([name, count]) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
-      banBody.appendChild(tr);
+    toggleModeBtn?.addEventListener('click', () => {
+      currentMetaMode = (currentMetaMode === 'meta') ? 'cs_meta' : 'meta';
+      setModeUI();
+      renderGrids();
+      scheduleSearchApply(currentSearchTerm);
     });
 
-  if (totalMatches === 0) {
-    document.getElementById('teamPBTotals').innerHTML = 'No matches for current filter.';
-  }
-}
-</script>
+    topSearch?.addEventListener('input', (e) => {
+      currentSearchTerm = (e.target.value || '');
+      scheduleSearchApply(currentSearchTerm);
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      syncSidebarMode();
+      syncLangToggleUI();
+
+      const session = await ensureSession();
+      if (!session) return;
+
+      const email = session.user?.email || '';
+      document.getElementById('userEmail').textContent = email || 'signed in';
+      const username = email ? email.split('@')[0] : 'PlayerOne';
+      document.getElementById('gamertag').textContent = username;
+
+      document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+      });
+
+      setModeUI();
+      await loadCharacters();
+    });
+  </script>
 </body>
 </html>
