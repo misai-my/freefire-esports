@@ -178,26 +178,7 @@
       max-width: 150px;
     }
 
-    .nav-search{
-      padding: 12px;
-      padding-top: 10px;
-      border-bottom: 1px solid rgba(255,255,255,.06);
-    }
-    .nav-search input{
-      width:100%;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.22);
-      color: var(--ink);
-      outline:none;
-      font-size: .9rem;
-    }
-    .nav-search input::placeholder{color: rgba(170,177,197,.75)}
-    .nav-search input:focus{
-      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
-      border-color: rgba(77,211,255,.22);
-    }
+    .nav-search{display:none;} /* ✅ No need for search menu */
 
     .nav{
       padding: 12px;
@@ -259,7 +240,6 @@
       gap:0;
       padding:10px 8px;
     }
-    .sidebar.collapsed .nav-search{display:none;}
 
     .sidebar-note{
       font-size:.75rem;
@@ -497,6 +477,45 @@
       outline: 2px solid rgba(77,211,255,.55);
       outline-offset: 2px;
       border-radius: 10px;
+    }
+
+    /* ✅ BR/CS toggle pill */
+    .mode-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding: 9px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight: 900;
+      font-size: .82rem;
+      white-space: nowrap;
+      user-select:none;
+    }
+    .seg{
+      display:inline-flex;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+      overflow:hidden;
+    }
+    .seg button{
+      appearance:none;
+      border:0;
+      background: transparent;
+      color: rgba(244,246,255,.78);
+      font-weight: 900;
+      font-size: .78rem;
+      padding: 6px 10px;
+      cursor:pointer;
+      transition:.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .seg button[aria-pressed="true"]{
+      background: linear-gradient(135deg, rgba(255,189,89,.22), rgba(77,211,255,.12));
+      color: rgba(244,246,255,.92);
     }
 
     .section-title{
@@ -1046,7 +1065,7 @@
               <path d="M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <path d="M8 20v-4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            </span>
+          </span>
           <span class="nav-label">Loadout</span>
         </a>
 
@@ -1067,7 +1086,6 @@
           <span class="nav-label">Map</span>
         </a>
 
-        <!-- BR Data (analytics / chart) -->
         <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -1081,8 +1099,7 @@
           </span>
           <span class="nav-label">BR Data</span>
         </a>
-        
-        <!-- CS Draft (document + pencil) -->
+
         <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft-team.html" title="CS Draft">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -1097,35 +1114,22 @@
           <span class="nav-label">CS Draft</span>
         </a>
 
-        <!-- CS Data (crossed swords) -->
         <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
-              <!-- subtle container -->
               <path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- crossed swords -->
-              <path d="M8 16l6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 16l-6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- sword tips -->
-              <path d="M13.5 8.5l2-2 2 2-2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M10.5 8.5l-2-2-2 2 2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- handles -->
-              <path d="M7.2 17.8l2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16.8 17.8l-2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 16l6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 16l-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.5 8.5l2-2 2 2-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10.5 8.5l-2-2-2 2 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.2 17.8l2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16.8 17.8l-2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
           <span class="nav-label">CS Data</span>
         </a>
 
-        
-        <!-- Split View (two panes) -->
         <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -1135,7 +1139,6 @@
           </span>
           <span class="nav-label">Split View</span>
         </a>
-
       </nav>
 
       <div class="sidebar-note">
@@ -1257,6 +1260,16 @@
             <span>Loadouts Row</span>
             <div class="section-actions">
               <span class="muted" style="font-weight:800;font-size:.85rem;">Auto-populate 4</span>
+
+              <!-- ✅ BR/CS toggle ONLY affects loadout descriptions -->
+              <span class="mode-pill" title="Loadout description mode">
+                Mode
+                <span class="seg" role="group" aria-label="Loadout mode">
+                  <button id="modeBR" type="button" aria-pressed="true">BR</button>
+                  <button id="modeCS" type="button" aria-pressed="false">CS</button>
+                </span>
+              </span>
+
               <button class="btn toggle-desc" id="toggleLoadoutDesc" type="button" aria-pressed="false">Show Descriptions</button>
             </div>
           </div>
@@ -1418,20 +1431,12 @@
     mobileMQ.addEventListener?.('change', syncSidebarMode);
 
     (function setActiveNav(){
-      const here = (location.pathname.split('/').pop() || 'character-comparison.html').toLowerCase();
+      const here = (location.pathname.split('/').pop() || 'preset.html').toLowerCase();
       document.querySelectorAll('.nav-item').forEach(a => {
         const page = (a.getAttribute('data-page') || '').toLowerCase();
         a.classList.toggle('active', page === here);
       });
     })();
-
-    document.getElementById('navSearch')?.addEventListener('input', (e) => {
-      const q = (e.target.value || '').toLowerCase().trim();
-      document.querySelectorAll('#nav .nav-item').forEach(a => {
-        const txt = (a.textContent || '').toLowerCase();
-        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
-      });
-    });
 
     document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1475,6 +1480,31 @@
     }catch(_){}
     const descLangSel = document.getElementById('descLang');
     function descLangLabel(){ return (descLang || 'en').toUpperCase(); }
+
+    // ✅ Loadout mode (BR/CS) — ONLY affects loadout descriptions
+    const LOADOUT_MODE_KEY = 'ff_loadout_mode_v1';
+    let loadoutMode = 'br';
+    try{
+      const savedMode = (sessionStorage.getItem(LOADOUT_MODE_KEY) || '').toLowerCase();
+      loadoutMode = (savedMode === 'cs' ? 'cs' : 'br');
+    }catch(_){}
+    const btnModeBR = document.getElementById('modeBR');
+    const btnModeCS = document.getElementById('modeCS');
+    function loadoutModeLabel(){ return (loadoutMode || 'br').toUpperCase(); }
+    function syncModeButtons(){
+      if (!btnModeBR || !btnModeCS) return;
+      btnModeBR.setAttribute('aria-pressed', loadoutMode === 'br' ? 'true' : 'false');
+      btnModeCS.setAttribute('aria-pressed', loadoutMode === 'cs' ? 'true' : 'false');
+    }
+    function setLoadoutMode(mode){
+      loadoutMode = (String(mode).toLowerCase() === 'cs') ? 'cs' : 'br';
+      try{ sessionStorage.setItem(LOADOUT_MODE_KEY, loadoutMode); }catch(_){}
+      syncModeButtons();
+      rerenderAll();
+      toast(`Loadouts: ${loadoutModeLabel()}`);
+    }
+    btnModeBR?.addEventListener('click', () => setLoadoutMode('br'));
+    btnModeCS?.addEventListener('click', () => setLoadoutMode('cs'));
 
     let characters = [];
     let pets = [];
@@ -1541,8 +1571,7 @@
       }
 
       if (depth >= maxDepth){
-        // last resort: try known keys only
-        for (const k of ['name','title','text','value','desc','description','summary','note','notes','en','ms']){
+        for (const k of ['name','title','text','value','desc','description','summary','note','notes','en','ms','br','cs']){
           if (typeof val[k] === 'string' && val[k].trim()){
             out.push(prefix ? `${prettyKey(prefix)}: ${val[k].trim()}` : val[k].trim());
             return out;
@@ -1589,8 +1618,7 @@
       }
 
       if (isPlainObject(v)){
-        // common fast path
-        for (const k of ['text','value','name','title','desc','description','summary','note','notes','en','ms']){
+        for (const k of ['text','value','name','title','desc','summary','note','notes','en','ms','br','cs']){
           if (typeof v[k] === 'string' && v[k].trim()) return v[k];
         }
         const lines = flattenToLines(v, 0, 2, '');
@@ -1620,7 +1648,6 @@
       return lower(c?.skill_type).includes('passive');
     }
     function isActiveChar(c){
-      // treat missing skill_type as Active (so you don't accidentally hide skills)
       return !isPassiveChar(c);
     }
 
@@ -1644,7 +1671,7 @@
         return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
       }
       if (kind === 'loadout'){
-        return tidy(item?.mode || item?.type) || 'Loadout';
+        return `Loadout • ${loadoutModeLabel()}`;
       }
       return '—';
     }
@@ -1659,23 +1686,39 @@
         return tidy(item?.special || item?.perk || item?.ability || item?.attribute) || '';
       }
       if (kind === 'loadout'){
-        return tidy(item?.summary || item?.note || item?.desc_short) || '';
+        return tidy(item?.category) || 'Loadout';
       }
       return '';
     }
 
-    // ✅ EN/MS description selector: description (EN), description_ms (MS)
-    function pickDescByLang(item){
+    // ✅ EN/MS description selector:
+    // - for most items: description / description_ms are strings
+    // - for loadouts: description / description_ms are objects { br, cs }
+    function pickDescByLang(item, kind){
       if (!item) return '';
+
       const en = item?.description;
       const ms = item?.description_ms;
+
+      // Loadouts: { br, cs }
+      if (kind === 'loadout'){
+        const src = (descLang === 'ms') ? (ms ?? en) : (en ?? ms);
+        if (isPlainObject(src)){
+          const v = src?.[loadoutMode] ?? src?.br ?? src?.cs;
+          return v ?? '';
+        }
+        // if malformed, fall back
+        return src ?? '';
+      }
+
+      // Others: strings
       if (descLang === 'ms') return (ms ?? en);
       return (en ?? ms);
     }
 
     function getItemDesc(item, kind){
       // primary language fields first
-      let d = tidyBlock(pickDescByLang(item));
+      let d = tidyBlock(pickDescByLang(item, kind));
 
       // fallback fields (still robust vs objects)
       if (!d){
@@ -1839,7 +1882,7 @@
           <div class="desc-panel" aria-label="Description">
             <div class="desc-head">
               <span>Description</span>
-              <span class="muted" style="font-weight:900;">${escapeHTMLInline(descLangLabel())}</span>
+              <span class="muted" style="font-weight:900;">${escapeHTMLInline(descLangLabel())}${kind==='loadout' ? ' • ' + escapeHTMLInline(loadoutModeLabel()) : ''}</span>
             </div>
             <div class="desc-body">
               ${item ? '' : `<span class="muted">(${escapeHTMLInline(emptyHint)})</span><br/>`}
@@ -1878,7 +1921,7 @@
       rowEl.querySelectorAll('.slot-card.clickable').forEach(card => {
         card.addEventListener('click', (e) => {
           if (e.target?.closest?.('.mini-x')) return;
-          if (e.target?.closest?.('.desc-panel')) return; // <- row-level description area
+          if (e.target?.closest?.('.desc-panel')) return;
           const idx = Number(card.getAttribute('data-index') || '0');
           openPicker(kind, idx);
         });
@@ -1975,6 +2018,7 @@
       });
 
       renderLoadoutsRow();
+      syncModeButtons();
     }
 
     /***********************
@@ -2037,11 +2081,8 @@
         tidy(item?.role),
         tidy(item?.skill_type),
         tidy(item?.skill),
-
-        // ✅ include EN/MS descriptions
         tidyBlock(item?.description),
         tidyBlock(item?.description_ms),
-
         tidyBlock(item?.desc),
         tidy(item?.category),
         tidy(item?.type),
@@ -2092,40 +2133,27 @@
       const nm = getItemName(item);
       const k = keyOf(nm);
 
-      // Prevent duplicates within each row
       if (pickerMode === 'active'){
         const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
-        if (existsAt !== -1 && existsAt !== pickerIndex){
-          toast('That active skill is already in another slot.');
-          return;
-        }
+        if (existsAt !== -1 && existsAt !== pickerIndex){ toast('That active skill is already in another slot.'); return; }
         activeSlots[pickerIndex] = item;
       }
 
       if (pickerMode === 'passive'){
         const existsAt = passiveSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
-        if (existsAt !== -1 && existsAt !== pickerIndex){
-          toast('That passive skill is already in another slot.');
-          return;
-        }
+        if (existsAt !== -1 && existsAt !== pickerIndex){ toast('That passive skill is already in another slot.'); return; }
         passiveSlots[pickerIndex] = item;
       }
 
       if (pickerMode === 'pet'){
         const existsAt = petSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
-        if (existsAt !== -1 && existsAt !== pickerIndex){
-          toast('That pet is already in another slot.');
-          return;
-        }
+        if (existsAt !== -1 && existsAt !== pickerIndex){ toast('That pet is already in another slot.'); return; }
         petSlots[pickerIndex] = item;
       }
 
       if (pickerMode === 'weapon'){
         const existsAt = weaponSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
-        if (existsAt !== -1 && existsAt !== pickerIndex){
-          toast('That weapon is already in another slot.');
-          return;
-        }
+        if (existsAt !== -1 && existsAt !== pickerIndex){ toast('That weapon is already in another slot.'); return; }
         weaponSlots[pickerIndex] = item;
       }
 
@@ -2251,7 +2279,6 @@
         });
       }
       else if (restored?.type === 'v1'){
-        // Migrate from old format (activeSlots + passivePick/petPick/weaponPick)
         const s = restored.data;
 
         const ac = Math.max(DEFAULT_ACTIVE, Math.min(24, Number(s.activeCount || DEFAULT_ACTIVE)));
@@ -2282,11 +2309,9 @@
           if (obj) weaponSlots[0] = obj;
         }
 
-        // Save migrated to V2
         saveState();
       }
       else{
-        // Defaults already set
         activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
         passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
         petSlots     = Array.from({length: DEFAULT_PET},     () => null);
@@ -2304,6 +2329,9 @@
         descLangSel.value = (descLang === 'ms' ? 'ms' : 'en');
       }
 
+      // ✅ init loadout mode buttons
+      syncModeButtons();
+
       // ✅ row description toggles
       wireRowDescToggle('toggleActiveDesc','activeWrap');
       wireRowDescToggle('togglePassiveDesc','passiveWrap');
@@ -2319,6 +2347,8 @@
       document.getElementById('gamertag').textContent = email ? email.split('@')[0] : 'PlayerOne';
 
       await initDataAndState();
+      // apply saved mode after render (for label + desc)
+      setLoadoutMode(loadoutMode);
     });
   </script>
 </body>
