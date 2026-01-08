@@ -1071,6 +1071,56 @@
       overflow-wrap: anywhere;
       word-break: break-word;
     }
+    /* =========================================
+   iPad/iOS FIX: Loadout modal sections cut off
+   (BR/CS details + long text)
+   ========================================= */
+
+/* Use a stable viewport height instead of buggy iOS 100vh */
+:root{ --vh: 1vh; }
+
+/* Let the overlay stretch so the card can use full height */
+#loadoutModal.modal{
+  align-items: stretch;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Give the card a reliable max-height that works in landscape iPad */
+#loadoutModal .modal-card{
+  height: auto;
+  max-height: calc((var(--vh) * 100) - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* keep rounded corners clean */
+}
+
+/* Header stays fixed, content area becomes the scroll container */
+#loadoutModal .modal-top{
+  flex: 0 0 auto;
+}
+
+#loadoutModal .ld-wrap{
+  flex: 1 1 auto;
+  min-height: 0;                 /* CRITICAL for iOS flex scrolling */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+
+  /* prevent last lines from getting hidden near the bottom */
+  padding-bottom: max(22px, env(safe-area-inset-bottom));
+  touch-action: pan-y;
+}
+
+/* iOS Safari sometimes clips expanded <details> when parent has overflow */
+#loadoutModal details.ld-block{
+  overflow: visible;
+}
+
+#loadoutModal .ld-text{
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
   </style>
 </head>
 
@@ -2442,7 +2492,15 @@
         }
       });
     }
-
+// iOS/iPadOS: fix 100vh in landscape so modals don't cut off content
+(function fixIOSViewportHeight(){
+  function setVH(){
+    document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  }
+  setVH();
+  window.addEventListener('resize', setVH, { passive: true });
+  window.addEventListener('orientationchange', setVH, { passive: true });
+})();
     function closeMapWindow(){
       mapModal.classList.remove('show');
       mapModal.setAttribute('aria-hidden','true');
