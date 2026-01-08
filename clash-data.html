@@ -6,596 +6,718 @@
   <title>Clash Squad — Skills Report & Summary</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <style>
-      :root{
-        /* Glass theme tokens (match your Pet/Character pages) */
-        --bg:#07090f;
-        --bg2:#0b1020;
-    
-        --panel: rgba(20, 26, 38, .72);
-        --panel2: rgba(14, 18, 28, .70);
-    
-        --line: rgba(255,255,255,.08);
-        --stroke: rgba(255,255,255,.10);
-    
-        --ink:#f4f6ff;
-        --muted:#aab1c5;
-    
-        --brand:#ffbd59;
-        --brand2:#ff7733;
-        --accent:#4dd3ff;
-    
-        --good:#71d083;
-        --bad:#ff6b6b;
-    
-        --radius:16px;
-        --radius-lg:22px;
-        --shadow: 0 22px 70px rgba(0,0,0,.55);
-    
-        --blur: 14px;
-      }
-    
-      *{box-sizing:border-box}
-      html,body{height:100%}
-      body{
-        margin:0;
-        font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;
-        background:
-          radial-gradient(1100px 700px at 20% -10%, rgba(77,211,255,.12), transparent 55%),
-          radial-gradient(900px 650px at 90% 10%, rgba(255,119,51,.10), transparent 55%),
-          radial-gradient(900px 700px at 50% 110%, rgba(255,189,89,.10), transparent 55%),
-          linear-gradient(180deg, var(--bg), #05060a 70%);
-        color:var(--ink);
-        overflow-x:hidden;
-      }
-    
-      /* subtle grid sheen */
-      body:before{
-        content:"";
-        position:fixed; inset:0;
-        background:
-          linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px) 0 0/36px 36px,
-          linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px) 0 0/36px 36px;
-        opacity:.16;
-        pointer-events:none;
-        mix-blend-mode:overlay;
-      }
-    
-      /* ============ Topbar ============ */
-      header{
-        position:sticky; top:0; z-index:50;
-        padding:14px 16px;
-        background: rgba(10, 14, 24, .55);
-        border-bottom:1px solid var(--line);
-        box-shadow: 0 12px 40px rgba(0,0,0,.35);
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-    
-      .topbar-inner{
-        max-width:1200px;
-        margin:0 auto;
-        display:flex;
-        gap:12px;
-        align-items:center;
-        justify-content:space-between;
-      }
-    
-      h1{
-        margin:0;
-        font-size:1.15rem;
-        letter-spacing:.35px;
-        color:var(--brand);
-        text-shadow: 0 0 20px rgba(255,189,89,.18);
-        white-space:nowrap;
-      }
-    
-      .user-controls{
-        display:flex;
-        gap:10px;
-        align-items:center;
-        flex:0 0 auto;
-      }
-    
-      .chip{
-        display:inline-flex;
-        align-items:center;
-        gap:8px;
-        padding:8px 10px;
-        border-radius:999px;
-        background: rgba(255,255,255,.06);
-        border:1px solid var(--line);
-        color:var(--muted);
-        font-size:.86rem;
-        max-width:420px;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-    
-      .btn{
-        appearance:none;
-        border:1px solid rgba(255,255,255,.10);
-        border-radius:12px;
-        padding:9px 12px;
-        font-weight:800;
-        cursor:pointer;
-        text-decoration:none;
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        gap:8px;
-        color:#0b0f18;
-        background: linear-gradient(135deg, var(--brand), var(--brand2));
-        box-shadow: 0 10px 30px rgba(0,0,0,.35);
-        transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
-        user-select:none;
-        white-space:nowrap;
-      }
-      .btn:hover{ transform: translateY(-1px); filter:saturate(1.05); }
-      .btn:active{ transform: translateY(0px); }
-      .btn:disabled{
-        opacity:.55;
-        cursor:not-allowed;
-        transform:none;
-        filter:none;
-      }
-    
-      /* “secondary” glass buttons (optional via .btn.ghost) */
-      .btn.ghost{
-        color:var(--ink);
-        background: rgba(255,255,255,.06);
-        border:1px solid var(--line);
-        box-shadow:none;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .btn.ghost:hover{ background: rgba(255,255,255,.08); }
-    
-      /* ============ Layout shell ============ */
-      .shell{max-width:1200px;margin:22px auto;padding:0 12px}
-    
-      .bar{
-        display:flex;
-        flex-wrap:wrap;
-        gap:10px;
-        align-items:center;
-        margin-bottom:12px;
-      }
-    
-      .muted{color:var(--muted);font-size:.92rem}
-      input[type="checkbox"]{ accent-color: var(--brand); }
-    
-      /* ============ Blocks / Panels ============ */
-      .block{
-        background: var(--panel);
-        border:1px solid var(--line);
-        border-radius: var(--radius-lg);
-        padding:14px;
-        margin-bottom:16px;
-        box-shadow: var(--shadow);
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .block h2{margin:0 0 10px 0;color:var(--brand); letter-spacing:.2px}
-    
-      /* Controls */
-      .controls{
-        display:flex;
-        flex-wrap:wrap;
-        gap:10px;
-        margin:6px 0 10px;
-      }
-    
-      .controls label{
-        display:flex;
-        align-items:center;
-        gap:8px;
-        padding:8px 10px;
-        border-radius: 14px;
-        background: rgba(255,255,255,.05);
-        border:1px solid var(--line);
-        color:var(--muted);
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-    
-      .controls select,
-      .controls input[type="date"],
-      .controls input[type="text"],
-      .controls input[type="number"]{
-        background: rgba(9, 12, 20, .55);
-        color: var(--ink);
-        border: 1px solid rgba(255,255,255,.10);
-        border-radius: 12px;
-        padding:8px 10px;
-        outline:none;
-        min-width: 160px;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .controls select:focus,
-      .controls input:focus{
-        border-color: rgba(77,211,255,.35);
-        box-shadow: 0 0 0 3px rgba(77,211,255,.10);
-      }
-    
-      /* ============ Tabs ============ */
-      .tabs{
-        display:flex;
-        gap:8px;
-        margin:10px 0 6px;
-        overflow:auto;
-        padding-bottom:4px;
-        scrollbar-width: thin;
-      }
-    
-      .tab{
-        flex:0 0 auto;
-        background: rgba(255,255,255,.05);
-        color: var(--muted);
-        border:1px solid var(--line);
-        border-radius: 999px;
-        padding:8px 12px;
-        cursor:pointer;
-        transition: background .15s ease, transform .15s ease, color .15s ease, border-color .15s ease;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-        white-space:nowrap;
-        font-weight:800;
-        letter-spacing:.15px;
-      }
-      .tab:hover{ background: rgba(255,255,255,.07); transform: translateY(-1px); color: var(--ink); }
-      .tab.active{
-        background: linear-gradient(135deg, rgba(255,189,89,.22), rgba(255,119,51,.18));
-        border-color: rgba(255,189,89,.35);
-        color: var(--brand);
-      }
-    
-      .js-section{display:none}
-      .js-section.active{display:block}
-    
-      /* ============ Tables ============ */
-      table{width:100%;border-collapse:separate;border-spacing:0}
-      th,td{
-        border-bottom:1px solid var(--line);
-        padding:10px 10px;
-        vertical-align:top;
-      }
-      thead th{
-        position:sticky;
-        top:0;
-        z-index:2;
-        text-align:left;
-        background: rgba(9, 12, 20, .65);
-        border-bottom:1px solid rgba(255,255,255,.12);
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      tbody tr:hover{ background: rgba(255,255,255,.04); }
-    
-      .wl{
-        font-weight:900;
-        padding:3px 10px;
-        border-radius:999px;
-        display:inline-block;
-        border:1px solid rgba(255,255,255,.12);
-        background: rgba(255,255,255,.06);
-      }
-      .wl.W{ color: var(--good); box-shadow: 0 0 0 3px rgba(113,208,131,.08) inset; }
-      .wl.L{ color: var(--bad);  box-shadow: 0 0 0 3px rgba(255,107,107,.08) inset; }
-    
-      .right{text-align:right}
-      .tight{line-height:1.25}
-      .caption{margin:6px 0 10px 0}
-    
-      /* ============ Players (Active + 3 passive) ============ */
-      .playersWrap{
-        display:grid;
-        grid-template-columns: repeat(2, minmax(240px, 1fr));
-        grid-auto-rows:auto;
-        gap:10px;
-        overflow:visible;
-        padding-bottom:0;
-      }
-    
-      .pCard{
-        display:flex; align-items:center; gap:10px;
-        background: rgba(255,255,255,.05);
-        border:1px solid var(--line);
-        border-radius: 16px;
-        padding:8px 10px;
-        width:100%;
-        min-width:0;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-    
-      .pAct{
-        width:44px; height:44px; object-fit:cover; border-radius:12px;
-        border:1px solid rgba(255,255,255,.12);
-        background: rgba(0,0,0,.25);
-        flex:0 0 44px;
-      }
-    
-      .pPassCol{display:flex; flex-direction:column; gap:4px; min-width:0}
-      .pPassRow{display:flex; align-items:center; gap:7px; min-width:0}
-      .pPassRow img{
-        width:14px; height:14px; object-fit:cover; border-radius:4px;
-        border:1px solid rgba(255,255,255,.12);
-        background: rgba(0,0,0,.25);
-        flex:0 0 14px;
-      }
-      .pPassRow span{
-        font-size:.78rem;
-        color:var(--muted);
-        max-width:140px;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
-      }
-    
-      .pInfo{display:flex; flex-direction:column; gap:2px; min-width:0; line-height:1.15}
-      .pName{font-weight:900; font-size:.92rem}
-      .pHero{font-size:.86rem; color:rgba(244,246,255,.9)}
-    
-      /* Summary cards */
-      .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-      .card{
-        background: var(--panel2);
-        border:1px solid var(--line);
-        border-radius: var(--radius-lg);
-        padding:12px;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .card h3{margin:0 0 6px 0;color:var(--brand2);font-size:1.05rem}
-    
-      .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-      .kpi{
-        background: rgba(255,255,255,.05);
-        border:1px solid var(--line);
-        border-radius: 14px;
-        padding:8px 10px;
-        font-size:.92rem;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-    
-      .sum-table{width:100%;border-collapse:collapse;font-size:.92rem}
-      .sum-table th,.sum-table td{border-bottom:1px solid var(--line);padding:8px 8px}
-    
-      /* Per-skill section */
-      #skillStats{ width:90%; max-width:1200px; margin:40px auto; }
-      #skillStats h2{ text-align:center; color:var(--brand); }
-    
-      .skill-controls{
-        display:flex; gap:10px; justify-content:center; align-items:center;
-        flex-wrap:wrap; margin-bottom:10px;
-      }
-      .skill-controls select{
-        background: rgba(9,12,20,.55);
-        color: var(--ink);
-        border:1px solid rgba(255,255,255,.12);
-        border-radius: 12px;
-        padding:8px 10px;
-        font-weight:800;
-        outline:none;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .skill-controls button{
-        border:none;
-        border-radius: 12px;
-        padding:9px 12px;
-        font-weight:900;
-        cursor:pointer;
-        color:#0b0f18;
-        background: linear-gradient(135deg, var(--brand), var(--brand2));
-        box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      }
-      .skill-controls button:hover{ filter:saturate(1.05); transform: translateY(-1px); }
-    
-      table.skill-table{ width:100%; border-collapse:separate; border-spacing:0; }
-      table.skill-table th, table.skill-table td{
-        border-bottom:1px solid var(--line);
-        padding:10px;
-        text-align:left;
-        font-size:13px;
-        vertical-align:middle;
-      }
-      table.skill-table th{
-        background: rgba(9,12,20,.65);
-        position:sticky; top:0; z-index:2;
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .skill-cell{ display:flex; align-items:center; gap:10px; }
-      .skill-cell img{
-        width:28px; height:28px; object-fit:cover; border-radius:10px;
-        background: rgba(0,0,0,.25);
-        border:1px solid rgba(255,255,255,.12);
-      }
-      .skill-name{ color: var(--ink); font-weight:800; }
-      .mono{ font-variant-numeric: tabular-nums; }
-    
-      /* Pills / icons */
-      .comboIcons{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
-      .comboIcons img{width:28px; height:28px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.25)}
-      .pill{
-        display:inline-block;
-        padding:4px 10px;
-        border-radius:999px;
-        background: rgba(255,255,255,.05);
-        border:1px solid var(--line);
-        margin:2px;
-        font-size:.85rem;
-        color:var(--muted);
-        -webkit-backdrop-filter: blur(var(--blur));
-        backdrop-filter: blur(var(--blur));
-      }
-      .pill small{opacity:.85; font-size:.8em; margin-left:4px}
-    
-      /* Drilldowns */
-      .combo-row, .pair-row, .row-click{ cursor:pointer; }
-      .combo-detail td, .pair-detail td, .tri-detail td{ background: rgba(255,255,255,.03); }
-    
-      /* Compact / passive-name-hide modes */
-      body.compact .block{padding:12px}
-      body.compact .card{padding:10px}
-      body.compact table th, body.compact table td{padding:8px}
-      body.compact .pAct{width:32px;height:32px}
-      body.compact .pPassRow span{max-width:100px;font-size:.72rem}
-      body.compact .pName{font-size:.85rem}
-      body.compact .pHero{font-size:.78rem}
-      body.passive-hidden .pPassRow span{visibility:hidden}
-      body.passive-hidden .pCard:hover .pPassRow span{visibility:visible}
-    
-      @media (max-width: 900px){
-        .playersWrap{ grid-template-columns: 1fr; }
-      }
-    
-      @media (max-width: 760px){
-        .topbar-inner{
-          flex-direction:column;
-          align-items:stretch;
-          gap:10px;
-        }
-        h1{ white-space:normal; }
-        .user-controls{ justify-content:space-between; }
-        .controls label{ flex:1 1 170px; }
-        .controls select, .controls input{ min-width: 0; width: 100%; }
-        .bar a.btn{ flex:1 1 240px; }
-      }
+  <style>
+    :root{
+      --bg:#07090f;
+      --bg2:#0b1020;
 
-      /* =========================
-   MATCHES: prevent overflow
-   ========================= */
-    
-    /* Make sure nothing forces page sideways */
-    html, body { max-width:100%; overflow-x:hidden; }
-    
-    /* Horizontal scroll on desktop/tablet */
-    .tableWrap{
-      width:100%;
-      max-width:100%;
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-      border-radius:16px;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+
+      --line: rgba(255,255,255,.08);
+      --line2: rgba(255,255,255,.06);
+
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
+
+      --good:#71d083;
+      --bad:#ff6b6b;
+
+      --radius:16px;
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+
+      --sb-w: 260px;
+      --sb-w-collapsed: 82px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 800px at 18% 12%, rgba(77,211,255,.14), transparent 60%),
+        radial-gradient(900px 650px at 80% 28%, rgba(255,189,89,.12), transparent 55%),
+        radial-gradient(900px 700px at 70% 85%, rgba(255,119,51,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, #060815 60%, #050611 100%);
+      overflow-x:hidden;
+    }
+
+    /* ===== Glass primitives ===== */
+    .glass{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background-color:var(--panel);
       border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
-    
-    /* Let table be wider than the screen without pushing the page */
-    .tableWrap table{
-      width:max(1100px, 100%);
-      border-collapse:separate;
-      border-spacing:0;
+
+    .glass2{
+      background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+      background-color:var(--panel2);
+      border:1px solid var(--line2);
+      border-radius:var(--radius);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
-    
-    /* Keep sticky header working inside scroll area */
-    .tableWrap thead th{
+
+    .muted{color:var(--muted)}
+    .mono{font-variant-numeric:tabular-nums}
+
+    /* ===== Topbar (burger + search + logged-in) ===== */
+    header.topbar{
       position:sticky;
       top:0;
-      z-index:5;
+      z-index:30;
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(5,7,12,.82), rgba(5,7,12,.55));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
     }
-    
-    /* Optional nicer scrollbar */
-    .tableWrap::-webkit-scrollbar{ height:10px; }
-    .tableWrap::-webkit-scrollbar-thumb{
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.10);
+    .topbar-inner{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      max-width:1240px;
+      margin:0 auto;
+    }
+
+    .iconBtn{
+      width:42px;height:42px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:var(--ink);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .iconBtn:hover{border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.065)}
+    .burger-lines{
+      width:18px;height:12px; position:relative;
+    }
+    .burger-lines::before,.burger-lines::after,.burger-lines span{
+      content:"";
+      position:absolute; left:0; right:0;
+      height:2px; border-radius:2px;
+      background:rgba(244,246,255,.86);
+    }
+    .burger-lines::before{top:0}
+    .burger-lines span{top:5px}
+    .burger-lines::after{bottom:0}
+
+    .searchWrap{
+      flex:1;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:0 12px;
+      height:42px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+      min-width:160px;
+    }
+    .searchWrap svg{opacity:.75}
+    #globalSearch{
+      flex:1;
+      border:0;
+      outline:none;
+      background:transparent;
+      color:var(--ink);
+      font-size:.95rem;
+      min-width:0;
+    }
+    #globalSearch::placeholder{color:rgba(170,177,197,.75)}
+
+    .userArea{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+    .userPill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
       border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      max-width:280px;
+      min-width:0;
     }
-    .tableWrap::-webkit-scrollbar-track{
-      background: rgba(255,255,255,.04);
+    .userDot{
+      width:10px;height:10px;border-radius:99px;
+      background:linear-gradient(180deg, var(--accent), rgba(77,211,255,.4));
+      box-shadow:0 0 0 3px rgba(77,211,255,.12);
+      flex:0 0 auto;
+    }
+    #user-info{
+      font-size:.92rem;
+      color:var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+    }
+
+    .btn{
+      border:0;
+      cursor:pointer;
+      font-weight:800;
+      border-radius:14px;
+      padding:10px 12px;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn-primary{
+      background:linear-gradient(180deg, rgba(255,189,89,1), rgba(255,119,51,.92));
+      color:#1a140a;
+      box-shadow:0 10px 30px rgba(255,189,89,.12);
+    }
+    .btn-primary:hover{filter:saturate(1.05) brightness(1.02)}
+    .btn-ghost{
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      color:var(--ink);
+    }
+    .btn-ghost:hover{border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.07)}
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+
+    /* top drawer (burger) */
+    .topDrawer{
+      max-width:1240px;
+      margin:10px auto 0;
+      display:none;
+      padding:10px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .topDrawer.open{display:flex}
+    .topDrawer .drawerRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      width:100%;
+    }
+    .toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-weight:700;
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle input{accent-color:var(--brand)}
+    .toggle:hover{border-color:rgba(255,255,255,.14)}
+
+    /* ===== Layout ===== */
+    .shell{max-width:1240px;margin:18px auto 60px;padding:0 12px}
+
+    .hero{
+      position:relative;
+      padding:18px 18px 16px;
+      border-radius:var(--radius-lg);
+      border:1px solid var(--line);
+      background:
+        radial-gradient(900px 380px at 14% 30%, rgba(77,211,255,.16), transparent 55%),
+        radial-gradient(700px 300px at 70% 25%, rgba(255,189,89,.12), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .hero::after{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        linear-gradient(90deg, rgba(255,189,89,.0), rgba(255,189,89,.22), rgba(255,189,89,.0));
+      opacity:.16;
+      transform:skewY(-6deg) translateY(-60px);
+      pointer-events:none;
+    }
+    .hero h1{
+      margin:0;
+      font-size:1.35rem;
+      letter-spacing:.2px;
+      color:var(--brand);
+      position:relative;
+      z-index:1;
+    }
+    .hero .sub{
+      margin-top:6px;
+      position:relative;
+      z-index:1;
+      line-height:1.35;
+    }
+
+    .block{
+      margin-top:14px;
+      padding:14px;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:rgba(20,26,38,.60);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow:0 18px 55px rgba(0,0,0,.45);
+    }
+    .block h2{
+      margin:0 0 10px 0;
+      color:var(--brand);
+      font-size:1.05rem;
+      letter-spacing:.2px;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      margin:6px 0 10px;
+    }
+    .controls label{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 10px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-weight:700;
+    }
+    .controls select, .controls input[type="text"], .controls input[type="number"]{
+      background:rgba(10,12,20,.55);
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--brand);
+      border-radius:12px;
+      padding:8px 10px;
+      outline:none;
+      font-weight:800;
+    }
+    .controls select:focus, .controls input:focus{
+      border-color:rgba(77,211,255,.35);
+      box-shadow:0 0 0 3px rgba(77,211,255,.12);
+    }
+
+    /* ===== Tabs as chips (pet-like) ===== */
+    .tabs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:10px;
+    }
+    .tab{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
       border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:rgba(244,246,255,.86);
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
     }
-    
-    /* ========== Mobile: switch Matches to "cards" (no overflow at all) ========== */
-    @media (max-width: 720px){
-      /* stop scrolling container because table becomes cards */
-      .matchWrap{ overflow:visible; border:none; }
-      .matchWrap table{ width:100%; min-width:0; }
-    
-      #sec-match table thead{ display:none; }
-    
-      #sec-match table tbody{ display:block; }
-      #sec-match table tbody tr{
-        display:block;
-        margin:10px 0;
-        padding:10px;
-        border-radius:16px;
-        border:1px solid var(--line);
-        background: rgba(255,255,255,.03);
-      }
-    
-      #sec-match table tbody td{
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-        padding:10px 6px;
-        border-bottom:1px solid rgba(255,255,255,.06);
-      }
-      #sec-match table tbody td:last-child{ border-bottom:none; }
-    
-      #sec-match table tbody td::before{
-        font-size:.72rem;
-        color:var(--muted);
-        text-transform:uppercase;
-        letter-spacing:.08em;
-      }
-    
-      /* Labels (based on your column order) */
-      #sec-match table tbody td:nth-child(1)::before{ content:"Date"; }
-      #sec-match table tbody td:nth-child(2)::before{ content:"Game"; }
-      #sec-match table tbody td:nth-child(3)::before{ content:"Map"; }
-      #sec-match table tbody td:nth-child(4)::before{ content:"Team"; }
-      #sec-match table tbody td:nth-child(5)::before{ content:"Opponent"; }
-      #sec-match table tbody td:nth-child(6)::before{ content:"Score"; }
-      #sec-match table tbody td:nth-child(7)::before{ content:"Result"; }
-      #sec-match table tbody td:nth-child(8)::before{ content:"Ban"; }
-      #sec-match table tbody td:nth-child(9)::before{ content:"Players"; }
-    
-      /* Players grid already becomes 1-col at 900px, but enforce here too */
+    .tab .dot{
+      width:10px;height:10px;border-radius:99px;
+      background:rgba(77,211,255,.65);
+      box-shadow:0 0 0 3px rgba(77,211,255,.10);
+      flex:0 0 auto;
+    }
+    .tab.active{
+      background:rgba(255,189,89,.12);
+      border-color:rgba(255,189,89,.40);
+      color:var(--brand);
+    }
+    .tab.active .dot{
+      background:rgba(255,189,89,.9);
+      box-shadow:0 0 0 3px rgba(255,189,89,.18);
+    }
+
+    .js-section{display:none}
+    .js-section.active{display:block}
+
+    /* ===== Tables (always safely contained) ===== */
+    .tableWrap{
+      width:100%;
+      overflow:auto;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.12);
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:900px;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      text-align:left;
+      padding:10px 10px;
+      background:linear-gradient(180deg, rgba(8,10,16,.78), rgba(8,10,16,.60));
+      border-bottom:1px solid var(--line);
+      color:rgba(244,246,255,.90);
+      font-weight:900;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+    td{
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      vertical-align:top;
+      color:rgba(244,246,255,.92);
+    }
+    tbody tr:hover{background:rgba(255,255,255,.03)}
+    .right{text-align:right}
+    .tight{line-height:1.25}
+
+    .wl{
+      font-weight:1000;
+      padding:4px 10px;
+      border-radius:999px;
+      display:inline-block;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+    }
+    .wl.W{color:var(--good); border-color:rgba(113,208,131,.25); background:rgba(113,208,131,.08)}
+    .wl.L{color:var(--bad);  border-color:rgba(255,107,107,.25); background:rgba(255,107,107,.08)}
+
+    /* ===== Players grid (table view) ===== */
+    .playersWrap{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(240px, 1fr));
+      gap:10px;
+      overflow:visible;
+    }
+    .pCard{
+      display:flex; align-items:center; gap:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      padding:8px 10px;
+      min-width:0;
+    }
+    .pAct{
+      width:46px; height:46px; object-fit:cover; border-radius:12px;
+      border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18);
+      flex:0 0 46px;
+    }
+    .pPassCol{display:flex; flex-direction:column; gap:3px; flex:0 0 auto}
+    .pPassRow{display:flex; align-items:center; gap:6px}
+    .pPassRow img{
+      width:14px; height:14px; object-fit:cover; border-radius:4px;
+      border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18);
+    }
+    .pPassRow span{
+      font-size:.78rem; color:rgba(170,177,197,.92);
+      max-width:130px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .pInfo{display:flex; flex-direction:column; gap:2px; min-width:0; line-height:1.18}
+    .pName{font-weight:1000; font-size:.92rem}
+    .pHero{font-size:.86rem; color:rgba(244,246,255,.86); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+    /* ===== Summary cards ===== */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .card{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      border-radius:16px;
+      padding:12px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .card h3{margin:0 0 6px 0;color:var(--brand2);font-size:1.05rem}
+    .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .kpi{
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:7px 9px;
+      font-size:.9rem;
+      color:rgba(244,246,255,.90);
+    }
+    .sum-table{width:100%;border-collapse:collapse;font-size:.92rem; min-width:0}
+    .sum-table th,.sum-table td{border-bottom:1px solid rgba(255,255,255,.08);padding:7px 6px}
+    .caption{margin:4px 0 10px 0}
+
+    /* ===== Combos / Pairs pills ===== */
+    .comboIcons{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+    .comboIcons img{width:28px; height:28px; border-radius:10px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18)}
+    .pill{display:inline-block; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); margin:2px; font-size:.85rem; color:rgba(244,246,255,.86)}
+    .pill small{opacity:.8; font-size:.8em; margin-left:4px}
+
+    /* ===== Per-skill table ===== */
+    .skill-controls{
+      display:flex; gap:10px; justify-content:flex-start; align-items:center;
+      flex-wrap:wrap; margin-bottom:10px;
+    }
+    .skill-controls select, .skill-controls button{
+      border-radius:14px;
+      padding:9px 10px;
+      font-weight:900; cursor:pointer;
+    }
+    .skill-controls select{
+      background:rgba(10,12,20,.55);
+      color:var(--brand);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .skill-controls button{
+      border:0;
+      background:linear-gradient(180deg, rgba(255,119,51,1), rgba(255,189,89,.95));
+      color:#1a140a;
+      box-shadow:0 10px 30px rgba(255,119,51,.10);
+    }
+    .skill-controls button:hover{filter:saturate(1.05) brightness(1.02)}
+    .skill-cell{ display:flex; align-items:center; gap:10px; }
+    .skill-cell img{
+      width:28px; height:28px; object-fit:cover; border-radius:10px; background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.10);
+    }
+    .skill-name{ color:rgba(244,246,255,.92); font-weight:900; }
+
+    /* ===== Compact / passive-name-hide modes ===== */
+    body.compact .block{padding:12px}
+    body.compact .card{padding:10px}
+    body.compact td, body.compact thead th{padding:8px}
+    body.compact .pAct{width:34px;height:34px; border-radius:10px}
+    body.compact .pPassRow span{max-width:100px;font-size:.72rem}
+    body.compact .pName{font-size:.86rem}
+    body.compact .pHero{font-size:.78rem}
+    body.passive-hidden .pPassRow span{visibility:hidden}
+    body.passive-hidden .pCard:hover .pPassRow span{visibility:visible}
+
+    /* ===== Click drilldowns ===== */
+    .combo-row{ cursor:pointer; }
+    .combo-detail td{ background:rgba(255,255,255,.02); }
+    .pair-row{ cursor:pointer; }
+    .pair-detail td{ background:rgba(255,255,255,.02); }
+    .row-click{cursor:pointer}
+    .tri-detail td{ background:rgba(255,255,255,.02); }
+
+    /* ===== Mobile matches behavior (no overflow) ===== */
+    #rowsCards{display:none}
+    .mCard{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      border-radius:18px;
+      padding:12px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow:0 16px 45px rgba(0,0,0,.45);
+    }
+    .mTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .mTitle{
+      font-weight:1000;
+      color:rgba(244,246,255,.96);
+      line-height:1.2;
+    }
+    .mMeta{
+      margin-top:4px;
+      color:rgba(170,177,197,.92);
+      font-size:.9rem;
+      line-height:1.25;
+    }
+    .mRight{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:6px;
+      flex:0 0 auto;
+    }
+    .mScore{
+      font-weight:1000;
+      color:var(--brand);
+      background:rgba(255,189,89,.10);
+      border:1px solid rgba(255,189,89,.25);
+      padding:6px 10px;
+      border-radius:999px;
+      white-space:nowrap;
+    }
+    .mBan{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      max-width:100%;
+      color:rgba(244,246,255,.88);
+      font-weight:800;
+    }
+    .mBan img{
+      width:26px;height:26px;border-radius:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.18);
+      flex:0 0 auto;
+    }
+    .mBan span{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:240px;
+    }
+    .mPlayers details{
+      margin-top:10px;
+      border-top:1px solid rgba(255,255,255,.08);
+      padding-top:10px;
+    }
+    .mPlayers summary{
+      cursor:pointer;
+      font-weight:1000;
+      color:rgba(244,246,255,.92);
+      list-style:none;
+    }
+    .mPlayers summary::-webkit-details-marker{display:none}
+    .mPlayersGrid{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .mPRow{
+      display:flex; gap:10px; align-items:center;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      border-radius:16px;
+      padding:10px;
+      min-width:0;
+    }
+    .mPRow .pAct{width:44px;height:44px}
+    .mPRow .pPassCol{gap:2px}
+    .mPRow .pPassRow span{max-width:170px}
+    .mPRow .pHero{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+    /* ===== Responsiveness (pet-like tight controls) ===== */
+    @media (max-width: 980px){
       .playersWrap{ grid-template-columns: 1fr; }
+      table{min-width:860px}
     }
 
-    </style>
+    @media (max-width: 860px){
+      /* Matches: cards on mobile */
+      #rowsTableWrap{display:none}
+      #rowsCards{display:grid; gap:12px}
 
+      /* Tabs: allow horizontal scroll if needed */
+      .tabs{
+        flex-wrap:nowrap;
+        overflow:auto;
+        padding-bottom:6px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .tabs::-webkit-scrollbar{height:0}
+
+      /* Tighten filters/buttons */
+      .block{padding:12px}
+      .controls{gap:8px}
+      .controls label{padding:8px 10px; border-radius:14px}
+      .controls select{padding:8px 10px; border-radius:12px}
+    }
+
+    @media (max-width: 640px){
+      .shell{padding:0 10px; margin-top:12px}
+      header.topbar{padding:10px 10px}
+      .topbar-inner{gap:8px}
+
+      .userPill{padding:8px 10px; max-width:180px}
+      #user-info{font-size:.88rem}
+
+      .btn{padding:10px 10px; border-radius:14px}
+      .iconBtn{width:40px;height:40px;border-radius:14px}
+      .searchWrap{height:40px; border-radius:16px; padding:0 10px}
+
+      .hero{padding:16px}
+      .hero h1{font-size:1.18rem}
+
+      /* Make match cards extra safe */
+      .mBan span{max-width:160px}
+    }
+  </style>
 </head>
+
 <body>
-  <header>
-    <h1>Clash Squad — Skills Report & Summary</h1>
-    <div class="user-controls">
-      <span class="chip" id="user-info">Checking login…</span>
-      <button class="btn" id="logoutBtn">Logout</button>
+  <!-- TOPBAR (burger + search + logged in) -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="iconBtn" id="burgerBtn" aria-label="Menu">
+        <div class="burger-lines"><span></span></div>
+      </button>
+
+      <div class="searchWrap" title="Search within loaded data">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
+          <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+        </svg>
+        <input id="globalSearch" type="text" placeholder="Search matches / teams / players / skills…" />
+      </div>
+
+      <div class="userArea">
+        <div class="userPill" title="Account">
+          <span class="userDot"></span>
+          <span id="user-info">Checking login…</span>
+        </div>
+        <button class="btn btn-ghost" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <!-- burger drawer -->
+    <div class="topDrawer" id="topDrawer">
+      <div class="drawerRow">
+        <a class="btn btn-ghost" href="dashboard.html">← Back to Dashboard</a>
+        <label class="toggle">
+          <input type="checkbox" id="compactToggle"> Compact mode
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="hidePassiveToggle"> Hide passive names until hover
+        </label>
+      </div>
     </div>
   </header>
 
   <div class="shell">
-    <!-- Top bar -->
-    <div class="bar">
-      <a href="dashboard.html" class="btn">← Back to Dashboard</a>
-      <label class="muted" style="margin-left:auto">
-        <input type="checkbox" id="compactToggle"> Compact mode
-      </label>
-      <label class="muted">
-        <input type="checkbox" id="hidePassiveToggle"> Hide passive names until hover
-      </label>
-    </div>
+    <section class="hero">
+      <h1>Clash Squad — Skills Report & Summary</h1>
+      <div class="sub muted" id="filterMeta">—</div>
+    </section>
 
-    <!-- FILTERS -->
+    <!-- FILTERS (NO DATE FILTERS) -->
     <div class="block">
       <h2>Filters</h2>
+
       <div class="controls">
-        <label>From
-          <input type="date" id="fFrom">
-        </label>
-        <label>To
-          <input type="date" id="fTo">
-        </label>
         <label>Map
           <select id="fMap">
             <option value="__ALL__">All maps</option>
@@ -607,12 +729,15 @@
             <option value="Solara">Solara</option>
           </select>
         </label>
+
         <label>Team
           <select id="fTeam"></select>
         </label>
+
         <label>Tournament
           <select id="fTourn"></select>
         </label>
+
         <label>Outcome
           <select id="fWL">
             <option value="__ALL__">All</option>
@@ -620,66 +745,72 @@
             <option value="L">Losses only</option>
           </select>
         </label>
-        <button class="btn" id="applyBtn">Apply</button>
+
+        <button class="btn btn-primary" id="applyBtn">Apply</button>
       </div>
-      <div class="muted" id="filterMeta">—</div>
 
       <!-- Tabs -->
       <div class="tabs">
-        <button data-tab="match" class="tab active">Matches</button>
-        <button data-tab="summary" class="tab">Summary</button>
-        <button data-tab="teammap" class="tab">Team × Map</button>
-        <button data-tab="skillsbymap" class="tab">Skills by Map</button>
-        <button data-tab="combos" class="tab">Active Combos</button>
-        <button data-tab="pairs" class="tab">Active Pairs</button>
-        <button data-tab="passivebuilder" class="tab">Passive Trios</button>
-        <button data-tab="banimpact" class="tab">Ban Impact</button>
-        <button data-tab="perskill" class="tab">Per-Skill</button>
+        <button data-tab="match" class="tab active"><span class="dot"></span>Matches</button>
+        <button data-tab="summary" class="tab"><span class="dot"></span>Summary</button>
+        <button data-tab="teammap" class="tab"><span class="dot"></span>Team × Map</button>
+        <button data-tab="skillsbymap" class="tab"><span class="dot"></span>Skills by Map</button>
+        <button data-tab="combos" class="tab"><span class="dot"></span>Active Combos</button>
+        <button data-tab="pairs" class="tab"><span class="dot"></span>Active Pairs</button>
+        <button data-tab="passivebuilder" class="tab"><span class="dot"></span>Passive Trios</button>
+        <button data-tab="banimpact" class="tab"><span class="dot"></span>Ban Impact</button>
+        <button data-tab="perskill" class="tab"><span class="dot"></span>Per-Skill</button>
       </div>
     </div>
 
     <!-- MATCH LIST -->
     <div id="sec-match" class="block js-section active">
       <h2>Per-Match Team Rows</h2>
-      <div class="tableWrap matchWrap">
-      <table class="matchTable">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Game</th>
-            <th>Map</th>
-            <th>Team</th>
-            <th>Opponent</th>
-            <th>Score</th>
-            <th>Result</th>
-            <th>Ban</th>
-            <th>Players (Active + 3×Passive)</th>
-          </tr>
-        </thead>
-        <tbody id="rowsBody"></tbody>
-      </table>
+
+      <!-- Desktop/Table view (safe scroll container) -->
+      <div class="tableWrap" id="rowsTableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Game</th>
+              <th>Map</th>
+              <th>Team</th>
+              <th>Opponent</th>
+              <th>Score</th>
+              <th>Result</th>
+              <th>Ban</th>
+              <th>Players (Active + 3×Passive)</th>
+            </tr>
+          </thead>
+          <tbody id="rowsBody"></tbody>
+        </table>
       </div>
-      <div id="rowsPager" class="bar" style="justify-content:space-between;"></div>
+
+      <!-- Mobile/Cards view -->
+      <div id="rowsCards"></div>
+
+      <div id="rowsPager" class="controls" style="justify-content:space-between;margin-top:10px"></div>
     </div>
 
     <!-- SUMMARY -->
     <div id="sec-summary" class="block js-section">
       <h2>Summary: Picks/Bans</h2>
       <div class="controls sum-controls">
-        <label class="muted">Group by
+        <label>Group by
           <select id="sumGroupBy">
             <option value="team">Team</option>
             <option value="player" selected>Player</option>
           </select>
         </label>
-        <label class="muted">Subject
+        <label>Subject
           <select id="sumKind">
             <option value="active">Active skills</option>
             <option value="passive">Passive skills</option>
             <option value="ban">Bans</option>
           </select>
         </label>
-        <label class="muted">Card order
+        <label>Card order
           <select id="sumCardSort">
             <option value="subjectAppear" selected>Appearances</option>
             <option value="subjectRate">Appear Rate</option>
@@ -690,13 +821,13 @@
             <option value="name">A→Z</option>
           </select>
         </label>
-        <label class="muted">Card dir
+        <label>Card dir
           <select id="sumCardDir">
             <option value="desc" selected>Desc</option>
             <option value="asc">Asc</option>
           </select>
         </label>
-        <label class="muted">Skills order
+        <label>Skills order
           <select id="sumSkillSort">
             <option value="appearRate" selected>Rate</option>
             <option value="count">Count</option>
@@ -704,7 +835,7 @@
             <option value="name">A→Z</option>
           </select>
         </label>
-        <label class="muted">Skills dir
+        <label>Skills dir
           <select id="sumSkillDir">
             <option value="desc" selected>Desc</option>
             <option value="asc">Asc</option>
@@ -736,34 +867,36 @@
         </label>
       </div>
       <div class="muted" id="tmMeta">—</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Team</th><th>Map</th><th>Matches</th><th>Wins</th><th>Win %</th>
-          </tr>
-        </thead>
-        <tbody id="tmBody"></tbody>
-      </table>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Team</th><th>Map</th><th>Matches</th><th>Wins</th><th>Win %</th>
+            </tr>
+          </thead>
+          <tbody id="tmBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- SKILLS SUMMARY BY MAP -->
     <div id="sec-skillsbymap" class="block js-section">
       <h2>Skills Summary by Map</h2>
       <div class="controls">
-        <label class="muted">Group by
+        <label>Group by
           <select id="ssGroupBy">
             <option value="team" selected>Team</option>
             <option value="player">Player</option>
           </select>
         </label>
-        <label class="muted">Subject
+        <label>Subject
           <select id="ssKind">
             <option value="active" selected>Active</option>
             <option value="passive">Passive</option>
             <option value="ban">Ban</option>
           </select>
         </label>
-        <label class="muted">Card order
+        <label>Card order
           <select id="ssCardSort">
             <option value="subjectAppear" selected>Appearances</option>
             <option value="subjectRate">Appear Rate</option>
@@ -774,13 +907,13 @@
             <option value="name">A→Z</option>
           </select>
         </label>
-        <label class="muted">Card dir
+        <label>Card dir
           <select id="ssCardDir">
             <option value="desc" selected>Desc</option>
             <option value="asc">Asc</option>
           </select>
         </label>
-        <label class="muted">Skills order
+        <label>Skills order
           <select id="ssSkillSort">
             <option value="appearRate" selected>Rate</option>
             <option value="count">Count</option>
@@ -788,7 +921,7 @@
             <option value="name">A→Z</option>
           </select>
         </label>
-        <label class="muted">Skills dir
+        <label>Skills dir
           <select id="ssSkillDir">
             <option value="desc" selected>Desc</option>
             <option value="asc">Asc</option>
@@ -822,19 +955,21 @@
         </label>
       </div>
       <div class="caption muted" id="comboMeta">—</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Combo (4× Active)</th>
-            <th>Picks</th>
-            <th>Wins</th>
-            <th>Win %</th>
-            <th>Teams Used</th>
-            <th>Maps Used</th>
-          </tr>
-        </thead>
-        <tbody id="comboBody"></tbody>
-      </table>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Combo (4× Active)</th>
+              <th>Picks</th>
+              <th>Wins</th>
+              <th>Win %</th>
+              <th>Teams Used</th>
+              <th>Maps Used</th>
+            </tr>
+          </thead>
+          <tbody id="comboBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ACTIVE PAIRS -->
@@ -861,19 +996,21 @@
         </label>
       </div>
       <div class="caption muted" id="pairMeta">—</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Pair (2× Active)</th>
-            <th>Picks</th>
-            <th>Wins</th>
-            <th>Win %</th>
-            <th>Teams Used</th>
-            <th>Maps Used</th>
-          </tr>
-        </thead>
-        <tbody id="pairBody"></tbody>
-      </table>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pair (2× Active)</th>
+              <th>Picks</th>
+              <th>Wins</th>
+              <th>Win %</th>
+              <th>Teams Used</th>
+              <th>Maps Used</th>
+            </tr>
+          </thead>
+          <tbody id="pairBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- PASSIVE TRIOS BUILDER -->
@@ -905,40 +1042,44 @@
       </div>
       <div class="caption muted" id="pbaMeta">—</div>
 
-      <h3 style="color:var(--brand2);margin:8px 0 6px">Top Passive Trios</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Active &nbsp;→&nbsp; Passive Trio</th>
-            <th>Picks</th>
-            <th>Wins</th>
-            <th>Win %</th>
-            <th>#Players</th>
-            <th>#Teams</th>
-            <th>Maps Used</th>
-          </tr>
-        </thead>
-        <tbody id="triTablePB"></tbody>
-      </table>
+      <h3 style="color:var(--brand2);margin:10px 0 8px">Top Passive Trios</h3>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Active → Passive Trio</th>
+              <th>Picks</th>
+              <th>Wins</th>
+              <th>Win %</th>
+              <th>#Players</th>
+              <th>#Teams</th>
+              <th>Maps Used</th>
+            </tr>
+          </thead>
+          <tbody id="triTablePB"></tbody>
+        </table>
+      </div>
 
-      <h3 style="color:var(--brand2);margin:18px 0 6px">Per-Player (when using selected Active)</h3>
+      <h3 style="color:var(--brand2);margin:18px 0 8px">Per-Player (when using selected Active)</h3>
       <div class="caption muted">
         Shows each player’s go-to passive trio(s) when they picked the chosen Active. Click a row to expand details.
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th>Active</th>
-            <th>Total Picks</th>
-            <th>Total Wins</th>
-            <th>Win %</th>
-            <th>Teams</th>
-            <th>Top Trio</th>
-          </tr>
-        </thead>
-        <tbody id="ppTablePB"></tbody>
-      </table>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Active</th>
+              <th>Total Picks</th>
+              <th>Total Wins</th>
+              <th>Win %</th>
+              <th>Teams</th>
+              <th>Top Trio</th>
+            </tr>
+          </thead>
+          <tbody id="ppTablePB"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- BAN IMPACT -->
@@ -966,7 +1107,7 @@
       </div>
       <div class="caption muted" id="biMeta">—</div>
 
-      <div class="caption muted" id="biLegend" style="line-height:1.35">
+      <div class="caption muted" style="line-height:1.35">
         <strong>Legend — Ban Impact</strong>:
         <b>Skill</b> = the skill your side banned;
         <b>Banned Matches</b> = # of your team-rows that banned it;
@@ -975,33 +1116,37 @@
         <b>Win % (not banned)</b> = wins_when_not_banned ÷ other_matches;
         <b>Δ Win %</b> = Win%(banned) − Win%(not banned) (↑ positive means ban helped).
       </div>
-          
-      <table>
-        <thead>
-          <tr>
-            <th>Skill</th>
-            <th>Banned&nbsp;Matches</th>
-            <th>Win&nbsp;% (banned)</th>
-            <th>Other&nbsp;Matches</th>
-            <th>Win&nbsp;% (not&nbsp;banned)</th>
-            <th>Δ Win&nbsp;%</th>
-          </tr>
-        </thead>
-        <tbody id="biBody"></tbody>
-      </table>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Skill</th>
+              <th>Banned Matches</th>
+              <th>Win % (banned)</th>
+              <th>Other Matches</th>
+              <th>Win % (not banned)</th>
+              <th>Δ Win %</th>
+            </tr>
+          </thead>
+          <tbody id="biBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- PER-SKILL -->
     <div id="sec-perskill" class="block js-section">
       <h2>Per-Skill Stats</h2>
       <div class="skill-controls">
-        <label>Type
+        <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:900">
+          Type
           <select id="skillTypeSelect">
             <option value="active" selected>Active</option>
             <option value="passive">Passive</option>
           </select>
         </label>
-        <label>Sort by
+        <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:900">
+          Sort by
           <select id="skillSortBy">
             <option value="picks" selected>Picks</option>
             <option value="pickRate">Pick %</option>
@@ -1012,7 +1157,8 @@
             <option value="name">Name</option>
           </select>
         </label>
-        <label>Order
+        <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:900">
+          Order
           <select id="skillSortDir">
             <option value="desc" selected>Desc</option>
             <option value="asc">Asc</option>
@@ -1023,20 +1169,22 @@
 
       <div id="skillStatsMeta" class="muted">—</div>
 
-      <table class="skill-table" style="margin-top:8px;">
-        <thead>
-          <tr>
-            <th>Skill</th>
-            <th>Picks</th>
-            <th>Pick&nbsp;%</th>
-            <th>Bans</th>
-            <th>Ban&nbsp;%</th>
-            <th>Wins</th>
-            <th>Win&nbsp;%</th>
-          </tr>
-        </thead>
-        <tbody id="skillStatsBody"></tbody>
-      </table>
+      <div class="tableWrap" style="margin-top:10px">
+        <table class="skill-table" style="min-width:760px">
+          <thead>
+            <tr>
+              <th>Skill</th>
+              <th>Picks</th>
+              <th>Pick %</th>
+              <th>Bans</th>
+              <th>Ban %</th>
+              <th>Wins</th>
+              <th>Win %</th>
+            </tr>
+          </thead>
+          <tbody id="skillStatsBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1054,51 +1202,32 @@ const client = supabase.createClient(
     return;
   }
   const ui = document.getElementById('user-info');
-  if (ui && session.user?.email) ui.textContent = `Logged in as: ${session.user.email}`;
+  if (ui && session.user?.email) ui.textContent = session.user.email;
 })();
+
 document.getElementById('logoutBtn').onclick = async () => {
   await client.auth.signOut();
   window.location.href = "index.html";
 };
 
+/* ========= Burger drawer ========= */
+const burgerBtn = document.getElementById('burgerBtn');
+const topDrawer = document.getElementById('topDrawer');
+burgerBtn.addEventListener('click', ()=>{
+  topDrawer.classList.toggle('open');
+});
+
 /* ========= Utilities ========= */
-const PLACEHOLDER = 'https://imgur.com/AdvPwAO.png';
+const PLACEHOLDER = 'https://i.imgur.com/AdvPwAO.png';
 const fmtPct = (num) => isFinite(num) ? (num*100).toFixed(1) + '%' : '—';
 const pct = (num, den) => den ? fmtPct(num/den) : '—';
 const uniq = (arr) => [...new Set(arr)];
-function ymd(d){
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${da}`;
-}
-// Safely parse the `state` column whether it's JSONB or text
+const el = (id) => document.getElementById(id);
+
 function parseState(val){
   if (!val) return {};
   if (typeof val === 'object') return val;
-  try { return JSON.parse(val); } catch(e){ console.warn('Bad state JSON:', e, val); return {}; }
-}
-
-function normalizeYMD(val){
-  if (!val) return '';
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0,10);
-  const d = new Date(val);
-  return isNaN(d) ? '' : ymd(d);
-}
-
-async function getTournamentStartDate(tournName){
-  if (!tournName) return null;
-  const { data, error } = await client
-    .from('draft_records')
-    .select('match_date')
-    .eq('tournament_name', tournName)
-    .order('match_date', { ascending: true })
-    .limit(1);
-
-  if (error) {
-    console.warn('Failed to get tournament start date:', error);
-    return null;
-  }
-  const first = data?.[0]?.match_date;
-  return first ? normalizeYMD(first) : null;
+  try { return JSON.parse(val); } catch(e){ console.warn('Bad state JSON:', e); return {}; }
 }
 
 /* ========= State ========= */
@@ -1107,58 +1236,63 @@ let CURRENT_ROWS = [];
 let PAGE_SIZE = 25;
 let PAGE = 1;
 let FIRST_LOAD_TOURN = true;
+let SEARCH_Q = '';
+let LAST_FETCH_LIMIT = 0;
+let WAS_TRUNCATED = false;
 
-/* ========= DOM ========= */
-const el = (id) => document.getElementById(id);
-
-/* ========= Init filters ========= */
+/* ========= Init filters (NO DATE) ========= */
 (function initFilters(){
-  const today = new Date();
-  const from = new Date(today); from.setDate(from.getDate()-30);
-  el('fFrom').value = ymd(from);
-  el('fTo').value = ymd(today);
   el('fMap').value = '__ALL__';
   el('fWL').value = '__ALL__';
+
   const t = el('fTourn');
   if (t) t.innerHTML = `<option value="__ALL__">All tournaments</option>`;
+
+  const teamDD = el('fTeam');
+  if (teamDD) teamDD.innerHTML = `<option value="__ALL__">All teams</option>`;
 })();
 
 /* ========= Mode toggles ========= */
 el('compactToggle')?.addEventListener('change', (e)=>{
   document.body.classList.toggle('compact', e.target.checked);
+  rerenderActive();
 });
 el('hidePassiveToggle')?.addEventListener('change', (e)=>{
   document.body.classList.toggle('passive-hidden', e.target.checked);
+  rerenderActive();
 });
 
-/* ========= Fetch & build ========= */
-async function fetchRecords(){
-  const from = el('fFrom').value;
-  const toRaw = el('fTo').value;
+/* ========= Global search ========= */
+const globalSearch = el('globalSearch');
+globalSearch.addEventListener('input', ()=>{
+  SEARCH_Q = (globalSearch.value || '').trim().toLowerCase();
+  // Keep page position sane
+  if (document.getElementById('sec-match').classList.contains('active')) PAGE = 1;
+  CURRENT_ROWS = applyRowFilters(RAW_RECORDS.flatMap(explodeRecordToRows));
+  rerenderActive();
+});
 
+/* ========= Fetch & build (NO DATE FILTER) ========= */
+async function fetchRecords(){
   const map  = el('fMap').value;
   const team = el('fTeam').value || '__ALL__';
   const tourn= el('fTourn').value || '__ALL__';
 
+  // Safety limits to prevent huge pulls when tournament = ALL
+  const LIMIT = (tourn === '__ALL__') ? 500 : 2000;
+  LAST_FETCH_LIMIT = LIMIT;
+  WAS_TRUNCATED = false;
+
   let q = client
     .from('draft_records')
     .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
-    .gte('match_date', from);
-
-  // Half-open window: include entire "to" day regardless of DATE vs TIMESTAMP type
-  if (toRaw) {
-    const d = new Date(toRaw);
-    d.setDate(d.getDate() + 1);
-    const nextYMD = ymd(d);
-    q = q.lt('match_date', nextYMD);
-  }
+    .order('match_date', { ascending:false })
+    .order('id', { ascending:false })
+    .limit(LIMIT);
 
   if (map !== '__ALL__') q = q.eq('map', map);
   if (team && team !== '__ALL__') q = q.or(`team_left.eq.${team},team_right.eq.${team}`);
   if (tourn && tourn !== '__ALL__') q = q.eq('tournament_name', tourn);
-
-  // sort after filters
-  q = q.order('match_date', { ascending:false }).order('id', { ascending:false });
 
   const { data, error } = await q;
   if (error) {
@@ -1166,7 +1300,10 @@ async function fetchRecords(){
     alert(`Failed to load records: ${error.message}`);
     return [];
   }
-  return data || [];
+
+  const rows = data || [];
+  if (rows.length >= LIMIT) WAS_TRUNCATED = true;
+  return rows;
 }
 
 function populateTeamDropdown(records){
@@ -1193,6 +1330,7 @@ async function populateTournamentDropdown(records){
     const tn = r.tournament_name;
     if (!tn) return;
     tourns.add(tn);
+    // choose latest by match_date string compare (works for ISO date / timestamp)
     if (!latest || (String(r.match_date) > String(latest.date))) {
       latest = { name: tn, date: r.match_date };
     }
@@ -1211,13 +1349,9 @@ async function populateTournamentDropdown(records){
     dd.appendChild(o);
   });
 
+  // Default to latest tournament on first load
   if (FIRST_LOAD_TOURN && latest && (prior === '__ALL__' || !prior)) {
     dd.value = latest.name;
-
-    // ⬇️ NEW: set From date to the start of the most recent tournament
-    const start = await getTournamentStartDate(latest.name);
-    if (start) el('fFrom').value = start;
-
     FIRST_LOAD_TOURN = false;
   } else {
     dd.value = prior;
@@ -1291,6 +1425,18 @@ function applyRowFilters(allRows){
 
   if (team !== '__ALL__') rows = rows.filter(r => r.team === team);
   if (wl !== '__ALL__') rows = rows.filter(r => r.result === wl);
+
+  if (SEARCH_Q){
+    rows = rows.filter(r=>{
+      const hay = [
+        r.match_date, r.map, r.team, r.opponent, r.banName,
+        ...(r.actives||[]).flatMap(a=>[a.player, a.hero]),
+        ...(r.passives||[]).flatMap(p=>[p.player, ...(p.trio||[]).map(x=>x?.name||'')])
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(SEARCH_Q);
+    });
+  }
+
   return rows;
 }
 
@@ -1323,7 +1469,8 @@ function playerCardHTML(player, heroName, heroImg, trio){
   `;
 }
 
-function renderRows(rows){
+/* ===== Matches render (table + mobile cards) ===== */
+function renderRowsTable(rows){
   const body = el('rowsBody');
   body.innerHTML = '';
   if (!rows.length){
@@ -1335,19 +1482,19 @@ function renderRows(rows){
   rows.forEach(r => {
     const tr=document.createElement('tr');
 
-    const tdDate = `<td>${r.match_date}</td>`;
-    const tdGame = `<td>Game ${r.game_number}</td>`;
-    const tdMap  = `<td>${r.map}</td>`;
+    const tdDate = `<td>${r.match_date ?? '—'}</td>`;
+    const tdGame = `<td>Game ${r.game_number ?? '—'}</td>`;
+    const tdMap  = `<td>${r.map ?? '—'}</td>`;
     const tdTeam = `<td class="tight"><div><strong>${r.team}</strong></div><div class="muted">vs ${r.opponent}</div></td>`;
-    const tdOpp  = `<td>${r.opponent}</td>`;
-    const tdScore= `<td>${r.team_score} - ${r.opp_score}</td>`;
+    const tdOpp  = `<td>${r.opponent ?? '—'}</td>`;
+    const tdScore= `<td class="mono">${r.team_score} - ${r.opp_score}</td>`;
     const tdRes  = `<td><span class="wl ${r.result}">${r.result}</span></td>`;
 
     const banImg = r.banImg || PLACEHOLDER;
     const banTxt = r.banName || '—';
-    const tdBan  = `<td><div style="display:flex;align-items:center;gap:6px;">
-                      <img src="${banImg}" alt="${banTxt}" style="width:28px;height:28px;border-radius:6px;border:1px solid #333;background:#0f0f0f" loading="lazy">
-                      <span>${banTxt}</span>
+    const tdBan  = `<td><div style="display:flex;align-items:center;gap:8px;min-width:180px">
+                      <img src="${banImg}" alt="${banTxt}" style="width:28px;height:28px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)" loading="lazy">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${banTxt}</span>
                     </div></td>`;
 
     const byPlayer = r.actives.map(a => {
@@ -1362,6 +1509,71 @@ function renderRows(rows){
   });
 }
 
+function renderRowsCards(rows){
+  const wrap = el('rowsCards');
+  wrap.innerHTML = '';
+  if (!rows.length){
+    wrap.innerHTML = `<div class="mCard"><div class="muted">No rows for your selection.</div></div>`;
+    return;
+  }
+
+  rows.forEach(r=>{
+    const banImg = r.banImg || PLACEHOLDER;
+    const banTxt = r.banName || '—';
+
+    const players = r.actives.map(a=>{
+      const p = r.passives.find(pp => pp.player === a.player) || { trio: [] };
+      // reuse same markup but keep it “mobile friendly”
+      return `
+        <div class="mPRow">
+          <img class="pAct" src="${a.heroImg || PLACEHOLDER}" alt="${a.hero || '—'}" loading="lazy">
+          <div class="pPassCol">
+            ${(p.trio||[]).filter(x=>x?.name).map(x=>`
+              <div class="pPassRow">
+                <img src="${x.img || PLACEHOLDER}" alt="${x.name}" loading="lazy">
+                <span>${x.name}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="pInfo">
+            <div class="pName">${a.player || ''}</div>
+            <div class="pHero">${a.hero || '—'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'mCard';
+    card.innerHTML = `
+      <div class="mTop">
+        <div>
+          <div class="mTitle">
+            <span class="wl ${r.result}" style="margin-right:8px">${r.result}</span>
+            ${r.team} <span class="muted" style="font-weight:800">vs</span> ${r.opponent}
+          </div>
+          <div class="mMeta">${r.match_date ?? '—'} • Game ${r.game_number ?? '—'} • ${r.map ?? '—'}</div>
+        </div>
+        <div class="mRight">
+          <div class="mScore mono">${r.team_score} - ${r.opp_score}</div>
+          <div class="mBan" title="Ban">
+            <img src="${banImg}" alt="${banTxt}" loading="lazy">
+            <span>${banTxt}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mPlayers">
+        <details>
+          <summary>Players (Active + Passives)</summary>
+          <div class="mPlayersGrid">${players}</div>
+        </details>
+      </div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
 /* ========== Pagination for match rows ========== */
 function renderRowsPaged(rows){
   const total = rows.length;
@@ -1369,14 +1581,17 @@ function renderRowsPaged(rows){
   PAGE = Math.min(Math.max(1, PAGE), pages);
   const start = (PAGE-1)*PAGE_SIZE;
   const slice = rows.slice(start, start + PAGE_SIZE);
-  renderRows(slice);
+
+  renderRowsTable(slice);
+  renderRowsCards(slice);
+
   el('rowsPager').innerHTML =
-    `<div class="muted">Page ${PAGE}/${pages} • ${total} rows</div>
-     <div style="display:flex;gap:6px;">
-       <button class="btn" ${PAGE<=1?'disabled':''} onclick="PAGE=1;renderRowsPaged(CURRENT_ROWS)">« First</button>
-       <button class="btn" ${PAGE<=1?'disabled':''} onclick="PAGE--;renderRowsPaged(CURRENT_ROWS)">‹ Prev</button>
-       <button class="btn" ${PAGE>=pages?'disabled':''} onclick="PAGE++;renderRowsPaged(CURRENT_ROWS)">Next ›</button>
-       <button class="btn" ${PAGE>=pages?'disabled':''} onclick="PAGE=${pages};renderRowsPaged(CURRENT_ROWS)">Last »</button>
+    `<div class="muted">Page <b class="mono">${PAGE}</b>/<b class="mono">${pages}</b> • <b class="mono">${total}</b> rows</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+       <button class="btn btn-ghost" ${PAGE<=1?'disabled':''} onclick="PAGE=1;renderRowsPaged(CURRENT_ROWS)">« First</button>
+       <button class="btn btn-ghost" ${PAGE<=1?'disabled':''} onclick="PAGE--;renderRowsPaged(CURRENT_ROWS)">‹ Prev</button>
+       <button class="btn btn-ghost" ${PAGE>=pages?'disabled':''} onclick="PAGE++;renderRowsPaged(CURRENT_ROWS)">Next ›</button>
+       <button class="btn btn-ghost" ${PAGE>=pages?'disabled':''} onclick="PAGE=${pages};renderRowsPaged(CURRENT_ROWS)">Last »</button>
      </div>`;
 }
 
@@ -1497,9 +1712,9 @@ function renderSummary(buckets, groupBy, kind){
              ${skills.map(s => `
                <tr>
                  <td>${s.name}</td>
-                 <td class="right">${s.occ}</td>
-                 <td class="right">${pct(s.appear,b.matches)}</td>
-                 <td class="right">${pct(s.appearWins,s.appear)}</td>
+                 <td class="right mono">${s.occ}</td>
+                 <td class="right mono">${pct(s.appear,b.matches)}</td>
+                 <td class="right mono">${pct(s.appearWins,s.appear)}</td>
                </tr>`).join('')}
            </tbody>
          </table>`
@@ -1509,10 +1724,10 @@ function renderSummary(buckets, groupBy, kind){
       <div class="card">
         <h3>${b.name}</h3>
         <div class="kpis">
-          <div class="kpi">Matches <strong>${b.matches}</strong></div>
-          <div class="kpi">Wins <strong>${b.wins}</strong> <span class="muted">(${pct(b.wins,b.matches)})</span></div>
-          <div class="kpi">${(kind==='ban'?'Bans':'Picks')} <strong>${b._subj.appear}</strong> <span class="muted">(${pct(b._subj.appear,b.matches)})</span></div>
-          <div class="kpi">When Appeared: <strong>${pct(b._subj.appearWins,b._subj.appear)}</strong></div>
+          <div class="kpi">Matches <strong class="mono">${b.matches}</strong></div>
+          <div class="kpi">Wins <strong class="mono">${b.wins}</strong> <span class="muted">(${pct(b.wins,b.matches)})</span></div>
+          <div class="kpi">${(kind==='ban'?'Bans':'Picks')} <strong class="mono">${b._subj.appear}</strong> <span class="muted">(${pct(b._subj.appear,b.matches)})</span></div>
+          <div class="kpi">When Appeared: <strong class="mono">${pct(b._subj.appearWins,b._subj.appear)}</strong></div>
         </div>
         ${table}
       </div>
@@ -1568,7 +1783,7 @@ function renderTeamMapWinRate(){
     `;
     tbody.appendChild(tr);
   });
-  el('tmMeta').textContent = `${rows.length} team×map rows • From filters above`;
+  el('tmMeta').textContent = `${rows.length} team×map rows • Using current loaded records`;
 }
 ['tmSort','tmDir'].forEach(id=>{
   el(id).addEventListener('change', ()=> renderTeamMapWinRate());
@@ -1640,9 +1855,9 @@ function renderCardsToGrid(buckets, groupBy, kind, cfg, gridEl){
              ${skills.map(s => `
                <tr>
                  <td>${s.name}</td>
-                 <td class="right">${s.occ}</td>
-                 <td class="right">${pct(s.appear,b.matches)}</td>
-                 <td class="right">${pct(s.appearWins,s.appear)}</td>
+                 <td class="right mono">${s.occ}</td>
+                 <td class="right mono">${pct(s.appear,b.matches)}</td>
+                 <td class="right mono">${pct(s.appearWins,s.appear)}</td>
                </tr>`).join('')}
            </tbody>
          </table>`
@@ -1652,10 +1867,10 @@ function renderCardsToGrid(buckets, groupBy, kind, cfg, gridEl){
       <div class="card">
         <h3>${b.name}</h3>
         <div class="kpis">
-          <div class="kpi">Matches <strong>${b.matches}</strong></div>
-          <div class="kpi">Wins <strong>${b.wins}</strong> <span class="muted">(${pct(b.wins,b.matches)})</span></div>
-          <div class="kpi">${(kind==='ban'?'Bans':'Picks')} <strong>${b._subj.appear}</strong> <span class="muted">(${pct(b._subj.appear,b.matches)})</span></div>
-          <div class="kpi">When Appeared: <strong>${pct(b._subj.appearWins,b._subj.appear)}</strong></div>
+          <div class="kpi">Matches <strong class="mono">${b.matches}</strong></div>
+          <div class="kpi">Wins <strong class="mono">${b.wins}</strong> <span class="muted">(${pct(b.wins,b.matches)})</span></div>
+          <div class="kpi">${(kind==='ban'?'Bans':'Picks')} <strong class="mono">${b._subj.appear}</strong> <span class="muted">(${pct(b._subj.appear,b.matches)})</span></div>
+          <div class="kpi">When Appeared: <strong class="mono">${pct(b._subj.appearWins,b._subj.appear)}</strong></div>
         </div>
         ${table}
       </div>
@@ -1679,7 +1894,7 @@ function renderSkillsByMap(){
     skillDir:  el('ssSkillDir').value
   };
 
-  el('ssMeta').textContent = `${maps.length} map(s) • Using current filters`;
+  el('ssMeta').textContent = `${maps.length} map(s) • Using current filters/search`;
 
   const container = el('ssWrap');
   container.innerHTML='';
@@ -1697,7 +1912,7 @@ function renderSkillsByMap(){
       details.className = 'card';
       const summary = document.createElement('summary');
       summary.style.cursor='pointer';
-      summary.style.fontWeight='700';
+      summary.style.fontWeight='1000';
       summary.style.color='var(--brand2)';
       summary.textContent = m;
       details.appendChild(summary);
@@ -1733,6 +1948,18 @@ function pillsFromMapCount(mapCount, maxShow=6){
   const shown = arr.slice(0, maxShow).map(([name,c]) => `<span class="pill" title="${name} ×${c}">${name} <small>×${c}</small></span>`).join('');
   const more = arr.length>maxShow ? `<span class="pill" title="${arr.map(([n,c])=>`${n}×${c}`).join(', ')}">+${arr.length-maxShow} more</span>` : '';
   return shown + more;
+}
+
+function matchLineHTML(m){
+  const score = `${m.ts}-${m.os}`;
+  return `
+    <li>
+      <strong>${m.team}</strong> vs ${m.opp}
+      • <em>${m.map}</em> • Game ${m.game}
+      • <span class="wl ${m.res}">${m.res}</span>
+      • ${score}
+      <span class="muted">(${m.date})</span>
+    </li>`;
 }
 
 /* ========= Active Combos ========= */
@@ -1784,17 +2011,6 @@ function buildActiveCombos(rows){
 function comboIdFromKey(key){
   return 'combo_' + key.replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase();
 }
-function matchLineHTML(m){
-  const score = `${m.ts}-${m.os}`;
-  return `
-    <li>
-      <strong>${m.team}</strong> vs ${m.opp}
-      • <em>${m.map}</em> • Game ${m.game}
-      • <span class="wl ${m.res}">${m.res}</span>
-      • ${score}
-      <span class="muted">(${m.date})</span>
-    </li>`;
-}
 
 function renderActiveCombos(){
   const min = Math.max(1, parseInt(el('comboMin').value||'1',10));
@@ -1821,7 +2037,7 @@ function renderActiveCombos(){
     const td = document.createElement('td');
     td.colSpan = 6; td.className='muted'; td.textContent = 'No combos for your selection.';
     tr.appendChild(td); tbody.appendChild(tr);
-    el('comboMeta').textContent = `0 combo(s) • Using current filters`;
+    el('comboMeta').textContent = `0 combo(s) • Using current filters/search`;
     return;
   }
 
@@ -1850,14 +2066,13 @@ function renderActiveCombos(){
     dr.className = 'combo-detail';
     dr.id = id;
     dr.style.display = 'none';
-    const detail = `
+    dr.innerHTML = `
       <td colspan="6">
         <div class="muted" style="margin-bottom:6px;">${c.matches.length} match(es) with this combo</div>
         <ul style="margin:0; padding-left:18px; line-height:1.35;">
           ${c.matches.map(matchLineHTML).join('')}
         </ul>
       </td>`;
-    dr.innerHTML = detail;
     tbody.appendChild(dr);
   });
 
@@ -1870,7 +2085,7 @@ function renderActiveCombos(){
     });
   });
 
-  el('comboMeta').textContent = `${rows.length} combo(s) • Using current filters`;
+  el('comboMeta').textContent = `${rows.length} combo(s) • Using current filters/search`;
 }
 ['comboMin','comboSort','comboDir'].forEach(id => {
   el(id).addEventListener('change', renderActiveCombos);
@@ -1943,7 +2158,7 @@ function renderActivePairs(){
   if (!rows.length){
     const tr=document.createElement('tr'); const td=document.createElement('td');
     td.colSpan=6; td.className='muted'; td.textContent='No pairs for your selection.'; tr.appendChild(td);
-    tbody.appendChild(tr); el('pairMeta').textContent = `0 pair(s) • Using current filters`; return;
+    tbody.appendChild(tr); el('pairMeta').textContent = `0 pair(s) • Using current filters/search`; return;
   }
 
   rows.forEach(p=>{
@@ -1983,7 +2198,6 @@ function renderActivePairs(){
     tbody.appendChild(dr);
   });
 
-  // toggle drilldown on click
   tbody.querySelectorAll('tr.pair-row').forEach(row=>{
     row.addEventListener('click', ()=>{
       const id = row.dataset.target;
@@ -1993,13 +2207,11 @@ function renderActivePairs(){
     });
   });
 
-  el('pairMeta').textContent = `${rows.length} pair(s) • Using current filters`;
+  el('pairMeta').textContent = `${rows.length} pair(s) • Using current filters/search`;
 }
 ['pairMin','pairSort','pairDir'].forEach(id=> el(id)?.addEventListener('change', renderActivePairs));
 
 /* ========= Passive Trios Builder ========= */
-
-// Normalize a trio [{name,img}, ...] to key + lookups
 function normalizeTrioPB(trio){
   const names = (trio||[])
     .map(x => (x?.name||'').trim())
@@ -2015,7 +2227,6 @@ function normalizeTrioPB(trio){
   return { key: sorted.join('|'), names: sorted, imgs };
 }
 
-// Build per-player events (one event per player-slot)
 function buildPassiveEventsPB(rows){
   const events = [];
   rows.forEach(r=>{
@@ -2043,7 +2254,6 @@ function buildPassiveEventsPB(rows){
   return events;
 }
 
-// Populate Active dropdown from CURRENT_ROWS
 function populateActiveDropdownPB(rows){
   const actives = uniq(rows.flatMap(r=>r.actives.map(a=>a.hero).filter(Boolean))).sort();
   const dd = el('pbaActive');
@@ -2053,7 +2263,6 @@ function populateActiveDropdownPB(rows){
   dd.value = prior;
 }
 
-// Render top trios table
 function renderPassiveTriosPB(events){
   const activeSel = el('pbaActive').value;
   const min = Math.max(1, parseInt(el('pbaMin').value||'1',10));
@@ -2062,7 +2271,6 @@ function renderPassiveTriosPB(events){
 
   const filtered = (activeSel==='__ALL__') ? events : events.filter(e=>e.active===activeSel);
 
-  // group by active||trioKey
   const combos = new Map();
   filtered.forEach(e=>{
     const key = e.active + '||' + e.trioKey;
@@ -2106,7 +2314,7 @@ function renderPassiveTriosPB(events){
   } else {
     rows.forEach((c, idx)=>{
       const id = 'triPB_' + (c.active+'_'+c.trioKey).replace(/[^a-z0-9]+/gi,'_').toLowerCase() + '_' + idx;
-      const activeIcon = `<img src="${c.heroImg||PLACEHOLDER}" alt="${c.active}" title="${c.active}" loading="lazy" style="width:28px;height:28px;border-radius:6px;border:1px solid #333;background:#111">`;
+      const activeIcon = `<img src="${c.heroImg||PLACEHOLDER}" alt="${c.active}" title="${c.active}" loading="lazy" style="width:28px;height:28px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)">`;
       const trioIcons = c.trioNames.map(n=>`<img src="${(c.trioImgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy">`).join('');
 
       const tr = document.createElement('tr');
@@ -2114,7 +2322,7 @@ function renderPassiveTriosPB(events){
       tr.dataset.target = id;
       tr.innerHTML = `
         <td>
-          <div class="icons" style="margin-bottom:4px">${activeIcon}<span class="muted">→</span>${trioIcons}</div>
+          <div class="comboIcons" style="margin-bottom:4px">${activeIcon}<span class="muted" style="font-weight:900">→</span>${trioIcons}</div>
           <div class="muted">${c.active} → ${c.trioNames.join(' · ')}</div>
         </td>
         <td class="mono">${c.picks}</td>
@@ -2152,12 +2360,11 @@ function renderPassiveTriosPB(events){
   el('pbaMeta').textContent = `${rows.length} trio row(s) • Active: ${actLabel}`;
 }
 
-// Per-player table
 function renderPassivePerPlayerPB(events){
   const activeSel = el('pbaActive').value;
   const filtered = (activeSel==='__ALL__') ? events : events.filter(e=>e.active===activeSel);
 
-  const groups = new Map(); // key: player||active
+  const groups = new Map();
   filtered.forEach(e=>{
     const key = e.player + '||' + e.active;
     if (!groups.has(key)){
@@ -2209,7 +2416,7 @@ function renderPassivePerPlayerPB(events){
     const id = 'ppPB_' + (R.player+'_'+R.active).replace(/[^a-z0-9]+/gi,'_').toLowerCase() + '_' + idx;
 
     const topIcons = R.topTrio
-      ? R.topTrio.names.map(n=>`<img src="${(R.topTrio.imgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy" style="width:24px;height:24px;border-radius:6px;border:1px solid #333;background:#111">`).join('')
+      ? R.topTrio.names.map(n=>`<img src="${(R.topTrio.imgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy" style="width:22px;height:22px;border-radius:8px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)">`).join('')
       : '<span class="muted">—</span>';
 
     const tr = document.createElement('tr');
@@ -2223,7 +2430,7 @@ function renderPassivePerPlayerPB(events){
       <td class="mono">${fmtPct(R.winpct)}</td>
       <td>${pillsFromSet(R.teams)}</td>
       <td>
-        ${R.topTrio ? `<div class="icons" style="gap:4px">${topIcons}</div><div class="muted">${R.topTrio.names.join(' · ')} (${R.topTrio.picks} picks, ${fmtPct(R.topTrio.winpct)})</div>` : '—'}
+        ${R.topTrio ? `<div class="comboIcons" style="gap:4px">${topIcons}</div><div class="muted">${R.topTrio.names.join(' · ')} (${R.topTrio.picks} picks, ${fmtPct(R.topTrio.winpct)})</div>` : '—'}
       </td>
     `;
     tbody.appendChild(tr);
@@ -2238,13 +2445,13 @@ function renderPassivePerPlayerPB(events){
         <ul style="margin:0; padding-left:18px; line-height:1.35;">
           ${R.allTrios.map(T => `
             <li>
-              <span class="icons" style="gap:4px; vertical-align:middle;">
-                ${T.names.map(n=>`<img src="${(T.imgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy" style="width:20px;height:20px;border-radius:4px;border:1px solid #333;background:#111">`).join('')}
+              <span class="comboIcons" style="gap:4px; vertical-align:middle;">
+                ${T.names.map(n=>`<img src="${(T.imgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy" style="width:20px;height:20px;border-radius:8px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)">`).join('')}
               </span>
-              &nbsp; ${T.names.join(' · ')} — <strong>${T.picks}</strong> picks, <strong>${T.wins}</strong> wins
+              &nbsp; ${T.names.join(' · ')} — <strong class="mono">${T.picks}</strong> picks, <strong class="mono">${T.wins}</strong> wins
               <span class="muted">(${fmtPct(T.winpct)})</span>
-              <div style="margin-top:4px">${pillsFromMapCount(T.maps, 8)}</div>
-              <details style="margin-top:4px;">
+              <div style="margin-top:6px">${pillsFromMapCount(T.maps, 8)}</div>
+              <details style="margin-top:6px;">
                 <summary class="muted" style="cursor:pointer;">Show matches</summary>
                 <ul style="margin:0; padding-left:18px; line-height:1.35;">
                   ${T.matches.map(matchLineHTML).join('')}
@@ -2266,7 +2473,6 @@ function renderPassivePerPlayerPB(events){
   });
 }
 
-// One-call renderer for the whole section
 function renderPassiveTriosBuilder(){
   populateActiveDropdownPB(CURRENT_ROWS);
   const events = buildPassiveEventsPB(CURRENT_ROWS);
@@ -2274,7 +2480,6 @@ function renderPassiveTriosBuilder(){
   renderPassivePerPlayerPB(events);
 }
 
-// React to control changes
 ['pbaActive','pbaMin','pbaSort','pbaDir'].forEach(id=>{
   el(id)?.addEventListener('change', ()=> {
     const events = buildPassiveEventsPB(CURRENT_ROWS);
@@ -2285,18 +2490,23 @@ function renderPassiveTriosBuilder(){
 
 /* ========= Ban Impact ========= */
 function getRowsIgnoringWL(){
-  // Build rows from RAW_RECORDS but ignore fWL filter to avoid outcome bias
   const allRows = RAW_RECORDS.flatMap(explodeRecordToRows);
   const teamSel = el('fTeam').value || '__ALL__';
   let rows = allRows;
+
   if (teamSel !== '__ALL__') rows = rows.filter(r => r.team === teamSel);
+
   const mapSel = el('fMap').value;
   if (mapSel !== '__ALL__') rows = rows.filter(r => r.map === mapSel);
+
   const tournSel = el('fTourn').value || '__ALL__';
-  if (tournSel !== '__ALL__') rows = rows.filter(r => {
-    const rec = RAW_RECORDS.find(x=>x.id===r.rec_id);
-    return rec?.tournament_name === tournSel;
-  });
+  if (tournSel !== '__ALL__') {
+    // RAW_RECORDS already filtered by tourn, but keep safe:
+    rows = rows.filter(r => {
+      const rec = RAW_RECORDS.find(x=>x.id===r.rec_id);
+      return rec?.tournament_name === tournSel;
+    });
+  }
   return rows;
 }
 
@@ -2305,8 +2515,8 @@ function renderBanImpact(){
   const sort = el('biSort').value;
   const dir  = el('biDir').value;
 
-  const rows = getRowsIgnoringWL(); // Outcome ignored here
-  const skills = new Map(); // name -> {ban:{n,w}, noban:{n,w}}
+  const rows = getRowsIgnoringWL();
+  const skills = new Map();
 
   rows.forEach(r=>{
     const banned = r.banName || '';
@@ -2317,7 +2527,6 @@ function renderBanImpact(){
     }
   });
 
-  // Baseline across rows where this side did NOT ban that skill
   const rowsBySkill = Object.fromEntries([...skills.keys()].map(k=>[k, {n:0,w:0}]));
   rows.forEach(r=>{
     const resW = (r.result==='W') ? 1 : 0;
@@ -2357,7 +2566,7 @@ function renderBanImpact(){
     const tr=document.createElement('tr'); const td=document.createElement('td');
     td.colSpan=6; td.className='muted'; td.textContent='No ban data for your selection.'; tr.appendChild(td);
     tbody.appendChild(tr);
-    el('biMeta').textContent = `0 skill(s) • Using current filters (Outcome forced to All)`;
+    el('biMeta').textContent = `0 skill(s) • Outcome forced to All`;
     return;
   }
 
@@ -2369,7 +2578,7 @@ function renderBanImpact(){
       <td class="mono">${fmtPct(r.winWhenBan)}</td>
       <td class="mono">${r.nobanN}</td>
       <td class="mono">${fmtPct(r.winWhenNot)}</td>
-      <td class="mono" style="font-weight:700;">${fmtPct(r.delta)}</td>
+      <td class="mono" style="font-weight:1000;color:var(--brand);">${fmtPct(r.delta)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -2391,54 +2600,23 @@ const TAB_TO_SECTION = {
   banimpact: 'sec-banimpact',
   perskill: 'sec-perskill'
 };
+
 document.querySelectorAll('.tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+
     const target = TAB_TO_SECTION[btn.dataset.tab];
     document.querySelectorAll('.js-section').forEach(s=>s.classList.remove('active'));
     document.getElementById(target)?.classList.add('active');
 
-    if (target==='sec-match')       { PAGE=1; renderRowsPaged(CURRENT_ROWS); }
-    if (target==='sec-summary')     { const b=buildBucketsFromRows(CURRENT_ROWS, el('sumGroupBy').value, el('sumKind').value); renderSummary(b, el('sumGroupBy').value, el('sumKind').value); }
-    if (target==='sec-teammap')     { renderTeamMapWinRate(); }
-    if (target==='sec-skillsbymap') { renderSkillsByMap(); }
-    if (target==='sec-combos')      { renderActiveCombos(); }
-    if (target==='sec-pairs')       { renderActivePairs(); }
-    if (target==='sec-passivebuilder'){ renderPassiveTriosBuilder(); }
-    if (target==='sec-banimpact')   { renderBanImpact(); }
-    if (target==='sec-perskill')    { computeSkillStats(); }
+    rerenderActive();
   });
 });
 
-/* ========= Main refresh ========= */
-async function refresh(){
-  RAW_RECORDS = await fetchRecords();
-
-  const beforeT = el('fTourn').value || '__ALL__';
-  const beforeFrom = el('fFrom').value;
-
-  populateTeamDropdown(RAW_RECORDS);
-  await populateTournamentDropdown(RAW_RECORDS);   // ← await now
-
-  const afterT = el('fTourn').value || '__ALL__';
-  const afterFrom = el('fFrom').value;
-
-  // Refetch if tournament OR start-date changed
-  if (beforeT !== afterT || beforeFrom !== afterFrom) {
-    RAW_RECORDS = await fetchRecords();
-  }
-
-  const teamSel  = el('fTeam').value || '__ALL__';
-  const tournSel = el('fTourn').value || '__ALL__';
-  el('filterMeta').textContent =
-    `Loaded ${RAW_RECORDS.length} matches • Team: ${teamSel==='__ALL__'?'All teams':teamSel} • Map: ${el('fMap').value} • Tournament: ${tournSel==='__ALL__'?'All':tournSel}`;
-
-  const exploded = RAW_RECORDS.flatMap(explodeRecordToRows);
-  CURRENT_ROWS = applyRowFilters(exploded);
-
+function rerenderActive(){
   const active = document.querySelector('.js-section.active')?.id || 'sec-match';
-  if (active==='sec-match'){ PAGE = 1; renderRowsPaged(CURRENT_ROWS); }
+  if (active==='sec-match'){ renderRowsPaged(CURRENT_ROWS); }
   if (active==='sec-summary'){
     const buckets = buildBucketsFromRows(CURRENT_ROWS, el('sumGroupBy').value, el('sumKind').value);
     renderSummary(buckets, el('sumGroupBy').value, el('sumKind').value);
@@ -2452,8 +2630,44 @@ async function refresh(){
   if (active==='sec-perskill'){ computeSkillStats(); }
 }
 
+/* ========= Main refresh ========= */
+async function refresh(){
+  RAW_RECORDS = await fetchRecords();
+
+  const beforeT = el('fTourn').value || '__ALL__';
+  populateTeamDropdown(RAW_RECORDS);
+  await populateTournamentDropdown(RAW_RECORDS);
+
+  // If first-load just switched tournament to latest, refetch for that tournament so data isn't "ALL"
+  const afterT = el('fTourn').value || '__ALL__';
+  if (beforeT !== afterT) {
+    RAW_RECORDS = await fetchRecords();
+    populateTeamDropdown(RAW_RECORDS);
+  }
+
+  const teamSel  = el('fTeam').value || '__ALL__';
+  const tournSel = el('fTourn').value || '__ALL__';
+  const mapSel   = el('fMap').value || '__ALL__';
+  const wlSel    = el('fWL').value || '__ALL__';
+
+  const note = (WAS_TRUNCATED && tournSel==='__ALL__')
+    ? ` • Showing latest ${LAST_FETCH_LIMIT} matches (select a tournament to load more)`
+    : '';
+
+  el('filterMeta').textContent =
+    `Loaded ${RAW_RECORDS.length} matches${note} • Team: ${teamSel==='__ALL__'?'All':teamSel} • Map: ${mapSel==='__ALL__'?'All':mapSel} • Tournament: ${tournSel==='__ALL__'?'All':tournSel} • Outcome: ${wlSel==='__ALL__'?'All':wlSel}` +
+    (SEARCH_Q ? ` • Search: "${SEARCH_Q}"` : '');
+
+  const exploded = RAW_RECORDS.flatMap(explodeRecordToRows);
+  CURRENT_ROWS = applyRowFilters(exploded);
+
+  PAGE = 1;
+  rerenderActive();
+}
+
 /* ========= Events ========= */
-el('applyBtn').onclick = refresh;
+el('applyBtn').onclick = () => { SEARCH_Q = (globalSearch.value||'').trim().toLowerCase(); refresh(); };
+
 ['sumGroupBy','sumKind','sumCardSort','sumCardDir','sumSkillSort','sumSkillDir'].forEach(id=>{
   el(id).addEventListener('change', () => {
     if (!document.getElementById('sec-summary').classList.contains('active')) return;
@@ -2465,48 +2679,20 @@ el('applyBtn').onclick = refresh;
 /* ========= First load ========= */
 refresh();
 
-/* ===== Per-Skill Stats (Active/Passive) ===== */
-async function computeSkillStats() {
+/* ===== Per-Skill Stats (Active/Passive) — computed from currently loaded RAW_RECORDS (no date range) ===== */
+function computeSkillStats() {
   const type  = document.getElementById('skillTypeSelect').value;
   const team  = (document.getElementById('fTeam').value || '__ALL__');
-  const from  = document.getElementById('fFrom').value;
-  const toRaw = document.getElementById('fTo').value;
   const tourn = (document.getElementById('fTourn').value || '__ALL__');
   const map   = (document.getElementById('fMap').value || '__ALL__');
 
-  if (!from || !toRaw) {
-    alert('Please set a From and To date for Skill Stats.');
-    return;
-  }
-
-  // Half-open date range (handles DATE or TIMESTAMP columns)
-  const end = new Date(toRaw);
-  end.setDate(end.getDate() + 1);
-  const nextYMD = ymd(end);
-
-  let q = client
-    .from('draft_records')
-    .select('team_left, team_right, team_left_score, team_right_score, match_date, map, tournament_name, state')
-    .gte('match_date', from)
-    .lt('match_date', nextYMD);
-
-  if (team !== '__ALL__')  q = q.or(`team_left.eq.${team},team_right.eq.${team}`);
-  if (tourn !== '__ALL__') q = q.eq('tournament_name', tourn);
-  if (map !== '__ALL__')   q = q.eq('map', map);
-
-  const { data, error } = await q;
-  if (error) {
-    console.error('❌ Skill stats fetch error:', error);
-    alert('Failed to fetch records for Skill Stats: ' + error.message);
-    return;
-  }
+  const data = RAW_RECORDS || [];
+  const matches = data.length;
 
   const sidesPerMatch = (team === '__ALL__') ? 2 : 1;
   const activeSlotsPerMatch  = 4 * sidesPerMatch;
   const passiveSlotsPerMatch = 12 * sidesPerMatch;
   const banSlotsPerMatch     = 1 * sidesPerMatch;
-
-  const matches = data.length;
 
   const pickDen = (type === 'active') ? (matches * activeSlotsPerMatch)
                                       : (matches * passiveSlotsPerMatch);
@@ -2518,6 +2704,7 @@ async function computeSkillStats() {
     if (!skills.has(name)) skills.set(name, { name, img: img || PLACEHOLDER, picks: 0, bans: 0, wins: 0 });
     return skills.get(name);
   };
+
   const forSide = (r, side, fn) => {
     if (team !== '__ALL__') {
       const sideTeam = (side === 'L') ? r.team_left : r.team_right;
@@ -2527,10 +2714,7 @@ async function computeSkillStats() {
   };
 
   data.forEach(r => {
-    // SAFE parse for computeSkillStats
-    const sraw = r.state;
-    let s = {};
-    try { s = (typeof sraw === 'string') ? JSON.parse(sraw) : (sraw || {}); } catch(_) { s = {}; }
+    const s = parseState(r.state);
     const picks = Array.isArray(s.picks) ? s.picks : [];
     const bans  = Array.isArray(s.bans) ? s.bans : [];
     const pass  = Array.isArray(s.passives) ? s.passives : [];
@@ -2625,37 +2809,43 @@ async function computeSkillStats() {
   };
   rows.sort(cmp);
 
-  // inside computeSkillStats(), replace the tbody-building loop with this
-const tbody = document.getElementById('skillStatsBody');
-tbody.innerHTML = '';
-rows.forEach(r => {
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>
-      <div class="skill-cell">
-        <img src="${r.img || PLACEHOLDER}" alt="${r.name}" loading="lazy">
-        <span class="skill-name">${r.name}</span>
-      </div>
-    </td>
-    <td class="mono">${r.picks}</td>
-    <td class="mono">${pct(r.picks, pickDen)}</td>
-    <td class="mono">${(type === 'active') ? r.bans : '—'}</td>
-    <td class="mono">${(type === 'active') ? pct(r.bans, banDen) : '—'}</td>
-    <td class="mono">${r.wins}</td>
-    <td class="mono">${(r.winRate === null) ? '—' : (r.winRate * 100).toFixed(1) + '%'}</td>
-  `;
-  tbody.appendChild(tr);
-});
+  const tbody = document.getElementById('skillStatsBody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="skill-cell">
+          <img src="${r.img || PLACEHOLDER}" alt="${r.name}" loading="lazy">
+          <span class="skill-name">${r.name}</span>
+        </div>
+      </td>
+      <td class="mono">${r.picks}</td>
+      <td class="mono">${pct(r.picks, pickDen)}</td>
+      <td class="mono">${(type === 'active') ? r.bans : '—'}</td>
+      <td class="mono">${(type === 'active') ? pct(r.bans, banDen) : '—'}</td>
+      <td class="mono">${r.wins}</td>
+      <td class="mono">${(r.winRate === null) ? '—' : (r.winRate * 100).toFixed(1) + '%'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
   const teamLabel  = (team === '__ALL__') ? 'All teams' : team;
   const typeLabel  = (type === 'active') ? 'Active' : 'Passive';
   const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
   const mapLabel   = (map === '__ALL__') ? 'All maps' : map;
+
+  const truncNote = (WAS_TRUNCATED && tourn === '__ALL__')
+    ? ` • Note: limited to latest ${LAST_FETCH_LIMIT} matches`
+    : '';
+
   document.getElementById('skillStatsMeta').textContent =
     `${teamLabel} • ${tournLabel} • ${mapLabel} • ${typeLabel} • Matches: ${matches} • Slots: ` +
-    `${(type==='active') ? pickDen + ' active' : pickDen + ' passive'}` +
-    `${(type==='active') ? ` • Ban slots: ${banDen}` : ''}`;
+    `${(type==='active') ? (pickDen + ' active') : (pickDen + ' passive')}` +
+    `${(type==='active') ? ` • Ban slots: ${banDen}` : ''}` +
+    truncNote;
 }
+
 ['skillTypeSelect','skillSortBy','skillSortDir'].forEach(id=>{
   const node = document.getElementById(id);
   if (node) node.addEventListener('change', () => computeSkillStats());
