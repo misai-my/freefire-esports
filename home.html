@@ -866,31 +866,44 @@
       word-break: break-word;
       font-size: .92rem;
     }
-    /* Make the modal content area the scroll container */
+    /* ================================
+       FIX: Loadout Details Modal cut-off
+       (iPad/iOS Safari friendly)
+       ================================ */
+    
+    /* Give the loadout modal card a real height so inner scrolling works reliably */
     #loadoutModal .modal-card{
-      display:flex;              /* already true, but safe */
-      flex-direction:column;     /* already true, but safe */
+      height: min(84vh, 820px);
+      max-height: none;              /* override earlier max-height */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;              /* keep rounded corners clean */
     }
     
-    /* IMPORTANT: allow scrolling inside a flex child */
+    /* Header stays fixed */
+    #loadoutModal .modal-top{
+      flex: 0 0 auto;
+    }
+    
+    /* Scroll container */
     #loadoutModal .ld-wrap{
       flex: 1 1 auto;
-      min-height: 0;             /* key fix for iOS + flex scroll */
-      overflow: auto;
-      -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
-      padding-bottom: 18px;      /* prevents last lines feeling clipped */
+      min-height: 0;                 /* CRITICAL for flex scroll on iOS */
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 18px;
+    
+      /* helps iOS treat this as a scrollable region */
+      touch-action: pan-y;
+      overscroll-behavior: contain;
     }
     
-    /* Extra safety for very long strings/lines */
+    /* Long text safety */
     #loadoutModal .ld-text{
       overflow-wrap: anywhere;
       word-break: break-word;
     }
-    
-    #loadoutModal .modal-card{
-      max-height: min(90vh, 920px);
-    }
-
     @media (max-width: 1200px){
       .quickbar{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
