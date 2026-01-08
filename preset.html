@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- ✅ mobile-safe area + notch support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Loadout Builder — Skills / Pet / Weapon</title>
+  <title>Preset Builder</title>
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -466,6 +466,37 @@
       background: rgba(77,211,255,.10);
       border-color: rgba(77,211,255,.22);
       box-shadow: 0 0 0 3px rgba(77,211,255,.08);
+    }
+
+    /* ✅ Description language pill */
+    .lang-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 9px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight: 900;
+      font-size: .82rem;
+      white-space: nowrap;
+      user-select:none;
+    }
+    .lang-pill select{
+      background: transparent;
+      border: 0;
+      outline: none;
+      color: rgba(244,246,255,.92);
+      font-weight: 900;
+      font-size: .82rem;
+      padding: 0 4px;
+      cursor:pointer;
+    }
+    .lang-pill select:focus-visible{
+      outline: 2px solid rgba(77,211,255,.55);
+      outline-offset: 2px;
+      border-radius: 10px;
     }
 
     .section-title{
@@ -952,6 +983,7 @@
         justify-content: stretch;
       }
       .controls-right .btn{width:100%; padding: 11px 10px; border-radius: 14px;}
+      .controls-right .lang-pill{width:100%; justify-content:space-between; grid-column: 1 / -1;}
       .controls-right .btn.danger{grid-column: 1 / -1;}
 
       .slot-card{ width: 200px; }
@@ -1125,7 +1157,7 @@
         <div class="hero">
           <div class="hero-content">
             <div class="hero-title">
-              <h2>Loadout Builder</h2>
+              <h2>Preset Builder</h2>
             </div>
           </div>
         </div>
@@ -1141,6 +1173,16 @@
             </div>
             <div class="controls-right">
               <a class="btn" href="home.html">← Dashboard</a>
+
+              <!-- ✅ Description language toggle (EN / MS) -->
+              <span class="lang-pill" title="Description language">
+                Desc
+                <select id="descLang" aria-label="Description language">
+                  <option value="en">EN</option>
+                  <option value="ms">MS</option>
+                </select>
+              </span>
+
               <button class="btn danger" id="resetBtn" type="button">Reset</button>
             </div>
           </div>
@@ -1411,6 +1453,16 @@
     const STORE_KEY_V2 = 'ff_loadout_builder_v2';
     const STORE_KEY_V1 = 'ff_loadout_builder_v1'; // migrate support
 
+    // ✅ Description language (EN/MS) — based on JSON: description / description_ms
+    const DESC_LANG_KEY = 'ff_loadout_desc_lang_v1';
+    let descLang = 'en';
+    try{
+      const savedLang = (sessionStorage.getItem(DESC_LANG_KEY) || '').toLowerCase();
+      descLang = (savedLang === 'ms' ? 'ms' : 'en');
+    }catch(_){}
+    const descLangSel = document.getElementById('descLang');
+    function descLangLabel(){ return (descLang || 'en').toUpperCase(); }
+
     let characters = [];
     let pets = [];
     let weapons = [];
@@ -1437,14 +1489,113 @@
     const weaponRowEl = document.getElementById('weaponRow');
     const loadoutRowEl = document.getElementById('loadoutRow');
 
-    const tidy = (v) => (v ?? '').toString()
+    // ---------------------------
+    // ✅ Robust text helpers (prevents "[object Object]" in descriptions)
+    // ---------------------------
+    const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+
+    const prettyKey = (k) => {
+      const last = String(k || '').split('.').pop() || '';
+      return last
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (m)=>m.toUpperCase());
+    };
+
+    function flattenToLines(val, depth = 0, maxDepth = 2, prefix = ''){
+      const out = [];
+      if (val == null) return out;
+
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean'){
+        const t = String(val).trim();
+        if (t) out.push(prefix ? `${prettyKey(prefix)}: ${t}` : t);
+        return out;
+      }
+
+      if (Array.isArray(val)){
+        const parts = val.map(v => asText(v)).filter(Boolean);
+        if (parts.length){
+          out.push(prefix ? `${prettyKey(prefix)}: ${parts.join(', ')}` : parts.join(', '));
+        }
+        return out;
+      }
+
+      if (!isPlainObject(val)){
+        const t = String(val).trim();
+        if (t && t !== '[object Object]') out.push(prefix ? `${prettyKey(prefix)}: ${t}` : t);
+        return out;
+      }
+
+      if (depth >= maxDepth){
+        // last resort: try known keys only
+        for (const k of ['name','title','text','value','desc','description','summary','note','notes','en','ms']){
+          if (typeof val[k] === 'string' && val[k].trim()){
+            out.push(prefix ? `${prettyKey(prefix)}: ${val[k].trim()}` : val[k].trim());
+            return out;
+          }
+        }
+        return out;
+      }
+
+      for (const [k,v] of Object.entries(val)){
+        if (v == null) continue;
+        const p = prefix ? `${prefix}.${k}` : k;
+
+        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'){
+          const t = String(v).trim();
+          if (t) out.push(`${prettyKey(p)}: ${t}`);
+          continue;
+        }
+
+        if (Array.isArray(v)){
+          const parts = v.map(x => asText(x)).filter(Boolean);
+          if (parts.length) out.push(`${prettyKey(p)}: ${parts.join(', ')}`);
+          continue;
+        }
+
+        if (isPlainObject(v)){
+          out.push(...flattenToLines(v, depth + 1, maxDepth, p));
+          continue;
+        }
+
+        const t = String(v).trim();
+        if (t && t !== '[object Object]') out.push(`${prettyKey(p)}: ${t}`);
+      }
+
+      return out;
+    }
+
+    function asText(v){
+      if (v == null) return '';
+      if (typeof v === 'string') return v;
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+
+      if (Array.isArray(v)){
+        return v.map(asText).filter(Boolean).join('\n');
+      }
+
+      if (isPlainObject(v)){
+        // common fast path
+        for (const k of ['text','value','name','title','desc','description','summary','note','notes','en','ms']){
+          if (typeof v[k] === 'string' && v[k].trim()) return v[k];
+        }
+        const lines = flattenToLines(v, 0, 2, '');
+        return lines.join('\n');
+      }
+
+      const s = String(v);
+      return (s === '[object Object]') ? '' : s;
+    }
+
+    const tidy = (v) => (asText(v) || '')
       .replace(/[\u200B-\u200D\uFEFF]/g, '')
       .replace(/\s*\n+\s*/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim();
 
     // Keep line breaks for description (no collapsing)
-    const tidyBlock = (v) => (v ?? '').toString()
+    const tidyBlock = (v) => (asText(v) || '')
       .replace(/[\u200B-\u200D\uFEFF]/g, '')
       .replace(/\r\n/g, '\n')
       .trim();
@@ -1499,14 +1650,29 @@
       }
       return '';
     }
+
+    // ✅ EN/MS description selector: description (EN), description_ms (MS)
+    function pickDescByLang(item){
+      if (!item) return '';
+      const en = item?.description;
+      const ms = item?.description_ms;
+      if (descLang === 'ms') return (ms ?? en);
+      return (en ?? ms);
+    }
+
     function getItemDesc(item, kind){
-      const d =
-        tidyBlock(item?.description) ||
-        tidyBlock(item?.desc) ||
-        tidyBlock(item?.details) ||
-        tidyBlock(item?.lore) ||
-        tidyBlock(item?.summary) ||
-        '';
+      // primary language fields first
+      let d = tidyBlock(pickDescByLang(item));
+
+      // fallback fields (still robust vs objects)
+      if (!d){
+        d =
+          tidyBlock(item?.desc) ||
+          tidyBlock(item?.details) ||
+          tidyBlock(item?.lore) ||
+          tidyBlock(item?.summary) ||
+          '';
+      }
       if (d) return d;
 
       const alt = tidyBlock(item?.info) || tidyBlock(item?.notes) || '';
@@ -1658,7 +1824,10 @@
           </div>
 
           <div class="desc-panel" aria-label="Description">
-            <div class="desc-head">Description</div>
+            <div class="desc-head">
+              <span>Description</span>
+              <span class="muted" style="font-weight:900;">${escapeHTMLInline(descLangLabel())}</span>
+            </div>
             <div class="desc-body">
               ${item ? '' : `<span class="muted">(${escapeHTMLInline(emptyHint)})</span><br/>`}
               ${escapeHTMLBlock(desc)}
@@ -1855,7 +2024,11 @@
         tidy(item?.role),
         tidy(item?.skill_type),
         tidy(item?.skill),
+
+        // ✅ include EN/MS descriptions
         tidyBlock(item?.description),
+        tidyBlock(item?.description_ms),
+
         tidyBlock(item?.desc),
         tidy(item?.category),
         tidy(item?.type),
@@ -2000,6 +2173,15 @@
       toast('Reset complete.');
     });
 
+    // ✅ Language selector (EN/MS) for description + persist
+    descLangSel?.addEventListener('change', () => {
+      const v = (descLangSel.value || 'en').toLowerCase();
+      descLang = (v === 'ms' ? 'ms' : 'en');
+      try{ sessionStorage.setItem(DESC_LANG_KEY, descLang); }catch(_){}
+      rerenderAll();
+      toast(`Descriptions: ${descLangLabel()}`);
+    });
+
     /***********************
      * Init
      ***********************/
@@ -2103,6 +2285,11 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       syncSidebarMode();
+
+      // ✅ init description language selector
+      if (descLangSel){
+        descLangSel.value = (descLang === 'ms' ? 'ms' : 'en');
+      }
 
       // ✅ row description toggles
       wireRowDescToggle('toggleActiveDesc','activeWrap');
