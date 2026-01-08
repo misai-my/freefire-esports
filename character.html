@@ -38,6 +38,13 @@
       --cat-survival:#8be27a;   /* Green */
       --cat-teamwork:#ff59c7;   /* Pink */
 
+      /* 👇 sizing knobs (pet-like compact cards) */
+      --char-min: 128px;
+      --char-gap: 10px;
+      --char-pad: 8px;
+      --char-radius: 14px;
+      --char-thumb-radius: 14px;
+
       color-scheme: dark;
     }
 
@@ -55,6 +62,8 @@
       overflow-x:hidden;
       overflow-y:auto;
     }
+    body.sb-lock{ overflow:hidden; }
+
     body::before, body::after{
       content:"";
       position:fixed;
@@ -221,6 +230,7 @@
       transition: .2s ease;
       cursor:pointer;
       min-width:0;
+      -webkit-tap-highlight-color: transparent;
     }
     .nav-item:hover{
       background: rgba(255,255,255,.05);
@@ -282,7 +292,7 @@
       gap:12px;
       position: sticky;
       top: 18px;
-      z-index: 20;
+      z-index: 60;
     }
     .search{
       flex:1;
@@ -302,6 +312,7 @@
       outline:none;
       color: var(--ink);
       font-size: .95rem;
+      min-width: 0;
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
 
@@ -310,6 +321,7 @@
       align-items:center;
       gap:10px;
       flex:0 0 auto;
+      min-width: 0;
     }
 
     .icon-btn{
@@ -322,6 +334,7 @@
       color: var(--ink);
       flex:0 0 auto;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
     .icon-btn svg{width:18px;height:18px;opacity:.92}
@@ -354,7 +367,7 @@
       text-overflow: ellipsis;
       max-width: 170px;
     }
-    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
+    .usertext span{display:block; font-size:.78rem; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
     .logout{
       color: rgba(255,255,255,.70);
@@ -368,6 +381,7 @@
       cursor:pointer;
       white-space:nowrap;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .logout:hover{
       border-color: rgba(255,77,77,.35);
@@ -455,7 +469,14 @@
       font-weight:800;
       font-size:.82rem;
       white-space:nowrap;
+      -webkit-tap-highlight-color: transparent;
     }
+    .pill.showing{
+      border-color: rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      margin-left: 2px;
+    }
+
     .dot{
       width:9px;height:9px;border-radius:50%;
       display:inline-block;
@@ -465,7 +486,7 @@
     .dot.passive{ background: var(--skill-passive); }
     .dot.meta{ background: var(--brand); }
 
-    /* ✅ legend dot colors (same size/style as other pills) */
+    /* legend dot colors */
     .dot.cat-attack{ background: var(--cat-attack); }
     .dot.cat-info{ background: var(--cat-info); }
     .dot.cat-survival{ background: var(--cat-survival); }
@@ -488,6 +509,7 @@
       justify-content:center;
       -webkit-tap-highlight-color: transparent;
       user-select:none;
+      touch-action: manipulation;
     }
     .btn:hover{
       background: rgba(0,0,0,.28);
@@ -502,6 +524,12 @@
       box-shadow: 0 0 0 3px rgba(255,189,89,.12);
       border-color: rgba(255,189,89,.28);
     }
+
+    .meta-mode-pill{
+      border-color: rgba(255,189,89,.18);
+      gap:8px;
+    }
+    .meta-label.short{display:none;}
 
     .section-title{
       margin: 16px 0 10px 0;
@@ -519,18 +547,18 @@
       letter-spacing: 0;
     }
 
-    /* Grids */
+    /* ✅ Pet-like compact grid */
     .grid{
       display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(var(--char-min), 1fr));
+      gap: var(--char-gap);
     }
 
-    /* Character card */
+    /* Character card (pet-like) */
     .char-card{
       position:relative;
-      padding: 10px;
-      border-radius: 16px;
+      padding: var(--char-pad);
+      border-radius: var(--char-radius);
       background: rgba(255,255,255,.05);
       border: 1px solid rgba(255,255,255,.09);
       cursor:pointer;
@@ -539,7 +567,9 @@
       flex-direction:column;
       gap:6px;
       min-width:0;
+      overflow:hidden;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .char-card:hover{
       background: rgba(255,255,255,.08);
@@ -550,7 +580,7 @@
     .char-thumb{
       width:100%;
       aspect-ratio: 3 / 4;
-      border-radius: 14px;
+      border-radius: var(--char-thumb-radius);
       background: rgba(0,0,0,.18);
       border: 2px solid rgba(255,255,255,.10);
       overflow:hidden;
@@ -570,10 +600,11 @@
     .char-card.active-skill .char-thumb{ border-color: rgba(77,211,255,.95); }
     .char-card.passive-skill .char-thumb{ border-color: rgba(255,89,199,.95); }
 
+    /* ✅ Pet-like dots */
     .meta-dot{
       position:absolute;
-      top:10px; right:10px;
-      width:10px; height:10px;
+      top:8px; left:8px;
+      width:9px; height:9px;
       border-radius:50%;
       background: var(--brand);
       box-shadow: 0 0 0 3px rgba(0,0,0,.35);
@@ -582,9 +613,23 @@
     }
     .char-card.is-meta .meta-dot{ display:block; }
 
+    .role-dot{
+      position:absolute;
+      top:8px; right:8px;
+      width:9px; height:9px;
+      border-radius:50%;
+      box-shadow: 0 0 0 3px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(170,177,197,.70);
+    }
+    .role-dot.cat-attack{ background: var(--cat-attack); }
+    .role-dot.cat-info{ background: var(--cat-info); }
+    .role-dot.cat-survival{ background: var(--cat-survival); }
+    .role-dot.cat-teamwork{ background: var(--cat-teamwork); }
+
     .char-name{
       font-size:.82rem;
-      font-weight:900;
+      font-weight:1000;
       color: rgba(244,246,255,.92);
       white-space:nowrap;
       overflow:hidden;
@@ -593,46 +638,32 @@
       padding: 0 2px;
     }
 
-    /* ✅ Skill line under name (wrap + colored per role) */
-    .char-skill{
+    /* ✅ Pet-like chips row under name */
+    .char-sub{
       display:flex;
-      align-items:flex-start;
       justify-content:center;
       gap:6px;
-      text-align:center;
-
-      font-size:.72rem;
-      font-weight:1000;
-      line-height: 1.05rem;
-
-      white-space: normal;
-      overflow: visible;
+      flex-wrap:wrap;
+      margin-top:-2px;
       padding: 0 2px;
-      min-height: 2.1rem;
     }
-    .char-skill .skill-text{
-      display:block;
-      overflow-wrap:anywhere;
-      word-break: break-word;
+    .chip{
+      font-size:.66rem;
+      font-weight:900;
+      color: rgba(244,246,255,.86);
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      border-radius: 999px;
+      padding: 5px 7px;
+      white-space:nowrap;
+      max-width: 100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-
-    .char-skill.cat-attack{ color: var(--cat-attack); }
-    .char-skill.cat-info{ color: var(--cat-info); }
-    .char-skill.cat-survival{ color: var(--cat-survival); }
-    .char-skill.cat-teamwork{ color: var(--cat-teamwork); }
-
-    .char-skill .cat-dot{
-      width:8px;height:8px;border-radius:50%;
-      flex:0 0 auto;
-      margin-top: .22rem;
-      box-shadow: 0 0 0 3px rgba(0,0,0,.20);
-      border:1px solid rgba(255,255,255,.20);
-      background: rgba(170,177,197,.70);
-    }
-    .char-skill .cat-dot.cat-attack{ background: var(--cat-attack); }
-    .char-skill .cat-dot.cat-info{ background: var(--cat-info); }
-    .char-skill .cat-dot.cat-survival{ background: var(--cat-survival); }
-    .char-skill .cat-dot.cat-teamwork{ background: var(--cat-teamwork); }
+    .chip.cat-attack{ border-color: rgba(255,90,90,.22); }
+    .chip.cat-info{ border-color: rgba(255,227,107,.22); }
+    .chip.cat-survival{ border-color: rgba(139,226,122,.22); }
+    .chip.cat-teamwork{ border-color: rgba(255,89,199,.22); }
 
     .empty-msg{
       grid-column: 1 / -1;
@@ -744,7 +775,7 @@
       .char-card:hover{transform:none}
     }
 
-    /* ✅ Mobile: sidebar becomes drawer */
+    /* ✅ MOBILE: match PET topbar + tighter controls */
     @media (max-width: 980px){
       body::before, body::after{display:none;}
 
@@ -757,60 +788,60 @@
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
 
+      /* drawer sidebar */
       .sidebar{
         position: fixed;
-        top: 0;
+        top: env(safe-area-inset-top);
         left: 0;
-        height: 100vh;
-        width: var(--sb-w);
-        border-radius: 0 22px 22px 0;
+        height: calc(100dvh - env(safe-area-inset-top));
+        width: min(88vw, 340px);
         transform: translateX(-110%);
         transition: transform .18s ease;
+        border-radius: 0 22px 22px 0;
+        box-shadow: 0 30px 90px rgba(0,0,0,.70);
         z-index: 1000;
       }
       .sidebar.open{ transform: translateX(0); }
-      .sidebar.collapsed{ width: var(--sb-w); }
+      .sidebar.collapsed{ width: min(88vw, 340px); }
+      .sidebar.collapsed .brand h1,
+      .sidebar.collapsed .brand small,
+      .sidebar.collapsed .nav-label{display:block;}
+      .sidebar.collapsed .brand{justify-content:flex-start;}
+      .sidebar.collapsed .brand-left{justify-content:flex-start;}
+      .sidebar.collapsed .nav-item{justify-content:flex-start; gap:10px; padding:10px 10px;}
 
+      /* ✅ Pet-like: burger + search + user all in ONE bar */
       .topbar{
         top: env(safe-area-inset-top);
         border-radius: 0;
         border-left: 0;
         border-right: 0;
-        margin: -10px -10px 0 -10px;
+        margin: -10px -10px 0 -10px; /* edge-to-edge */
         padding: 10px 10px;
-        flex-wrap: wrap;
         gap: 10px;
-        z-index: 50;
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        align-items: center;
+        z-index: 60;
       }
-
       .search{
-        width: 100%;
-        flex: 1 1 100%;
-        order: 1;
-        padding: 11px 12px;
+        padding: 10px 12px;
+        min-width: 0;
       }
-      .search input{font-size: 1rem;}
+      .search input{font-size: .95rem;}
 
       .top-actions{
-        width: 100%;
-        order: 2;
-        justify-content: space-between;
-        gap: 10px;
+        gap:8px;
+        min-width: 0;
       }
-
       .userchip{
-        flex: 1;
-        max-width: none;
+        max-width: 180px;
         padding: 7px 9px;
       }
       .usertext span{display:none;}
-      .usertext b{ max-width: 52vw; font-size: .88rem; }
-      .logout{ padding: 9px 10px; font-size: .85rem; }
+      .usertext b{max-width: 120px; font-size: .86rem;}
 
-      .hero{height: 120px;}
-      .hero-content{left:12px;right:12px;bottom:12px;}
-      .hero-title h2{font-size: 1.18rem;}
-
+      /* ✅ tighter controls row like PET */
       .controls{gap: 10px;}
       .controls-left{
         width: 100%;
@@ -820,37 +851,40 @@
         padding-bottom: 2px;
       }
       .controls-left::-webkit-scrollbar{display:none;}
+
       .controls-right{
         width: 100%;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: auto 1fr auto; /* Desc | Meta | Dashboard */
         gap: 8px;
-        align-items: stretch;
+        align-items: center;
       }
-      .controls-right .pill{
-        grid-column: 1 / -1;
+      .meta-mode-pill{
         width: 100%;
         justify-content: space-between;
+        padding: 6px 8px;
       }
-      .controls-right .btn{
+      .meta-label.full{display:none;}
+      .meta-label.short{display:inline;}
+      .meta-mode-pill .btn.brand{
         width: 100%;
-        padding: 11px 10px;
+        padding: 9px 10px;
+        border-radius: 14px;
+      }
+      .dash-btn{
+        padding: 9px 10px;
         border-radius: 14px;
       }
 
+      :root{ --char-min: 118px; }
+
+      .hero{height: 120px;}
+      .hero-content{left:12px;right:12px;bottom:12px;}
+      .hero-title h2{font-size: 1.18rem;}
+
       .card-inner{padding: 12px;}
-    }
 
-    @media (max-width: 560px){
-      .grid{
-        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-        gap: 10px;
-      }
-      .char-card{padding: 8px; border-radius: 14px;}
-      .char-thumb{border-radius: 12px;}
-      .char-name{font-size: .75rem;}
-      .char-skill{font-size:.68rem; min-height: 2.0rem;}
-
+      /* modal becomes bottom sheet (pet behavior) */
       .modal{
         align-items:flex-end;
         padding: 10px;
@@ -861,6 +895,42 @@
         max-height: 92vh;
         border-radius: 18px;
       }
+    }
+
+    @media (max-width: 560px){
+      :root{ --char-min: 102px; --char-gap: 10px; }
+
+      .userchip{ max-width: 140px; }
+      .usertext b{ max-width: 92px; }
+
+      /* keep topbar single row by icon-ifying logout */
+      .logout{
+        width:42px;
+        height:42px;
+        padding:0;
+        display:grid;
+        place-items:center;
+        overflow:hidden;
+        text-indent:-9999px;
+        position:relative;
+        border-radius:14px;
+      }
+      .logout::before{
+        content:"⎋";
+        position:absolute;
+        inset:0;
+        display:grid;
+        place-items:center;
+        text-indent:0;
+        font-size:16px;
+        color: rgba(244,246,255,.86);
+      }
+
+      .char-name{font-size: .76rem;}
+      .chip{font-size:.64rem;}
+      .char-thumb{border-radius: 12px;}
+      .char-card{border-radius: 14px;}
+
       .modal-top{padding: 12px;}
       .modal-top h3{font-size: 1.05rem;}
     }
@@ -915,7 +985,6 @@
           <span class="nav-label">Map</span>
         </a>
 
-        <!-- BR Data (analytics / chart) -->
         <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -929,8 +998,7 @@
           </span>
           <span class="nav-label">BR Data</span>
         </a>
-        
-        <!-- CS Draft (document + pencil) -->
+
         <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft.html" title="CS Draft">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -944,8 +1012,7 @@
           </span>
           <span class="nav-label">CS Draft</span>
         </a>
-        
-        <!-- Split View (two panes) -->
+
         <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -955,7 +1022,6 @@
           </span>
           <span class="nav-label">Split View</span>
         </a>
-
       </nav>
     </aside>
 
@@ -984,7 +1050,7 @@
             </div>
           </div>
 
-          <a class="logout" href="#" id="logoutBtn">Logout</a>
+          <a class="logout" href="#" id="logoutBtn" aria-label="Logout">Logout</a>
         </div>
       </header>
 
@@ -1004,27 +1070,25 @@
               <span class="pill"><span class="dot passive"></span>Passive Skill</span>
               <span class="pill"><span class="dot meta"></span>Meta</span>
 
-              <!-- ✅ Category legend (aligned with other pills) -->
               <span class="pill"><span class="dot cat-attack"></span>Attack</span>
               <span class="pill"><span class="dot cat-info"></span>Info</span>
               <span class="pill"><span class="dot cat-survival"></span>Survival</span>
               <span class="pill"><span class="dot cat-teamwork"></span>Teamwork</span>
 
-              <span class="pill" id="searchCountPill" style="display:none;" aria-live="polite"></span>
+              <!-- ✅ Pet-like showing pill -->
+              <span class="pill showing" id="searchCountPill" aria-live="polite">Showing: —</span>
             </div>
 
             <div class="controls-right">
-              <button class="btn" id="langToggleBtn" type="button" title="Toggle description language (auto-works once description_ms exists)">
-                Desc: EN
-              </button>
+              <button class="btn" id="langToggleBtn" type="button">Desc: EN</button>
 
-              <span class="pill" style="border-color: rgba(255,189,89,.18)">
-                Show Meta For:
+              <span class="pill meta-mode-pill">
+                <span class="meta-label full">Show Meta For:</span>
+                <span class="meta-label short">Meta:</span>
                 <button class="btn brand" id="toggleModeBtn" type="button">Battle Royale</button>
               </span>
 
-              <a class="btn" href="home.html">← Dashboard</a>
-        
+              <a class="btn dash-btn" href="home.html">← Dashboard</a>
             </div>
           </div>
 
@@ -1145,11 +1209,13 @@
       sidebar.classList.add('open');
       sbOverlay.classList.add('show');
       sbOverlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('sb-lock'); /* ✅ pet behavior */
     }
     function closeDrawer(){
       sidebar.classList.remove('open');
       sbOverlay.classList.remove('show');
       sbOverlay.setAttribute('aria-hidden','true');
+      document.body.classList.remove('sb-lock');
     }
     function toggleSidebar(){
       if (isMobile()){
@@ -1209,7 +1275,7 @@
     const metaTitleText = document.getElementById('metaTitleText');
     const metaHint = document.getElementById('metaHint');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
-    const searchCountPill = document.getElementById('searchCountPill');
+    const showingPill = document.getElementById('searchCountPill');
     const topSearch = document.getElementById('searchInput');
 
     let allCharacters = [];
@@ -1236,7 +1302,7 @@
     }
 
     /***********************
-     * Desc language toggle (auto-works if description_ms exists)
+     * Desc language toggle
      ***********************/
     const KEY_LANG = 'ff_char_desc_lang_v1';
     let useMS = (localStorage.getItem(KEY_LANG) === '1');
@@ -1284,6 +1350,13 @@
       if (r.includes('team')) return 'cat-teamwork';
       return '';
     }
+    function getCategoryLabelFromClass(cls){
+      if (cls === 'cat-attack') return 'ATTACK';
+      if (cls === 'cat-info') return 'INFO';
+      if (cls === 'cat-survival') return 'SURVIVAL';
+      if (cls === 'cat-teamwork') return 'TEAMWORK';
+      return '';
+    }
 
     function makeSearchBlob(c){
       return [
@@ -1318,6 +1391,8 @@
     function makeCard(c){
       const passive = isPassive(c);
       const meta = isMeta(c);
+      const catCls = getCategoryClass(c);
+      const catLabel = getCategoryLabelFromClass(catCls);
 
       const card = document.createElement('div');
       card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '');
@@ -1338,30 +1413,37 @@
       const metaDot = document.createElement('span');
       metaDot.className = 'meta-dot';
 
+      const roleDot = document.createElement('span');
+      roleDot.className = 'role-dot' + (catCls ? (' ' + catCls) : '');
+
       thumb.appendChild(img);
       thumb.appendChild(metaDot);
+      thumb.appendChild(roleDot);
 
       const name = document.createElement('div');
       name.className = 'char-name';
       name.textContent = tidy(c.name) || '—';
 
-      const skillLine = document.createElement('div');
-      const catCls = getCategoryClass(c);
-      skillLine.className = 'char-skill' + (catCls ? (' ' + catCls) : '');
+      // ✅ Pet-like chips row: ROLE + SKILL
+      const sub = document.createElement('div');
+      sub.className = 'char-sub';
 
-      const dot = document.createElement('span');
-      dot.className = 'cat-dot' + (catCls ? (' ' + catCls) : '');
+      if (catLabel){
+        const roleChip = document.createElement('span');
+        roleChip.className = 'chip ' + catCls;
+        roleChip.textContent = catLabel;
+        sub.appendChild(roleChip);
+      }
 
-      const skillText = document.createElement('span');
-      skillText.className = 'skill-text';
-      skillText.textContent = tidy(c?.skill) || '—';
-
-      skillLine.appendChild(dot);
-      skillLine.appendChild(skillText);
+      const skillChip = document.createElement('span');
+      skillChip.className = 'chip';
+      skillChip.title = tidy(c?.skill) || '';
+      skillChip.textContent = tidy(c?.skill) || '—';
+      sub.appendChild(skillChip);
 
       card.appendChild(thumb);
       card.appendChild(name);
-      card.appendChild(skillLine);
+      card.appendChild(sub);
 
       card.addEventListener('click', () => openInfo(c, meta));
       card.addEventListener('keydown', (e) => {
@@ -1417,12 +1499,14 @@
       ensureEmptyMsg(metaGrid).style.display = metaHasVisible ? 'none' : '';
       ensureEmptyMsg(nonMetaGrid).style.display = nonHasVisible ? 'none' : '';
 
-      if (q) {
-        searchCountPill.style.display = '';
-        searchCountPill.textContent = `Showing: ${visibleCards} match${visibleCards===1?'':'es'}`;
-      } else {
-        searchCountPill.style.display = 'none';
-        searchCountPill.textContent = '';
+      // ✅ Pet-like always-on showing pill
+      if (allCards.length){
+        showingPill.textContent = q
+          ? `Showing: ${visibleCards} match${visibleCards===1?'':'es'}`
+          : `Showing: ${visibleCards} character${visibleCards===1?'':'s'}`;
+        showingPill.style.display = '';
+      }else{
+        showingPill.style.display = 'none';
       }
     }
 
