@@ -898,15 +898,49 @@ async function fetchAllRows(){
   }
   return out.map(normalizeRow);
 }
+  
 async function fetchHelperTeams(){
-  const { data, error } = await client.from('team_database').select('*').order('TAG');
-  if(error){ console.warn('team_database error:', error.message||error); return []; }
-  const rows=data||[];
-  return rows.map(r=>{
-    const code = norm(r.TAG).toUpperCase();
-    return { name:code, fullname:norm(r.TEAM)||code, logo:norm(r.LOGO)||'', ew:norm(r['E/W'])||'', region:norm(r.REGION)||'', alt:norm(r['ALT NAME 1'])||'' };
-  });
+  // ✅ New schema (your mapping)
+  let res = await client
+    .from('team_database')
+    .select('team_name,team_tag,east_west,logo_url,region,alt_name_1')
+    .order('team_tag', { ascending: true });
+
+  // ♻️ Fallback (legacy schema) if you still have old columns
+  if (res.error) {
+    console.warn('team_database new-schema select failed, trying legacy columns:', res.error.message || res.error);
+    res = await client
+      .from('team_database')
+      .select('*')
+      .order('TAG', { ascending: true });
+  }
+
+  if (res.error) {
+    console.warn('team_database fetch error:', res.error.message || res.error);
+    return [];
+  }
+
+  const rows = res.data || [];
+
+  const teams = rows.map(r => {
+    const code = norm(r.team_tag ?? r.TAG ?? r.tag ?? r.code).toUpperCase();
+    if (!code) return null;
+
+    return {
+      name: code, // used as TEAM CODE everywhere else
+      fullname: norm(r.team_name ?? r.TEAM ?? r.team ?? code) || code,
+      logo: norm(r.logo_url ?? r.LOGO ?? r.logo_url ?? '') || '',
+      ew: norm(r.east_west ?? r['E/W'] ?? r.ew ?? '') || '',
+      region: norm(r.region ?? r.REGION ?? '') || '',
+      alt: norm(r.alt_name_1 ?? r['ALT NAME 1'] ?? r.alt ?? '') || ''
+    };
+  }).filter(Boolean);
+
+  // extra safety: sort client-side too
+  teams.sort((a,b) => a.name.localeCompare(b.name));
+  return teams;
 }
+
 
 /* Tournaments */
 function tournamentsWithMaxId(rows){
