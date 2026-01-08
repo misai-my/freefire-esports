@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Clash Squad — Skills Report & Summary</title>
+  <meta charset="UTF-8" />
+  <!-- ✅ mobile-safe area + notch support -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Loadout Builder — Skills / Pet / Weapon</title>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
     :root{
       --bg:#07090f;
       --bg2:#0b1020;
-
       --panel: rgba(20, 26, 38, .72);
       --panel2: rgba(14, 18, 28, .70);
-
       --line: rgba(255,255,255,.08);
-      --line2: rgba(255,255,255,.06);
-
       --ink:#f4f6ff;
       --muted:#aab1c5;
 
@@ -24,2695 +26,2287 @@
       --brand2:#ff7733;
       --accent:#4dd3ff;
 
-      --good:#71d083;
-      --bad:#ff6b6b;
-
       --radius:16px;
       --radius-lg:22px;
       --shadow: 0 22px 70px rgba(0,0,0,.55);
+
+      --sb-w: 260px;
+      --sb-w-collapsed: 82px;
+
+      --skill-active:#4dd3ff;
+      --skill-passive:#ff59c7;
+
+      --danger:#ff6b6b;
+      --ok:#71d083;
+
+      color-scheme: dark;
     }
 
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{min-height:100%}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
       color:var(--ink);
       background:
-        radial-gradient(1200px 800px at 18% 12%, rgba(77,211,255,.14), transparent 60%),
-        radial-gradient(900px 650px at 80% 28%, rgba(255,189,89,.12), transparent 55%),
-        radial-gradient(900px 700px at 70% 85%, rgba(255,119,51,.10), transparent 55%),
-        linear-gradient(180deg, var(--bg) 0%, #060815 60%, #050611 100%);
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
       overflow-x:hidden;
+      overflow-y:auto;
     }
 
-    .muted{color:var(--muted)}
-    .mono{font-variant-numeric:tabular-nums}
-
-    /* ===== Topbar ===== */
-    header.topbar{
-      position:sticky;
-      top:0;
-      z-index:30;
-      padding:10px 12px;
-      border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(5,7,12,.82), rgba(5,7,12,.55));
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-    }
-    .topbar-inner{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      max-width:1240px;
-      margin:0 auto;
-    }
-    .iconBtn{
-      width:42px;height:42px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.05);
-      color:var(--ink);
-      cursor:pointer;
-      display:grid;
-      place-items:center;
-      box-shadow:0 10px 30px rgba(0,0,0,.35);
-    }
-    .iconBtn:hover{border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.065)}
-    .burger-lines{width:18px;height:12px; position:relative;}
-    .burger-lines::before,.burger-lines::after,.burger-lines span{
+    body::before, body::after{
       content:"";
-      position:absolute; left:0; right:0;
-      height:2px; border-radius:2px;
-      background:rgba(244,246,255,.86);
+      position:fixed;
+      inset:auto auto 0 0;
+      width:520px; height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform: translate(-45%, -35%);
+      pointer-events:none;
     }
-    .burger-lines::before{top:0}
-    .burger-lines span{top:5px}
-    .burger-lines::after{bottom:0}
+    body::after{
+      inset: -120px 0 auto auto;
+      width:420px; height:420px;
+      border:10px solid rgba(77,211,255,.10);
+      transform: translate(38%, 0%);
+    }
 
-    .searchWrap{
-      flex:1;
+    a{color:inherit}
+    select{
+      color-scheme: dark;
+      background: rgba(0,0,0,.28);
+      color: var(--ink);
+    }
+    select option{ background:#0b1020; color:var(--ink); }
+
+    :focus-visible{
+      outline: 2px solid rgba(77,211,255,.65);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+
+    /* Layout */
+    .app{
+      min-height: 100vh;
       display:flex;
-      align-items:center;
-      gap:8px;
-      padding:0 12px;
-      height:42px;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
-      min-width:160px;
+      gap:18px;
+      padding:18px;
+      max-width: 1440px;
+      margin: 0 auto;
+      align-items:flex-start;
+      position:relative;
     }
-    .searchWrap svg{opacity:.75}
-    #globalSearch{
-      flex:1;
-      border:0;
-      outline:none;
-      background:transparent;
-      color:var(--ink);
-      font-size:.95rem;
-      min-width:0;
-    }
-    #globalSearch::placeholder{color:rgba(170,177,197,.75)}
 
-    .userArea{
+    /* ✅ Mobile drawer overlay */
+    .sb-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 999;
+    }
+    .sb-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width: var(--sb-w);
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      position: sticky;
+      top: 18px;
+      height: calc(100vh - 36px);
+      transition: width .18s ease;
+      flex:0 0 auto;
+      z-index: 1000;
+    }
+    .sidebar.collapsed{ width: var(--sb-w-collapsed); }
+
+    .brand{
       display:flex;
       align-items:center;
       gap:10px;
+      padding:16px 16px 10px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-left{display:flex;align-items:center;gap:10px;min-width:0;}
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.5px;
+      color:var(--brand);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
       flex:0 0 auto;
     }
-    .userPill{
+    .brand h1{
+      margin:0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.05rem;
+      letter-spacing:.6px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
+    }
+    .brand small{
+      display:block;
+      color: var(--muted);
+      font-size:.78rem;
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 150px;
+    }
+
+    .nav-search{
+      padding: 12px;
+      padding-top: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .nav-search input{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .9rem;
+    }
+    .nav-search input::placeholder{color: rgba(170,177,197,.75)}
+    .nav-search input:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+    }
+
+    .nav{
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow:auto;
+    }
+    .nav::-webkit-scrollbar{width:10px}
+    .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .nav::-webkit-scrollbar-track{background: transparent}
+
+    .nav-item{
       display:flex;
       align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      max-width:280px;
+      gap:10px;
+      padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid transparent;
+      color: var(--muted);
+      text-decoration:none;
+      transition: .2s ease;
+      cursor:pointer;
       min-width:0;
+      -webkit-tap-highlight-color: transparent;
     }
-    .userDot{
-      width:10px;height:10px;border-radius:99px;
-      background:linear-gradient(180deg, var(--accent), rgba(77,211,255,.4));
-      box-shadow:0 0 0 3px rgba(77,211,255,.12);
-      flex:0 0 auto;
+    .nav-item:hover{
+      background: rgba(255,255,255,.05);
+      border-color: rgba(255,255,255,.08);
+      color: var(--ink);
     }
-    #user-info{
-      font-size:.92rem;
-      color:var(--brand);
+    .nav-item.active{
+      background: linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
+      border-color: rgba(255,189,89,.22);
+      color: var(--ink);
+    }
+    .nav-ico{
+      width:26px;height:26px;border-radius:10px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      display:grid;place-items:center;
+      flex: 0 0 auto;
+    }
+    .nav-ico svg{width:14px;height:14px;opacity:.9}
+    .nav-label{
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
       min-width:0;
     }
 
-    .btn{
-      border:0;
+    .sidebar.collapsed .brand h1,
+    .sidebar.collapsed .brand small,
+    .sidebar.collapsed .nav-label{display:none;}
+    .sidebar.collapsed .brand{justify-content:center;}
+    .sidebar.collapsed .brand-left{justify-content:center;}
+    .sidebar.collapsed .nav-item{
+      justify-content:center;
+      gap:0;
+      padding:10px 8px;
+    }
+    .sidebar.collapsed .nav-search{display:none;}
+
+    .sidebar-note{
+      font-size:.75rem;
+      color: var(--muted);
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+
+    /* Main */
+    .main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    /* Topbar */
+    .topbar{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+    }
+
+    .icon-btn{
+      width:42px;height:42px;border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
       cursor:pointer;
-      font-weight:800;
-      border-radius:14px;
-      padding:10px 12px;
+      transition:.2s ease;
+      color: var(--ink);
+      flex:0 0 auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
+    .icon-btn svg{width:18px;height:18px;opacity:.92}
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+      min-width: 0;
+    }
+
+    .userchip{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      max-width: 280px;
+      min-width: 0;
+    }
+    .avatar{
+      width:28px;height:28px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .usertext{min-width:0}
+    .usertext b{
+      display:block;
+      font-size:.92rem;
+      font-family: Orbitron, sans-serif;
+      color:var(--brand);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .usertext span{
+      display:block;
+      font-size:.78rem;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .logout{
+      color: rgba(255,255,255,.70);
+      text-decoration:none;
+      font-size:.85rem;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      transition:.2s ease;
+      cursor:pointer;
+      white-space:nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .logout:hover{
+      border-color: rgba(255,77,77,.35);
+      color: #ff8d8d;
+      box-shadow: 0 0 0 3px rgba(255,77,77,.10);
+    }
+
+    /* Card shells */
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+    .card-inner{padding:14px}
+
+    .hero{
+      position:relative;
+      height: 150px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.10)),
+        url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
+    }
+    .hero::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(420px 220px at 55% 45%, rgba(255,189,89,.16), transparent 60%);
+      pointer-events:none;
+    }
+    .hero-content{
+      position:absolute;
+      left:16px; right:16px; bottom:14px;
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hero-title h2{
+      font-family: Orbitron, sans-serif;
+      font-size: 1.45rem;
+      color: var(--brand);
+      text-shadow: 0 0 18px rgba(255,189,89,.20);
+      margin:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Buttons */
+    .btn{
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: rgba(244,246,255,.88);
+      cursor:pointer;
+      font-weight:900;
+      font-size:.82rem;
+      transition:.2s ease;
+      white-space:nowrap;
       text-decoration:none;
       display:inline-flex;
       align-items:center;
       justify-content:center;
       gap:8px;
+      -webkit-tap-highlight-color: transparent;
       user-select:none;
-      white-space:nowrap;
     }
-    .btn-primary{
-      background:linear-gradient(180deg, rgba(255,189,89,1), rgba(255,119,51,.92));
-      color:#1a140a;
-      box-shadow:0 10px 30px rgba(255,189,89,.12);
+    .btn:hover{
+      background: rgba(0,0,0,.28);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
-    .btn-primary:hover{filter:saturate(1.05) brightness(1.02)}
-    .btn-ghost{
-      background:rgba(255,255,255,.05);
-      border:1px solid var(--line);
-      color:var(--ink);
+    .btn.brand{
+      background: linear-gradient(135deg, rgba(255,189,89,.18), rgba(255,119,51,.10));
+      border-color: rgba(255,189,89,.20);
     }
-    .btn-ghost:hover{border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.07)}
-    .btn:disabled{opacity:.55; cursor:not-allowed}
+    .btn.brand:hover{
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+      border-color: rgba(255,189,89,.28);
+    }
+    .btn.danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.22);
+      color: rgba(255,230,230,.95);
+    }
+    .btn.danger:hover{
+      box-shadow: 0 0 0 3px rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.32);
+    }
 
-    .topDrawer{
-      max-width:1240px;
-      margin:10px auto 0;
-      display:none;
-      padding:10px;
-      border-radius:18px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+    /* ✅ Row-level description toggle button (active state) */
+    .btn.toggle-desc[aria-pressed="true"]{
+      background: rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.08);
     }
-    .topDrawer.open{display:flex}
-    .topDrawer .drawerRow{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      width:100%;
-    }
-    .toggle{
+
+    /* ✅ Description language pill */
+    .lang-pill{
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      color:var(--muted);
-      font-weight:700;
-      cursor:pointer;
+      padding: 9px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight: 900;
+      font-size: .82rem;
+      white-space: nowrap;
       user-select:none;
     }
-    .toggle input{accent-color:var(--brand)}
-    .toggle:hover{border-color:rgba(255,255,255,.14)}
-
-    /* ===== Layout ===== */
-    .shell{max-width:1240px;margin:18px auto 60px;padding:0 12px}
-
-    .hero{
-      position:relative;
-      padding:18px 18px 16px;
-      border-radius:var(--radius-lg);
-      border:1px solid var(--line);
-      background:
-        radial-gradient(900px 380px at 14% 30%, rgba(77,211,255,.16), transparent 55%),
-        radial-gradient(700px 300px at 70% 25%, rgba(255,189,89,.12), transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow:var(--shadow);
-      overflow:hidden;
+    .lang-pill select{
+      background: transparent;
+      border: 0;
+      outline: none;
+      color: rgba(244,246,255,.92);
+      font-weight: 900;
+      font-size: .82rem;
+      padding: 0 4px;
+      cursor:pointer;
     }
-    .hero::after{
-      content:"";
-      position:absolute; inset:-2px;
-      background: linear-gradient(90deg, rgba(255,189,89,.0), rgba(255,189,89,.22), rgba(255,189,89,.0));
-      opacity:.16;
-      transform:skewY(-6deg) translateY(-60px);
-      pointer-events:none;
+    .lang-pill select:focus-visible{
+      outline: 2px solid rgba(77,211,255,.55);
+      outline-offset: 2px;
+      border-radius: 10px;
     }
-    .hero h1{margin:0;font-size:1rem;letter-spacing:.2px;color:var(--brand);position:relative;z-index:1}
-    .hero .sub{margin-top:6px;position:relative;z-index:1;line-height:1.35}
 
-    .block{
-      margin-top:14px;
-      padding:14px;
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      background:rgba(20,26,38,.60);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow:0 18px 55px rgba(0,0,0,.45);
-    }
-    .block h2{margin:0 0 10px 0;color:var(--brand);font-size:1rem;letter-spacing:.2px}
-
-    .controls{
+    .section-title{
+      margin: 16px 0 10px 0;
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      font-size: 1.02rem;
+      color: rgba(244,246,255,.92);
       display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
       flex-wrap:wrap;
+    }
+    .section-actions{
+      display:flex;
       gap:10px;
       align-items:center;
-      margin:6px 0 10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
     }
-    .controls label{
+    .muted{color: var(--muted);}
+
+    /* Top controls inside page */
+    .controls{
       display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 10px;
+    }
+    .controls-left{
+      color: var(--muted);
+      font-weight:800;
+      font-size:.9rem;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:9px 10px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      color:var(--muted);
-      font-weight:700;
-    }
-    .controls select, .controls input[type="text"], .controls input[type="number"]{
-      background:rgba(10,12,20,.55);
-      border:1px solid rgba(255,255,255,.10);
-      color:var(--brand);
-      border-radius:12px;
-      padding:8px 10px;
-      outline:none;
-      font-weight:800;
-    }
-    .controls select:focus, .controls input:focus{
-      border-color:rgba(77,211,255,.35);
-      box-shadow:0 0 0 3px rgba(77,211,255,.12);
-    }
-
-    /* ===== Tabs ===== */
-    .tabs{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-    .tab{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 12px;border-radius:999px;border:1px solid var(--line);
-      background:rgba(255,255,255,.03);color:rgba(244,246,255,.86);
-      font-weight:900;cursor:pointer;user-select:none;
-    }
-    .tab .dot{width:10px;height:10px;border-radius:99px;background:rgba(77,211,255,.65);box-shadow:0 0 0 3px rgba(77,211,255,.10)}
-    .tab.active{background:rgba(255,189,89,.12);border-color:rgba(255,189,89,.40);color:var(--brand)}
-    .tab.active .dot{background:rgba(255,189,89,.9);box-shadow:0 0 0 3px rgba(255,189,89,.18)}
-
-    .js-section{display:none}
-    .js-section.active{display:block}
-
-    /* ===== Tables (contained) ===== */
-    .tableWrap{
-      width:100%;
-      overflow:auto;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.12);
-    }
-    table{width:100%;border-collapse:collapse;min-width:900px}
-    thead th{
-      position:sticky;top:0;z-index:2;
-      text-align:left;padding:10px 10px;
-      background:linear-gradient(180deg, rgba(8,10,16,.78), rgba(8,10,16,.60));
-      border-bottom:1px solid var(--line);
-      color:rgba(244,246,255,.90);
-      font-weight:900;letter-spacing:.2px;white-space:nowrap;
-    }
-    td{
-      padding:10px 10px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      vertical-align:top;
-      color:rgba(244,246,255,.92);
-    }
-    tbody tr:hover{background:rgba(255,255,255,.03)}
-    .right{text-align:right}
-    .tight{line-height:1.25}
-
-    .wl{
-      font-weight:1000;padding:4px 10px;border-radius:999px;display:inline-block;
-      border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);
-    }
-    .wl.W{color:var(--good); border-color:rgba(113,208,131,.25); background:rgba(113,208,131,.08)}
-    .wl.L{color:var(--bad);  border-color:rgba(255,107,107,.25); background:rgba(255,107,107,.08)}
-
-    /* ===== Matches table tighter spacing (so Players column stays visible) ===== */
-    .match-table thead th,
-    .match-table td{
-      padding:8px 8px;
-    }
-    .match-table thead th:nth-child(8),
-    .match-table td:nth-child(8){
-      padding-right:6px;
-    }
-    .match-table thead th:nth-child(9),
-    .match-table td:nth-child(9){
-      padding-left:6px;
-    }
-
-    /* ===== Players grid (table view) ===== */
-    .playersWrap{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(210px, 1fr)); /* tighter */
-      gap:8px; /* tighter */
-      overflow:visible;
-    }
-    .pCard{
-      display:flex;align-items:center;gap:8px; /* tighter */
-      border-radius:14px;border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.03);
-      padding:7px 9px; /* tighter */
-      min-width:0;
-    }
-    .pAct{
-      width:42px;height:42px;object-fit:cover;border-radius:12px;
-      border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18);
-      flex:0 0 42px;
-    }
-    .pPassCol{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
-    .pPassRow{display:flex;align-items:center;gap:6px}
-    .pPassRow img{
-      width:14px;height:14px;object-fit:cover;border-radius:4px;
-      border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18);
-    }
-    .pPassRow span{
-      font-size:.78rem;color:rgba(170,177,197,.92);
-      max-width:110px; /* tighter */
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
-    .pInfo{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.18}
-    .pName{font-weight:1000;font-size:.90rem}
-    .pHero{font-size:.86rem;color:rgba(244,246,255,.86);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-    /* ===== Summary cards ===== */
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-    .card{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      border-radius:16px;
-      padding:12px;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      overflow:hidden; /* IMPORTANT: prevent spill outside card */
-    }
-    .card h3{margin:0 0 6px 0;color:var(--brand2);font-size:1.05rem}
-    .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-    .kpi{
-      background:rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      padding:7px 9px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: rgba(244,246,255,.86);
+      font-weight:900;
       font-size:.8rem;
-      color:rgba(244,246,255,.90);
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      display:inline-block;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.06);
+    }
+    .dot.active{ background: var(--skill-active); }
+    .dot.passive{ background: var(--skill-passive); }
+    .dot.pet{ background: var(--brand); }
+    .dot.weapon{ background: var(--accent); }
+    .dot.loadout{ background: var(--brand2); }
+
+    .controls-right{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
     }
 
-    /* ===== FIX: Summary / Skills-by-map tables overflow ===== */
-    .sum-table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:.80rem;
-      min-width:0;
-      table-layout:fixed; /* forces cells to stay within card */
+    /* Rows */
+    .row-wrap{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 18px;
+      padding: 12px;
+      overflow:hidden;
     }
-    .sum-table th,.sum-table td{
-      border-bottom:1px solid rgba(255,255,255,.08);
-      padding:6px 6px;
-      max-width:0; /* lets wrapping/ellipsis work in fixed layout */
+
+    .slot-row{
+      display:flex;
+      gap: 12px;
+      overflow-x:auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+    }
+    .slot-row::-webkit-scrollbar{height:10px}
+    .slot-row::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .slot-row::-webkit-scrollbar-track{background: transparent}
+
+    /* Slot cards */
+    .slot-card{
+      scroll-snap-align: start;
+      width: 210px;
+      flex: 0 0 auto;
+      border-radius: 18px;
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      min-height: 250px;
+    }
+    .slot-card.clickable{ cursor:pointer; transition: .15s ease; }
+    .slot-card.clickable:hover{
+      border-color: rgba(255,189,89,.22);
+      background: rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+
+    .slot-top{
+      padding: 10px 10px 8px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    .slot-top b{
+      font-family: Orbitron, sans-serif;
+      color: rgba(244,246,255,.92);
+      font-size: .92rem;
+      letter-spacing:.3px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 140px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.14);
+      font-size:.7rem;
+      font-weight:900;
+      color: rgba(244,246,255,.86);
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+
+    .slot-body{
+      padding: 10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      min-height: 98px;
+    }
+    .thumb{
+      width:56px; height:74px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      background: rgba(255,255,255,.05);
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+    }
+    .thumb img{
+      width:100%; height:100%;
+      object-fit:cover;
+      object-position: top center;
+      display:block;
+      background: rgba(0,0,0,.14);
+    }
+    .meta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      flex:1;
+    }
+    .meta .name{
+      font-weight:900;
+      color: rgba(244,246,255,.92);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size: .92rem;
+    }
+    .meta .sub{
+      color: var(--muted);
+      font-weight:800;
+      font-size: .78rem;
+      white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
-    .sum-table th:not(:first-child),
-    .sum-table td:not(:first-child){
-      white-space:nowrap; /* keep numeric columns tight */
-    }
-    .sum-table th:first-child,
-    .sum-table td:first-child{
-      white-space:normal;          /* allow wrapping for long skill names */
+    .meta .skill{
+      color: var(--brand);
+      font-weight:900;
+      font-size: .78rem;
+      line-height: 1.05rem;
+      white-space: normal;
       overflow-wrap:anywhere;
-      word-break:break-word;
-    }
-    /* Smaller headers for Summary + Skills-by-map mini tables */
-    .sum-table thead th{
-      font-size: .70rem;
-      letter-spacing: .1px;
-      padding: 6px 6px; /* optional: slightly tighter */
-    }
-    .sum-table td{
-      font-size: .80rem; /* keeps body readable */
+      word-break: break-word;
+      max-height: 2.1rem;
+      overflow:hidden;
     }
 
-    /* Smaller headers for Per-Skill main table */
-    .skill-table thead th{
-      font-size: .80rem;
+    /* ✅ Row-level description panel (shown/hidden by row toggle) */
+    .desc-panel{
+      margin: 0 10px 10px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      overflow:hidden;
+      display:none;
+    }
+    .row-wrap.show-desc .desc-panel{ display:block; }
+
+    .desc-head{
+      padding: 10px 10px 8px 10px;
+      font-weight: 900;
+      color: rgba(244,246,255,.88);
+      font-size: .8rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      user-select:none;
+    }
+    .desc-body{
+      padding: 8px 10px 10px 10px;
+      color: rgba(244,246,255,.82);
+      font-size: .82rem;
+      line-height: 1.25rem;
+      white-space: normal;
+      overflow-wrap:anywhere;
+      word-break: break-word;
+    }
+    .desc-body .muted{font-weight:800}
+
+    /* Remove button for extra slots */
+    .mini-x{
+      position:absolute;
+      top: 8px;
+      right: 8px;
+      width:28px;height:28px;
+      border-radius: 10px;
+      display:grid; place-items:center;
+      background: rgba(255,107,107,.10);
+      border: 1px solid rgba(255,107,107,.20);
+      color: rgba(255,230,230,.95);
+      cursor:pointer;
+      transition:.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 3;
+    }
+    .mini-x:hover{
+      background: rgba(255,107,107,.16);
+      border-color: rgba(255,107,107,.32);
+      box-shadow: 0 0 0 3px rgba(255,107,107,.12);
+    }
+    .mini-x svg{width:14px;height:14px}
+
+    /* Modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.70);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display:none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1400;
+      padding: 18px;
+    }
+    .modal.show{display:flex;}
+
+    .modal-card{
+      width: min(980px, 100%);
+      max-height: min(720px, calc(100vh - 36px));
+      overflow:hidden;
+      border-radius: 22px;
+      background: rgba(14,18,28,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 26px 80px rgba(0,0,0,.65);
+      display:flex;
+      flex-direction:column;
+    }
+    .modal-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .modal-top b{
+      font-family: Orbitron, sans-serif;
+      letter-spacing:.4px;
+      color: var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 80%;
+    }
+    .modal-body{
+      padding: 12px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-body::-webkit-scrollbar{width:10px}
+    .modal-body::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
+    .modal-body::-webkit-scrollbar-track{background: transparent}
+
+    #searchInput{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--ink);
+      outline:none;
+      font-size: .92rem;
+      margin-bottom: 12px;
+    }
+    #searchInput::placeholder{color: rgba(170,177,197,.75)}
+    #searchInput:focus{
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
     }
 
-    .caption{margin:4px 0 10px 0}
-
-    /* ===== Combos / Pairs pills ===== */
-    .comboIcons{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
-    .comboIcons img{width:28px; height:28px; border-radius:10px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18)}
-    .pill{display:inline-block; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); margin:2px; font-size:.85rem; color:rgba(244,246,255,.86)}
-    .pill small{opacity:.8; font-size:.8em; margin-left:4px}
-
-    /* ===== Per-skill table ===== */
-    .skill-controls{display:flex; gap:10px; justify-content:flex-start; align-items:center;flex-wrap:wrap; margin-bottom:10px;}
-    .skill-controls select, .skill-controls button{border-radius:14px;padding:9px 10px;font-weight:900; cursor:pointer;}
-    .skill-controls select{background:rgba(10,12,20,.55);color:var(--brand);border:1px solid rgba(255,255,255,.10);}
-    .skill-controls button{
-      border:0;background:linear-gradient(180deg, rgba(255,119,51,1), rgba(255,189,89,.95));
-      color:#1a140a;box-shadow:0 10px 30px rgba(255,119,51,.10);
+    .pick-grid{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
+      align-items: stretch;
     }
-    .skill-controls button:hover{filter:saturate(1.05) brightness(1.02)}
-    .skill-cell{ display:flex; align-items:center; gap:10px; }
-    .skill-cell img{width:28px; height:28px; object-fit:cover; border-radius:10px; background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.10);}
-    .skill-name{ color:rgba(244,246,255,.92); font-weight:900; }
-
-    /* ===== Compact / passive-name-hide modes ===== */
-    body.compact .block{padding:12px}
-    body.compact .card{padding:10px}
-    body.compact td, body.compact thead th{padding:8px}
-    body.compact .pAct{width:34px;height:34px; border-radius:10px}
-    body.compact .pPassRow span{max-width:96px;font-size:.72rem}
-    body.compact .pName{font-size:.86rem}
-    body.compact .pHero{font-size:.78rem}
-    body.passive-hidden .pPassRow span{visibility:hidden}
-    body.passive-hidden .pCard:hover .pPassRow span{visibility:visible}
-
-    /* ===== Click drilldowns ===== */
-    .combo-row{ cursor:pointer; }
-    .combo-detail td{ background:rgba(255,255,255,.02); }
-    .pair-row{ cursor:pointer; }
-    .pair-detail td{ background:rgba(255,255,255,.02); }
-    .row-click{cursor:pointer}
-    .tri-detail td{ background:rgba(255,255,255,.02); }
-
-    /* ===== Mobile matches behavior (no overflow) ===== */
-    #rowsCards{display:none}
-    .mCard{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      border-radius:18px;
-      padding:12px;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow:0 16px 45px rgba(0,0,0,.45);
+    .pick{
+      width: 108px;
+      text-align:center;
+      border-radius: 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 10px 8px;
+      cursor:pointer;
+      transition:.15s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .mTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-    .mTitle{font-weight:1000;color:rgba(244,246,255,.96);line-height:1.2}
-    .mMeta{margin-top:4px;color:rgba(170,177,197,.92);font-size:.9rem;line-height:1.25}
-    .mRight{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
-    .mScore{
-      font-weight:1000;color:var(--brand);
-      background:rgba(255,189,89,.10);border:1px solid rgba(255,189,89,.25);
-      padding:6px 10px;border-radius:999px;white-space:nowrap;
+    .pick:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,189,89,.20);
+      background: rgba(255,255,255,.06);
     }
-    .mBan{display:flex;align-items:center;gap:8px;max-width:100%;color:rgba(244,246,255,.88);font-weight:800}
-    .mBan img{width:26px;height:26px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18);flex:0 0 auto}
-    .mBan span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
-    .mPlayers details{margin-top:10px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px}
-    .mPlayers summary{cursor:pointer;font-weight:1000;color:rgba(244,246,255,.92);list-style:none}
-    .mPlayers summary::-webkit-details-marker{display:none}
-    .mPlayersGrid{margin-top:10px;display:grid;grid-template-columns: 1fr;gap:10px}
-    .mPRow{display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:16px;padding:10px;min-width:0}
-    .mPRow .pAct{width:44px;height:44px}
-    .mPRow .pPassCol{gap:2px}
-    .mPRow .pPassRow span{max-width:170px}
-    .mPRow .pHero{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pick img{
+      width: 76px;
+      height: 102px;
+      object-fit: cover;
+      object-position: top center;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      display:block;
+      margin: 0 auto 6px auto;
+    }
+    .pick .nm{
+      font-size:.74rem;
+      font-weight:900;
+      color: rgba(244,246,255,.88);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .pick .rl{
+      margin-top: 4px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      font-size:.68rem;
+      color: rgba(244,246,255,.80);
+      font-weight:900;
+      white-space:nowrap;
+      max-width: 100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
-    /* ===== Responsiveness ===== */
+    .empty{
+      width:100%;
+      padding: 14px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.14);
+      background: rgba(0,0,0,.16);
+      color: var(--muted);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      left: 50%;
+      top: calc(env(safe-area-inset-top) + 14px);
+      transform: translateX(-50%);
+      background: rgba(14,18,28,.92);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      border-radius: 999px;
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      z-index: 2000;
+      max-width: min(640px, calc(100vw - 24px));
+      color: rgba(244,246,255,.92);
+      font-weight: 900;
+      font-size: .85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast .t-dot{width:10px;height:10px;border-radius:50%; background: var(--danger); box-shadow: 0 0 0 3px rgba(255,255,255,.06);}
+
+    /* ============================================================
+       ✅ MOBILE OPTIMIZATION (drawer sidebar + edge-to-edge)
+       ============================================================ */
     @media (max-width: 980px){
-      .playersWrap{ grid-template-columns: 1fr; }
-      table{min-width:860px}
-    }
+      body::before, body::after{display:none;}
 
-    @media (max-width: 860px){
-      #rowsTableWrap{display:none}
-      #rowsCards{display:grid; gap:12px}
-
-      .tabs{
-        flex-wrap:nowrap;
-        overflow:auto;
-        padding-bottom:6px;
-        -webkit-overflow-scrolling: touch;
+      .app{
+        padding: 10px;
+        gap: 12px;
+        flex-direction: column;
+        max-width: 100%;
+        margin: 0;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
-      .tabs::-webkit-scrollbar{height:0}
 
-      .block{padding:12px}
-      .controls{gap:8px}
-      .controls label{padding:8px 10px; border-radius:14px}
-      .controls select{padding:8px 10px; border-radius:12px}
+      .sidebar{
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sb-w);
+        border-radius: 0 22px 22px 0;
+        transform: translateX(-110%);
+        transition: transform .18s ease;
+        z-index: 1000;
+      }
+      .sidebar.open{ transform: translateX(0); }
+      .sidebar.collapsed{ width: var(--sb-w); }
+
+      .topbar{
+        top: env(safe-area-inset-top);
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        margin: -10px -10px 0 -10px;
+        padding: 10px 10px;
+        gap: 10px;
+        z-index: 50;
+      }
+
+      .usertext span{display:none;}
+      .usertext b{max-width: 52vw; font-size: .88rem;}
+
+      .hero{height: 120px;}
+      .hero-content{left:12px;right:12px;bottom:12px;}
+      .hero-title h2{font-size: 1.18rem;}
+
+      .controls-right{
+        width:100%;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        justify-content: stretch;
+      }
+      .controls-right .btn{width:100%; padding: 11px 10px; border-radius: 14px;}
+      .controls-right .lang-pill{width:100%; justify-content:space-between; grid-column: 1 / -1;}
+      .controls-right .btn.danger{grid-column: 1 / -1;}
+
+      .slot-card{ width: 200px; }
     }
 
-    @media (max-width: 640px){
-      .shell{padding:0 10px; margin-top:12px}
-      header.topbar{padding:10px 10px}
-      .topbar-inner{gap:8px}
-
-      .userPill{padding:8px 10px; max-width:180px}
-      #user-info{font-size:.88rem}
-
-      .btn{padding:10px 10px; border-radius:14px}
-      .iconBtn{width:40px;height:40px;border-radius:14px}
-      .searchWrap{height:40px; border-radius:16px; padding:0 10px}
-
-      .hero{padding:16px}
-      .hero h1{font-size:1.18rem}
-
-      .mBan span{max-width:160px}
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important; transition:none !important; animation:none !important}
+      .icon-btn:hover{transform:none}
+      .slot-card.clickable:hover{transform:none}
+      .pick:hover{transform:none}
     }
   </style>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <button class="iconBtn" id="burgerBtn" aria-label="Menu">
-        <div class="burger-lines"><span></span></div>
-      </button>
+  <!-- overlay for mobile drawer -->
+  <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 
-      <div class="searchWrap" title="Search within loaded data">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
-          <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".9"/>
-        </svg>
-        <input id="globalSearch" type="text" placeholder="Search matches / teams / players / skills…" />
-      </div>
-
-      <div class="userArea">
-        <div class="userPill" title="Account">
-          <span class="userDot"></span>
-          <span id="user-info">Checking login…</span>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+      <div class="brand">
+        <div class="brand-left">
+          <div class="logo">FF</div>
+          <div class="brand-text">
+            <h1>Free Fire</h1>
+            <small class="muted">Caster Dashboard</small>
+          </div>
         </div>
-        <button class="btn btn-ghost" id="logoutBtn">Logout</button>
-      </div>
-    </div>
-
-    <div class="topDrawer" id="topDrawer">
-      <div class="drawerRow">
-        <a class="btn btn-ghost" href="dashboard.html">← Back to Dashboard</a>
-        <label class="toggle">
-          <input type="checkbox" id="compactToggle"> Compact mode
-        </label>
-        <label class="toggle">
-          <input type="checkbox" id="hidePassiveToggle"> Hide passive names until hover
-        </label>
-      </div>
-    </div>
-  </header>
-
-  <div class="shell">
-    <section class="hero">
-      <h1>Clash Squad — Skills Report & Summary</h1>
-      <div class="sub muted" id="filterMeta">—</div>
-    </section>
-
-    <!-- FILTERS (NO DATE FILTERS) -->
-    <div class="block">
-      <h2>Filters</h2>
-
-      <div class="controls">
-        <label>Map
-          <select id="fMap">
-            <option value="__ALL__">All maps</option>
-            <option value="Bermuda">Bermuda</option>
-            <option value="Kalahari">Kalahari</option>
-            <option value="Purgatory">Purgatory</option>
-            <option value="Alpine">Alpine</option>
-            <option value="Nexterra">Nexterra</option>
-            <option value="Solara">Solara</option>
-          </select>
-        </label>
-
-        <label>Team
-          <select id="fTeam"></select>
-        </label>
-
-        <label>Tournament
-          <select id="fTourn"></select>
-        </label>
-
-        <label>Outcome
-          <select id="fWL">
-            <option value="__ALL__">All</option>
-            <option value="W">Wins only</option>
-            <option value="L">Losses only</option>
-          </select>
-        </label>
       </div>
 
-      <div class="tabs">
-        <button data-tab="match" class="tab active"><span class="dot"></span>Matches</button>
-        <button data-tab="summary" class="tab"><span class="dot"></span>Summary</button>
-        <button data-tab="teammap" class="tab"><span class="dot"></span>Team × Map</button>
-        <button data-tab="skillsbymap" class="tab"><span class="dot"></span>Skills by Map</button>
-        <button data-tab="combos" class="tab"><span class="dot"></span>Active Combos</button>
-        <button data-tab="pairs" class="tab"><span class="dot"></span>Active Pairs</button>
-        <button data-tab="passivebuilder" class="tab"><span class="dot"></span>Passive Trios</button>
-        <button data-tab="banimpact" class="tab"><span class="dot"></span>Ban Impact</button>
-        <button data-tab="perskill" class="tab"><span class="dot"></span>Per-Skill</button>
-      </div>
-    </div>
-
-    <!-- MATCH LIST -->
-    <div id="sec-match" class="block js-section active">
-      <h2>Per-Match Team Rows</h2>
-
-      <div class="tableWrap" id="rowsTableWrap">
-        <table class="match-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Game</th>
-              <th>Map</th>
-              <th>Team</th>
-              <th>Opponent</th>
-              <th>Score</th>
-              <th>Result</th>
-              <th>Ban</th>
-              <th>Players (Active + 3×Passive)</th>
-            </tr>
-          </thead>
-          <tbody id="rowsBody"></tbody>
-        </table>
+      <div class="nav-search">
+        <input id="navSearch" type="text" placeholder="Search menu..." autocomplete="off" />
       </div>
 
-      <div id="rowsCards"></div>
-      <div id="rowsPager" class="controls" style="justify-content:space-between;margin-top:10px"></div>
-    </div>
+      <nav class="nav" id="nav">
+        <a class="nav-item active" href="home.html" data-page="home.html" title="Dashboard">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
 
-    <!-- SUMMARY -->
-    <div id="sec-summary" class="block js-section">
-      <h2>Summary: Picks/Bans</h2>
-      <div class="controls sum-controls">
-        <label>Group by
-          <select id="sumGroupBy">
-            <option value="team">Team</option>
-            <option value="player" selected>Player</option>
-          </select>
-        </label>
-        <label>Subject
-          <select id="sumKind">
-            <option value="active">Active skills</option>
-            <option value="passive">Passive skills</option>
-            <option value="ban">Bans</option>
-          </select>
-        </label>
-        <label>Card order
-          <select id="sumCardSort">
-            <option value="subjectAppear" selected>Appearances</option>
-            <option value="subjectRate">Appear Rate</option>
-            <option value="subjectWinrate">Win %</option>
-            <option value="matches">Matches</option>
-            <option value="wins">Wins</option>
-            <option value="winpct">Overall Win %</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Card dir
-          <select id="sumCardDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-        <label>Skills order
-          <select id="sumSkillSort">
-            <option value="appearRate" selected>Rate</option>
-            <option value="count">Count</option>
-            <option value="winrate">Win %</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Skills dir
-          <select id="sumSkillDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-      </div>
-      <div class="caption muted" id="sumMeta">—</div>
-      <div class="grid" id="sumGrid"></div>
-    </div>
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Character Skills</span>
+        </a>
 
-    <!-- TEAM × MAP -->
-    <div id="sec-teammap" class="block js-section">
-      <h2>Per Team × Map Win Rate</h2>
-      <div class="controls">
-        <label>Sort
-          <select id="tmSort">
-            <option value="matches" selected>Matches</option>
-            <option value="winpct">Win %</option>
-            <option value="wins">Wins</option>
-            <option value="team">Team</option>
-            <option value="map">Map</option>
-          </select>
-        </label>
-        <label>Dir
-          <select id="tmDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-      </div>
-      <div class="muted" id="tmMeta">—</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Team</th><th>Map</th><th>Matches</th><th>Wins</th><th>Win %</th>
-            </tr>
-          </thead>
-          <tbody id="tmBody"></tbody>
-        </table>
-      </div>
-    </div>
+        <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Pets</span>
+        </a>
 
-    <!-- SKILLS BY MAP -->
-    <div id="sec-skillsbymap" class="block js-section">
-      <h2>Skills Summary by Map</h2>
-      <div class="controls">
-        <label>Group by
-          <select id="ssGroupBy">
-            <option value="team" selected>Team</option>
-            <option value="player">Player</option>
-          </select>
-        </label>
-        <label>Subject
-          <select id="ssKind">
-            <option value="active" selected>Active</option>
-            <option value="passive">Passive</option>
-            <option value="ban">Ban</option>
-          </select>
-        </label>
-        <label>Card order
-          <select id="ssCardSort">
-            <option value="subjectAppear" selected>Appearances</option>
-            <option value="subjectRate">Appear Rate</option>
-            <option value="subjectWinrate">Win %</option>
-            <option value="matches">Matches</option>
-            <option value="wins">Wins</option>
-            <option value="winpct">Overall Win %</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Card dir
-          <select id="ssCardDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-        <label>Skills order
-          <select id="ssSkillSort">
-            <option value="appearRate" selected>Rate</option>
-            <option value="count">Count</option>
-            <option value="winrate">Win %</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Skills dir
-          <select id="ssSkillDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-      </div>
-      <div class="caption muted" id="ssMeta">—</div>
-      <div id="ssWrap"></div>
-    </div>
+        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Weapons</span>
+        </a>
 
-    <!-- ACTIVE COMBOS -->
-    <div id="sec-combos" class="block js-section">
-      <h2>Active Skill Combos</h2>
-      <div class="controls">
-        <label>Min picks
-          <input type="number" id="comboMin" value="1" min="1" step="1" />
-        </label>
-        <label>Sort by
-          <select id="comboSort">
-            <option value="picks" selected>Picks</option>
-            <option value="wins">Wins</option>
-            <option value="winpct">Win %</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Dir
-          <select id="comboDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-      </div>
-      <div class="caption muted" id="comboMeta">—</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Combo (4× Active)</th>
-              <th>Picks</th>
-              <th>Wins</th>
-              <th>Win %</th>
-              <th>Teams Used</th>
-              <th>Maps Used</th>
-            </tr>
-          </thead>
-          <tbody id="comboBody"></tbody>
-        </table>
-      </div>
-    </div>
+        <a class="nav-item" href="preset.html" data-page="preset.html" title="Preset Builder">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M14.5 4.5a5 5 0 0 0-6.7 6.7l-4.3 4.3a2 2 0 0 0 2.8 2.8l4.3-4.3A5 5 0 0 0 19.5 9.5l-3 3-2-2 3-3Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 4l1-1M20 6h1M18 5V4"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Preset Builder</span>
+        </a>
 
-    <!-- ACTIVE PAIRS -->
-    <div id="sec-pairs" class="block js-section">
-      <h2>Active Pair Synergy</h2>
-      <div class="controls">
-        <label>Min picks
-          <input type="number" id="pairMin" value="3" min="1" step="1"/>
-        </label>
-        <label>Sort by
-          <select id="pairSort">
-            <option value="picks" selected>Picks</option>
-            <option value="wins">Wins</option>
-            <option value="winpct">Win %</option>
-            <option value="teams">#Teams</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Dir
-          <select id="pairDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-      </div>
-      <div class="caption muted" id="pairMeta">—</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Pair (2× Active)</th>
-              <th>Picks</th>
-              <th>Wins</th>
-              <th>Win %</th>
-              <th>Teams Used</th>
-              <th>Maps Used</th>
-            </tr>
-          </thead>
-          <tbody id="pairBody"></tbody>
-        </table>
-      </div>
-    </div>
+        <a class="nav-item" href="map.html" data-page="map.html" title="Map">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6 4 8v14l6-2 4 2 6-2V6l-6 2-4-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Map</span>
+        </a>
 
-    <!-- PASSIVE TRIOS BUILDER -->
-    <div id="sec-passivebuilder" class="block js-section">
-      <h2>Passive Trios by Active</h2>
-      <div class="controls">
-        <label>Active
-          <select id="pbaActive">
-            <option value="__ALL__">All actives</option>
-          </select>
-        </label>
-        <label>Min picks
-          <input type="number" id="pbaMin" value="3" min="1" step="1">
-        </label>
-        <label>Sort
-          <select id="pbaSort">
-            <option value="picks" selected>Picks</option>
-            <option value="wins">Wins</option>
-            <option value="winpct">Win %</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
-        <label>Dir
-          <select id="pbaDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-      </div>
-      <div class="caption muted" id="pbaMeta">—</div>
+        <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M4 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 17V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 17V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M16 17V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 11l4-3 4 5 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">BR Data</span>
+        </a>
 
-      <h3 style="color:var(--brand2);margin:10px 0 8px">Top Passive Trios</h3>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Active → Passive Trio</th>
-              <th>Picks</th>
-              <th>Wins</th>
-              <th>Win %</th>
-              <th>#Players</th>
-              <th>#Teams</th>
-              <th>Maps Used</th>
-            </tr>
-          </thead>
-          <tbody id="triTablePB"></tbody>
-        </table>
-      </div>
+        <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft.html" title="CS Draft">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 3v4a2 2 0 0 0 2 2h4"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11 16l1-3 6-6 2 2-6 6-3 1Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Draft</span>
+        </a>
 
-      <h3 style="color:var(--brand2);margin:18px 0 8px">Per-Player (when using selected Active)</h3>
-      <div class="caption muted">
-        Shows each player’s go-to passive trio(s) when they picked the chosen Active. Click a row to expand details.
-      </div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Active</th>
-              <th>Total Picks</th>
-              <th>Total Wins</th>
-              <th>Win %</th>
-              <th>Teams</th>
-              <th>Top Trio</th>
-            </tr>
-          </thead>
-          <tbody id="ppTablePB"></tbody>
-        </table>
-      </div>
-    </div>
+         <!-- CS Data (crossed swords) -->
+        <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <!-- subtle container -->
+              <path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- crossed swords -->
+              <path d="M8 16l6-6"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 16l-6-6"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- sword tips -->
+              <path d="M13.5 8.5l2-2 2 2-2 2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10.5 8.5l-2-2-2 2 2 2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- handles -->
+              <path d="M7.2 17.8l2-2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16.8 17.8l-2-2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Data</span>
+        </a>
 
-    <!-- BAN IMPACT -->
-    <div id="sec-banimpact" class="block js-section">
-      <h2>Ban Impact</h2>
-      <div class="controls">
-        <label>Min banned matches
-          <input type="number" id="biMin" value="3" min="1" step="1"/>
-        </label>
-        <label>Sort by
-          <select id="biSort">
-            <option value="delta" selected>Δ Win %</option>
-            <option value="banned">Banned Matches</option>
-            <option value="win_when_ban">Win % (banned)</option>
-            <option value="win_when_not">Win % (not banned)</option>
-            <option value="name">A→Z</option>
-          </select>
-        </label>
-        <label>Dir
-          <select id="biDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
+        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 5h7v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 5h7v14h-7V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Split View</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-note">
+        Tip: Click a card to pick. Use <b>Show Descriptions</b> per row to expand details.<br/>
+        Active + Passive rows each default to 4 slots — add more anytime.
       </div>
-      <div class="caption muted" id="biMeta">—</div>
+    </aside>
 
-      <div class="caption muted" style="line-height:1.35">
-        <strong>Legend — Ban Impact</strong>:
-        <b>Skill</b> = the skill your side banned;
-        <b>Banned Matches</b> = # of your team-rows that banned it;
-        <b>Win % (banned)</b> = wins_when_banned ÷ banned_matches;
-        <b>Other Matches</b> = your rows where you didn’t ban it;
-        <b>Win % (not banned)</b> = wins_when_not_banned ÷ other_matches;
-        <b>Δ Win %</b> = Win%(banned) − Win%(not banned) (↑ positive means ban helped).
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" title="Toggle sidebar" type="button">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="top-actions">
+          <div class="userchip">
+            <div class="avatar"></div>
+            <div class="usertext">
+              <b id="gamertag">PlayerOne</b>
+              <span id="userEmail" class="muted">loading…</span>
+            </div>
+          </div>
+
+          <a class="logout" href="#" id="logoutBtn">Logout</a>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="hero">
+          <div class="hero-content">
+            <div class="hero-title">
+              <h2>Loadout Builder</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-inner">
+          <div class="controls">
+            <div class="controls-left">
+              <span class="pill"><span class="dot active"></span>Active</span>
+              <span class="pill"><span class="dot passive"></span>Passive</span>
+              <span class="pill"><span class="dot pet"></span>Pet</span>
+              <span class="pill"><span class="dot weapon"></span>Weapon</span>
+              <span class="pill"><span class="dot loadout"></span>Loadout</span>
+            </div>
+            <div class="controls-right">
+              <a class="btn" href="home.html">← Dashboard</a>
+
+              <!-- ✅ Description language toggle (EN / MS) -->
+              <span class="lang-pill" title="Description language">
+                Desc
+                <select id="descLang" aria-label="Description language">
+                  <option value="en">EN</option>
+                  <option value="ms">MS</option>
+                </select>
+              </span>
+
+              <button class="btn danger" id="resetBtn" type="button">Reset</button>
+            </div>
+          </div>
+
+          <!-- ACTIVE ROW -->
+          <div class="section-title">
+            <span>Active Skills Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn toggle-desc" id="toggleActiveDesc" type="button" aria-pressed="false">Show Descriptions</button>
+              <button class="btn brand" id="addActiveBtn" type="button">+ Add Active Skill</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="activeWrap">
+            <div class="slot-row" id="activeRow"></div>
+          </div>
+
+          <!-- PASSIVE ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Passive Skills Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn toggle-desc" id="togglePassiveDesc" type="button" aria-pressed="false">Show Descriptions</button>
+              <button class="btn brand" id="addPassiveBtn" type="button">+ Add Passive Skill</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="passiveWrap">
+            <div class="slot-row" id="passiveRow"></div>
+          </div>
+
+          <!-- PET ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Pets Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 2 • Scroll →</span>
+              <button class="btn toggle-desc" id="togglePetDesc" type="button" aria-pressed="false">Show Descriptions</button>
+              <button class="btn brand" id="addPetBtn" type="button">+ Add Pet Slot</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="petWrap">
+            <div class="slot-row" id="petRow"></div>
+          </div>
+
+          <!-- WEAPON ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Weapons Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Default 2 • Scroll →</span>
+              <button class="btn toggle-desc" id="toggleWeaponDesc" type="button" aria-pressed="false">Show Descriptions</button>
+              <button class="btn brand" id="addWeaponBtn" type="button">+ Add Weapon Slot</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="weaponWrap">
+            <div class="slot-row" id="weaponRow"></div>
+          </div>
+
+          <!-- LOADOUT ROW -->
+          <div class="section-title" style="margin-top:18px;">
+            <span>Loadouts Row</span>
+            <div class="section-actions">
+              <span class="muted" style="font-weight:800;font-size:.85rem;">Auto-populate 4</span>
+              <button class="btn toggle-desc" id="toggleLoadoutDesc" type="button" aria-pressed="false">Show Descriptions</button>
+            </div>
+          </div>
+          <div class="row-wrap" id="loadoutWrap">
+            <div class="slot-row" id="loadoutRow"></div>
+          </div>
+
+          <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
+            Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Picker Modal -->
+  <div class="modal" id="pickerModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pick Item">
+      <div class="modal-top">
+        <b id="modalTitle">Pick</b>
+        <button class="icon-btn" id="modalCloseBtn" aria-label="Close" title="Close" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
-
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Skill</th>
-              <th>Banned Matches</th>
-              <th>Win % (banned)</th>
-              <th>Other Matches</th>
-              <th>Win % (not banned)</th>
-              <th>Δ Win %</th>
-            </tr>
-          </thead>
-          <tbody id="biBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- PER-SKILL -->
-    <div id="sec-perskill" class="block js-section">
-      <h2>Per-Skill Stats</h2>
-      <div class="skill-controls">
-        <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:900">
-          Type
-          <select id="skillTypeSelect">
-            <option value="active" selected>Active</option>
-            <option value="passive">Passive</option>
-          </select>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:900">
-          Sort by
-          <select id="skillSortBy">
-            <option value="picks" selected>Picks</option>
-            <option value="pickRate">Pick %</option>
-            <option value="bans">Bans</option>
-            <option value="banRate">Ban %</option>
-            <option value="wins">Wins</option>
-            <option value="winRate">Win %</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:900">
-          Order
-          <select id="skillSortDir">
-            <option value="desc" selected>Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-        </label>
-        <button onclick="computeSkillStats()">Compute</button>
-      </div>
-
-      <div id="skillStatsMeta" class="muted">—</div>
-
-      <div class="tableWrap" style="margin-top:10px">
-        <table class="skill-table" style="min-width:760px">
-          <thead>
-            <tr>
-              <th>Skill</th>
-              <th>Picks</th>
-              <th>Pick %</th>
-              <th>Bans</th>
-              <th>Ban %</th>
-              <th>Wins</th>
-              <th>Win %</th>
-            </tr>
-          </thead>
-          <tbody id="skillStatsBody"></tbody>
-        </table>
+      <div class="modal-body">
+        <input type="text" id="searchInput" placeholder="Search (name / role / skill / category)..." />
+        <div id="modalGrid" class="pick-grid"></div>
+        <div style="display:flex; justify-content:center; margin-top:12px;">
+          <button class="btn brand" id="modalCloseBtn2" type="button">Close ✕</button>
+        </div>
       </div>
     </div>
   </div>
 
-<script>
-/* ========= Supabase init + auth ========= */
-const client = supabase.createClient(
-  'https://ooutjrewmwsixghbouxi.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
-);
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="t-dot"></span>
+    <span id="toastMsg">—</span>
+  </div>
 
-(async () => {
-  const { data: { session } } = await client.auth.getSession();
-  if (!session) {
-    window.location.href = "index.html";
-    return;
-  }
-  const ui = document.getElementById('user-info');
-  if (ui && session.user?.email) ui.textContent = session.user.email;
-})();
+  <script>
+    /***********************
+     * Supabase Auth
+     ***********************/
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
 
-document.getElementById('logoutBtn').onclick = async () => {
-  await client.auth.signOut();
-  window.location.href = "index.html";
-};
-
-/* ========= Burger drawer ========= */
-const burgerBtn = document.getElementById('burgerBtn');
-const topDrawer = document.getElementById('topDrawer');
-burgerBtn.addEventListener('click', ()=> topDrawer.classList.toggle('open'));
-
-/* ========= Utilities ========= */
-const PLACEHOLDER = 'https://i.imgur.com/AdvPwAO.png';
-const fmtPct = (num) => isFinite(num) ? (num*100).toFixed(1) + '%' : '—';
-const pct = (num, den) => den ? fmtPct(num/den) : '—';
-const uniq = (arr) => [...new Set(arr)];
-const el = (id) => document.getElementById(id);
-
-function parseState(val){
-  if (!val) return {};
-  if (typeof val === 'object') return val;
-  try { return JSON.parse(val); } catch(e){ console.warn('Bad state JSON:', e); return {}; }
-}
-
-/* ========= State ========= */
-let RAW_RECORDS = [];
-let CURRENT_ROWS = [];
-let PAGE_SIZE = 25;
-let PAGE = 1;
-let FIRST_LOAD_TOURN = true;
-let SEARCH_Q = '';
-let LAST_FETCH_LIMIT = 0;
-let WAS_TRUNCATED = false;
-
-/* ========= Init filters (NO DATE) ========= */
-(function initFilters(){
-  el('fMap').value = '__ALL__';
-  el('fWL').value = '__ALL__';
-
-  const t = el('fTourn');
-  if (t) t.innerHTML = `<option value="__ALL__">All tournaments</option>`;
-
-  const teamDD = el('fTeam');
-  if (teamDD) teamDD.innerHTML = `<option value="__ALL__">All teams</option>`;
-})();
-
-/* ========= Mode toggles ========= */
-el('compactToggle')?.addEventListener('change', (e)=>{
-  document.body.classList.toggle('compact', e.target.checked);
-  rerenderActive();
-});
-el('hidePassiveToggle')?.addEventListener('change', (e)=>{
-  document.body.classList.toggle('passive-hidden', e.target.checked);
-  rerenderActive();
-});
-
-/* ========= Global search ========= */
-const globalSearch = el('globalSearch');
-globalSearch.addEventListener('input', ()=>{
-  SEARCH_Q = (globalSearch.value || '').trim().toLowerCase();
-  if (document.getElementById('sec-match').classList.contains('active')) PAGE = 1;
-  CURRENT_ROWS = applyRowFilters(RAW_RECORDS.flatMap(explodeRecordToRows));
-  rerenderActive();
-});
-
-/* ========= Fetch & build (NO DATE FILTER) ========= */
-async function fetchRecords(){
-  const map  = el('fMap').value;
-  const team = el('fTeam').value || '__ALL__';
-  const tourn= el('fTourn').value || '__ALL__';
-
-  const LIMIT = (tourn === '__ALL__') ? 500 : 2000;
-  LAST_FETCH_LIMIT = LIMIT;
-  WAS_TRUNCATED = false;
-
-  let q = client
-    .from('draft_records')
-    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
-    .order('match_date', { ascending:false })
-    .order('id', { ascending:false })
-    .limit(LIMIT);
-
-  if (map !== '__ALL__') q = q.eq('map', map);
-  if (team && team !== '__ALL__') q = q.or(`team_left.eq.${team},team_right.eq.${team}`);
-  if (tourn && tourn !== '__ALL__') q = q.eq('tournament_name', tourn);
-
-  const { data, error } = await q;
-  if (error) {
-    console.error('Fetch error', error);
-    alert(`Failed to load records: ${error.message}`);
-    return [];
-  }
-
-  const rows = data || [];
-  if (rows.length >= LIMIT) WAS_TRUNCATED = true;
-  return rows;
-}
-
-function populateTeamDropdown(records){
-  const teams = new Set();
-  records.forEach(r => { teams.add(r.team_left); teams.add(r.team_right); });
-  const dd = el('fTeam');
-  const prior = dd.value || '__ALL__';
-  dd.innerHTML = '';
-  const all = document.createElement('option'); all.value='__ALL__'; all.textContent='All teams';
-  dd.appendChild(all);
-  [...teams].filter(Boolean).sort().forEach(t => {
-    const o=document.createElement('option'); o.value=t; o.textContent=t; dd.appendChild(o);
-  });
-  dd.value = prior;
-}
-
-async function populateTournamentDropdown(records){
-  const dd = el('fTourn');
-  const prior = dd.value || '__ALL__';
-
-  const tourns = new Set();
-  let latest = null;
-  records.forEach(r => {
-    const tn = r.tournament_name;
-    if (!tn) return;
-    tourns.add(tn);
-    if (!latest || (String(r.match_date) > String(latest.date))) {
-      latest = { name: tn, date: r.match_date };
+    async function ensureSession(){
+      try{
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) { window.location.href = "index.html"; return null; }
+        return session;
+      }catch(err){
+        window.location.href = "index.html";
+        return null;
+      }
     }
-  });
 
-  dd.innerHTML = '';
-  const all = document.createElement('option');
-  all.value='__ALL__';
-  all.textContent='All tournaments';
-  dd.appendChild(all);
+    async function logout(){
+      try{ await client.auth.signOut(); }catch(_){}
+      window.location.href = "index.html";
+    }
 
-  [...tourns].sort().forEach(tn => {
-    const o = document.createElement('option');
-    o.value = tn;
-    o.textContent = tn;
-    dd.appendChild(o);
-  });
+    /***********************
+     * Toast
+     ***********************/
+    const toastEl = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimer = null;
+    function toast(message){
+      toastMsg.textContent = message || '';
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1700);
+    }
 
-  if (FIRST_LOAD_TOURN && latest && (prior === '__ALL__' || !prior)) {
-    dd.value = latest.name;
-    FIRST_LOAD_TOURN = false;
-  } else {
-    dd.value = prior;
-  }
-}
-
-/* Build per-team rows from a record */
-function explodeRecordToRows(rec){
-  const s = parseState(rec.state);
-  const picks    = Array.isArray(s.picks)       ? s.picks       : [];
-  const passives = Array.isArray(s.passives)    ? s.passives    : [];
-  const bans     = Array.isArray(s.bans)        ? s.bans        : [];
-  const names    = Array.isArray(s.playerCards) ? s.playerCards : [];
-
-  const leftWin  = (rec.team_left_score ?? 0) > (rec.team_right_score ?? 0);
-  const rightWin = (rec.team_right_score ?? 0) > (rec.team_left_score ?? 0);
-
-  function sideRow(side){
-    const isLeft = side==='L';
-    const team   = isLeft ? rec.team_left : rec.team_right;
-    const opp    = isLeft ? rec.team_right : rec.team_left;
-    const tScore = isLeft ? rec.team_left_score : rec.team_right_score;
-    const oScore = isLeft ? rec.team_right_score : rec.team_left_score;
-    const res    = (isLeft ? leftWin : rightWin) ? 'W' : 'L';
-    const banObj = bans[ isLeft ? 0 : 1 ];
-    const ban    = banObj?.name || '';
-    const banImg = banObj?.image_url || '';
-
-    const idx = isLeft ? [0,1,2,3] : [7,6,5,4];
-
-    const actives = idx.map((i, k) => {
-      const player = (names[i] && String(names[i]).trim()) ? names[i].trim() : `P${k+1}`;
-      const heroObj= (picks[i] && typeof picks[i] === 'object') ? picks[i] : null;
-      return { player, hero: heroObj?.name || '', heroImg: heroObj?.image_url || PLACEHOLDER };
+    /***********************
+     * Sidebar behavior (desktop collapse / mobile drawer)
+     ***********************/
+    const CFG = Object.freeze({
+      SIDEBAR_KEY: 'ff_sidebar_collapsed_v1',
+      CHAR_URLS: [
+        'https://misai-my.github.io/freefire-esports/character.json',
+        'https://neptuneg1.github.io/freefire-caster/character.json'
+      ],
+      PET_URLS: [
+        'https://misai-my.github.io/freefire-esports/pet.json',
+        'https://neptuneg1.github.io/freefire-caster/pet.json'
+      ],
+      WEAPON_URLS: [
+        'https://misai-my.github.io/freefire-esports/weapon.json',
+        'https://neptuneg1.github.io/freefire-caster/weapon.json'
+      ],
+      LOADOUT_URLS: [
+        'https://misai-my.github.io/freefire-esports/loadout.json',
+        'https://neptuneg1.github.io/freefire-caster/loadout.json'
+      ]
     });
 
-    const passiveLines = idx.map((i, k) => {
-      const player = (names[i] && String(names[i]).trim()) ? names[i].trim() : `P${k+1}`;
-      const trioRaw = Array.isArray(passives[i]) ? passives[i] : [];
-      const trioObjs = trioRaw.filter(Boolean).map(ps => ({
-        name: ps?.name || '',
-        img : ps?.image_url || PLACEHOLDER
-      }));
-      while (trioObjs.length < 3) trioObjs.push({name:'', img: PLACEHOLDER});
-      return { player, trio: trioObjs.slice(0,3) };
+    const sidebar = document.getElementById('sidebar');
+    const sbToggle = document.getElementById('sbToggle');
+    const sbTogglePath = document.getElementById('sbTogglePath');
+    const sbOverlay = document.getElementById('sbOverlay');
+    const mobileMQ = window.matchMedia('(max-width: 980px)');
+    function isMobile(){ return mobileMQ.matches; }
+
+    function setToggleIcon(){
+      if (!sbTogglePath) return;
+      if (isMobile()){
+        sbTogglePath.setAttribute('d', 'M4 7h16M4 12h16M4 17h16');
+      }else{
+        sbTogglePath.setAttribute('d', sidebar.classList.contains('collapsed')
+          ? 'M10 7l5 5-5 5'
+          : 'M14 7l-5 5 5 5'
+        );
+      }
+    }
+    function openDrawer(){
+      sidebar.classList.add('open');
+      sbOverlay.classList.add('show');
+      sbOverlay.setAttribute('aria-hidden','false');
+    }
+    function closeDrawer(){
+      sidebar.classList.remove('open');
+      sbOverlay.classList.remove('show');
+      sbOverlay.setAttribute('aria-hidden','true');
+    }
+    function toggleSidebar(){
+      if (isMobile()){
+        sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+      }else{
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem(CFG.SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+      }
+      setToggleIcon();
+    }
+    function syncSidebarMode(){
+      if (isMobile()){
+        sidebar.classList.remove('collapsed');
+        closeDrawer();
+      }else{
+        const saved = localStorage.getItem(CFG.SIDEBAR_KEY);
+        sidebar.classList.toggle('collapsed', saved === '1');
+        closeDrawer();
+      }
+      setToggleIcon();
+    }
+
+    sbToggle?.addEventListener('click', toggleSidebar);
+    sbOverlay?.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')) closeDrawer();
+    });
+    document.querySelectorAll('#nav .nav-item').forEach(a => {
+      a.addEventListener('click', () => { if (isMobile()) closeDrawer(); });
+    });
+    mobileMQ.addEventListener?.('change', syncSidebarMode);
+
+    (function setActiveNav(){
+      const here = (location.pathname.split('/').pop() || 'character-comparison.html').toLowerCase();
+      document.querySelectorAll('.nav-item').forEach(a => {
+        const page = (a.getAttribute('data-page') || '').toLowerCase();
+        a.classList.toggle('active', page === here);
+      });
+    })();
+
+    document.getElementById('navSearch')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = (a.textContent || '').toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
     });
 
-    return {
-      rec_id: rec.id,
-      match_date: rec.match_date,
-      game_number: rec.game_number,
-      map: rec.map,
-      team, opponent: opp,
-      team_score: tScore ?? 0,
-      opp_score: oScore ?? 0,
-      result: res,
-      banName: ban,
-      banImg,
-      actives,
-      passives: passiveLines
+    document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    /***********************
+     * Row-level description toggles
+     ***********************/
+    function wireRowDescToggle(btnId, wrapId){
+      const btn = document.getElementById(btnId);
+      const wrap = document.getElementById(wrapId);
+      if (!btn || !wrap) return;
+
+      const sync = () => {
+        const on = wrap.classList.contains('show-desc');
+        btn.textContent = on ? 'Hide Descriptions' : 'Show Descriptions';
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      };
+
+      btn.addEventListener('click', () => {
+        wrap.classList.toggle('show-desc');
+        sync();
+      });
+
+      sync();
+    }
+
+    /***********************
+     * Data + selection state
+     ***********************/
+    const STORE_KEY_V2 = 'ff_loadout_builder_v2';
+    const STORE_KEY_V1 = 'ff_loadout_builder_v1'; // migrate support
+
+    // ✅ Description language (EN/MS) — based on JSON: description / description_ms
+    const DESC_LANG_KEY = 'ff_loadout_desc_lang_v1';
+    let descLang = 'en';
+    try{
+      const savedLang = (sessionStorage.getItem(DESC_LANG_KEY) || '').toLowerCase();
+      descLang = (savedLang === 'ms' ? 'ms' : 'en');
+    }catch(_){}
+    const descLangSel = document.getElementById('descLang');
+    function descLangLabel(){ return (descLang || 'en').toUpperCase(); }
+
+    let characters = [];
+    let pets = [];
+    let weapons = [];
+    let loadouts = [];
+
+    // ✅ Dedicated rows (default counts)
+    const DEFAULT_ACTIVE = 4;
+    const DEFAULT_PASSIVE = 4;
+    const DEFAULT_PET = 2;
+    const DEFAULT_WEAPON = 2;
+
+    let activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
+    let passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+    let petSlots     = Array.from({length: DEFAULT_PET},     () => null);
+    let weaponSlots  = Array.from({length: DEFAULT_WEAPON},  () => null);
+
+    // Picker context
+    let pickerMode = null; // 'active' | 'passive' | 'pet' | 'weapon'
+    let pickerIndex = 0;
+
+    const activeRowEl = document.getElementById('activeRow');
+    const passiveRowEl = document.getElementById('passiveRow');
+    const petRowEl = document.getElementById('petRow');
+    const weaponRowEl = document.getElementById('weaponRow');
+    const loadoutRowEl = document.getElementById('loadoutRow');
+
+    // ---------------------------
+    // ✅ Robust text helpers (prevents "[object Object]" in descriptions)
+    // ---------------------------
+    const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+
+    const prettyKey = (k) => {
+      const last = String(k || '').split('.').pop() || '';
+      return last
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (m)=>m.toUpperCase());
     };
-  }
 
-  return [sideRow('L'), sideRow('R')];
-}
+    function flattenToLines(val, depth = 0, maxDepth = 2, prefix = ''){
+      const out = [];
+      if (val == null) return out;
 
-function applyRowFilters(allRows){
-  const wl = el('fWL').value;
-  const team = el('fTeam').value || '__ALL__';
-  let rows = allRows.slice();
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean'){
+        const t = String(val).trim();
+        if (t) out.push(prefix ? `${prettyKey(prefix)}: ${t}` : t);
+        return out;
+      }
 
-  if (team !== '__ALL__') rows = rows.filter(r => r.team === team);
-  if (wl !== '__ALL__') rows = rows.filter(r => r.result === wl);
+      if (Array.isArray(val)){
+        const parts = val.map(v => asText(v)).filter(Boolean);
+        if (parts.length){
+          out.push(prefix ? `${prettyKey(prefix)}: ${parts.join(', ')}` : parts.join(', '));
+        }
+        return out;
+      }
 
-  if (SEARCH_Q){
-    rows = rows.filter(r=>{
-      const hay = [
-        r.match_date, r.map, r.team, r.opponent, r.banName,
-        ...(r.actives||[]).flatMap(a=>[a.player, a.hero]),
-        ...(r.passives||[]).flatMap(p=>[p.player, ...(p.trio||[]).map(x=>x?.name||'')])
-      ].filter(Boolean).join(' ').toLowerCase();
-      return hay.includes(SEARCH_Q);
-    });
-  }
-  return rows;
-}
+      if (!isPlainObject(val)){
+        const t = String(val).trim();
+        if (t && t !== '[object Object]') out.push(prefix ? `${prettyKey(prefix)}: ${t}` : t);
+        return out;
+      }
 
-/* Player card HTML */
-function playerCardHTML(player, heroName, heroImg, trio){
-  const passRows = (trio || [])
-    .filter(ps => ps && ps.name)
-    .map(ps => `
-      <div class="pPassRow">
-        <img src="${ps.img || PLACEHOLDER}" alt="${ps.name}" loading="lazy">
-        <span>${ps.name}</span>
-      </div>
-    `).join('');
+      if (depth >= maxDepth){
+        // last resort: try known keys only
+        for (const k of ['name','title','text','value','desc','description','summary','note','notes','en','ms']){
+          if (typeof val[k] === 'string' && val[k].trim()){
+            out.push(prefix ? `${prettyKey(prefix)}: ${val[k].trim()}` : val[k].trim());
+            return out;
+          }
+        }
+        return out;
+      }
 
-  const img  = heroImg || PLACEHOLDER;
-  const hero = heroName || '—';
-  const p    = player || '';
+      for (const [k,v] of Object.entries(val)){
+        if (v == null) continue;
+        const p = prefix ? `${prefix}.${k}` : k;
 
-  return `
-    <div class="pCard">
-      <img class="pAct" src="${img}" alt="${hero}" loading="lazy">
-      <div class="pPassCol">
-        ${passRows || ''}
-      </div>
-      <div class="pInfo">
-        <div class="pName">${p}</div>
-        <div class="pHero">${hero}</div>
-      </div>
-    </div>
-  `;
-}
+        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'){
+          const t = String(v).trim();
+          if (t) out.push(`${prettyKey(p)}: ${t}`);
+          continue;
+        }
 
-/* ===== Matches render (table + mobile cards) ===== */
-function renderRowsTable(rows){
-  const body = el('rowsBody');
-  body.innerHTML = '';
-  if (!rows.length){
-    const tr=document.createElement('tr');
-    const td=document.createElement('td'); td.colSpan=9; td.className='muted'; td.textContent='No rows for your selection.';
-    tr.appendChild(td); body.appendChild(tr); return;
-  }
+        if (Array.isArray(v)){
+          const parts = v.map(x => asText(x)).filter(Boolean);
+          if (parts.length) out.push(`${prettyKey(p)}: ${parts.join(', ')}`);
+          continue;
+        }
 
-  rows.forEach(r => {
-    const tr=document.createElement('tr');
+        if (isPlainObject(v)){
+          out.push(...flattenToLines(v, depth + 1, maxDepth, p));
+          continue;
+        }
 
-    const tdDate = `<td>${r.match_date ?? '—'}</td>`;
-    const tdGame = `<td>Game ${r.game_number ?? '—'}</td>`;
-    const tdMap  = `<td>${r.map ?? '—'}</td>`;
-    const tdTeam = `<td class="tight"><div><strong>${r.team}</strong></div><div class="muted">vs ${r.opponent}</div></td>`;
-    const tdOpp  = `<td>${r.opponent ?? '—'}</td>`;
-    const tdScore= `<td class="mono">${r.team_score} - ${r.opp_score}</td>`;
-    const tdRes  = `<td><span class="wl ${r.result}">${r.result}</span></td>`;
+        const t = String(v).trim();
+        if (t && t !== '[object Object]') out.push(`${prettyKey(p)}: ${t}`);
+      }
 
-    const banImg = r.banImg || PLACEHOLDER;
-    const banTxt = r.banName || '—';
-    /* tighter ban cell (gap + max width) */
-    const tdBan  = `<td>
-      <div style="display:flex;align-items:center;gap:6px;min-width:140px;max-width:160px">
-        <img src="${banImg}" alt="${banTxt}" style="width:26px;height:26px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)" loading="lazy">
-        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${banTxt}</span>
-      </div>
-    </td>`;
+      return out;
+    }
 
-    const byPlayer = r.actives.map(a => {
-      const p = r.passives.find(pp => pp.player === a.player) || { trio: [] };
-      return playerCardHTML(a.player, a.hero, a.heroImg, p.trio);
-    }).join('');
+    function asText(v){
+      if (v == null) return '';
+      if (typeof v === 'string') return v;
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v);
 
-    const tdPlayers = `<td><div class="playersWrap">${byPlayer}</div></td>`;
+      if (Array.isArray(v)){
+        return v.map(asText).filter(Boolean).join('\n');
+      }
 
-    tr.innerHTML = tdDate + tdGame + tdMap + tdTeam + tdOpp + tdScore + tdRes + tdBan + tdPlayers;
-    body.appendChild(tr);
-  });
-}
+      if (isPlainObject(v)){
+        // common fast path
+        for (const k of ['text','value','name','title','desc','description','summary','note','notes','en','ms']){
+          if (typeof v[k] === 'string' && v[k].trim()) return v[k];
+        }
+        const lines = flattenToLines(v, 0, 2, '');
+        return lines.join('\n');
+      }
 
-function renderRowsCards(rows){
-  const wrap = el('rowsCards');
-  wrap.innerHTML = '';
-  if (!rows.length){
-    wrap.innerHTML = `<div class="mCard"><div class="muted">No rows for your selection.</div></div>`;
-    return;
-  }
+      const s = String(v);
+      return (s === '[object Object]') ? '' : s;
+    }
 
-  rows.forEach(r=>{
-    const banImg = r.banImg || PLACEHOLDER;
-    const banTxt = r.banName || '—';
+    const tidy = (v) => (asText(v) || '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\s*\n+\s*/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
-    const players = r.actives.map(a=>{
-      const p = r.passives.find(pp => pp.player === a.player) || { trio: [] };
+    // Keep line breaks for description (no collapsing)
+    const tidyBlock = (v) => (asText(v) || '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\r\n/g, '\n')
+      .trim();
+
+    const lower = (v) => tidy(v).toLowerCase();
+    const keyOf = (name) => lower(name);
+
+    function isPassiveChar(c){
+      return lower(c?.skill_type).includes('passive');
+    }
+    function isActiveChar(c){
+      // treat missing skill_type as Active (so you don't accidentally hide skills)
+      return !isPassiveChar(c);
+    }
+
+    // Generic field getters
+    function getItemName(item){
+      return tidy(item?.name || item?.weapon_name || item?.pet_name || item?.title) || '—';
+    }
+    function getItemImg(item){
+      return tidy(item?.image_url || item?.img || item?.image || item?.icon || item?.logo_url) || '';
+    }
+    function getItemSubtitle(item, kind){
+      if (kind === 'active' || kind === 'passive'){
+        const role = tidy(item?.role) || 'N/A';
+        const st = tidy(item?.skill_type) || (kind === 'passive' ? 'Passive' : 'Active');
+        return `${st} • ${role}`;
+      }
+      if (kind === 'pet'){
+        return tidy(item?.type || item?.category) || 'Pet';
+      }
+      if (kind === 'weapon'){
+        return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+      }
+      if (kind === 'loadout'){
+        return tidy(item?.mode || item?.type) || 'Loadout';
+      }
+      return '—';
+    }
+    function getItemSkillLine(item, kind){
+      if (kind === 'active' || kind === 'passive'){
+        return tidy(item?.skill) || '';
+      }
+      if (kind === 'pet'){
+        return tidy(item?.skill || item?.ability || item?.passive || item?.active) || '';
+      }
+      if (kind === 'weapon'){
+        return tidy(item?.special || item?.perk || item?.ability || item?.attribute) || '';
+      }
+      if (kind === 'loadout'){
+        return tidy(item?.summary || item?.note || item?.desc_short) || '';
+      }
+      return '';
+    }
+
+    // ✅ EN/MS description selector: description (EN), description_ms (MS)
+    function pickDescByLang(item){
+      if (!item) return '';
+      const en = item?.description;
+      const ms = item?.description_ms;
+      if (descLang === 'ms') return (ms ?? en);
+      return (en ?? ms);
+    }
+
+    function getItemDesc(item, kind){
+      // primary language fields first
+      let d = tidyBlock(pickDescByLang(item));
+
+      // fallback fields (still robust vs objects)
+      if (!d){
+        d =
+          tidyBlock(item?.desc) ||
+          tidyBlock(item?.details) ||
+          tidyBlock(item?.lore) ||
+          tidyBlock(item?.summary) ||
+          '';
+      }
+      if (d) return d;
+
+      const alt = tidyBlock(item?.info) || tidyBlock(item?.notes) || '';
+      return alt || '';
+    }
+
+    function packStateV2(){
+      return {
+        v: 2,
+        activeCount: activeSlots.length,
+        passiveCount: passiveSlots.length,
+        petCount: petSlots.length,
+        weaponCount: weaponSlots.length,
+        activeSlots:  activeSlots.map(x => x ? getItemName(x) : null),
+        passiveSlots: passiveSlots.map(x => x ? getItemName(x) : null),
+        petSlots:     petSlots.map(x => x ? getItemName(x) : null),
+        weaponSlots:  weaponSlots.map(x => x ? getItemName(x) : null),
+      };
+    }
+
+    function saveState(){
+      try{ sessionStorage.setItem(STORE_KEY_V2, JSON.stringify(packStateV2())); }catch(_){}
+    }
+
+    function restoreState(){
+      // Try V2
+      try{
+        const raw2 = sessionStorage.getItem(STORE_KEY_V2);
+        if (raw2){
+          const s = JSON.parse(raw2);
+          if (s && typeof s === 'object'){
+            return { type:'v2', data:s };
+          }
+        }
+      }catch(_){}
+
+      // Try V1 (migrate)
+      try{
+        const raw1 = sessionStorage.getItem(STORE_KEY_V1);
+        if (!raw1) return null;
+        const s = JSON.parse(raw1);
+        if (!s || typeof s !== 'object') return null;
+        return { type:'v1', data:s };
+      }catch(_){
+        return null;
+      }
+    }
+
+    function findByName(list, name){
+      const k = keyOf(name);
+      if (!k) return null;
+      for (const it of list){
+        if (keyOf(getItemName(it)) === k) return it;
+      }
+      return null;
+    }
+
+    /***********************
+     * Fetch helpers
+     ***********************/
+    async function fetchFromUrls(urls){
+      let lastErr = null;
+      for (const url of urls){
+        try{
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 12000);
+          const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(t);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (!Array.isArray(data)) throw new Error('Bad JSON (expected array)');
+          return data;
+        }catch(err){
+          lastErr = err;
+        }
+      }
+      console.warn('Fetch failed:', lastErr);
+      return [];
+    }
+
+    /***********************
+     * Escaping
+     ***********************/
+    function escapeHTMLInline(str){
+      const s = tidy(str);
+      return s
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+    function escapeHTMLBlock(str){
+      const s = tidyBlock(str);
+      const esc = s
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+      return esc.replaceAll('\n','<br/>');
+    }
+
+    /***********************
+     * Rendering
+     ***********************/
+    function slotCardHTML({
+      title,
+      kind,      // active|passive|pet|weapon|loadout
+      chipDot,   // active|passive|pet|weapon|loadout
+      chipText,
+      item,
+      emptyHint = 'Click to pick',
+      clickable = true,
+      removable = false,
+      removeIndex = -1,
+      index = 0
+    }){
+      const name = item ? getItemName(item) : title;
+      const sub = item ? getItemSubtitle(item, kind) : emptyHint;
+      const img = item ? getItemImg(item) : '';
+      const skillLine = item ? getItemSkillLine(item, kind) : '';
+      const desc = item ? (getItemDesc(item, kind) || '—') : 'Pick an item to show its description.';
+      const showSkill = !!skillLine;
+
+      const removeBtn = removable ? `
+        <button class="mini-x" data-remove="${removeIndex}" title="Remove slot" aria-label="Remove slot" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      ` : '';
+
       return `
-        <div class="mPRow">
-          <img class="pAct" src="${a.heroImg || PLACEHOLDER}" alt="${a.hero || '—'}" loading="lazy">
-          <div class="pPassCol">
-            ${(p.trio||[]).filter(x=>x?.name).map(x=>`
-              <div class="pPassRow">
-                <img src="${x.img || PLACEHOLDER}" alt="${x.name}" loading="lazy">
-                <span>${x.name}</span>
-              </div>
-            `).join('')}
+        <div class="slot-card ${clickable ? 'clickable' : ''}" data-kind="${kind}" data-index="${index}">
+          ${removeBtn}
+          <div class="slot-top">
+            <b title="${escapeHTMLInline(title)}">${escapeHTMLInline(title)}</b>
+            <span class="chip"><span class="dot ${chipDot}"></span>${escapeHTMLInline(chipText)}</span>
           </div>
-          <div class="pInfo">
-            <div class="pName">${a.player || ''}</div>
-            <div class="pHero">${a.hero || '—'}</div>
+
+          <div class="slot-body">
+            <div class="thumb">
+              ${img ? `<img src="${escapeHTMLInline(img)}" alt="${escapeHTMLInline(name)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+            </div>
+            <div class="meta">
+              <div class="name" title="${escapeHTMLInline(name)}">${escapeHTMLInline(name) || '—'}</div>
+              <div class="sub" title="${escapeHTMLInline(sub)}">${escapeHTMLInline(sub) || '—'}</div>
+              ${showSkill ? `<div class="skill" title="${escapeHTMLInline(skillLine)}">${escapeHTMLInline(skillLine)}</div>` : `<div class="skill" style="color:rgba(170,177,197,.9)"></div>`}
+            </div>
+          </div>
+
+          <div class="desc-panel" aria-label="Description">
+            <div class="desc-head">
+              <span>Description</span>
+              <span class="muted" style="font-weight:900;">${escapeHTMLInline(descLangLabel())}</span>
+            </div>
+            <div class="desc-body">
+              ${item ? '' : `<span class="muted">(${escapeHTMLInline(emptyHint)})</span><br/>`}
+              ${escapeHTMLBlock(desc)}
+            </div>
           </div>
         </div>
       `;
-    }).join('');
+    }
 
-    const card = document.createElement('div');
-    card.className = 'mCard';
-    card.innerHTML = `
-      <div class="mTop">
-        <div>
-          <div class="mTitle">
-            <span class="wl ${r.result}" style="margin-right:8px">${r.result}</span>
-            ${r.team} <span class="muted" style="font-weight:800">vs</span> ${r.opponent}
-          </div>
-          <div class="mMeta">${r.match_date ?? '—'} • Game ${r.game_number ?? '—'} • ${r.map ?? '—'}</div>
-        </div>
-        <div class="mRight">
-          <div class="mScore mono">${r.team_score} - ${r.opp_score}</div>
-          <div class="mBan" title="Ban">
-            <img src="${banImg}" alt="${banTxt}" loading="lazy">
-            <span>${banTxt}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="mPlayers">
-        <details>
-          <summary>Players (Active + Passives)</summary>
-          <div class="mPlayersGrid">${players}</div>
-        </details>
-      </div>
-    `;
-    wrap.appendChild(card);
-  });
-}
-
-/* ========== Pagination for match rows ========== */
-function renderRowsPaged(rows){
-  const total = rows.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  PAGE = Math.min(Math.max(1, PAGE), pages);
-  const start = (PAGE-1)*PAGE_SIZE;
-  const slice = rows.slice(start, start + PAGE_SIZE);
-
-  renderRowsTable(slice);
-  renderRowsCards(slice);
-
-  el('rowsPager').innerHTML =
-    `<div class="muted">Page <b class="mono">${PAGE}</b>/<b class="mono">${pages}</b> • <b class="mono">${total}</b> rows</div>
-     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-       <button class="btn btn-ghost" ${PAGE<=1?'disabled':''} onclick="PAGE=1;renderRowsPaged(CURRENT_ROWS)">« First</button>
-       <button class="btn btn-ghost" ${PAGE<=1?'disabled':''} onclick="PAGE--;renderRowsPaged(CURRENT_ROWS)">‹ Prev</button>
-       <button class="btn btn-ghost" ${PAGE>=pages?'disabled':''} onclick="PAGE++;renderRowsPaged(CURRENT_ROWS)">Next ›</button>
-       <button class="btn btn-ghost" ${PAGE>=pages?'disabled':''} onclick="PAGE=${pages};renderRowsPaged(CURRENT_ROWS)">Last »</button>
-     </div>`;
-}
-
-/* ===== Summary (global) ===== */
-function buildBucketsFromRows(rows, groupBy, kind){
-  const buckets = new Map();
-  rows.forEach(r => {
-    const keys = (groupBy === 'team') ? [r.team] : uniq(r.actives.map(a => a.player)).filter(Boolean);
-    keys.forEach(key => {
-      if (!buckets.has(key)){
-        buckets.set(key, { name:key, matches:0, wins:0, skills:new Map() });
-      }
-      const B = buckets.get(key);
-      B.matches += 1;
-      if (r.result === 'W') B.wins += 1;
-
-      if (kind === 'active'){
-        r.actives.forEach(a => {
-          if (groupBy==='player' && a.player !== key) return;
-          const nm = a.hero; if (!nm) return;
-          const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-          S.occ += 1; S.appear += 1; if (r.result === 'W') S.appearWins += 1;
-          B.skills.set(nm, S);
+    function renderSlotsRow(rowEl, slots, {
+      kind,
+      chipDot,
+      chipText,
+      titlePrefix,
+      emptyHint,
+      defaultCount
+    }){
+      rowEl.innerHTML = slots.map((it, i) => {
+        const removable = i >= defaultCount;
+        return slotCardHTML({
+          title: `${titlePrefix} ${i + 1}`,
+          kind,
+          chipDot,
+          chipText,
+          item: it,
+          emptyHint,
+          clickable: true,
+          removable,
+          removeIndex: i,
+          index: i
         });
-      } else if (kind === 'passive'){
-        r.passives.forEach(p => {
-          if (groupBy==='player' && p.player !== key) return;
-          (p.trio || []).forEach(x => {
-            const nm = x?.name || ''; if (!nm) return;
-            const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-            S.occ += 1; S.appear += 1; if (r.result === 'W') S.appearWins += 1;
-            B.skills.set(nm, S);
-          });
+      }).join('');
+
+      // Click handlers (✅ clicking description panel should NOT open picker)
+      rowEl.querySelectorAll('.slot-card.clickable').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target?.closest?.('.mini-x')) return;
+          if (e.target?.closest?.('.desc-panel')) return; // <- row-level description area
+          const idx = Number(card.getAttribute('data-index') || '0');
+          openPicker(kind, idx);
         });
-      } else {
-        const nm = r.banName; if (!nm) return;
-        const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-        S.occ += 1; S.appear += 1; if (r.result === 'W') S.appearWins += 1;
-        B.skills.set(nm, S);
-      }
-    });
-  });
-  return buckets;
-}
+      });
 
-function renderSummary(buckets, groupBy, kind){
-  const grid = el('sumGrid');
-  const meta = el('sumMeta');
-  const totalEntities = buckets.size;
-  const totalRows = CURRENT_ROWS.length;
-  meta.textContent = `${totalEntities} ${groupBy === 'team' ? 'team' : 'player'} group(s) • ${totalRows} team-row(s) in view`;
+      // Remove handlers
+      rowEl.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const i = Number(btn.getAttribute('data-remove'));
+          if (!Number.isFinite(i) || i < defaultCount) return;
 
-  if (!totalEntities){
-    grid.innerHTML = `<div class="card"><div class="muted">No data for this selection.</div></div>`;
-    return;
-  }
+          if (kind === 'active')  activeSlots.splice(i, 1);
+          if (kind === 'passive') passiveSlots.splice(i, 1);
+          if (kind === 'pet')     petSlots.splice(i, 1);
+          if (kind === 'weapon')  weaponSlots.splice(i, 1);
 
-  const cardSort  = el('sumCardSort').value;
-  const cardDir   = el('sumCardDir').value;
-  const skillSort = el('sumSkillSort').value;
-  const skillDir  = el('sumSkillDir').value;
-
-  const ordered = [...buckets.values()].map(b => {
-    const subj = [...b.skills.values()].reduce((acc, s) => {
-      acc.appear     += (s.appear || 0);
-      acc.appearWins += (s.appearWins || 0);
-      acc.occ        += (s.occ || 0);
-      return acc;
-    }, { appear:0, appearWins:0, occ:0 });
-    subj.rate    = b.matches ? (subj.appear / b.matches) : 0;
-    subj.winrate = subj.appear ? (subj.appearWins / subj.appear) : 0;
-    b._subj = subj;
-    return b;
-  });
-
-  const cardCmp = (a, b) => {
-    let A,B;
-    if (cardSort==='name'){ A=a.name?.toLowerCase()||''; B=b.name?.toLowerCase()||''; }
-    else if (cardSort==='matches'){ A=a.matches; B=b.matches; }
-    else if (cardSort==='wins'){ A=a.wins; B=b.wins; }
-    else if (cardSort==='winpct'){ A=a.matches ? a.wins/a.matches : -1; B=b.matches ? b.wins/b.matches : -1; }
-    else if (cardSort==='subjectAppear'){ A=a._subj.appear; B=b._subj.appear; }
-    else if (cardSort==='subjectRate'){ A=a._subj.rate; B=b._subj.rate; }
-    else { A=a._subj.winrate; B=b._subj.winrate; }
-    if (A<B) return cardDir==='asc' ? -1 : 1;
-    if (A>B) return cardDir==='asc' ? 1 : -1;
-    const nA=a.name?.toLowerCase()||'', nB=b.name?.toLowerCase()||'';
-    if (nA<nB) return -1; if (nA>nB) return 1; return 0;
-  };
-  ordered.sort(cardCmp);
-
-  const cards = [];
-  ordered.forEach(b => {
-    let skills = [...b.skills.entries()].map(([name, s]) => {
-      const appearRate = b.matches ? (s.appear / b.matches) : 0;
-      const winRate    = s.appear ? (s.appearWins / s.appear) : 0;
-      return { name, ...s, appearRate, winRate };
-    });
-
-    const skillCmp = (x,y) => {
-      let A,B;
-      if (skillSort==='name'){ A=x.name.toLowerCase(); B=y.name.toLowerCase(); }
-      else if (skillSort==='count'){ A=x.occ; B=y.occ; }
-      else if (skillSort==='winrate'){ A=x.winRate; B=y.winRate; }
-      else { A=x.appearRate; B=y.appearRate; }
-      if (A<B) return skillDir==='asc' ? -1 : 1;
-      if (A>B) return skillDir==='asc' ? 1 : -1;
-      if (x.name.toLowerCase()<y.name.toLowerCase()) return -1;
-      if (x.name.toLowerCase()>y.name.toLowerCase()) return 1;
-      return 0;
-    };
-    skills.sort(skillCmp);
-
-    const table = skills.length
-      ? `<table class="sum-table">
-           <thead><tr><th>Skill</th><th class="right">Count</th><th class="right">${(kind==='ban')?'Ban Rate':'Pick Rate'}</th><th class="right">Win Rate</th></tr></thead>
-           <tbody>
-             ${skills.map(s => `
-               <tr>
-                 <td title="${s.name}">${s.name}</td>
-                 <td class="right mono">${s.occ}</td>
-                 <td class="right mono">${pct(s.appear,b.matches)}</td>
-                 <td class="right mono">${pct(s.appearWins,s.appear)}</td>
-               </tr>`).join('')}
-           </tbody>
-         </table>`
-      : `<div class="muted">No ${kind} data.</div>`;
-
-    cards.push(`
-      <div class="card">
-        <h3>${b.name}</h3>
-        <div class="kpis">
-          <div class="kpi">Matches <strong class="mono">${b.matches}</strong></div>
-          <div class="kpi">Wins <strong class="mono">${b.wins}</strong> <span class="muted">(${pct(b.wins,b.matches)})</span></div>
-          <div class="kpi">${(kind==='ban'?'Bans':'Picks')} <strong class="mono">${b._subj.appear}</strong> <span class="muted">(${pct(b._subj.appear,b.matches)})</span></div>
-          <div class="kpi">When Appeared: <strong class="mono">${pct(b._subj.appearWins,b._subj.appear)}</strong></div>
-        </div>
-        ${table}
-      </div>
-    `);
-  });
-
-  grid.innerHTML = cards.join('');
-}
-
-/* ========= Team × Map Win Rate ========= */
-function renderTeamMapWinRate(){
-  const sortBy = el('tmSort').value;
-  const dir = el('tmDir').value;
-
-  const agg = new Map();
-  RAW_RECORDS.forEach(r=>{
-    const l = r.team_left, rt = r.team_right;
-    const m = r.map;
-    const ls = r.team_left_score ?? 0, rs = r.team_right_score ?? 0;
-
-    const k1 = l+'||'+m;
-    const k2 = rt+'||'+m;
-    if (!agg.has(k1)) agg.set(k1,{team:l,map:m,matches:0,wins:0});
-    if (!agg.has(k2)) agg.set(k2,{team:rt,map:m,matches:0,wins:0});
-    agg.get(k1).matches += 1;
-    agg.get(k2).matches += 1;
-    if (ls>rs) agg.get(k1).wins += 1;
-    if (rs>ls) agg.get(k2).wins += 1;
-  });
-
-  const rows = [...agg.values()].map(x => ({...x, winpct: x.matches? x.wins/x.matches : 0}));
-  const cmp = (a,b)=>{
-    const s = (dir==='asc')?1:-1;
-    if (sortBy==='winpct') return s*(a.winpct - b.winpct);
-    if (sortBy==='wins')   return s*(a.wins - b.wins);
-    if (sortBy==='matches')return s*(a.matches - b.matches);
-    if (sortBy==='team')   return s*a.team.localeCompare(b.team);
-    if (sortBy==='map')    return s*a.map.localeCompare(b.map);
-    return 0;
-  };
-  rows.sort(cmp);
-
-  const tbody = el('tmBody'); tbody.innerHTML='';
-  rows.forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.team}</td>
-      <td>${r.map}</td>
-      <td class="mono">${r.matches}</td>
-      <td class="mono">${r.wins}</td>
-      <td class="mono">${fmtPct(r.winpct)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  el('tmMeta').textContent = `${rows.length} team×map rows • Using current loaded records`;
-}
-['tmSort','tmDir'].forEach(id=> el(id).addEventListener('change', ()=> renderTeamMapWinRate()));
-
-/* ========= Skills Summary by Map ========= */
-function renderCardsToGrid(buckets, groupBy, kind, cfg, gridEl){
-  const totalEntities = buckets.size;
-  const rateLabel = (kind === 'ban') ? 'Ban Rate' : 'Pick Rate';
-  if (!totalEntities){
-    gridEl.innerHTML = `<div class="card"><div class="muted">No data for this selection.</div></div>`;
-    return;
-  }
-  const ordered = [...buckets.values()].map(b => {
-    const subj = [...b.skills.values()].reduce((acc, s) => {
-      acc.appear     += (s.appear || 0);
-      acc.appearWins += (s.appearWins || 0);
-      acc.occ        += (s.occ || 0);
-      return acc;
-    }, { appear:0, appearWins:0, occ:0 });
-    subj.rate    = b.matches ? (subj.appear / b.matches) : 0;
-    subj.winrate = subj.appear ? (subj.appearWins / subj.appear) : 0;
-    b._subj = subj;
-    return b;
-  });
-
-  const cardCmp = (a, b) => {
-    let A,B;
-    if (cfg.cardSort==='name'){ A=a.name?.toLowerCase()||''; B=b.name?.toLowerCase()||''; }
-    else if (cfg.cardSort==='matches'){ A=a.matches; B=b.matches; }
-    else if (cfg.cardSort==='wins'){ A=a.wins; B=b.wins; }
-    else if (cfg.cardSort==='winpct'){ A=a.matches ? a.wins/a.matches : -1; B=b.matches ? b.wins/b.matches : -1; }
-    else if (cfg.cardSort==='subjectAppear'){ A=a._subj.appear; B=b._subj.appear; }
-    else if (cfg.cardSort==='subjectRate'){ A=a._subj.rate; B=b._subj.rate; }
-    else { A=a._subj.winrate; B=b._subj.winrate; }
-    if (A<B) return cfg.cardDir==='asc' ? -1 : 1;
-    if (A>B) return cfg.cardDir==='asc' ? 1 : -1;
-    const nA=a.name?.toLowerCase()||'', nB=b.name?.toLowerCase()||'';
-    if (nA<nB) return -1; if (nA>nB) return 1; return 0;
-  };
-  ordered.sort(cardCmp);
-
-  const cards = [];
-  ordered.forEach(b => {
-    let skills = [...b.skills.entries()].map(([name, s]) => {
-      const appearRate = b.matches ? (s.appear / b.matches) : 0;
-      const winRate    = s.appear ? (s.appearWins / s.appear) : 0;
-      return { name, ...s, appearRate, winRate };
-    });
-
-    const skillCmp = (x,y) => {
-      let A,B;
-      if (cfg.skillSort==='name'){ A=x.name.toLowerCase(); B=y.name.toLowerCase(); }
-      else if (cfg.skillSort==='count'){ A=x.occ; B=y.occ; }
-      else if (cfg.skillSort==='winrate'){ A=x.winRate; B=y.winRate; }
-      else { A=x.appearRate; B=y.appearRate; }
-      if (A<B) return cfg.skillDir==='asc' ? -1 : 1;
-      if (A>B) return cfg.skillDir==='asc' ? 1 : -1;
-      if (x.name.toLowerCase()<y.name.toLowerCase()) return -1;
-      if (x.name.toLowerCase()>y.name.toLowerCase()) return 1;
-      return 0;
-    };
-    skills.sort(skillCmp);
-
-    const table = skills.length
-      ? `<table class="sum-table">
-           <thead><tr><th>Skill</th><th class="right">Count</th><th class="right">${rateLabel}</th><th class="right">Win Rate</th></tr></thead>
-           <tbody>
-             ${skills.map(s => `
-               <tr>
-                 <td title="${s.name}">${s.name}</td>
-                 <td class="right mono">${s.occ}</td>
-                 <td class="right mono">${pct(s.appear,b.matches)}</td>
-                 <td class="right mono">${pct(s.appearWins,s.appear)}</td>
-               </tr>`).join('')}
-           </tbody>
-         </table>`
-      : `<div class="muted">No ${kind} data.</div>`;
-
-    cards.push(`
-      <div class="card">
-        <h3>${b.name}</h3>
-        <div class="kpis">
-          <div class="kpi">Matches <strong class="mono">${b.matches}</strong></div>
-          <div class="kpi">Wins <strong class="mono">${b.wins}</strong> <span class="muted">(${pct(b.wins,b.matches)})</span></div>
-          <div class="kpi">${(kind==='ban'?'Bans':'Picks')} <strong class="mono">${b._subj.appear}</strong> <span class="muted">(${pct(b._subj.appear,b.matches)})</span></div>
-          <div class="kpi">When Appeared: <strong class="mono">${pct(b._subj.appearWins,b._subj.appear)}</strong></div>
-        </div>
-        ${table}
-      </div>
-    `);
-  });
-
-  gridEl.innerHTML = `<div class="grid">${cards.join('')}</div>`;
-}
-
-function renderSkillsByMap(){
-  const mapSel = el('fMap').value;
-  const rows = CURRENT_ROWS;
-  const maps = (mapSel==='__ALL__') ? uniq(rows.map(r=>r.map)).sort() : [mapSel];
-
-  const groupBy = el('ssGroupBy').value;
-  const kind    = el('ssKind').value;
-  const cfg = {
-    cardSort:  el('ssCardSort').value,
-    cardDir:   el('ssCardDir').value,
-    skillSort: el('ssSkillSort').value,
-    skillDir:  el('ssSkillDir').value
-  };
-
-  el('ssMeta').textContent = `${maps.length} map(s) • Using current filters/search`;
-
-  const container = el('ssWrap');
-  container.innerHTML='';
-
-  if (maps.length === 1){
-    const mapName = maps[0];
-    const mapRows = rows.filter(r=>r.map===mapName);
-    const buckets = buildBucketsFromRows(mapRows, groupBy, kind);
-    const inner = document.createElement('div');
-    container.appendChild(inner);
-    renderCardsToGrid(buckets, groupBy, kind, cfg, inner);
-  } else {
-    maps.forEach(m=>{
-      const details = document.createElement('details');
-      details.className = 'card';
-      const summary = document.createElement('summary');
-      summary.style.cursor='pointer';
-      summary.style.fontWeight='1000';
-      summary.style.color='var(--brand2)';
-      summary.textContent = m;
-      details.appendChild(summary);
-
-      const inner = document.createElement('div');
-      inner.style.marginTop='10px';
-      details.appendChild(inner);
-      container.appendChild(details);
-
-      details.addEventListener('toggle', ()=>{
-        if (details.open && !inner.hasChildNodes()){
-          const mapRows = rows.filter(r=>r.map===m);
-          const buckets = buildBucketsFromRows(mapRows, groupBy, kind);
-          renderCardsToGrid(buckets, groupBy, kind, cfg, inner);
-        }
-      }, { once:true });
-    });
-  }
-}
-['ssGroupBy','ssKind','ssCardSort','ssCardDir','ssSkillSort','ssSkillDir'].forEach(id=>{
-  el(id).addEventListener('change', ()=> renderSkillsByMap());
-});
-
-/* ========= Helpers shared by combos/pairs ========= */
-function pillsFromSet(setLike, maxShow=6){
-  const arr = [...setLike].sort();
-  const shown = arr.slice(0, maxShow).map(t => `<span class="pill" title="${t}">${t}</span>`).join('');
-  const more = arr.length>maxShow ? `<span class="pill" title="${arr.join(', ')}">+${arr.length-maxShow} more</span>` : '';
-  return shown + more;
-}
-function pillsFromMapCount(mapCount, maxShow=6){
-  const arr = [...mapCount.entries()].sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]));
-  const shown = arr.slice(0, maxShow).map(([name,c]) => `<span class="pill" title="${name} ×${c}">${name} <small>×${c}</small></span>`).join('');
-  const more = arr.length>maxShow ? `<span class="pill" title="${arr.map(([n,c])=>`${n}×${c}`).join(', ')}">+${arr.length-maxShow} more</span>` : '';
-  return shown + more;
-}
-function matchLineHTML(m){
-  const score = `${m.ts}-${m.os}`;
-  return `
-    <li>
-      <strong>${m.team}</strong> vs ${m.opp}
-      • <em>${m.map}</em> • Game ${m.game}
-      • <span class="wl ${m.res}">${m.res}</span>
-      • ${score}
-      <span class="muted">(${m.date})</span>
-    </li>`;
-}
-
-/* ========= Active Combos ========= */
-function buildActiveCombos(rows){
-  const combos = new Map();
-  rows.forEach(r => {
-    const heroes = r.actives.map(a => a.hero).filter(Boolean);
-    if (heroes.length !== 4) return;
-
-    const imgsMap = new Map();
-    r.actives.forEach(a => { if (a.hero) imgsMap.set(a.hero, a.heroImg || PLACEHOLDER); });
-
-    const sorted = [...heroes].sort((a,b)=>a.localeCompare(b));
-    const key = sorted.join('|');
-
-    if (!combos.has(key)){
-      combos.set(key, {
-        key,
-        heroes: sorted,
-        heroImgs: Object.fromEntries(sorted.map(h => [h, imgsMap.get(h) || PLACEHOLDER])),
-        picks: 0,
-        wins: 0,
-        teams: new Set(),
-        maps: new Map(),
-        matches: []
+          saveState();
+          rerenderAll();
+        });
       });
     }
-    const C = combos.get(key);
-    C.picks += 1;
-    if (r.result === 'W') C.wins += 1;
-    C.teams.add(r.team);
-    const m = r.map || '—';
-    C.maps.set(m, (C.maps.get(m)||0) + 1);
-    C.matches.push({
-      rec_id: r.rec_id,
-      date: r.match_date,
-      game: r.game_number,
-      map: r.map,
-      team: r.team,
-      opp: r.opponent,
-      ts: r.team_score,
-      os: r.opp_score,
-      res: r.result
-    });
-  });
-  return combos;
-}
-function comboIdFromKey(key){
-  return 'combo_' + key.replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase();
-}
-function renderActiveCombos(){
-  const min = Math.max(1, parseInt(el('comboMin').value||'1',10));
-  const sortBy = el('comboSort').value;
-  const dir = el('comboDir').value;
 
-  const combos = buildActiveCombos(CURRENT_ROWS);
-  let rows = [...combos.values()].filter(c => c.picks >= min).map(c => ({
-    ...c,
-    winpct: c.picks ? (c.wins / c.picks) : 0
-  }));
-
-  const sgn = (dir==='asc')?1:-1;
-  rows.sort((a,b)=>{
-    if (sortBy==='name') return sgn * a.heroes.join(',').localeCompare(b.heroes.join(','));
-    if (sortBy==='wins') return sgn * (a.wins - b.wins);
-    if (sortBy==='winpct') return sgn * (a.winpct - b.winpct);
-    return sgn * (a.picks - b.picks);
-  });
-
-  const tbody = el('comboBody'); tbody.innerHTML='';
-  if (!rows.length){
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 6; td.className='muted'; td.textContent = 'No combos for your selection.';
-    tr.appendChild(td); tbody.appendChild(tr);
-    el('comboMeta').textContent = `0 combo(s) • Using current filters/search`;
-    return;
-  }
-
-  rows.forEach(c=>{
-    const icons = c.heroes.map(h=>`<img src="${(c.heroImgs[h]||PLACEHOLDER)}" alt="${h}" title="${h}" loading="lazy">`).join('');
-    const names = `<div class="muted" style="margin-top:4px">${c.heroes.join(' · ')}</div>`;
-    const id = comboIdFromKey(c.key);
-
-    const tr = document.createElement('tr');
-    tr.className = 'combo-row';
-    tr.dataset.target = id;
-    tr.innerHTML = `
-      <td>
-        <div class="comboIcons">${icons}</div>
-        ${names}
-      </td>
-      <td class="mono">${c.picks}</td>
-      <td class="mono">${c.wins}</td>
-      <td class="mono">${fmtPct(c.winpct)}</td>
-      <td>${pillsFromSet(c.teams)}</td>
-      <td>${pillsFromMapCount(c.maps)}</td>
-    `;
-    tbody.appendChild(tr);
-
-    const dr = document.createElement('tr');
-    dr.className = 'combo-detail';
-    dr.id = id;
-    dr.style.display = 'none';
-    dr.innerHTML = `
-      <td colspan="6">
-        <div class="muted" style="margin-bottom:6px;">${c.matches.length} match(es) with this combo</div>
-        <ul style="margin:0; padding-left:18px; line-height:1.35;">
-          ${c.matches.map(matchLineHTML).join('')}
-        </ul>
-      </td>`;
-    tbody.appendChild(dr);
-  });
-
-  tbody.querySelectorAll('tr.combo-row').forEach(row=>{
-    row.addEventListener('click', ()=>{
-      const id = row.dataset.target;
-      const drow = document.getElementById(id);
-      if (!drow) return;
-      drow.style.display = (drow.style.display === 'none' ? '' : 'none');
-    });
-  });
-
-  el('comboMeta').textContent = `${rows.length} combo(s) • Using current filters/search`;
-}
-['comboMin','comboSort','comboDir'].forEach(id => el(id).addEventListener('change', renderActiveCombos));
-
-/* ========= Active Pairs ========= */
-function buildActivePairs(rows){
-  const pairs = new Map();
-  rows.forEach(r=>{
-    const names = r.actives.map(a=>a.hero).filter(Boolean);
-    if (names.length < 2) return;
-
-    const imgOf = new Map();
-    r.actives.forEach(a=>{ if (a.hero) imgOf.set(a.hero, a.heroImg || PLACEHOLDER); });
-
-    for (let i=0;i<names.length;i++){
-      for (let j=i+1;j<names.length;j++){
-        const [A,B] = [names[i], names[j]].sort((x,y)=>x.localeCompare(y));
-        const key = A + '|' + B;
-        if (!pairs.has(key)){
-          pairs.set(key, {
-            a:A, b:B,
-            imgs: { [A]: imgOf.get(A) || PLACEHOLDER, [B]: imgOf.get(B) || PLACEHOLDER },
-            picks:0, wins:0,
-            teams:new Set(),
-            maps:new Map(),
-            matches:[]
-          });
+    function renderLoadoutsRow(){
+      const parts = [];
+      const lo = (Array.isArray(loadouts) ? loadouts.slice(0, 4) : []);
+      if (lo.length){
+        lo.forEach((l, idx) => {
+          parts.push(slotCardHTML({
+            title: `Loadout ${idx + 1}`,
+            kind: 'loadout',
+            chipDot: 'loadout',
+            chipText: 'Loadout',
+            item: l,
+            emptyHint: 'Loadout data',
+            clickable: false,
+            removable: false,
+            index: idx
+          }));
+        });
+      }else{
+        for (let i=0;i<4;i++){
+          parts.push(slotCardHTML({
+            title: `Loadout ${i + 1}`,
+            kind: 'loadout',
+            chipDot: 'loadout',
+            chipText: 'Loadout',
+            item: null,
+            emptyHint: 'Loadout JSON not loaded',
+            clickable: false,
+            removable: false,
+            index: i
+          }));
         }
-        const P = pairs.get(key);
-        P.picks += 1;
-        if (r.result==='W') P.wins += 1;
-        P.teams.add(r.team);
-        const m = r.map || '—';
-        P.maps.set(m, (P.maps.get(m)||0)+1);
-        P.matches.push({
-          rec_id:r.rec_id, date:r.match_date, game:r.game_number, map:r.map,
-          team:r.team, opp:r.opponent, ts:r.team_score, os:r.opp_score, res:r.result
+      }
+      loadoutRowEl.innerHTML = parts.join('');
+    }
+
+    function rerenderAll(){
+      renderSlotsRow(activeRowEl, activeSlots, {
+        kind: 'active',
+        chipDot: 'active',
+        chipText: 'Active',
+        titlePrefix: 'Active',
+        emptyHint: 'Click to pick an Active skill',
+        defaultCount: DEFAULT_ACTIVE
+      });
+
+      renderSlotsRow(passiveRowEl, passiveSlots, {
+        kind: 'passive',
+        chipDot: 'passive',
+        chipText: 'Passive',
+        titlePrefix: 'Passive',
+        emptyHint: 'Click to pick a Passive skill',
+        defaultCount: DEFAULT_PASSIVE
+      });
+
+      renderSlotsRow(petRowEl, petSlots, {
+        kind: 'pet',
+        chipDot: 'pet',
+        chipText: 'Pet',
+        titlePrefix: 'Pet',
+        emptyHint: 'Click to pick a Pet',
+        defaultCount: DEFAULT_PET
+      });
+
+      renderSlotsRow(weaponRowEl, weaponSlots, {
+        kind: 'weapon',
+        chipDot: 'weapon',
+        chipText: 'Weapon',
+        titlePrefix: 'Weapon',
+        emptyHint: 'Click to pick a Weapon',
+        defaultCount: DEFAULT_WEAPON
+      });
+
+      renderLoadoutsRow();
+    }
+
+    /***********************
+     * Picker modal
+     ***********************/
+    const modal = document.getElementById('pickerModal');
+    const modalGrid = document.getElementById('modalGrid');
+    const modalInput = document.getElementById('searchInput');
+    const modalTitle = document.getElementById('modalTitle');
+
+    function openPicker(mode, index){
+      pickerMode = mode;
+      pickerIndex = index;
+
+      const label =
+        mode === 'active'  ? `Pick Active (Slot ${index + 1})` :
+        mode === 'passive' ? `Pick Passive (Slot ${index + 1})` :
+        mode === 'pet'     ? `Pick Pet (Slot ${index + 1})` :
+        mode === 'weapon'  ? `Pick Weapon (Slot ${index + 1})` :
+        'Pick';
+
+      modalTitle.textContent = label;
+      modalInput.value = '';
+      renderPickerGrid('');
+
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      setTimeout(() => modalInput.focus(), 0);
+    }
+
+    function closePicker(){
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+    }
+
+    function getPickerList(){
+      if (pickerMode === 'active') return characters.filter(isActiveChar);
+      if (pickerMode === 'passive') return characters.filter(isPassiveChar);
+      if (pickerMode === 'pet') return pets;
+      if (pickerMode === 'weapon') return weapons;
+      return [];
+    }
+
+    function getPickerChipText(item){
+      if (pickerMode === 'active' || pickerMode === 'passive'){
+        return tidy(item?.role) || 'N/A';
+      }
+      if (pickerMode === 'pet'){
+        return tidy(item?.type || item?.category) || 'Pet';
+      }
+      if (pickerMode === 'weapon'){
+        return tidy(item?.category || item?.type || item?.weapon_type) || 'Weapon';
+      }
+      return '';
+    }
+
+    function buildSearchBlob(item){
+      const fields = [
+        getItemName(item),
+        tidy(item?.role),
+        tidy(item?.skill_type),
+        tidy(item?.skill),
+
+        // ✅ include EN/MS descriptions
+        tidyBlock(item?.description),
+        tidyBlock(item?.description_ms),
+
+        tidyBlock(item?.desc),
+        tidy(item?.category),
+        tidy(item?.type),
+        tidy(item?.weapon_type),
+        tidy(item?.special),
+        tidy(item?.perk),
+      ].filter(Boolean).join(' ');
+      return fields.toLowerCase();
+    }
+
+    function renderPickerGrid(term){
+      const q = tidy(term).toLowerCase();
+      modalGrid.innerHTML = '';
+
+      const list = getPickerList()
+        .map(it => ({ it, blob: buildSearchBlob(it) }))
+        .filter(x => !q || x.blob.includes(q))
+        .sort((a,b) => getItemName(a.it).localeCompare(getItemName(b.it)));
+
+      if (!list.length){
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No matches.';
+        modalGrid.appendChild(empty);
+        return;
+      }
+
+      list.forEach(({it}) => {
+        const pick = document.createElement('div');
+        pick.className = 'pick';
+
+        const nm = getItemName(it);
+        const img = getItemImg(it);
+        const chip = getPickerChipText(it);
+
+        pick.innerHTML = `
+          ${img ? `<img src="${escapeHTMLInline(img)}" alt="${escapeHTMLInline(nm)}" loading="lazy" referrerpolicy="no-referrer">` : ``}
+          <div class="nm">${escapeHTMLInline(nm)}</div>
+          <div class="rl">${escapeHTMLInline(chip || '—')}</div>
+        `;
+
+        pick.addEventListener('click', () => applyPick(it));
+        modalGrid.appendChild(pick);
+      });
+    }
+
+    function applyPick(item){
+      const nm = getItemName(item);
+      const k = keyOf(nm);
+
+      // Prevent duplicates within each row
+      if (pickerMode === 'active'){
+        const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That active skill is already in another slot.');
+          return;
+        }
+        activeSlots[pickerIndex] = item;
+      }
+
+      if (pickerMode === 'passive'){
+        const existsAt = passiveSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That passive skill is already in another slot.');
+          return;
+        }
+        passiveSlots[pickerIndex] = item;
+      }
+
+      if (pickerMode === 'pet'){
+        const existsAt = petSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That pet is already in another slot.');
+          return;
+        }
+        petSlots[pickerIndex] = item;
+      }
+
+      if (pickerMode === 'weapon'){
+        const existsAt = weaponSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
+        if (existsAt !== -1 && existsAt !== pickerIndex){
+          toast('That weapon is already in another slot.');
+          return;
+        }
+        weaponSlots[pickerIndex] = item;
+      }
+
+      saveState();
+      rerenderAll();
+      closePicker();
+    }
+
+    document.getElementById('modalCloseBtn')?.addEventListener('click', closePicker);
+    document.getElementById('modalCloseBtn2')?.addEventListener('click', closePicker);
+    modalInput?.addEventListener('input', () => renderPickerGrid(modalInput.value));
+    window.addEventListener('click', (e) => { if (e.target === modal) closePicker(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closePicker(); });
+
+    /***********************
+     * Actions
+     ***********************/
+    document.getElementById('addActiveBtn')?.addEventListener('click', () => {
+      activeSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { activeRowEl.scrollLeft = activeRowEl.scrollWidth; }, 0);
+    });
+
+    document.getElementById('addPassiveBtn')?.addEventListener('click', () => {
+      passiveSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { passiveRowEl.scrollLeft = passiveRowEl.scrollWidth; }, 0);
+    });
+
+    document.getElementById('addPetBtn')?.addEventListener('click', () => {
+      petSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { petRowEl.scrollLeft = petRowEl.scrollWidth; }, 0);
+    });
+
+    document.getElementById('addWeaponBtn')?.addEventListener('click', () => {
+      weaponSlots.push(null);
+      saveState();
+      rerenderAll();
+      setTimeout(() => { weaponRowEl.scrollLeft = weaponRowEl.scrollWidth; }, 0);
+    });
+
+    document.getElementById('resetBtn')?.addEventListener('click', () => {
+      activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
+      passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+      petSlots     = Array.from({length: DEFAULT_PET},     () => null);
+      weaponSlots  = Array.from({length: DEFAULT_WEAPON},  () => null);
+
+      try{
+        sessionStorage.removeItem(STORE_KEY_V2);
+        sessionStorage.removeItem(STORE_KEY_V1);
+      }catch(_){}
+
+      rerenderAll();
+      toast('Reset complete.');
+    });
+
+    // ✅ Language selector (EN/MS) for description + persist
+    descLangSel?.addEventListener('change', () => {
+      const v = (descLangSel.value || 'en').toLowerCase();
+      descLang = (v === 'ms' ? 'ms' : 'en');
+      try{ sessionStorage.setItem(DESC_LANG_KEY, descLang); }catch(_){}
+      rerenderAll();
+      toast(`Descriptions: ${descLangLabel()}`);
+    });
+
+    /***********************
+     * Init
+     ***********************/
+    async function initDataAndState(){
+      const [c, p, w, l] = await Promise.all([
+        fetchFromUrls(CFG.CHAR_URLS),
+        fetchFromUrls(CFG.PET_URLS),
+        fetchFromUrls(CFG.WEAPON_URLS),
+        fetchFromUrls(CFG.LOADOUT_URLS),
+      ]);
+
+      characters = Array.isArray(c) ? c : [];
+      pets = Array.isArray(p) ? p : [];
+      weapons = Array.isArray(w) ? w : [];
+      loadouts = Array.isArray(l) ? l : [];
+
+      const restored = restoreState();
+
+      if (restored?.type === 'v2'){
+        const s = restored.data;
+
+        const ac = Math.max(DEFAULT_ACTIVE,  Math.min(24, Number(s.activeCount  || DEFAULT_ACTIVE)));
+        const pc = Math.max(DEFAULT_PASSIVE, Math.min(24, Number(s.passiveCount || DEFAULT_PASSIVE)));
+        const ptc= Math.max(DEFAULT_PET,     Math.min(24, Number(s.petCount     || DEFAULT_PET)));
+        const wc = Math.max(DEFAULT_WEAPON,  Math.min(24, Number(s.weaponCount  || DEFAULT_WEAPON)));
+
+        activeSlots  = Array.from({length: ac},  () => null);
+        passiveSlots = Array.from({length: pc},  () => null);
+        petSlots     = Array.from({length: ptc}, () => null);
+        weaponSlots  = Array.from({length: wc},  () => null);
+
+        (Array.isArray(s.activeSlots) ? s.activeSlots : []).slice(0, ac).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) activeSlots[i] = obj;
+        });
+
+        (Array.isArray(s.passiveSlots) ? s.passiveSlots : []).slice(0, pc).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) passiveSlots[i] = obj;
+        });
+
+        (Array.isArray(s.petSlots) ? s.petSlots : []).slice(0, ptc).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(pets, nm);
+          if (obj) petSlots[i] = obj;
+        });
+
+        (Array.isArray(s.weaponSlots) ? s.weaponSlots : []).slice(0, wc).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(weapons, nm);
+          if (obj) weaponSlots[i] = obj;
         });
       }
-    }
-  });
-  return pairs;
-}
-function pairIdFromKey(key){
-  return 'pair_' + key.replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase();
-}
-function renderActivePairs(){
-  const min  = Math.max(1, parseInt(el('pairMin').value||'1',10));
-  const sort = el('pairSort').value;
-  const dir  = el('pairDir').value;
+      else if (restored?.type === 'v1'){
+        // Migrate from old format (activeSlots + passivePick/petPick/weaponPick)
+        const s = restored.data;
 
-  const pairs = buildActivePairs(CURRENT_ROWS);
-  let rows = [...pairs.values()].filter(p=>p.picks >= min).map(p=>({
-    ...p, winpct: p.picks ? (p.wins/p.picks) : 0
-  }));
+        const ac = Math.max(DEFAULT_ACTIVE, Math.min(24, Number(s.activeCount || DEFAULT_ACTIVE)));
+        activeSlots = Array.from({length: ac}, () => null);
 
-  const sgn = (dir==='asc')?1:-1;
-  rows.sort((a,b)=>{
-    if (sort==='name')   return sgn * ( (a.a+a.b).localeCompare(b.a+b.b) );
-    if (sort==='wins')   return sgn * (a.wins - b.wins);
-    if (sort==='winpct') return sgn * (a.winpct - b.winpct);
-    if (sort==='teams')  return sgn * (a.teams.size - b.teams.size);
-    return sgn * (a.picks - b.picks);
-  });
+        const savedActives = Array.isArray(s.activeSlots) ? s.activeSlots : [];
+        savedActives.slice(0, ac).forEach((nm, i) => {
+          if (!nm) return;
+          const obj = findByName(characters, nm);
+          if (obj) activeSlots[i] = obj;
+        });
 
-  const tbody = el('pairBody'); tbody.innerHTML='';
-  if (!rows.length){
-    const tr=document.createElement('tr'); const td=document.createElement('td');
-    td.colSpan=6; td.className='muted'; td.textContent='No pairs for your selection.'; tr.appendChild(td);
-    tbody.appendChild(tr); el('pairMeta').textContent = `0 pair(s) • Using current filters/search`; return;
-  }
-
-  rows.forEach(p=>{
-    const id = pairIdFromKey(`${p.a}|${p.b}`);
-    const icons = `
-      <div class="comboIcons">
-        <img src="${p.imgs[p.a]}" alt="${p.a}" title="${p.a}" loading="lazy">
-        <img src="${p.imgs[p.b]}" alt="${p.b}" title="${p.b}" loading="lazy">
-      </div>
-      <div class="muted" style="margin-top:4px">${p.a} · ${p.b}</div>
-    `;
-    const tr=document.createElement('tr');
-    tr.className = 'pair-row';
-    tr.dataset.target = id;
-    tr.innerHTML = `
-      <td>${icons}</td>
-      <td class="mono">${p.picks}</td>
-      <td class="mono">${p.wins}</td>
-      <td class="mono">${fmtPct(p.winpct)}</td>
-      <td>${pillsFromSet(p.teams)}</td>
-      <td>${pillsFromMapCount(p.maps)}</td>
-    `;
-    tbody.appendChild(tr);
-
-    const dr = document.createElement('tr');
-    dr.className = 'pair-detail';
-    dr.id = id;
-    dr.style.display = 'none';
-    dr.innerHTML = `
-      <td colspan="6">
-        <div class="muted" style="margin-bottom:6px;">${p.matches.length} match(es) with this pair</div>
-        <ul style="margin:0; padding-left:18px; line-height:1.35;">
-          ${p.matches.map(matchLineHTML).join('')}
-        </ul>
-      </td>
-    `;
-    tbody.appendChild(dr);
-  });
-
-  tbody.querySelectorAll('tr.pair-row').forEach(row=>{
-    row.addEventListener('click', ()=>{
-      const id = row.dataset.target;
-      const drow = document.getElementById(id);
-      if (!drow) return;
-      drow.style.display = (drow.style.display === 'none' ? '' : 'none');
-    });
-  });
-
-  el('pairMeta').textContent = `${rows.length} pair(s) • Using current filters/search`;
-}
-['pairMin','pairSort','pairDir'].forEach(id=> el(id)?.addEventListener('change', renderActivePairs));
-
-/* ========= Passive Trios Builder (unchanged logic) ========= */
-function normalizeTrioPB(trio){
-  const names = (trio||[])
-    .map(x => (x?.name||'').trim())
-    .filter(Boolean);
-  if (names.length !== 3) return null;
-
-  const imgs = {};
-  (trio||[]).forEach(x => {
-    if (x?.name) imgs[x.name] = x.img || x.image_url || PLACEHOLDER;
-  });
-
-  const sorted = [...names].sort((a,b)=>a.localeCompare(b));
-  return { key: sorted.join('|'), names: sorted, imgs };
-}
-function buildPassiveEventsPB(rows){
-  const events = [];
-  rows.forEach(r=>{
-    r.actives.forEach(a=>{
-      const p = r.passives.find(x=>x.player===a.player);
-      const trio = normalizeTrioPB(p?.trio || []);
-      if (!a.hero || !trio) return;
-      events.push({
-        active: a.hero,
-        heroImg: a.heroImg || PLACEHOLDER,
-        trioKey: trio.key,
-        trioNames: trio.names,
-        trioImgs: trio.imgs,
-        player: a.player || '',
-        team: r.team,
-        map: r.map || '—',
-        won: r.result==='W',
-        match: {
-          date: r.match_date, game: r.game_number, map: r.map,
-          team: r.team, opp: r.opponent, ts: r.team_score, os: r.opp_score, res: r.result
+        passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+        if (s.passivePick){
+          const obj = findByName(characters, s.passivePick);
+          if (obj) passiveSlots[0] = obj;
         }
-      });
-    });
-  });
-  return events;
-}
-function populateActiveDropdownPB(rows){
-  const actives = uniq(rows.flatMap(r=>r.actives.map(a=>a.hero).filter(Boolean))).sort();
-  const dd = el('pbaActive');
-  if (!dd) return;
-  const prior = dd.value || '__ALL__';
-  dd.innerHTML = `<option value="__ALL__">All actives</option>` + actives.map(a=>`<option value="${a}">${a}</option>`).join('');
-  dd.value = prior;
-}
-function renderPassiveTriosPB(events){
-  const activeSel = el('pbaActive').value;
-  const min = Math.max(1, parseInt(el('pbaMin').value||'1',10));
-  const sort = el('pbaSort').value;
-  const dir  = el('pbaDir').value;
 
-  const filtered = (activeSel==='__ALL__') ? events : events.filter(e=>e.active===activeSel);
+        petSlots = Array.from({length: DEFAULT_PET}, () => null);
+        if (s.petPick){
+          const obj = findByName(pets, s.petPick);
+          if (obj) petSlots[0] = obj;
+        }
 
-  const combos = new Map();
-  filtered.forEach(e=>{
-    const key = e.active + '||' + e.trioKey;
-    if (!combos.has(key)){
-      combos.set(key, {
-        active: e.active, heroImg: e.heroImg,
-        trioKey: e.trioKey, trioNames: e.trioNames, trioImgs: e.trioImgs,
-        picks:0, wins:0, players: new Set(), teams: new Set(), maps: new Map(), matches: []
-      });
-    }
-    const C = combos.get(key);
-    C.picks += 1;
-    if (e.won) C.wins += 1;
-    C.players.add(e.player);
-    C.teams.add(e.team);
-    C.maps.set(e.map, (C.maps.get(e.map)||0)+1);
-    C.matches.push(e.match);
-  });
+        weaponSlots = Array.from({length: DEFAULT_WEAPON}, () => null);
+        if (s.weaponPick){
+          const obj = findByName(weapons, s.weaponPick);
+          if (obj) weaponSlots[0] = obj;
+        }
 
-  let rows = [...combos.values()].filter(c=>c.picks>=min).map(c=>({
-    ...c, winpct: c.picks ? (c.wins/c.picks) : 0
-  }));
-
-  const sgn = (dir==='asc')?1:-1;
-  rows.sort((a,b)=>{
-    if (sort==='name'){
-      const A = (a.active + '|' + a.trioNames.join('·')).toLowerCase();
-      const B = (b.active + '|' + b.trioNames.join('·')).toLowerCase();
-      return sgn * A.localeCompare(B);
-    }
-    if (sort==='wins') return sgn * (a.wins - b.wins);
-    if (sort==='winpct') return sgn * (a.winpct - b.winpct);
-    return sgn * (a.picks - b.picks);
-  });
-
-  const tbody = el('triTablePB'); tbody.innerHTML='';
-  if (!rows.length){
-    const tr=document.createElement('tr'); const td=document.createElement('td');
-    td.colSpan=7; td.className='muted'; td.textContent='No passive trio data for your selection.';
-    tr.appendChild(td); tbody.appendChild(tr);
-  } else {
-    rows.forEach((c, idx)=>{
-      const id = 'triPB_' + (c.active+'_'+c.trioKey).replace(/[^a-z0-9]+/gi,'_').toLowerCase() + '_' + idx;
-      const activeIcon = `<img src="${c.heroImg||PLACEHOLDER}" alt="${c.active}" title="${c.active}" loading="lazy" style="width:28px;height:28px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)">`;
-      const trioIcons = c.trioNames.map(n=>`<img src="${(c.trioImgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy">`).join('');
-
-      const tr = document.createElement('tr');
-      tr.className = 'row-click';
-      tr.dataset.target = id;
-      tr.innerHTML = `
-        <td>
-          <div class="comboIcons" style="margin-bottom:4px">${activeIcon}<span class="muted" style="font-weight:900">→</span>${trioIcons}</div>
-          <div class="muted">${c.active} → ${c.trioNames.join(' · ')}</div>
-        </td>
-        <td class="mono">${c.picks}</td>
-        <td class="mono">${c.wins}</td>
-        <td class="mono">${fmtPct(c.winpct)}</td>
-        <td class="mono">${c.players.size}</td>
-        <td class="mono">${c.teams.size}</td>
-        <td>${pillsFromMapCount(c.maps)}</td>
-      `;
-      tbody.appendChild(tr);
-
-      const dr = document.createElement('tr');
-      dr.className = 'tri-detail';
-      dr.id = id;
-      dr.style.display = 'none';
-      dr.innerHTML = `
-        <td colspan="7">
-          <div class="muted" style="margin-bottom:6px;">${c.matches.length} occurrence(s)</div>
-          <ul style="margin:0; padding-left:18px; line-height:1.35;">
-            ${c.matches.map(matchLineHTML).join('')}
-          </ul>
-        </td>`;
-      tbody.appendChild(dr);
-    });
-
-    tbody.querySelectorAll('tr.row-click').forEach(row=>{
-      row.addEventListener('click', ()=>{
-        const d = document.getElementById(row.dataset.target);
-        if (d) d.style.display = (d.style.display==='none' ? '' : 'none');
-      });
-    });
-  }
-
-  const actLabel = (activeSel==='__ALL__') ? 'All actives' : activeSel;
-  el('pbaMeta').textContent = `${rows.length} trio row(s) • Active: ${actLabel}`;
-}
-function renderPassivePerPlayerPB(events){
-  const activeSel = el('pbaActive').value;
-  const filtered = (activeSel==='__ALL__') ? events : events.filter(e=>e.active===activeSel);
-
-  const groups = new Map();
-  filtered.forEach(e=>{
-    const key = e.player + '||' + e.active;
-    if (!groups.has(key)){
-      groups.set(key, {
-        player: e.player, active: e.active, teams: new Set(),
-        picks:0, wins:0, trios: new Map()
-      });
-    }
-    const G = groups.get(key);
-    G.picks += 1; if (e.won) G.wins += 1;
-    G.teams.add(e.team);
-
-    if (!G.trios.has(e.trioKey)){
-      G.trios.set(e.trioKey, {
-        names: e.trioNames, imgs: e.trioImgs, picks:0, wins:0, maps:new Map(), matches:[]
-      });
-    }
-    const T = G.trios.get(e.trioKey);
-    T.picks += 1; if (e.won) T.wins += 1;
-    T.maps.set(e.map, (T.maps.get(e.map)||0)+1);
-    T.matches.push(e.match);
-  });
-
-  const tbody = el('ppTablePB'); tbody.innerHTML='';
-  if (!groups.size){
-    const tr=document.createElement('tr'); const td=document.createElement('td');
-    td.colSpan=7; td.className='muted'; td.textContent='No player rows for this selection.'; tr.appendChild(td);
-    tbody.appendChild(tr);
-    return;
-  }
-
-  const rows = [...groups.values()].map(G=>{
-    const allTrios = [...G.trios.values()].map(T=>({ ...T, winpct: T.picks ? (T.wins/T.picks) : 0 }));
-    allTrios.sort((a,b)=> (b.picks - a.picks) || (b.wins - a.wins));
-    const top = allTrios[0] || null;
-    return {
-      player: G.player,
-      active: G.active,
-      teams: G.teams,
-      picks: G.picks,
-      wins: G.wins,
-      winpct: G.picks ? (G.wins/G.picks) : 0,
-      topTrio: top,
-      allTrios
-    };
-  }).sort((a,b)=> (b.picks - a.picks) || a.player.localeCompare(b.player) );
-
-  rows.forEach((R, idx)=>{
-    const id = 'ppPB_' + (R.player+'_'+R.active).replace(/[^a-z0-9]+/gi,'_').toLowerCase() + '_' + idx;
-
-    const topIcons = R.topTrio
-      ? R.topTrio.names.map(n=>`<img src="${(R.topTrio.imgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy" style="width:22px;height:22px;border-radius:8px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)">`).join('')
-      : '<span class="muted">—</span>';
-
-    const tr = document.createElement('tr');
-    tr.className = 'row-click';
-    tr.dataset.target = id;
-    tr.innerHTML = `
-      <td><strong>${R.player}</strong></td>
-      <td>${R.active}</td>
-      <td class="mono">${R.picks}</td>
-      <td class="mono">${R.wins}</td>
-      <td class="mono">${fmtPct(R.winpct)}</td>
-      <td>${pillsFromSet(R.teams)}</td>
-      <td>
-        ${R.topTrio ? `<div class="comboIcons" style="gap:4px">${topIcons}</div><div class="muted">${R.topTrio.names.join(' · ')} (${R.topTrio.picks} picks, ${fmtPct(R.topTrio.winpct)})</div>` : '—'}
-      </td>
-    `;
-    tbody.appendChild(tr);
-
-    const detail = document.createElement('tr');
-    detail.className = 'tri-detail';
-    detail.id = id;
-    detail.style.display = 'none';
-    detail.innerHTML = `
-      <td colspan="7">
-        <div class="muted" style="margin-bottom:6px;">All trios used by ${R.player} with ${R.active}:</div>
-        <ul style="margin:0; padding-left:18px; line-height:1.35;">
-          ${R.allTrios.map(T => `
-            <li>
-              <span class="comboIcons" style="gap:4px; vertical-align:middle;">
-                ${T.names.map(n=>`<img src="${(T.imgs[n]||PLACEHOLDER)}" alt="${n}" title="${n}" loading="lazy" style="width:20px;height:20px;border-radius:8px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18)">`).join('')}
-              </span>
-              &nbsp; ${T.names.join(' · ')} — <strong class="mono">${T.picks}</strong> picks, <strong class="mono">${T.wins}</strong> wins
-              <span class="muted">(${fmtPct(T.winpct)})</span>
-              <div style="margin-top:6px">${pillsFromMapCount(T.maps, 8)}</div>
-              <details style="margin-top:6px;">
-                <summary class="muted" style="cursor:pointer;">Show matches</summary>
-                <ul style="margin:0; padding-left:18px; line-height:1.35;">
-                  ${T.matches.map(matchLineHTML).join('')}
-                </ul>
-              </details>
-            </li>
-          `).join('')}
-        </ul>
-      </td>
-    `;
-    tbody.appendChild(detail);
-  });
-
-  tbody.querySelectorAll('tr.row-click').forEach(row=>{
-    row.addEventListener('click', ()=>{
-      const d = document.getElementById(row.dataset.target);
-      if (d) d.style.display = (d.style.display==='none' ? '' : 'none');
-    });
-  });
-}
-function renderPassiveTriosBuilder(){
-  populateActiveDropdownPB(CURRENT_ROWS);
-  const events = buildPassiveEventsPB(CURRENT_ROWS);
-  renderPassiveTriosPB(events);
-  renderPassivePerPlayerPB(events);
-}
-['pbaActive','pbaMin','pbaSort','pbaDir'].forEach(id=>{
-  el(id)?.addEventListener('change', ()=> {
-    const events = buildPassiveEventsPB(CURRENT_ROWS);
-    renderPassiveTriosPB(events);
-    renderPassivePerPlayerPB(events);
-  });
-});
-
-/* ========= Ban Impact ========= */
-function getRowsIgnoringWL(){
-  const allRows = RAW_RECORDS.flatMap(explodeRecordToRows);
-  const teamSel = el('fTeam').value || '__ALL__';
-  let rows = allRows;
-
-  if (teamSel !== '__ALL__') rows = rows.filter(r => r.team === teamSel);
-
-  const mapSel = el('fMap').value;
-  if (mapSel !== '__ALL__') rows = rows.filter(r => r.map === mapSel);
-
-  const tournSel = el('fTourn').value || '__ALL__';
-  if (tournSel !== '__ALL__') {
-    rows = rows.filter(r => {
-      const rec = RAW_RECORDS.find(x=>x.id===r.rec_id);
-      return rec?.tournament_name === tournSel;
-    });
-  }
-  return rows;
-}
-function renderBanImpact(){
-  const min  = Math.max(1, parseInt(el('biMin').value||'1',10));
-  const sort = el('biSort').value;
-  const dir  = el('biDir').value;
-
-  const rows = getRowsIgnoringWL();
-  const skills = new Map();
-
-  rows.forEach(r=>{
-    const banned = r.banName || '';
-    if (banned){
-      if (!skills.has(banned)) skills.set(banned, { name:banned, ban:{n:0,w:0}, noban:{n:0,w:0} });
-      const S = skills.get(banned);
-      S.ban.n += 1; if (r.result==='W') S.ban.w += 1;
-    }
-  });
-
-  const rowsBySkill = Object.fromEntries([...skills.keys()].map(k=>[k, {n:0,w:0}]));
-  rows.forEach(r=>{
-    const resW = (r.result==='W') ? 1 : 0;
-    for (const key in rowsBySkill){
-      if ((r.banName||'') !== key){
-        rowsBySkill[key].n += 1;
-        rowsBySkill[key].w += resW;
+        // Save migrated to V2
+        saveState();
       }
+      else{
+        // Defaults already set
+        activeSlots  = Array.from({length: DEFAULT_ACTIVE},  () => null);
+        passiveSlots = Array.from({length: DEFAULT_PASSIVE}, () => null);
+        petSlots     = Array.from({length: DEFAULT_PET},     () => null);
+        weaponSlots  = Array.from({length: DEFAULT_WEAPON},  () => null);
+      }
+
+      rerenderAll();
     }
-  });
-  for (const [name, S] of skills.entries()){
-    S.noban = rowsBySkill[name] || {n:0,w:0};
-  }
 
-  let list = [...skills.values()].map(S=>{
-    const bannedN = S.ban.n, bannedW = S.ban.w;
-    const nobanN  = S.noban.n, nobanW = S.noban.w;
-    const winWhenBan = bannedN ? (bannedW/bannedN) : 0;
-    const winWhenNot = nobanN ? (nobanW/nobanN) : 0;
-    return {
-      name:S.name, bannedN, winWhenBan, nobanN, winWhenNot,
-      delta: winWhenBan - winWhenNot
-    };
-  }).filter(r=>r.bannedN >= min);
+    window.addEventListener('DOMContentLoaded', async () => {
+      syncSidebarMode();
 
-  const sgn = (dir==='asc')?1:-1;
-  list.sort((a,b)=>{
-    if (sort==='name')         return sgn * a.name.localeCompare(b.name);
-    if (sort==='banned')       return sgn * (a.bannedN - b.bannedN);
-    if (sort==='win_when_ban') return sgn * (a.winWhenBan - b.winWhenBan);
-    if (sort==='win_when_not') return sgn * (a.winWhenNot - b.winWhenNot);
-    return sgn * (a.delta - b.delta);
-  });
+      // ✅ init description language selector
+      if (descLangSel){
+        descLangSel.value = (descLang === 'ms' ? 'ms' : 'en');
+      }
 
-  const tbody = el('biBody'); tbody.innerHTML='';
-  if (!list.length){
-    const tr=document.createElement('tr'); const td=document.createElement('td');
-    td.colSpan=6; td.className='muted'; td.textContent='No ban data for your selection.'; tr.appendChild(td);
-    tbody.appendChild(tr);
-    el('biMeta').textContent = `0 skill(s) • Outcome forced to All`;
-    return;
-  }
+      // ✅ row description toggles
+      wireRowDescToggle('toggleActiveDesc','activeWrap');
+      wireRowDescToggle('togglePassiveDesc','passiveWrap');
+      wireRowDescToggle('togglePetDesc','petWrap');
+      wireRowDescToggle('toggleWeaponDesc','weaponWrap');
+      wireRowDescToggle('toggleLoadoutDesc','loadoutWrap');
 
-  list.forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.name}</td>
-      <td class="mono">${r.bannedN}</td>
-      <td class="mono">${fmtPct(r.winWhenBan)}</td>
-      <td class="mono">${r.nobanN}</td>
-      <td class="mono">${fmtPct(r.winWhenNot)}</td>
-      <td class="mono" style="font-weight:1000;color:var(--brand);">${fmtPct(r.delta)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+      const session = await ensureSession();
+      if (!session) return;
 
-  const teamLabel = (el('fTeam').value||'__ALL__')==='__ALL__' ? 'All teams' : el('fTeam').value;
-  el('biMeta').textContent = `${list.length} skill(s) • ${teamLabel} • Outcome forced to All`;
-}
-['biMin','biSort','biDir'].forEach(id=> el(id)?.addEventListener('change', renderBanImpact));
+      const email = session.user?.email || '';
+      document.getElementById('userEmail').textContent = email || 'signed in';
+      document.getElementById('gamertag').textContent = email ? email.split('@')[0] : 'PlayerOne';
 
-/* ========= Tabs behavior ========= */
-const TAB_TO_SECTION = {
-  match: 'sec-match',
-  summary: 'sec-summary',
-  teammap: 'sec-teammap',
-  skillsbymap: 'sec-skillsbymap',
-  combos: 'sec-combos',
-  pairs: 'sec-pairs',
-  passivebuilder: 'sec-passivebuilder',
-  banimpact: 'sec-banimpact',
-  perskill: 'sec-perskill'
-};
-document.querySelectorAll('.tab').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-
-    const target = TAB_TO_SECTION[btn.dataset.tab];
-    document.querySelectorAll('.js-section').forEach(s=>s.classList.remove('active'));
-    document.getElementById(target)?.classList.add('active');
-
-    rerenderActive();
-  });
-});
-
-function rerenderActive(){
-  const active = document.querySelector('.js-section.active')?.id || 'sec-match';
-  if (active==='sec-match'){ renderRowsPaged(CURRENT_ROWS); }
-  if (active==='sec-summary'){
-    const buckets = buildBucketsFromRows(CURRENT_ROWS, el('sumGroupBy').value, el('sumKind').value);
-    renderSummary(buckets, el('sumGroupBy').value, el('sumKind').value);
-  }
-  if (active==='sec-teammap'){ renderTeamMapWinRate(); }
-  if (active==='sec-skillsbymap'){ renderSkillsByMap(); }
-  if (active==='sec-combos'){ renderActiveCombos(); }
-  if (active==='sec-pairs'){ renderActivePairs(); }
-  if (active==='sec-passivebuilder'){ renderPassiveTriosBuilder(); }
-  if (active==='sec-banimpact'){ renderBanImpact(); }
-  if (active==='sec-perskill'){ computeSkillStats(); }
-}
-
-/* ========= Main refresh ========= */
-async function refresh(){
-  RAW_RECORDS = await fetchRecords();
-
-  const beforeT = el('fTourn').value || '__ALL__';
-  populateTeamDropdown(RAW_RECORDS);
-  await populateTournamentDropdown(RAW_RECORDS);
-
-  const afterT = el('fTourn').value || '__ALL__';
-  if (beforeT !== afterT) {
-    RAW_RECORDS = await fetchRecords();
-    populateTeamDropdown(RAW_RECORDS);
-  }
-
-  const teamSel  = el('fTeam').value || '__ALL__';
-  const tournSel = el('fTourn').value || '__ALL__';
-  const mapSel   = el('fMap').value || '__ALL__';
-  const wlSel    = el('fWL').value || '__ALL__';
-
-  const note = (WAS_TRUNCATED && tournSel==='__ALL__')
-    ? ` • Showing latest ${LAST_FETCH_LIMIT} matches (select a tournament to load more)`
-    : '';
-
-  el('filterMeta').textContent =
-    `Loaded ${RAW_RECORDS.length} matches${note} • Team: ${teamSel==='__ALL__'?'All':teamSel} • Map: ${mapSel==='__ALL__'?'All':mapSel} • Tournament: ${tournSel==='__ALL__'?'All':tournSel} • Outcome: ${wlSel==='__ALL__'?'All':wlSel}` +
-    (SEARCH_Q ? ` • Search: "${SEARCH_Q}"` : '');
-
-  const exploded = RAW_RECORDS.flatMap(explodeRecordToRows);
-  CURRENT_ROWS = applyRowFilters(exploded);
-
-  PAGE = 1;
-  rerenderActive();
-}
-
-/* ========= Instant apply on selection (no Apply button) ========= */
-function hookInstantFilters(){
-  ['fMap','fTeam','fTourn','fWL'].forEach(id=>{
-    el(id)?.addEventListener('change', ()=>{
-      PAGE = 1;
-      refresh();
+      await initDataAndState();
     });
-  });
-}
-hookInstantFilters();
-
-/* ========= Summary re-render hooks ========= */
-['sumGroupBy','sumKind','sumCardSort','sumCardDir','sumSkillSort','sumSkillDir'].forEach(id=>{
-  el(id).addEventListener('change', () => {
-    if (!document.getElementById('sec-summary').classList.contains('active')) return;
-    const buckets = buildBucketsFromRows(CURRENT_ROWS, el('sumGroupBy').value, el('sumKind').value);
-    renderSummary(buckets, el('sumGroupBy').value, el('sumKind').value);
-  });
-});
-
-/* ========= First load ========= */
-refresh();
-
-/* ===== Per-Skill Stats (unchanged) ===== */
-function computeSkillStats() {
-  const type  = document.getElementById('skillTypeSelect').value;
-  const team  = (document.getElementById('fTeam').value || '__ALL__');
-  const tourn = (document.getElementById('fTourn').value || '__ALL__');
-  const map   = (document.getElementById('fMap').value || '__ALL__');
-
-  const data = RAW_RECORDS || [];
-  const matches = data.length;
-
-  const sidesPerMatch = (team === '__ALL__') ? 2 : 1;
-  const activeSlotsPerMatch  = 4 * sidesPerMatch;
-  const passiveSlotsPerMatch = 12 * sidesPerMatch;
-  const banSlotsPerMatch     = 1 * sidesPerMatch;
-
-  const pickDen = (type === 'active') ? (matches * activeSlotsPerMatch)
-                                      : (matches * passiveSlotsPerMatch);
-  const banDen  = (type === 'active') ? (matches * banSlotsPerMatch) : 0;
-
-  const skills = new Map();
-  const addSkill = (name, img) => {
-    if (!name) return null;
-    if (!skills.has(name)) skills.set(name, { name, img: img || PLACEHOLDER, picks: 0, bans: 0, wins: 0 });
-    return skills.get(name);
-  };
-
-  const forSide = (r, side, fn) => {
-    if (team !== '__ALL__') {
-      const sideTeam = (side === 'L') ? r.team_left : r.team_right;
-      if (sideTeam !== team) return;
-    }
-    fn();
-  };
-
-  data.forEach(r => {
-    const s = parseState(r.state);
-    const picks = Array.isArray(s.picks) ? s.picks : [];
-    const bans  = Array.isArray(s.bans) ? s.bans : [];
-    const pass  = Array.isArray(s.passives) ? s.passives : [];
-
-    const lScore = r.team_left_score ?? 0;
-    const rScore = r.team_right_score ?? 0;
-    const lWin = lScore > rScore;
-    const rWin = rScore > lScore;
-
-    if (type === 'active') {
-      forSide(r, 'L', () => {
-        [0,1,2,3].forEach(i => {
-          const hero = picks[i];
-          if (!hero || !hero.name) return;
-          const sk = addSkill(hero.name, hero.image_url);
-          if (!sk) return;
-          sk.picks += 1;
-          if (lWin) sk.wins += 1;
-        });
-        const ban = bans[0];
-        if (ban && ban.name) {
-          const sk = addSkill(ban.name, ban.image_url);
-          if (sk) sk.bans += 1;
-        }
-      });
-
-      forSide(r, 'R', () => {
-        [4,5,6,7].forEach(i => {
-          const hero = picks[i];
-          if (!hero || !hero.name) return;
-          const sk = addSkill(hero.name, hero.image_url);
-          if (!sk) return;
-          sk.picks += 1;
-          if (rWin) sk.wins += 1;
-        });
-        const ban = bans[1];
-        if (ban && ban.name) {
-          const sk = addSkill(ban.name, ban.image_url);
-          if (sk) sk.bans += 1;
-        }
-      });
-    } else {
-      forSide(r, 'L', () => {
-        [0,1,2,3].forEach(i => {
-          const trio = pass[i] || [];
-          trio.forEach(ps => {
-            if (!ps || !ps.name) return;
-            const sk = addSkill(ps.name, ps.image_url);
-            if (!sk) return;
-            sk.picks += 1;
-            if (lWin) sk.wins += 1;
-          });
-        });
-      });
-      forSide(r, 'R', () => {
-        [4,5,6,7].forEach(i => {
-          const trio = pass[i] || [];
-          trio.forEach(ps => {
-            if (!ps || !ps.name) return;
-            const sk = addSkill(ps.name, ps.image_url);
-            if (!sk) return;
-            sk.picks += 1;
-            if (rWin) sk.wins += 1;
-          });
-        });
-      });
-    }
-  });
-
-  const rows = Array.from(skills.values()).map(sk => {
-    const pickRate = pickDen ? (sk.picks / pickDen) : 0;
-    const banRate  = (type === 'active' && banDen) ? (sk.bans / banDen) : null;
-    const winRate  = sk.picks ? (sk.wins / sk.picks) : null;
-    return { ...sk, pickRate, banRate, winRate };
-  });
-
-  const sortBy = document.getElementById('skillSortBy').value;
-  const dir    = document.getElementById('skillSortDir').value;
-  const cmp = (a, b) => {
-    const sign = (dir === 'asc') ? 1 : -1;
-    const num = k => (isNaN(k) || k === null) ? -Infinity : +k;
-    switch (sortBy) {
-      case 'name':    return sign * a.name.localeCompare(b.name);
-      case 'picks':   return sign * (a.picks - b.picks);
-      case 'pickRate':return sign * (num(a.pickRate) - num(b.pickRate));
-      case 'bans':    return sign * (a.bans - b.bans);
-      case 'banRate': return sign * (num(a.banRate) - num(b.banRate));
-      case 'wins':    return sign * (a.wins - b.wins);
-      case 'winRate': return sign * (num(a.winRate) - num(b.winRate));
-      default:        return 0;
-    }
-  };
-  rows.sort(cmp);
-
-  const tbody = document.getElementById('skillStatsBody');
-  tbody.innerHTML = '';
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>
-        <div class="skill-cell">
-          <img src="${r.img || PLACEHOLDER}" alt="${r.name}" loading="lazy">
-          <span class="skill-name">${r.name}</span>
-        </div>
-      </td>
-      <td class="mono">${r.picks}</td>
-      <td class="mono">${pct(r.picks, pickDen)}</td>
-      <td class="mono">${(type === 'active') ? r.bans : '—'}</td>
-      <td class="mono">${(type === 'active') ? pct(r.bans, banDen) : '—'}</td>
-      <td class="mono">${r.wins}</td>
-      <td class="mono">${(r.winRate === null) ? '—' : (r.winRate * 100).toFixed(1) + '%'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  const teamLabel  = (team === '__ALL__') ? 'All teams' : team;
-  const typeLabel  = (type === 'active') ? 'Active' : 'Passive';
-  const tournLabel = (tourn === '__ALL__') ? 'All tournaments' : tourn;
-  const mapLabel   = (map === '__ALL__') ? 'All maps' : map;
-
-  const truncNote = (WAS_TRUNCATED && tourn === '__ALL__')
-    ? ` • Note: limited to latest ${LAST_FETCH_LIMIT} matches`
-    : '';
-
-  document.getElementById('skillStatsMeta').textContent =
-    `${teamLabel} • ${tournLabel} • ${mapLabel} • ${typeLabel} • Matches: ${matches}` +
-    `${(type==='active') ? ` • Ban slots: ${banDen}` : ''}` +
-    truncNote;
-}
-['skillTypeSelect','skillSortBy','skillSortDir'].forEach(id=>{
-  document.getElementById(id)?.addEventListener('change', () => computeSkillStats());
-});
-</script>
+  </script>
 </body>
 </html>
