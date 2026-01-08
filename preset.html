@@ -461,6 +461,13 @@
       border-color: rgba(255,107,107,.32);
     }
 
+    /* ✅ Row-level description toggle button (active state) */
+    .btn.toggle-desc[aria-pressed="true"]{
+      background: rgba(77,211,255,.10);
+      border-color: rgba(77,211,255,.22);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.08);
+    }
+
     .section-title{
       margin: 16px 0 10px 0;
       font-family: Orbitron, sans-serif;
@@ -667,35 +674,31 @@
       overflow:hidden;
     }
 
-    /* Collapsible description */
-    details.desc{
+    /* ✅ Row-level description panel (shown/hidden by row toggle) */
+    .desc-panel{
       margin: 0 10px 10px 10px;
       border-radius: 14px;
       border: 1px solid rgba(255,255,255,.08);
       background: rgba(0,0,0,.14);
       overflow:hidden;
+      display:none;
     }
-    details.desc > summary{
-      list-style:none;
-      cursor:pointer;
-      padding: 10px 10px;
-      font-weight:900;
+    .row-wrap.show-desc .desc-panel{ display:block; }
+
+    .desc-head{
+      padding: 10px 10px 8px 10px;
+      font-weight: 900;
       color: rgba(244,246,255,.88);
       font-size: .8rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:8px;
       user-select:none;
     }
-    details.desc > summary::-webkit-details-marker{display:none}
-    .caret{
-      width:12px;height:12px; opacity:.9; flex:0 0 auto;
-      transition: transform .15s ease;
-    }
-    details.desc[open] .caret{ transform: rotate(180deg); }
     .desc-body{
-      padding: 0 10px 10px 10px;
+      padding: 8px 10px 10px 10px;
       color: rgba(244,246,255,.82);
       font-size: .82rem;
       line-height: 1.25rem;
@@ -959,7 +962,6 @@
       .icon-btn:hover{transform:none}
       .slot-card.clickable:hover{transform:none}
       .pick:hover{transform:none}
-      details.desc > summary{cursor:default}
     }
   </style>
 </head>
@@ -1008,12 +1010,23 @@
           <span class="nav-label">Weapons</span>
         </a>
 
+        <a class="nav-item" href="preset.html" data-page="preset.html" title="Preset Builder">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M14.5 4.5a5 5 0 0 0-6.7 6.7l-4.3 4.3a2 2 0 0 0 2.8 2.8l4.3-4.3A5 5 0 0 0 19.5 9.5l-3 3-2-2 3-3Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 4l1-1M20 6h1M18 5V4"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Preset Builder</span>
+        </a>
+
         <a class="nav-item" href="map.html" data-page="map.html" title="Map">
           <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6 4 8v14l6-2 4 2 6-2V6l-6 2-4-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <span class="nav-label">Map</span>
         </a>
 
-        <!-- BR Data (analytics / chart) -->
         <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -1027,8 +1040,7 @@
           </span>
           <span class="nav-label">BR Data</span>
         </a>
-        
-        <!-- CS Draft (document + pencil) -->
+
         <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft.html" title="CS Draft">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -1042,8 +1054,34 @@
           </span>
           <span class="nav-label">CS Draft</span>
         </a>
-        
-        <!-- Split View (two panes) -->
+
+         <!-- CS Data (crossed swords) -->
+        <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <!-- subtle container -->
+              <path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- crossed swords -->
+              <path d="M8 16l6-6"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 16l-6-6"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- sword tips -->
+              <path d="M13.5 8.5l2-2 2 2-2 2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10.5 8.5l-2-2-2 2 2 2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- handles -->
+              <path d="M7.2 17.8l2-2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16.8 17.8l-2-2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Data</span>
+        </a>
+
         <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
@@ -1053,11 +1091,10 @@
           </span>
           <span class="nav-label">Split View</span>
         </a>
-
       </nav>
 
       <div class="sidebar-note">
-        Tip: Click a card to pick. Use the Description dropdown to expand details.<br/>
+        Tip: Click a card to pick. Use <b>Show Descriptions</b> per row to expand details.<br/>
         Active + Passive rows each default to 4 slots — add more anytime.
       </div>
     </aside>
@@ -1113,10 +1150,11 @@
             <span>Active Skills Row</span>
             <div class="section-actions">
               <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn toggle-desc" id="toggleActiveDesc" type="button" aria-pressed="false">Show Descriptions</button>
               <button class="btn brand" id="addActiveBtn" type="button">+ Add Active Skill</button>
             </div>
           </div>
-          <div class="row-wrap">
+          <div class="row-wrap" id="activeWrap">
             <div class="slot-row" id="activeRow"></div>
           </div>
 
@@ -1125,10 +1163,11 @@
             <span>Passive Skills Row</span>
             <div class="section-actions">
               <span class="muted" style="font-weight:800;font-size:.85rem;">Default 4 • Scroll →</span>
+              <button class="btn toggle-desc" id="togglePassiveDesc" type="button" aria-pressed="false">Show Descriptions</button>
               <button class="btn brand" id="addPassiveBtn" type="button">+ Add Passive Skill</button>
             </div>
           </div>
-          <div class="row-wrap">
+          <div class="row-wrap" id="passiveWrap">
             <div class="slot-row" id="passiveRow"></div>
           </div>
 
@@ -1137,10 +1176,11 @@
             <span>Pets Row</span>
             <div class="section-actions">
               <span class="muted" style="font-weight:800;font-size:.85rem;">Default 2 • Scroll →</span>
+              <button class="btn toggle-desc" id="togglePetDesc" type="button" aria-pressed="false">Show Descriptions</button>
               <button class="btn brand" id="addPetBtn" type="button">+ Add Pet Slot</button>
             </div>
           </div>
-          <div class="row-wrap">
+          <div class="row-wrap" id="petWrap">
             <div class="slot-row" id="petRow"></div>
           </div>
 
@@ -1149,10 +1189,11 @@
             <span>Weapons Row</span>
             <div class="section-actions">
               <span class="muted" style="font-weight:800;font-size:.85rem;">Default 2 • Scroll →</span>
+              <button class="btn toggle-desc" id="toggleWeaponDesc" type="button" aria-pressed="false">Show Descriptions</button>
               <button class="btn brand" id="addWeaponBtn" type="button">+ Add Weapon Slot</button>
             </div>
           </div>
-          <div class="row-wrap">
+          <div class="row-wrap" id="weaponWrap">
             <div class="slot-row" id="weaponRow"></div>
           </div>
 
@@ -1161,9 +1202,10 @@
             <span>Loadouts Row</span>
             <div class="section-actions">
               <span class="muted" style="font-weight:800;font-size:.85rem;">Auto-populate 4</span>
+              <button class="btn toggle-desc" id="toggleLoadoutDesc" type="button" aria-pressed="false">Show Descriptions</button>
             </div>
           </div>
-          <div class="row-wrap">
+          <div class="row-wrap" id="loadoutWrap">
             <div class="slot-row" id="loadoutRow"></div>
           </div>
 
@@ -1340,6 +1382,28 @@
       e.preventDefault();
       logout();
     });
+
+    /***********************
+     * Row-level description toggles
+     ***********************/
+    function wireRowDescToggle(btnId, wrapId){
+      const btn = document.getElementById(btnId);
+      const wrap = document.getElementById(wrapId);
+      if (!btn || !wrap) return;
+
+      const sync = () => {
+        const on = wrap.classList.contains('show-desc');
+        btn.textContent = on ? 'Hide Descriptions' : 'Show Descriptions';
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      };
+
+      btn.addEventListener('click', () => {
+        wrap.classList.toggle('show-desc');
+        sync();
+      });
+
+      sync();
+    }
 
     /***********************
      * Data + selection state
@@ -1549,14 +1613,6 @@
     /***********************
      * Rendering
      ***********************/
-    function caretSvg(){
-      return `
-        <svg class="caret" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `;
-    }
-
     function slotCardHTML({
       title,
       kind,      // active|passive|pet|weapon|loadout
@@ -1601,16 +1657,13 @@
             </div>
           </div>
 
-          <details class="desc">
-            <summary>
-              <span>Description</span>
-              ${caretSvg()}
-            </summary>
+          <div class="desc-panel" aria-label="Description">
+            <div class="desc-head">Description</div>
             <div class="desc-body">
               ${item ? '' : `<span class="muted">(${escapeHTMLInline(emptyHint)})</span><br/>`}
               ${escapeHTMLBlock(desc)}
             </div>
-          </details>
+          </div>
         </div>
       `;
     }
@@ -1639,11 +1692,11 @@
         });
       }).join('');
 
-      // Click handlers (✅ fix: clicking Description should NOT open picker)
+      // Click handlers (✅ clicking description panel should NOT open picker)
       rowEl.querySelectorAll('.slot-card.clickable').forEach(card => {
         card.addEventListener('click', (e) => {
           if (e.target?.closest?.('.mini-x')) return;
-          if (e.target?.closest?.('details.desc')) return; // <- fixes "buggy description" / accidental picker open
+          if (e.target?.closest?.('.desc-panel')) return; // <- row-level description area
           const idx = Number(card.getAttribute('data-index') || '0');
           openPicker(kind, idx);
         });
@@ -1853,7 +1906,7 @@
       const nm = getItemName(item);
       const k = keyOf(nm);
 
-      // Prevent duplicates within each row (optional but helpful)
+      // Prevent duplicates within each row
       if (pickerMode === 'active'){
         const existsAt = activeSlots.findIndex(x => x && keyOf(getItemName(x)) === k);
         if (existsAt !== -1 && existsAt !== pickerIndex){
@@ -2050,6 +2103,13 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       syncSidebarMode();
+
+      // ✅ row description toggles
+      wireRowDescToggle('toggleActiveDesc','activeWrap');
+      wireRowDescToggle('togglePassiveDesc','passiveWrap');
+      wireRowDescToggle('togglePetDesc','petWrap');
+      wireRowDescToggle('toggleWeaponDesc','weaponWrap');
+      wireRowDescToggle('toggleLoadoutDesc','loadoutWrap');
 
       const session = await ensureSession();
       if (!session) return;
