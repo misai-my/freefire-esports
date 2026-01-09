@@ -294,7 +294,15 @@
       border:1px dashed rgba(255,189,89,.55);
     }
 
-    .team-row{ display:flex; gap:10px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+    /* ✅ Selection area stays HORIZONTAL by default */
+    .team-row{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:center;
+      flex-wrap:wrap;   /* still wraps when needed */
+      width:100%;
+    }
 
     .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; }
 
@@ -988,13 +996,15 @@
       .sum-players{ grid-template-columns: 1fr; }
     }
 
-    /* ✅ Mobile draft “stack cards” only on mobile */
-     @media (max-width: 900px){
+    /* ✅ Mobile draft “stack cards” only on mobile
+       (FIXED: these rules were leaking out and forcing vertical layout everywhere)
+    */
+    @media (max-width: 900px){
       .draft-wrapper{ flex-wrap:wrap; gap:14px; }
       .summary-wrapper > div{ min-width: 360px; }
       details.team-accordion{ width: min(520px, 100%); }
       .sum-players{ grid-template-columns: 1fr; }
-    }
+
       .team-row{
         flex-direction: column;
         align-items: stretch;
@@ -1050,7 +1060,12 @@
       }
 
       .slot.pick-mobile .pick-main{ grid-area: main; }
-      .slot.pick-mobile .pick-side{ grid-area: pass / pass / weap / weap; display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .slot.pick-mobile .pick-side{
+        grid-area: pass / pass / weap / weap;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
 
       .slot.pick-mobile .pick-col{ width:100%; }
       .slot.pick-mobile .pick-col-title{ text-align:center; }
