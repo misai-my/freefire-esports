@@ -805,76 +805,78 @@
     }
 
     /* ============================================================
-   ✅ LIGHT MODE (toggle via body.theme-light)
-   ============================================================ */
-body.theme-light{
-  /* core surfaces */
-  --bg:#f4f6ff;
-  --bg2:#e9eefc;
-  --panel: rgba(255,255,255,.78);
-  --panel2: rgba(255,255,255,.86);
-  --line: rgba(10,15,30,.10);
-  --ink:#0b1020;
-  --muted:#4d556a;
+         ✅ LIGHT MODE (toggle via body.theme-light)
+         ============================================================ */
+      body.theme-light{
+        /* core surfaces */
+        --bg:#f4f6ff;
+        --bg2:#e9eefc;
+        --panel: rgba(255,255,255,.78);
+        --panel2: rgba(255,255,255,.86);
+        --line: rgba(10,15,30,.10);
+        --ink:#0b1020;
+        --muted:#4d556a;
+      
+        --shadow: 0 18px 60px rgba(0,0,0,.14);
+      }
+      
+      /* make inputs match in light mode */
+      body.theme-light select,
+      body.theme-light input{
+        color-scheme: light;
+      }
+      
+      /* soften “dark glass” pieces in light mode */
+      body.theme-light .search,
+      body.theme-light .field,
+      body.theme-light .btn,
+      body.theme-light .pill,
+      body.theme-light .chip,
+      body.theme-light .icon-btn,
+      body.theme-light .userchip{
+        background: rgba(255,255,255,.72) !important;
+        border-color: rgba(10,15,30,.12) !important;
+        color: var(--ink) !important;
+        box-shadow: none;
+      }
+      
+      body.theme-light .search input::placeholder{
+        color: rgba(77,85,106,.70);
+      }
+      
+      body.theme-light .pet-card{
+        background: rgba(255,255,255,.68);
+        border-color: rgba(10,15,30,.10);
+      }
+      
+      body.theme-light .pet-card:hover{
+        background: rgba(255,255,255,.86);
+        border-color: rgba(255,189,89,.35);
+      }
+      
+      body.theme-light .pet-thumb{
+        background: rgba(255,255,255,.55);
+        border-color: rgba(10,15,30,.10);
+      }
+      
+      /* modal in light */
+      body.theme-light .modal-card{
+        background: rgba(255,255,255,.92);
+        border-color: rgba(10,15,30,.12);
+      }
+      
+      body.theme-light .info-block{
+        background: rgba(255,255,255,.75);
+        border-color: rgba(10,15,30,.10);
+      }
+      
+      body.theme-light .logout{
+        background: rgba(255,255,255,.72);
+        border-color: rgba(10,15,30,.12);
+        color: rgba(10,15,30,.75);
+      }
 
-  --shadow: 0 18px 60px rgba(0,0,0,.14);
-}
-
-/* make inputs match in light mode */
-body.theme-light select,
-body.theme-light input{
-  color-scheme: light;
-}
-
-/* soften “dark glass” pieces in light mode */
-body.theme-light .search,
-body.theme-light .field,
-body.theme-light .btn,
-body.theme-light .pill,
-body.theme-light .chip,
-body.theme-light .icon-btn,
-body.theme-light .userchip{
-  background: rgba(255,255,255,.72) !important;
-  border-color: rgba(10,15,30,.12) !important;
-  color: var(--ink) !important;
-  box-shadow: none;
-}
-
-body.theme-light .search input::placeholder{
-  color: rgba(77,85,106,.70);
-}
-
-body.theme-light .pet-card{
-  background: rgba(255,255,255,.68);
-  border-color: rgba(10,15,30,.10);
-}
-
-body.theme-light .pet-card:hover{
-  background: rgba(255,255,255,.86);
-  border-color: rgba(255,189,89,.35);
-}
-
-body.theme-light .pet-thumb{
-  background: rgba(255,255,255,.55);
-  border-color: rgba(10,15,30,.10);
-}
-
-/* modal in light */
-body.theme-light .modal-card{
-  background: rgba(255,255,255,.92);
-  border-color: rgba(10,15,30,.12);
-}
-
-body.theme-light .info-block{
-  background: rgba(255,255,255,.75);
-  border-color: rgba(10,15,30,.10);
-}
-
-body.theme-light .logout{
-  background: rgba(255,255,255,.72);
-  border-color: rgba(10,15,30,.12);
-  color: rgba(10,15,30,.75);
-}
+    #themeIcon svg{ width:18px; height:18px; opacity:.92; display:block; }
   </style>
 </head>
 
@@ -1066,8 +1068,12 @@ body.theme-light .logout{
                 Desc: EN
               </button>
 
-              <button class="btn" id="themeToggle" type="button" title="Toggle light/dark mode" aria-pressed="false">
-                Theme: Dark
+              <button class="icon-btn" id="themeToggle"
+                      type="button"
+                      title="Toggle Light/Dark"
+                      aria-label="Toggle theme"
+                      aria-pressed="false">
+                <span id="themeIcon" aria-hidden="true"></span>
               </button>
               
               <div class="field">
@@ -1279,38 +1285,55 @@ body.theme-light .logout{
       }
     });
 
-    /***********************
- * ✅ Theme toggle (dark / light)
- ***********************/
-const KEY_THEME = 'ff_theme_pet_v1'; // 'dark' | 'light'
-const themeToggle = document.getElementById('themeToggle');
-
-function applyTheme(mode){
-  const isLight = (mode === 'light');
-  document.body.classList.toggle('theme-light', isLight);
-
-  if (themeToggle){
-    themeToggle.textContent = isLight ? 'Theme: Light' : 'Theme: Dark';
-    themeToggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-  }
-
-  // optional: adjust mobile browser top bar color a bit
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta){
-    meta.setAttribute('content', isLight ? '#f4f6ff' : '#07090f');
-  }
-}
-
-function initTheme(){
-  const saved = localStorage.getItem(KEY_THEME) || 'dark';
-  applyTheme(saved);
-}
-
-themeToggle?.addEventListener('click', () => {
-  const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
-  localStorage.setItem(KEY_THEME, next);
-  applyTheme(next);
-});
+      /***********************
+       * ✅ Theme toggle (dark / light) — ICON (sun/moon)
+       ***********************/
+      const KEY_THEME = 'ff_theme_pet_v1'; // 'dark' | 'light'
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      
+      const ICON_SUN = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>`;
+      
+      const ICON_MOON = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M21 14.8A8.5 8.5 0 0 1 9.2 3a7.2 7.2 0 1 0 11.8 11.8Z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+      
+      function applyTheme(mode){
+        const isLight = (mode === 'light');
+        document.body.classList.toggle('theme-light', isLight);
+      
+        // icon + a11y
+        if (themeIcon) themeIcon.innerHTML = isLight ? ICON_SUN : ICON_MOON;
+        if (themeToggle){
+          themeToggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+          themeToggle.title = isLight ? 'Light mode (tap to switch to Dark)' : 'Dark mode (tap to switch to Light)';
+          themeToggle.setAttribute('aria-label', isLight ? 'Light mode' : 'Dark mode');
+        }
+      
+        // optional: mobile browser top bar
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta){
+          meta.setAttribute('content', isLight ? '#f4f6ff' : '#07090f');
+        }
+      }
+      
+      function initTheme(){
+        const saved = localStorage.getItem(KEY_THEME) || 'dark';
+        applyTheme(saved);
+      }
+      
+      themeToggle?.addEventListener('click', () => {
+        const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
+        localStorage.setItem(KEY_THEME, next);
+        applyTheme(next);
+      });
 
     /***********************
      * Helpers (role)
