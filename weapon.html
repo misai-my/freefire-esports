@@ -16,7 +16,7 @@
     (function(){
       const KEY = 'ff_theme_v1';
       const saved = localStorage.getItem(KEY);
-      const theme = (saved === 'light') ? 'light' : 'dark'; // default dark (current theme)
+      const theme = (saved === 'light') ? 'light' : 'dark'; // default dark
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
@@ -152,12 +152,6 @@
       background: rgba(0,0,0,.03);
       border-color: rgba(0,0,0,.10);
     }
-
-    /* Theme icon swap */
-    #themeToggle .ico-sun{ display:none; }
-    #themeToggle .ico-moon{ display:none; }
-    html[data-theme="dark"] #themeToggle .ico-sun{ display:block; }
-    html[data-theme="light"] #themeToggle .ico-moon{ display:block; }
 
     *{box-sizing:border-box}
     html,body{min-height:100%}
@@ -383,6 +377,7 @@
       top: 18px;
       z-index: 20;
     }
+
     .search{
       flex:1;
       display:flex;
@@ -401,15 +396,14 @@
       outline:none;
       color: var(--ink);
       font-size: .95rem;
+      min-width:0;
+      flex:1;
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
     html[data-theme="light"] .search input::placeholder{color: rgba(91,100,122,.75)}
-
-    /* keep theme button snug inside search */
-    .search{ justify-content: space-between; }
-    .search input{ flex: 1; }
+    /* theme icon size inside search */
     #themeIcon svg{ width:18px; height:18px; opacity:.92; display:block; }
-        
+
     .top-actions{
       display:flex;
       align-items:center;
@@ -439,6 +433,7 @@
       background: rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);
       max-width: 260px;
+      min-width:0;
     }
     html[data-theme="light"] .userchip{
       background: rgba(0,0,0,.03);
@@ -448,6 +443,7 @@
       width:28px;height:28px;border-radius:10px;
       background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
       border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
     }
     html[data-theme="light"] .avatar{ border-color: rgba(0,0,0,.10); }
     .usertext{min-width:0}
@@ -461,7 +457,7 @@
       text-overflow: ellipsis;
       max-width: 170px;
     }
-    .usertext span{display:block; font-size:.78rem; color: var(--muted)}
+    .usertext span{display:block; font-size:.78rem; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
     .logout{
       color: rgba(255,255,255,.70);
@@ -1129,20 +1125,23 @@
           </svg>
         </button>
 
+        <!-- ✅ Search bar with theme toggle INSIDE (same placement as pet.html) -->
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85">
             <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
+
           <input id="searchInput" placeholder="Search weapons (name / type / armory / attributes)..." />
+
+          <button class="icon-btn" id="themeToggle"
+            type="button"
+            title="Toggle Light/Dark"
+            aria-label="Toggle theme"
+            aria-pressed="false"
+            style="width:38px;height:38px;border-radius:12px;">
+            <span id="themeIcon" aria-hidden="true"></span>
+          </button>
         </div>
-        <button class="icon-btn" id="themeToggle"
-          type="button"
-          title="Toggle Light/Dark"
-          aria-label="Toggle theme"
-          aria-pressed="false"
-          style="width:38px;height:38px;border-radius:12px;">
-          <span id="themeIcon" aria-hidden="true"></span>
-        </button>
 
         <div class="top-actions">
           <div class="userchip">
@@ -1273,30 +1272,56 @@
 
   <script>
     /***********************
-     * ✅ Theme toggle (persisted)
+     * ✅ Theme toggle (same behavior as pet.html)
      ***********************/
     const THEME_KEY = 'ff_theme_v1';
     const themeToggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+
+    const ICON_SUN = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"
+          stroke="currentColor" stroke-width="2"/>
+      </svg>`;
+
+    const ICON_MOON = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M21 14.5A7.5 7.5 0 0 1 9.5 3a6.5 6.5 0 1 0 11.5 11.5Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
 
     function getTheme(){
       return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     }
+
+    function renderThemeIcon(theme){
+      if (!themeIcon) return;
+      // Dark mode shows SUN (tap => light). Light mode shows MOON (tap => dark)
+      themeIcon.innerHTML = (theme === 'dark') ? ICON_SUN : ICON_MOON;
+    }
+
     function applyTheme(theme){
       document.documentElement.setAttribute('data-theme', theme);
       try{ localStorage.setItem(THEME_KEY, theme); }catch(_){}
+
+      renderThemeIcon(theme);
+
       if (themeToggleBtn){
-        const next = (theme === 'dark') ? 'Switch to light mode' : 'Switch to dark mode';
-        themeToggleBtn.setAttribute('title', next);
-        themeToggleBtn.setAttribute('aria-label', next);
+        const nextLabel = (theme === 'dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        themeToggleBtn.setAttribute('title', nextLabel);
+        themeToggleBtn.setAttribute('aria-label', nextLabel);
         themeToggleBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
       }
     }
+
     themeToggleBtn?.addEventListener('click', () => {
       const next = (getTheme() === 'dark') ? 'light' : 'dark';
       applyTheme(next);
     });
 
-    // Ensure button text/labels match current theme on load
+    // init (preload script already set data-theme)
     applyTheme(getTheme());
 
     /***********************
