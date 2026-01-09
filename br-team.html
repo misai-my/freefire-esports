@@ -511,125 +511,71 @@
       .btn:hover, .step:hover, .team-tile:hover{transform:none}
     }
     /* =========================================
-       MOBILE TABLE OPTIMIZATION
-       ========================================= */
-    
-    /* Prevent tables from causing page-level horizontal scroll */
-    .section, .card, .accordion-body { max-width: 100%; }
-    
-    /* Wrapper used for all tables */
-    .table-wrap{
-      position: relative;
-      width: 100%;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-gutter: stable both-edges;
-      border-radius: 16px;
-    }
-    
-    /* Make tables behave nicely in a scroll container */
-    .table-wrap table{
-      min-width: 720px;          /* desktop baseline */
-      width: 100%;
-    }
-    
-    /* Optional: soft edge fade hint that table is scrollable */
-    .table-wrap::before,
-    .table-wrap::after{
-      content:"";
-      position: sticky;
-      top: 0;
-      width: 18px;
-      height: 100%;
-      pointer-events: none;
-      z-index: 2;
-      display: block;
-    }
-    .table-wrap::before{
-      left: 0;
-      background: linear-gradient(90deg, rgba(7,9,15,.85), rgba(7,9,15,0));
-    }
-    .table-wrap::after{
-      right: 0;
-      background: linear-gradient(270deg, rgba(7,9,15,.85), rgba(7,9,15,0));
-    }
-    
-    /* Reduce density a bit on tablets/phones */
-    @media (max-width: 820px){
-      table{ font-size: .88rem; }
-      th,td{ padding: 7px 8px; }
-    }
-    
-    /* --- STACK MODE: normal tables become "row cards" on small screens --- */
-    @media (max-width: 640px){
-      /* Default: stack normal tables (no sideways scrolling) */
-      .table-wrap{ overflow: visible; }
-      .table-wrap::before, .table-wrap::after{ display:none; }
-    
-      .table-wrap table:not(.pivot){
-        min-width: 0;
-        border-spacing: 0 10px;   /* keeps your “floating rows” look */
-      }
-    
-      .table-wrap table:not(.pivot) thead{ display:none; }
-    
-      .table-wrap table:not(.pivot) tbody,
-      .table-wrap table:not(.pivot) tr,
-      .table-wrap table:not(.pivot) td{
-        display:block;
-        width:100%;
-      }
-    
-      .table-wrap table:not(.pivot) tbody tr{
-        margin: 0 0 10px 0;
-      }
-    
-      .table-wrap table:not(.pivot) tbody tr td{
-        border-radius: 14px !important;
-        padding: 10px 12px;
-        display:flex;
-        align-items:flex-start;
-        justify-content:space-between;
-        gap: 12px;
-      }
-    
-      /* Label on the left, value on the right */
-      .table-wrap table:not(.pivot) tbody tr td::before{
-        content: attr(data-label);
-        color: var(--muted);
-        font-weight: 900;
-        flex: 0 0 auto;
-        max-width: 58%;
-        overflow:hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    
-      /* If a column has blank label, don't show a label */
-      .table-wrap table:not(.pivot) td[data-label=""]::before{ display:none; }
-    
-      /* Right-aligned cells still look right */
-      .table-wrap table:not(.pivot) td.right{
-        text-align:right;
-      }
-    
-      /* Make long values wrap nicely */
-      .table-wrap table:not(.pivot) td{
-        overflow-wrap:anywhere;
-        word-break:break-word;
-      }
-    
-      /* --- Keep pivot tables scrollable instead of stacked --- */
-      .table-wrap.wide{
-        overflow-x:auto;
-        overflow-y:hidden;
+         MOBILE TABLE OPTIMIZATION (SIDE-SCROLL)
+         ========================================= */
+      
+      /* Make sure containers don’t cause page-level horizontal scroll */
+      .section, .card, .accordion-body { max-width: 100%; }
+      
+      /* Wrap tables so only the table scrolls horizontally */
+      .table-wrap{
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
+        border-radius: 16px;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain; /* keep swipe inside table */
       }
-      .table-wrap.wide table.pivot{
-        min-width: 760px;
+      
+      /* Let table keep its natural width but never smaller than container */
+      .table-wrap table{
+        width: max-content;
+        min-width: 100%;
       }
-    }
+      
+      /* Optional: keep your “floating rows” spacing */
+      .table-wrap table{
+        border-collapse: separate;
+        border-spacing: 0 8px;
+      }
+      
+      /* Slightly tighter padding on small screens */
+      @media (max-width: 820px){
+        table{ font-size: .88rem; }
+        th,td{ padding: 7px 8px; }
+      }
+      
+      /* Subtle edge fades to hint “swipe” */
+      .table-wrap{
+        position: relative;
+      }
+      .table-wrap::before,
+      .table-wrap::after{
+        content:"";
+        position: sticky;
+        top: 0;
+        width: 18px;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+        display: block;
+      }
+      .table-wrap::before{
+        left: 0;
+        background: linear-gradient(90deg, rgba(7,9,15,.85), rgba(7,9,15,0));
+      }
+      .table-wrap::after{
+        right: 0;
+        background: linear-gradient(270deg, rgba(7,9,15,.85), rgba(7,9,15,0));
+      }
+      
+      /* Make sticky headers behave better inside scrollers */
+      .table-wrap thead th{
+        position: sticky;
+        top: 0;
+        z-index: 3;
+      }
   </style>
 </head>
 
@@ -1103,35 +1049,27 @@ function updateFilterHint(){
   el('scopeChipTeam').textContent = chip;
 }
 
-/* Tables + heat */
 function renderSimpleTable(list, cols){
   if (!list.length) return '<div class="muted">No rows.</div>';
 
-  const head = `<thead><tr>${
-    cols.map(c=>`<th data-key="${c.key}" class="${c.right?'right':''}">${c.label}</th>`).join('')
-  }</tr></thead>`;
+  const head = `<thead><tr>${cols.map(c =>
+    `<th data-key="${c.key}" class="${c.right?'right':''}">${c.label}</th>`
+  ).join('')}</tr></thead>`;
 
-  const body = `<tbody>${
-    list.map((r,i)=>`<tr>${
-      cols.map(c=>{
-        let v;
-        if (typeof c.html === 'function') {
-          v = c.html(r,i);
-        } else {
-          v = r[c.key];
-          if (c.format==='pct') v=isFinite(v)?(v*100).toFixed(1)+'%':'—';
-          else if (c.format==='1d') v=isFinite(v)?Number(v).toFixed(1):'—';
-          else if (c.format==='0d') v=isFinite(v)?Number(v).toFixed(0):'—';
-          if (c.link && v && looksLikeURL(v)) v=`<a href="${v}" target="_blank" rel="noopener">${v}</a>`;
-        }
-
-        const label = (c.label ?? '').toString().replace(/"/g,'&quot;'); // for data-label
-        return `<td data-key="${c.key}" data-label="${label}" class="${c.right?'right':''}">
-          ${(v==null||v==='')?'—':v}
-        </td>`;
-      }).join('')
-    }</tr>`).join('')
-  }</tbody>`;
+  const body = `<tbody>${list.map((r,i)=>`<tr>${
+    cols.map(c=>{
+      let v;
+      if (typeof c.html==='function'){ v=c.html(r,i); }
+      else{
+        v=r[c.key];
+        if (c.format==='pct') v=isFinite(v)?(v*100).toFixed(1)+'%':'—';
+        else if (c.format==='1d') v=isFinite(v)?Number(v).toFixed(1):'—';
+        else if (c.format==='0d') v=isFinite(v)?Number(v).toFixed(0):'—';
+        if (c.link && v && looksLikeURL(v)) v=`<a href="${v}" target="_blank" rel="noopener">${v}</a>`;
+      }
+      return `<td data-key="${c.key}" class="${c.right?'right':''}">${(v==null||v==='')?'—':v}</td>`;
+    }).join('')
+  }</tr>`).join('')}</tbody>`;
 
   return `<div class="table-wrap"><table>${head}${body}</table></div>`;
 }
@@ -1687,7 +1625,7 @@ function renderByDay(){
   }
   tbody += '</tbody>';
 
-  el('tblByDay').innerHTML = `<table>${thead}${tbody}</table>`;
+  el('tblByDay').innerHTML = `<div class="table-wrap"><table>${thead}${tbody}</table></div>`;
   applyColumnHeatmap('tblByDay', days);
 }
 
