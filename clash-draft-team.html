@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Clash Squad Draft</title>
-
-  <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
@@ -61,8 +59,7 @@
       --danger:#ff5a5a;
       --good:#71d083;
 
-      /* draft history scroll sizing */
-      --rowH: 48px;
+      --rowH: 48px; /* header + 5 rows */
     }
 
     *{ box-sizing:border-box; }
@@ -79,7 +76,6 @@
       overflow-x:hidden;
     }
 
-    /* subtle noise */
     body:before{
       content:"";
       position:fixed;
@@ -166,12 +162,13 @@
       box-shadow: 0 0 0 3px rgba(77,211,255,.14), 0 16px 40px rgba(0,0,0,.45);
     }
 
-    /* details (Draft History ONLY) */
+    /* Draft History ONLY */
     details.glassy{
       margin: 20px auto;
       width: 90%;
       max-width: 1200px;
       padding: 12px 12px 14px;
+
       background:rgba(20,26,38,.55);
       border:1px solid var(--line);
       border-radius:var(--radius-lg);
@@ -225,7 +222,6 @@
     }
     .top-controls a:hover{ transform: translateY(-1px); filter:brightness(1.03); }
     .top-controls label{ color:var(--muted); font-weight:800; }
-
     .top-controls button{
       background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.78));
       color:#10121a;
@@ -298,14 +294,7 @@
       border:1px dashed rgba(255,189,89,.55);
     }
 
-    .team-row{
-      display:flex;
-      gap:10px;
-      flex-wrap:nowrap;
-      justify-content:center;
-      align-items:flex-start;
-      width:100%;
-    }
+    .team-row{ display:flex; gap:10px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
 
     .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; }
 
@@ -318,16 +307,17 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       border:1px solid rgba(255,255,255,.10);
       box-shadow: 0 16px 55px rgba(0,0,0,.45);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       backdrop-filter: blur(14px) saturate(140%);
       transition: transform .15s ease, border-color .15s ease, filter .15s ease;
-      overflow:hidden;
     }
     .pick-slot{ border-color: rgba(77,211,255,.22); }
     .ban-slot{ border-color: rgba(255,90,90,.42); }
+
     .ban-slot:hover, .pick-slot:hover{ transform: translateY(-2px); filter:brightness(1.03); }
     .ban-slot.disabled, .pick-slot.disabled{ opacity:0.4; pointer-events:none; }
 
@@ -335,18 +325,42 @@
       font-size:12px;
       color:rgba(244,246,255,.78);
       text-align:center;
-      max-width:140px;
+      max-width:100px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
 
-    .passive-slots, .weapon-slots{
+    .player-input{
+      width: 96px;
+      font-size: 10px;
+      padding: 6px 8px;
+      text-align:center;
+      border-radius:12px;
+      margin-top: 4px;
+    }
+
+    /* --- pick internals (desktop base) --- */
+    .pick-pack{ width:100%; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .pick-main{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .pick-side{
+      width:100%;
       display:flex;
-      gap:6px;
+      gap:10px;
       justify-content:center;
+      align-items:flex-start;
       flex-wrap:wrap;
     }
+    .pick-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .pick-col-title{
+      font-size:10px;
+      font-weight:950;
+      color: rgba(170,177,197,.85);
+      letter-spacing:.3px;
+      text-transform: uppercase;
+    }
+
+    .passive-slots, .weapon-slots{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
     .passive-slot{
       width:26px; height:52px;
       border-radius:10px;
@@ -376,88 +390,213 @@
       backdrop-filter: blur(12px) saturate(135%);
       box-shadow: 0 12px 30px rgba(0,0,0,.35);
       transition: transform .15s ease, filter .15s ease;
-      overflow:hidden;
     }
     .weapon-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .weapon-slot img{ max-height:100%; max-width:100%; object-fit:contain; }
+    .weapon-slot img{ max-height:100%; max-width:100%; }
 
     .passive-name, .weapon-name{
       font-size:10px;
       color:rgba(244,246,255,.72);
       text-align:center;
-      max-width: 120px;
+      max-width: 100px;
       overflow:hidden;
       white-space:nowrap;
       text-overflow:ellipsis;
     }
 
-    .player-input{
-      width: 96px;
-      font-size: 10px;
-      padding: 6px 8px;
-      text-align:center;
-      border-radius:12px;
-      margin-top: 4px;
-    }
-
     .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
 
-    /* draft history table */
-    .table-scroll{
-      width: 100%;
-      max-height: calc(var(--rowH) * 6);
-      overflow-y: auto;
-      overflow-x: hidden;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    /* ✅ SUMMARY (team left / team right AFTER selection area) */
+    .summary-wrapper{
+      width: 95%;
+      max-width: 1400px;
+      margin: 14px auto 0;
+      display:flex;
+      justify-content:flex-start;
+      gap: 18px;
+      font-size: 12px;
+      color: rgba(244,246,255,.78);
+      overflow-x:auto;              /* ✅ side scroll instead of ugly stacking */
+      padding: 10px;
+      -webkit-overflow-scrolling: touch;
     }
-    #recordTable{
-      width: 100%;
-      border-collapse: collapse;
+    .summary-wrapper > div{
+      min-width: 520px;
+      padding: 12px;
+      border-radius: var(--radius-lg);
+      background:rgba(20,26,38,.48);
+      border:1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    .summary-wrapper h3{
+      margin: 6px 0 12px;
+      text-align:center;
+      font-family:'Orbitron',sans-serif;
+      color: var(--brand);
+      letter-spacing:.5px;
+    }
+
+    .sum-section-title{
+      text-align:center;
+      font-weight:950;
+      color: rgba(170,177,197,.92);
+      margin: 8px 0 10px;
+      letter-spacing:.2px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .sum-ban{
+      background:rgba(255,90,90,.10);
+      border:1px solid rgba(255,90,90,.35);
+      border-radius:16px;
+      padding:12px;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .sum-ban-title{
+      font-weight:950;
+      text-align:center;
+      color: rgba(244,246,255,.92);
+      margin-bottom: 6px;
+      letter-spacing:.2px;
+    }
+    .sum-ban-name{
+      text-align:center;
+      font-weight:950;
+      color: var(--brand2);
+      margin-bottom: 4px;
+    }
+    .sum-ban-desc{
+      font-size: 11px;
+      color: rgba(244,246,255,.72);
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow:hidden;
-      border-radius: 16px;
-      border: none;
-      box-shadow: none;
     }
-    #recordTable thead{
-      background: rgba(255,255,255,.06) !important;
+
+    .sum-players{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
     }
-    #recordTable th, #recordTable td{
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding: 10px 8px !important;
-      color: rgba(244,246,255,.86);
-      font-size: 13px;
-      height: var(--rowH);
-      vertical-align: middle;
-      background: transparent;
+
+    .sum-card{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-width:0;
     }
-    #recordTable thead th{
-      position: sticky;
-      top: 0;
-      z-index: 4;
-      background: rgba(255,255,255,.08) !important;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+
+    .sum-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      min-width:0;
     }
-    #recordTable tbody{
-      background: rgba(14,18,28,.35) !important;
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
+    .sum-who{ min-width:0; }
+    .sum-player{
+      font-weight:950;
+      color: rgba(244,246,255,.92);
+      font-size: 11px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
     }
-    #recordTable button{
-      border:none;
-      border-radius:12px;
-      padding: 8px 10px;
+    .sum-active{
+      font-weight:950;
+      color: var(--accent);
+      font-size: 11px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
+    }
+
+    .sum-more{
+      flex:0 0 auto;
       cursor:pointer;
-      font-weight: 900;
+      border:none;
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-weight:950;
+      font-size: 11px;
       color:#12131a;
-      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.90));
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
+      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.92));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 22px rgba(0,0,0,.25);
     }
-    #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
+
+    .sum-desc{
+      font-size: 11px;
+      color: rgba(244,246,255,.72);
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow:hidden;
+    }
+    .sum-card.expanded .sum-desc{
+      -webkit-line-clamp: initial;
+    }
+
+    /* ✅ passive/weapon item with description (clamped; expands on More) */
+    .sum-item{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(14,18,28,.35);
+      border: 1px solid rgba(255,255,255,.10);
+      min-width:0;
+    }
+    .sum-item img{
+      width:18px;
+      height:18px;
+      border-radius:6px;
+      object-fit:cover;
+      flex: 0 0 auto;
+      margin-top: 1px;
+    }
+    .sum-item-text{ min-width:0; flex:1; }
+    .sum-item-name{
+      font-size: 10px;
+      font-weight: 950;
+      color: rgba(244,246,255,.90);
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .sum-item-desc{
+      margin-top: 2px;
+      font-size: 10px;
+      color: rgba(244,246,255,.70);
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow:hidden;
+    }
+    .sum-card.expanded .sum-item-desc{
+      -webkit-line-clamp: initial;
+    }
 
     /* modal */
     .modal{
@@ -570,6 +709,61 @@
     .hero-grid-item img{ width:80px; height:80px; object-fit:contain; margin-bottom:6px; }
     .hero-grid-item div{ font-size:10px; text-align:center; color: rgba(244,246,255,.82); max-width: 86px; overflow-wrap:anywhere; }
 
+    /* draft history table */
+    .table-scroll{
+      width: 100%;
+      max-height: calc(var(--rowH) * 6);
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    }
+    #recordTable{
+      width: 100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 16px;
+      border: none;
+      box-shadow: none;
+    }
+    #recordTable thead{ background: rgba(255,255,255,.06) !important; }
+    #recordTable th, #recordTable td{
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 10px 8px !important;
+      color: rgba(244,246,255,.86);
+      font-size: 13px;
+      height: var(--rowH);
+      vertical-align: middle;
+      background: transparent;
+    }
+    #recordTable thead th{
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      background: rgba(255,255,255,.08) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    #recordTable tbody{
+      background: rgba(14,18,28,.35) !important;
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    #recordTable button{
+      border:none;
+      border-radius:12px;
+      padding: 8px 10px;
+      cursor:pointer;
+      font-weight: 900;
+      color:#12131a;
+      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.90));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
+
     /* Filter bar */
     #pbFilterBar{
       width: 95%;
@@ -614,7 +808,7 @@
     }
     .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
 
-    /* Match Summary by Team (ACCORDION) */
+    /* Match Summary by Team (Accordion) */
     #draftCardSummary{
       width: 95%;
       max-width: 1400px;
@@ -634,7 +828,6 @@
       letter-spacing:.4px;
       margin: 6px 0 14px;
     }
-
     #teamDraftCards{
       display:flex;
       flex-wrap:wrap;
@@ -642,7 +835,6 @@
       justify-content: center;
       align-items: flex-start;
     }
-
     details.team-accordion{
       width: 340px;
       border-radius: 18px;
@@ -664,7 +856,12 @@
       gap: 10px;
     }
     details.team-accordion > summary::-webkit-details-marker{ display:none; }
-    .acc-left{ display:flex; align-items:center; gap: 10px; min-width: 0; }
+    .acc-left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
     .acc-title{
       color: var(--brand2);
       font-family:'Orbitron',sans-serif;
@@ -722,7 +919,7 @@
       box-shadow: 0 10px 24px rgba(0,0,0,.30);
     }
 
-    /* Pick/Ban Counts section */
+    /* Pick/Ban Counts */
     #teamPBCounts{
       width: 95%;
       max-width: 1400px;
@@ -783,180 +980,29 @@
       border-top-right-radius: 10px;
     }
 
-    /* =========================
-       ✅ SUMMARY (TEAM LEFT/RIGHT)
-       side-scroll + clamped desc
-    ========================= */
-    .summary-wrapper{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
-      display:flex;
-      gap: 18px;
-      padding: 10px;
-      overflow-x:auto;
-      scroll-snap-type:x mandatory;
-    }
-    .summary-wrapper > div{
-      min-width: 520px;
-      padding: 12px;
-      border-radius: var(--radius-lg);
-      background:rgba(20,26,38,.48);
-      border:1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-      scroll-snap-align:start;
-    }
-    .sum-title{
-      margin: 6px 0 10px;
-      text-align:center;
-      font-family:'Orbitron',sans-serif;
-      color: var(--brand);
-      letter-spacing:.5px;
-      font-size: 16px;
-    }
-    .sum-ban{
-      border-radius:14px;
-      padding:10px;
-      background:rgba(255,90,90,.10);
-      border:1px solid rgba(255,90,90,.35);
-      font-size:12px;
-      color: rgba(244,246,255,.86);
-      margin: 8px 0 12px;
-      line-height: 1.25;
-    }
-    .sum-strip{
-      display:flex;
-      gap: 10px;
-      overflow-x:auto;
-      padding-bottom: 6px;
-      scroll-snap-type:x mandatory;
-    }
-    .sum-card{
-      flex: 0 0 220px;
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:10px;
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      scroll-snap-align:start;
-    }
-    .sum-head{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin-bottom: 8px;
-    }
-    .sum-hero{
-      width:44px;height:44px;
-      border-radius:12px;
-      object-fit:cover;
-      box-shadow: 0 10px 22px rgba(0,0,0,.35);
-      flex: 0 0 auto;
-    }
-    .sum-names{ min-width:0; line-height: 1.1; }
-    .sum-heroName{
-      font-weight: 950;
-      color: rgba(244,246,255,.92);
-      font-size: 12px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .sum-playerName{
-      font-weight: 900;
-      color: rgba(170,177,197,.90);
-      font-size: 11px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .sum-skill{
-      font-weight: 900;
-      color: rgba(77,211,255,.95);
-      font-size: 11px;
-      margin-top: 4px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .sum-desc{
-      margin-top: 8px;
-      font-size: 11px;
-      color: rgba(244,246,255,.78);
-      line-height: 1.25;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow:hidden;
-    }
-    .sum-card.expanded .sum-desc{ -webkit-line-clamp: initial; }
-    .sum-more{
-      margin-top: 6px;
-      width: 100%;
-      border:none;
-      cursor:pointer;
-      border-radius: 12px;
-      padding: 8px 10px;
-      font-weight: 950;
-      color:#10121a;
-      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.90));
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 12px 30px rgba(0,0,0,.28);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .sum-more:hover{ filter:brightness(1.04); transform: translateY(-1px); }
-    .sum-miniTitle{
-      margin-top: 10px;
-      font-size: 11px;
-      font-weight: 950;
-      color: rgba(244,246,255,.90);
-      border-top: 1px solid rgba(255,255,255,.08);
-      padding-top: 8px;
-    }
-    .sum-miniRow{
-      display:flex;
-      gap: 6px;
-      flex-wrap:wrap;
-      margin-top: 6px;
-    }
-    .sum-chip{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding: 6px 8px;
-      border-radius: 999px;
-      background: rgba(14,18,28,.35);
-      border: 1px solid rgba(255,255,255,.10);
-      font-size: 10px;
-      color: rgba(244,246,255,.80);
-    }
-    .sum-chip img{
-      width:16px;height:16px;border-radius:6px; object-fit:cover;
+    /* ✅ Responsive */
+    @media (max-width: 1100px){
+      .draft-wrapper{ flex-wrap:wrap; gap:14px; }
+      .summary-wrapper > div{ min-width: 360px; }
+      details.team-accordion{ width: min(520px, 100%); }
+      .sum-players{ grid-template-columns: 1fr; }
     }
 
-    /* ✅ Mobile: stack draft picks per team as:
-       BAN (full) then Player rows
-       Each player row = Active main + Passives column + Weapons column
-    */
+    /* ✅ Mobile draft “stack cards” only on mobile */
     @media (max-width: 820px){
-      .draft-wrapper{ flex-wrap:wrap; gap:14px; }
       .team-row{
-        flex-direction:column;
-        align-items:stretch;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        max-width: 520px;
       }
 
-      /* slot becomes a row card on mobile */
-      .slot.pick-mobile{
+      /* ✅ Ban card on mobile: same proportion as normal (2:3), not wide */
+      .slot.ban-mobile{
         width:100%;
-        display:grid;
-        grid-template-columns: 92px 1fr 1fr; /* main | passives | weapons */
-        grid-template-rows: auto auto auto;
-        gap: 8px 10px;
-        align-items:start;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
         padding: 10px;
         border-radius: 18px;
         background: rgba(255,255,255,.04);
@@ -965,87 +1011,62 @@
         backdrop-filter: blur(12px) saturate(135%);
         box-shadow: 0 14px 40px rgba(0,0,0,.25);
       }
-
-      .slot.pick-mobile .pick-slot{
+      .slot.ban-mobile .ban-slot{
         width: 92px;
-        height: 126px;
-        grid-column: 1;
-        grid-row: 1 / span 3;
-        margin:0 auto;
+        height: 138px; /* same ratio */
+      }
+      .slot.ban-mobile .slot-name{
+        display:block;
+        margin-top:6px;
+        max-width: 92px;
+        font-size: 12px;
       }
 
-      .slot.pick-mobile .slot-name{
-        grid-column: 2 / span 2;
-        grid-row: 1;
-        text-align:left;
-        max-width:100%;
-        white-space:normal;
+      /* ✅ Pick card layout: Active | Passives | Weapons */
+      .slot.pick-mobile{
+        width:100%;
+        align-items: stretch;
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(255,255,255,.04);
+        border: 1px solid rgba(255,255,255,.10);
+        -webkit-backdrop-filter: blur(12px) saturate(135%);
+        backdrop-filter: blur(12px) saturate(135%);
+        box-shadow: 0 14px 40px rgba(0,0,0,.25);
+      }
+
+      .slot.pick-mobile .pick-pack{
+        display:grid;
+        grid-template-columns: 100px 1fr 1fr;
+        grid-template-areas:
+          "main pass weap";
+        gap: 12px;
+        align-items:start;
+      }
+
+      .slot.pick-mobile .pick-main{ grid-area: main; }
+      .slot.pick-mobile .pick-side{ grid-area: pass / pass / weap / weap; display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+      .slot.pick-mobile .pick-col{ width:100%; }
+      .slot.pick-mobile .pick-col-title{ text-align:center; }
+
+      .slot.pick-mobile .pick-slot{
+        width: 100px;
+        height: 150px;
       }
 
       .slot.pick-mobile .player-input{
-        grid-column: 2 / span 2;
-        grid-row: 2;
-        width: 100%;
-        max-width: 100%;
+        width: 100px;
       }
 
-      /* Passives = right column 1 */
-      .slot.pick-mobile .passive-wrap{
-        grid-column: 2;
-        grid-row: 3;
-      }
-
-      /* Weapons = right column 2 */
-      .slot.pick-mobile .weapon-wrap{
-        grid-column: 3;
-        grid-row: 3;
-      }
-
-      .slot.pick-mobile .passive-slots,
-      .slot.pick-mobile .weapon-slots{
-        flex-direction:column;
-        align-items:stretch;
-        justify-content:flex-start;
-        gap: 6px;
-        flex-wrap:nowrap;
-      }
-
-      .slot.pick-mobile .passive-slot{
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-      }
       .slot.pick-mobile .weapon-slot{
         width: 100%;
-        height: 36px;
-        border-radius: 12px;
-      }
-      .slot.pick-mobile .passive-name,
-      .slot.pick-mobile .weapon-name{
-        max-width:100%;
-        text-align:left;
+        max-width: 140px;
       }
 
-      /* Ban slot full width at top */
-      .slot.ban-mobile{
-        width:100%;
-        display:flex;
-        align-items:center;
+      .slot.pick-mobile .passive-slots{
+        justify-content:center;
       }
-      .slot.ban-mobile .ban-slot{
-        width: 100%;
-        height: 110px;
-      }
-      .slot.ban-mobile .slot-name{
-        display:none;
-      }
-
-      /* summary: side-scroll */
-      .summary-wrapper{ padding: 10px 6px; }
-      .summary-wrapper > div{ min-width: 92vw; }
-      .sum-card{ flex-basis: 78vw; }
-
-      details.team-accordion{ width: min(520px, 100%); }
     }
   </style>
 </head>
@@ -1156,7 +1177,7 @@
     </div>
   </div>
 
-  <!-- ✅ improved summary panels -->
+  <!-- ✅ Team left/right description section (now cleaner + expandable) -->
   <div class="summary-wrapper">
     <div><div class="summary-team" id="summaryLeft"></div></div>
     <div><div class="summary-team" id="summaryRight"></div></div>
@@ -1167,10 +1188,8 @@
       <span class="close-btn" onclick="closeModal()">X</span>
       <h3 id="modalTitle">Select</h3>
 
-      <!-- ✅ toolbar (weapon filter goes here, NOT inside grid) -->
-      <div id="modalToolbar"></div>
-
-      <div id="heroGrid"></div>
+      <div id="weaponFilterHost"></div>
+      <div class="hero-grid" id="heroGrid"></div>
     </div>
   </div>
 
@@ -1221,14 +1240,14 @@
   </div>
 
 <script>
+/* -----------------------------
+   GLOBALS
+------------------------------*/
 let characters = [], weapons = [], currentSlot = null;
+
 let ALL_DRAFT_RECORDS = [];
 let LAST_MATCHED_RECORDS = [];
 
-// ✅ faster lookup
-let weaponByName = new Map();
-
-// state now includes tournamentName
 let draftState = {
   bans: [null, null],
   picks: Array(8).fill(null),
@@ -1244,40 +1263,87 @@ let draftState = {
   tournamentName: ''
 };
 
-// ✅ debounce saves (prevents spam upserts when typing / fast clicks)
-let saveTimer = null;
-function queueSave(delay=250){
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveDraftState(), delay);
+/* -----------------------------
+   HELPERS
+------------------------------*/
+const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
+
+function esc(s){
+  return (s ?? '').toString()
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
 }
 
-async function initDraftPage() {
-  characters = await (await fetch('https://neptuneg1.github.io/freefire-caster/character.json', { cache: 'no-store' })).json();
-  weapons    = await (await fetch('https://neptuneg1.github.io/freefire-caster/weapon.json',    { cache: 'no-store' })).json();
+function getDesc(obj){
+  return (obj?.description || obj?.desc || obj?.details || obj?.notes || obj?.note || '').toString().trim();
+}
 
-  weaponByName = new Map(weapons.map(w => [w.name, w]));
+function formatWeaponDesc(w){
+  const d = getDesc(w);
+  if (d) return d;
+
+  const parts = [];
+  if (w?.damage != null) parts.push(`Dmg ${w.damage}`);
+  if (w?.rate_of_fire != null) parts.push(`RoF ${w.rate_of_fire}`);
+  if (w?.range != null) parts.push(`Rng ${w.range}`);
+  if (w?.magazine_size != null) parts.push(`Mag ${w.magazine_size}`);
+
+  const arm = getWeaponArmory(w?.name || '');
+  if (arm) parts.push(`Armory ${arm}`);
+
+  return parts.length ? parts.join(' • ') : '—';
+}
+
+function debounce(fn, wait=450){
+  let t=null;
+  return (...args)=>{
+    clearTimeout(t);
+    t=setTimeout(()=>fn(...args), wait);
+  };
+}
+
+/* -----------------------------
+   INIT
+------------------------------*/
+async function initDraftPage() {
+  // Fetch in parallel (slightly faster)
+  const [cRes, wRes] = await Promise.all([
+    fetch('https://neptuneg1.github.io/freefire-caster/character.json', { cache: 'no-store' }),
+    fetch('https://neptuneg1.github.io/freefire-caster/weapon.json', { cache: 'no-store' })
+  ]);
+  characters = await cRes.json();
+  weapons = await wRes.json();
 
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;
 
-  // autosave header changes into public.draft
-  document.getElementById('matchDate').addEventListener('change', () => queueSave(50));
-  document.getElementById('gameNumberSelect').addEventListener('change', () => queueSave(50));
-  document.getElementById('mapSelect').addEventListener('change', () => queueSave(50));
-  document.getElementById('teamLeftScore').addEventListener('change', () => queueSave(50));
-  document.getElementById('teamRightScore').addEventListener('change', () => queueSave(50));
-  document.getElementById('tournamentInput').addEventListener('change', () => queueSave(50));
+  // Debounced autosave
+  const autoSave = debounce(saveDraftState, 450);
 
-  await loadDraftState(); // from public.draft
+  document.getElementById('matchDate').addEventListener('change', autoSave);
+  document.getElementById('gameNumberSelect').addEventListener('change', autoSave);
+  document.getElementById('mapSelect').addEventListener('change', autoSave);
+  document.getElementById('teamLeftScore').addEventListener('change', autoSave);
+  document.getElementById('teamRightScore').addEventListener('change', autoSave);
+  document.getElementById('tournamentInput').addEventListener('change', autoSave);
+
+  await loadDraftState();
+
+  // Re-draw on resize so mobile layout applies instantly
+  window.addEventListener('resize', debounce(() => drawDraft(), 150));
 
   // realtime sync for public.draft
   client
     .channel('public:draft')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'draft' }, payload => {
-      if (payload.new.id === 1 && payload.new.state) {
+      if (payload.new?.id === 1 && payload.new?.state) {
         draftState = { ...draftState, ...payload.new.state };
         applyStateToControls();
         drawDraft();
+        console.log('🔄 Draft state synced from realtime');
       }
     })
     .subscribe();
@@ -1285,7 +1351,8 @@ async function initDraftPage() {
   // realtime refresh for history
   client
     .channel('public:draft_records')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_records' }, () => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_records' }, payload => {
+      console.log('📡 draft_records changed', payload);
       loadAllDraftRecords();
     })
     .subscribe();
@@ -1293,38 +1360,71 @@ async function initDraftPage() {
   loadAllDraftRecords();
 }
 
-function isMobile(){
-  return window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
-}
-
+/* -----------------------------
+   DRAFT RENDER
+------------------------------*/
 function drawDraft(){
-  const l=document.getElementById('teamLeft'), r=document.getElementById('teamRight');
+  const l=document.getElementById('teamLeft'),r=document.getElementById('teamRight');
   l.innerHTML=''; r.innerHTML='';
 
-  // Left side: Ban then Picks 0-3
+  // Left: Ban then picks 0-3
   l.appendChild(makeSlot('ban',0));
   for(let i=0;i<4;i++) l.appendChild(makeSlot('pick',i));
 
-  // Right side: Picks 7-4 then Ban (your original visual order)
+  // Right: picks 7-4 then Ban
   for(let i=7;i>=4;i--) r.appendChild(makeSlot('pick',i));
   r.appendChild(makeSlot('ban',1));
 
-  document.getElementById('teamNameLeft').value  = draftState.teamNames[0];
+  document.getElementById('teamNameLeft').value = draftState.teamNames[0];
   document.getElementById('teamNameRight').value = draftState.teamNames[1];
 
   updateSummary();
 }
 
 function makeSlot(type,index){
+  const isM = isMobile();
   const c=document.createElement('div');
-  c.className = 'slot';
+  c.className='slot';
 
-  const mobile = isMobile();
-  if (type === 'pick' && mobile) c.classList.add('pick-mobile');
-  if (type === 'ban' && mobile)  c.classList.add('ban-mobile');
+  if(type==='ban'){
+    if (isM) c.classList.add('ban-mobile');
+
+    const m=document.createElement('div');
+    m.className='ban-slot';
+
+    const img=document.createElement('img');
+    img.src='https://imgur.com/AdvPwAO.png';
+    img.style.width='100%';
+    img.style.height='100%';
+    img.style.borderRadius='14px';
+    img.style.objectFit='cover';
+    m.appendChild(img);
+
+    const nameDiv=document.createElement('div');
+    nameDiv.className='slot-name';
+
+    const h=draftState.bans[index];
+    if(h){ img.src=h.image_url; nameDiv.innerText=h.name; }
+
+    m.onclick=()=>{ currentSlot={type,index}; openModal('Select Hero to Ban'); };
+
+    c.appendChild(m);
+    c.appendChild(nameDiv);
+    return c;
+  }
+
+  // PICK slot (mobile grid: Active | Passives | Weapons)
+  if (isM) c.classList.add('pick-mobile');
+
+  const pack = document.createElement('div');
+  pack.className = 'pick-pack';
+
+  // Main column (active + name + player)
+  const main = document.createElement('div');
+  main.className = 'pick-main';
 
   const m=document.createElement('div');
-  m.className = type==='ban' ? 'ban-slot' : 'pick-slot';
+  m.className='pick-slot';
 
   const img=document.createElement('img');
   img.src='https://imgur.com/AdvPwAO.png';
@@ -1337,25 +1437,11 @@ function makeSlot(type,index){
   const nameDiv=document.createElement('div');
   nameDiv.className='slot-name';
 
-  if(type==='ban'){
-    const h=draftState.bans[index];
-    if(h){ img.src=h.image_url; nameDiv.innerText=h.name; }
-    m.onclick=()=>{ currentSlot={type,index}; openModal('Select Hero to Ban'); };
-    c.appendChild(m);
-    c.appendChild(nameDiv);
-    return c;
-  }
-
-  // pick
   const h=draftState.picks[index];
   if(h){ img.src=h.image_url; nameDiv.innerText=h.name; }
+
   m.onclick=()=>{ currentSlot={type,index}; openModal('Select Active Skill'); };
 
-  // For mobile grid layout, we place elements in an order that matches the CSS grid
-  c.appendChild(m);
-  c.appendChild(nameDiv);
-
-  // player input
   const input = document.createElement('input');
   input.type = 'text';
   input.placeholder = 'Player Name';
@@ -1363,52 +1449,73 @@ function makeSlot(type,index){
   input.className = 'player-input';
   input.onchange = () => {
     draftState.playerCards[index] = input.value;
-    queueSave();
+    debouncedSave();
   };
-  c.appendChild(input);
 
-  // Passives wrapper (so mobile can position it as a column)
-  const passiveWrap = document.createElement('div');
-  passiveWrap.className = 'passive-wrap';
+  main.appendChild(m);
+  main.appendChild(nameDiv);
+  main.appendChild(input);
 
-  const passives=draftState.passives[index];
+  // Side columns: Passives + Weapons
+  const side = document.createElement('div');
+  side.className = 'pick-side';
+
+  // Passives col
+  const pCol = document.createElement('div');
+  pCol.className = 'pick-col';
+  const pTitle = document.createElement('div');
+  pTitle.className = 'pick-col-title';
+  pTitle.textContent = 'Passives';
   const pDiv=document.createElement('div');
   pDiv.className='passive-slots';
 
+  const passives=draftState.passives[index] || [null,null,null];
   passives.forEach((ps,i)=>{
+    const box=document.createElement('div');
+    box.style.display='flex';
+    box.style.flexDirection='column';
+    box.style.alignItems='center';
+
     const p=document.createElement('div');
     p.className='passive-slot';
 
     const pn=document.createElement('div');
     pn.className='passive-name';
 
-    if(ps){ p.style.backgroundImage=`url(${ps.image_url})`; pn.innerText=ps.name; }
+    if(ps){
+      p.style.backgroundImage=`url(${ps.image_url})`;
+      pn.innerText=ps.name;
+    }
 
     p.onclick=()=>{
       currentSlot={type:'passive',pickIndex:index,passiveIndex:i};
       openModal('Select Passive Skill');
     };
 
-    const box=document.createElement('div');
-    box.style.display='flex';
-    box.style.flexDirection='column';
-    box.style.alignItems = 'center';
     box.appendChild(p);
     box.appendChild(pn);
     pDiv.appendChild(box);
   });
 
-  passiveWrap.appendChild(pDiv);
-  c.appendChild(passiveWrap);
+  pCol.appendChild(pTitle);
+  pCol.appendChild(pDiv);
 
-  // Weapons wrapper (so mobile can position it as a column)
-  const weaponWrap = document.createElement('div');
-  weaponWrap.className = 'weapon-wrap';
-
+  // Weapons col
+  const wCol = document.createElement('div');
+  wCol.className = 'pick-col';
+  const wTitle = document.createElement('div');
+  wTitle.className = 'pick-col-title';
+  wTitle.textContent = 'Weapons';
   const wDiv=document.createElement('div');
   wDiv.className='weapon-slots';
 
-  draftState.weapons[index].forEach((w,i)=>{
+  const wArr = draftState.weapons[index] || [null,null,null];
+  wArr.forEach((w,i)=>{
+    const box=document.createElement('div');
+    box.style.display='flex';
+    box.style.flexDirection='column';
+    box.style.alignItems='center';
+
     const wSlot=document.createElement('div');
     wSlot.className='weapon-slot';
     if(i===0) wSlot.style.border='1px solid rgba(255,189,89,.65)';
@@ -1428,67 +1535,42 @@ function makeSlot(type,index){
       openModal('Select Weapon');
     };
 
-    const box=document.createElement('div');
-    box.style.display='flex';
-    box.style.flexDirection='column';
-    box.style.alignItems='center';
     box.appendChild(wSlot);
     box.appendChild(wn);
     wDiv.appendChild(box);
   });
 
-  weaponWrap.appendChild(wDiv);
-  c.appendChild(weaponWrap);
+  wCol.appendChild(wTitle);
+  wCol.appendChild(wDiv);
 
+  side.appendChild(pCol);
+  side.appendChild(wCol);
+
+  pack.appendChild(main);
+  pack.appendChild(side);
+
+  c.appendChild(pack);
   return c;
 }
 
 function updateTeamName(teamIndex) {
   const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
   draftState.teamNames[teamIndex] = input.value;
-  queueSave();
+  debouncedSave();
 }
 
 /* -----------------------------
-   MODAL + PICKERS
+   MODAL
 ------------------------------*/
 function openModal(title) {
   document.getElementById('modalTitle').innerText = title;
 
   const grid = document.getElementById('heroGrid');
-  const toolbar = document.getElementById('modalToolbar');
+  const filterHost = document.getElementById('weaponFilterHost');
   grid.innerHTML = '';
-  toolbar.innerHTML = '';
-
-  // shared "Clear" card builder
-  function addClearCard(onClear){
-    const clearCard = document.createElement('div');
-    clearCard.className = 'hero-grid-item';
-    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
-
-    const clearImg = document.createElement('img');
-    clearImg.src = 'https://imgur.com/AdvPwAO.png';
-    clearImg.alt = 'Clear';
-    clearImg.style.width = '60px';
-    clearImg.style.height = '60px';
-    clearImg.style.opacity = '0.35';
-    clearImg.style.objectFit = 'contain';
-    clearImg.style.marginBottom = '6px';
-
-    const clearLabel = document.createElement('div');
-    clearLabel.textContent = 'Clear';
-    clearLabel.style.fontSize = '10px';
-    clearLabel.style.color = 'rgba(244,246,255,.75)';
-    clearLabel.style.textAlign = 'center';
-
-    clearCard.appendChild(clearImg);
-    clearCard.appendChild(clearLabel);
-    clearCard.onclick = onClear;
-    grid.appendChild(clearCard);
-  }
+  filterHost.innerHTML = '';
 
   if (currentSlot.type === 'weapon') {
-    // toolbar filter
     const filterWrapper = document.createElement('div');
     filterWrapper.className = 'weapon-filter-wrapper';
 
@@ -1502,29 +1584,50 @@ function openModal(title) {
     });
 
     filterWrapper.appendChild(armoryFilter);
-    toolbar.appendChild(filterWrapper);
+    filterHost.appendChild(filterWrapper);
 
     function renderWeapons(filter) {
       grid.innerHTML = '';
 
-      addClearCard(() => {
+      const clearCard = document.createElement('div');
+      clearCard.className = 'hero-grid-item';
+      clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+      const clearImg = document.createElement('img');
+      clearImg.src = 'https://imgur.com/AdvPwAO.png';
+      clearImg.alt = 'Clear';
+      clearImg.style.width = '60px';
+      clearImg.style.height = '60px';
+      clearImg.style.opacity = '0.35';
+      clearImg.style.objectFit = 'contain';
+      clearImg.style.marginBottom = '6px';
+      const clearLabel = document.createElement('div');
+      clearLabel.textContent = 'Clear';
+      clearLabel.style.fontSize = '10px';
+      clearLabel.style.color = 'rgba(244,246,255,.75)';
+      clearLabel.style.textAlign = 'center';
+      clearCard.appendChild(clearImg);
+      clearCard.appendChild(clearLabel);
+      clearCard.onclick = () => {
         draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = null;
         closeModal();
         drawDraft();
-        queueSave();
-      });
+        debouncedSave();
+      };
+      grid.appendChild(clearCard);
 
-      const f = (filter || 'all').toLowerCase();
       weapons.forEach(item => {
         if (!item.armory) return;
-        if (f !== 'all' && !item.armory.toLowerCase().includes(f)) return;
+        if (filter !== 'all' && !item.armory.toLowerCase().includes(filter)) return;
 
         const card = document.createElement('div');
         card.className = 'hero-grid-item';
-
         const img = document.createElement('img');
         img.src = item.image_url;
         img.alt = item.name;
+        img.style.width = '80px';
+        img.style.height = '80px';
+        img.style.objectFit = 'contain';
+        img.style.marginBottom = '6px';
 
         const name = document.createElement('div');
         name.textContent = item.name;
@@ -1536,7 +1639,7 @@ function openModal(title) {
           draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = item;
           closeModal();
           drawDraft();
-          queueSave();
+          debouncedSave();
         };
 
         grid.appendChild(card);
@@ -1545,23 +1648,38 @@ function openModal(title) {
 
     renderWeapons('all');
     armoryFilter.addEventListener('change', () => renderWeapons(armoryFilter.value));
-
   } else {
-    addClearCard(() => {
+    const clearCard = document.createElement('div');
+    clearCard.className = 'hero-grid-item';
+    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+    const clearImg = document.createElement('img');
+    clearImg.src = 'https://imgur.com/AdvPwAO.png';
+    clearImg.alt = 'Clear';
+    clearImg.style.width = '60px';
+    clearImg.style.height = '60px';
+    clearImg.style.opacity = '0.35';
+    clearImg.style.objectFit = 'contain';
+    clearImg.style.marginBottom = '6px';
+    const clearLabel = document.createElement('div');
+    clearLabel.textContent = 'Clear';
+    clearLabel.style.fontSize = '10px';
+    clearLabel.style.color = 'rgba(244,246,255,.75)';
+    clearLabel.style.textAlign = 'center';
+    clearCard.appendChild(clearImg);
+    clearCard.appendChild(clearLabel);
+    clearCard.onclick = () => {
       if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = null;
       if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = null;
       if (currentSlot.type === 'passive') draftState.passives[currentSlot.pickIndex][currentSlot.passiveIndex] = null;
-      closeModal();
-      drawDraft();
-      queueSave();
-    });
+      closeModal(); drawDraft(); debouncedSave();
+    };
+    grid.appendChild(clearCard);
 
     const used = new Set();
     draftState.bans.forEach(h => h && used.add(h.name));
     draftState.picks.forEach(h => h && used.add(h.name));
 
-    const wantPassive = (currentSlot.type === 'passive');
-    const list = characters.filter(h => wantPassive ? h.skill_type === 'Passive' : h.skill_type === 'Active');
+    const list = characters.filter(h => (currentSlot.type === 'passive') ? h.skill_type === 'Passive' : h.skill_type === 'Active');
 
     list.forEach(item => {
       const box = document.createElement('div');
@@ -1571,25 +1689,19 @@ function openModal(title) {
       img.src = item.image_url;
       img.title = item.name;
 
-      const label = document.createElement('div');
-      label.textContent = item.name;
-
-      const wouldDisable = (currentSlot.type === 'ban' || currentSlot.type === 'pick') && used.has(item.name);
-
-      if (wouldDisable) {
+      if ((currentSlot.type === 'ban' || currentSlot.type === 'pick') && used.has(item.name)) {
         img.classList.add('disabled');
-        box.style.opacity = '0.35';
-        box.style.pointerEvents = 'none';
       } else {
-        box.onclick = () => {
+        img.onclick = () => {
           if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = item;
           if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = item;
           if (currentSlot.type === 'passive') draftState.passives[currentSlot.pickIndex][currentSlot.passiveIndex] = item;
-          closeModal();
-          drawDraft();
-          queueSave();
+          closeModal(); drawDraft(); debouncedSave();
         };
       }
+
+      const label = document.createElement('div');
+      label.textContent = item.name;
 
       box.appendChild(img);
       box.appendChild(label);
@@ -1600,112 +1712,115 @@ function openModal(title) {
   document.getElementById('heroModal').style.display = 'block';
 }
 
-function closeModal(){ document.getElementById('heroModal').style.display='none'; }
+function closeModal(){
+  document.getElementById('heroModal').style.display='none';
+}
 
 /* -----------------------------
-   ✅ SUMMARY (improved)
+   SUMMARY (TEAM LEFT / RIGHT)
+   ✅ one “More” expands Active + Passive + Weapon descriptions
 ------------------------------*/
-function esc(s){
-  return (s ?? '').toString()
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'","&#039;");
-}
-
-function toggleSumCard(btn){
-  const card = btn.closest('.sum-card');
-  if (!card) return;
-  card.classList.toggle('expanded');
-  btn.textContent = card.classList.contains('expanded') ? 'Less' : 'More';
-}
-
-function renderPlayerCard(i){
-  const hero = draftState.picks[i];
-  const playerName = draftState.playerCards?.[i] || `Player ${(i % 4) + 1}`;
-
-  const heroImg = hero?.image_url || 'https://imgur.com/AdvPwAO.png';
-  const heroName = hero?.name || 'None';
-  const heroSkill = hero?.skill || '';
-  const heroDesc = hero?.description || '';
-
-  const passives = (draftState.passives?.[i] || []).filter(Boolean);
-  const weaponsArr = (draftState.weapons?.[i] || []).filter(Boolean);
-
-  const passivesHTML = passives.length
-    ? passives.map(ps => `
-        <span class="sum-chip">
-          ${ps.image_url ? `<img src="${esc(ps.image_url)}" alt="">` : ''}
-          ${esc(ps.name)}
-        </span>
-      `).join('')
-    : `<span style="color:rgba(244,246,255,.55);font-size:10px;">None</span>`;
-
-  const weaponsHTML = weaponsArr.length
-    ? weaponsArr.map(w => `
-        <span class="sum-chip">
-          ${w.image_url ? `<img src="${esc(w.image_url)}" alt="">` : ''}
-          ${esc(w.name)}
-        </span>
-      `).join('')
-    : `<span style="color:rgba(244,246,255,.55);font-size:10px;">None</span>`;
-
-  // ✅ only show More button when description is non-trivial
-  const showMore = (heroDesc || '').trim().length > 90;
-
-  return `
-    <div class="sum-card">
-      <div class="sum-head">
-        <img class="sum-hero" src="${esc(heroImg)}" alt="">
-        <div class="sum-names">
-          <div class="sum-heroName">${esc(heroName)}</div>
-          <div class="sum-playerName">${esc(playerName)}</div>
-          <div class="sum-skill">${esc(heroSkill)}</div>
-        </div>
-      </div>
-
-      <div class="sum-desc">${esc(heroDesc) || '—'}</div>
-      ${showMore ? `<button class="sum-more" onclick="toggleSumCard(this)">More</button>` : ''}
-
-      <div class="sum-miniTitle">Passives</div>
-      <div class="sum-miniRow">${passivesHTML}</div>
-
-      <div class="sum-miniTitle">Weapons</div>
-      <div class="sum-miniRow">${weaponsHTML}</div>
-    </div>
-  `;
+function toggleSum(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('expanded');
+  const btn = el.querySelector('.sum-more');
+  if (btn) btn.textContent = el.classList.contains('expanded') ? 'Less' : 'More';
 }
 
 function updateSummary() {
   const left = document.getElementById('summaryLeft');
   const right = document.getElementById('summaryRight');
 
-  const banL = draftState.bans[0];
-  const banR = draftState.bans[1];
+  function renderBan(banIdx){
+    const b = draftState.bans[banIdx];
+    const name = b?.name || 'None';
+    const desc = getDesc(b) || '—';
+    return `
+      <div class="sum-section-title">Ban</div>
+      <div class="sum-ban">
+        <div class="sum-ban-title">${banIdx===0 ? esc(draftState.teamNames[0] || 'TEAM LEFT') : esc(draftState.teamNames[1] || 'TEAM RIGHT')}</div>
+        <div class="sum-ban-name">${esc(name)}</div>
+        <div class="sum-ban-desc">${esc(desc)}</div>
+      </div>
+    `;
+  }
 
-  const banHTML = (ban, label) => `
-    <div class="sum-ban">
-      <b>${label}</b><br>
-      ${ban ? `${esc(ban.name)}${ban.description ? `<br><span style="color:rgba(244,246,255,.72)">${esc(ban.description)}</span>` : ''}` : 'None'}
-    </div>
-  `;
+  function renderPlayerCard(i, labelPrefix){
+    const hero = draftState.picks[i];
+    const playerName = (draftState.playerCards?.[i] || `${labelPrefix} ${(i%4)+1}`).trim();
 
-  // Left: 0-3, Right: 7-4
-  const leftStrip  = [0,1,2,3].map(renderPlayerCard).join('');
-  const rightStrip = [7,6,5,4].map(renderPlayerCard).join('');
+    const activeName = hero?.name || 'None';
+    const activeSkill = hero?.skill || '';
+    const activeDesc = getDesc(hero) || '—';
 
-  left.innerHTML = `
-    <div class="sum-title">${esc(draftState.teamNames?.[0] || 'TEAM LEFT')}</div>
-    ${banHTML(banL, 'BAN')}
-    <div class="sum-strip">${leftStrip}</div>
-  `;
+    const passives = (draftState.passives?.[i] || []).filter(Boolean);
+    const weaponsArr = (draftState.weapons?.[i] || []).filter(Boolean);
 
-  right.innerHTML = `
-    <div class="sum-title">${esc(draftState.teamNames?.[1] || 'TEAM RIGHT')}</div>
-    ${banHTML(banR, 'BAN')}
-    <div class="sum-strip">${rightStrip}</div>
-  `;
+    const passivesHTML = passives.length
+      ? passives.map(ps => {
+          const pd = (ps?.skill ? `${ps.skill} — ` : '') + (getDesc(ps) || '—');
+          return `
+            <div class="sum-item">
+              ${ps.image_url ? `<img src="${esc(ps.image_url)}" alt="">` : ''}
+              <div class="sum-item-text">
+                <div class="sum-item-name">${esc(ps.name || 'Passive')}</div>
+                <div class="sum-item-desc">${esc(pd)}</div>
+              </div>
+            </div>
+          `;
+        }).join('')
+      : `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
+
+    const weaponsHTML = weaponsArr.length
+      ? weaponsArr.map(w => `
+          <div class="sum-item">
+            ${w.image_url ? `<img src="${esc(w.image_url)}" alt="">` : ''}
+            <div class="sum-item-text">
+              <div class="sum-item-name">${esc(w.name || 'Weapon')}</div>
+              <div class="sum-item-desc">${esc(formatWeaponDesc(w))}</div>
+            </div>
+          </div>
+        `).join('')
+      : `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
+
+    const id = `sum-${labelPrefix}-${i}`;
+
+    return `
+      <div class="sum-card" id="${id}">
+        <div class="sum-head">
+          <div class="sum-who">
+            <div class="sum-player">${esc(playerName)}</div>
+            <div class="sum-active">${esc(activeName)}${activeSkill ? ` • ${esc(activeSkill)}` : ''}</div>
+          </div>
+          <button class="sum-more" onclick="toggleSum('${id}')">More</button>
+        </div>
+
+        <div class="sum-desc">${esc(activeDesc)}</div>
+
+        <div class="sum-section-title" style="margin-top:2px;">Passives</div>
+        ${passivesHTML}
+
+        <div class="sum-section-title" style="margin-top:2px;">Weapons</div>
+        ${weaponsHTML}
+      </div>
+    `;
+  }
+
+  function renderTeam(teamLabel, banIdx, pickOrder, labelPrefix){
+    return `
+      <h3>${esc(teamLabel)}</h3>
+      ${renderBan(banIdx)}
+      <div class="sum-section-title">Players</div>
+      <div class="sum-players">
+        ${pickOrder.map(i => renderPlayerCard(i, labelPrefix)).join('')}
+      </div>
+    `;
+  }
+
+  // Left team uses picks 0-3; Right team uses picks 4-7 (displayed as 4 players)
+  left.innerHTML = renderTeam(draftState.teamNames[0] || 'TEAM LEFT', 0, [0,1,2,3], 'L');
+  right.innerHTML = renderTeam(draftState.teamNames[1] || 'TEAM RIGHT', 1, [4,5,6,7], 'R');
 }
 
 /* -----------------------------
@@ -1730,25 +1845,30 @@ function resetDraft() {
   document.getElementById('teamRightScore').value = 0;
   document.getElementById('tournamentInput').value = '';
   drawDraft();
-  queueSave(10);
+  debouncedSave();
 }
 
+/* -----------------------------
+   WEAPON ARMORY HELPER
+------------------------------*/
 function getWeaponArmory(weaponName) {
-  const weapon = weaponByName.get(weaponName);
+  const weapon = weapons.find(w => w.name === weaponName);
   return weapon && weapon.armory ? weapon.armory : "";
 }
 
 /* -----------------------------
-   STATE SYNC
+   FORM SYNC
 ------------------------------*/
 function applyStateToControls() {
   if (draftState.matchDate) document.getElementById('matchDate').value = draftState.matchDate;
   document.getElementById('gameNumberSelect').value = draftState.gameNumber || 1;
-  document.getElementById('teamLeftScore').value  = draftState.teamLeftScore ?? 0;
+  document.getElementById('teamLeftScore').value = draftState.teamLeftScore ?? 0;
   document.getElementById('teamRightScore').value = draftState.teamRightScore ?? 0;
   document.getElementById('mapSelect').value = draftState.map || 'Bermuda';
   document.getElementById('tournamentInput').value = draftState.tournamentName || '';
 }
+
+const debouncedSave = debounce(saveDraftState, 450);
 
 async function saveDraftState() {
   draftState.matchDate = document.getElementById('matchDate')?.value || '';
@@ -1756,7 +1876,7 @@ async function saveDraftState() {
   draftState.teamLeftScore = parseInt(document.getElementById('teamLeftScore')?.value || '0', 10);
   draftState.teamRightScore = parseInt(document.getElementById('teamRightScore')?.value || '0', 10);
   draftState.map = document.getElementById('mapSelect')?.value || 'Bermuda';
-  draftState.tournamentName = document.getElementById('tournamentInput')?.value || '';
+  draftState.tournamentName = (document.getElementById('tournamentInput')?.value || '').trim();
 
   const { error } = await client
     .from('draft')
@@ -1808,13 +1928,19 @@ async function loadDraftState() {
   drawDraft();
 }
 
+/* -----------------------------
+   RECORD LOAD/SAVE
+------------------------------*/
 async function loadDraftRecord() {
   const gameNumber = parseInt(document.getElementById('gameNumberSelect').value, 10);
   const matchDate = document.getElementById('matchDate').value;
   const teamLeft = draftState.teamNames[0];
   const teamRight = draftState.teamNames[1];
 
-  if (!matchDate) { alert("⚠️ Please select a match date."); return; }
+  if (!matchDate) {
+    alert("⚠️ Please select a match date.");
+    return;
+  }
 
   const { data, error } = await client
     .from('draft_records')
@@ -1828,35 +1954,34 @@ async function loadDraftRecord() {
   if (error || !data) {
     console.error("❌ Failed to load draft record:", error);
     alert(`No saved draft for Game ${gameNumber} on ${matchDate}`);
-    return;
+  } else {
+    draftState = {
+      bans: [null, null],
+      picks: Array(8).fill(null),
+      passives: Array(8).fill(0).map(() => [null, null, null]),
+      weapons: Array(8).fill(0).map(() => [null, null, null]),
+      teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
+      playerCards: Array(8).fill(''),
+      teamLeftScore: 0,
+      teamRightScore: 0,
+      map: 'Bermuda',
+      matchDate: '',
+      gameNumber: 1,
+      tournamentName: '',
+      ...data.state
+    };
+
+    draftState.teamLeftScore = data.team_left_score ?? draftState.teamLeftScore;
+    draftState.teamRightScore = data.team_right_score ?? draftState.teamRightScore;
+    draftState.map = data.map ?? draftState.map;
+    draftState.matchDate = data.match_date || draftState.matchDate;
+    draftState.gameNumber = data.game_number || draftState.gameNumber;
+    draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
+
+    applyStateToControls();
+    drawDraft();
+    await saveDraftState();
   }
-
-  draftState = {
-    bans: [null, null],
-    picks: Array(8).fill(null),
-    passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
-    teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-    playerCards: Array(8).fill(''),
-    teamLeftScore: 0,
-    teamRightScore: 0,
-    map: 'Bermuda',
-    matchDate: '',
-    gameNumber: 1,
-    tournamentName: '',
-    ...data.state
-  };
-
-  draftState.teamLeftScore = data.team_left_score ?? draftState.teamLeftScore;
-  draftState.teamRightScore = data.team_right_score ?? draftState.teamRightScore;
-  draftState.map = data.map ?? draftState.map;
-  draftState.matchDate = data.match_date || draftState.matchDate;
-  draftState.gameNumber = data.game_number || draftState.gameNumber;
-  draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
-
-  applyStateToControls();
-  drawDraft();
-  await saveDraftState();
 }
 
 async function saveOrUpdateDraft() {
@@ -1869,7 +1994,10 @@ async function saveOrUpdateDraft() {
   const map           = document.getElementById('mapSelect').value;
   const tournamentName= (document.getElementById('tournamentInput').value || '').trim();
 
-  if (!matchDate) { alert("⚠️ Please select a match date."); return; }
+  if (!matchDate) {
+    alert("⚠️ Please select a match date.");
+    return;
+  }
 
   const payload = {
     game_number:      gameNumber,
@@ -1897,6 +2025,9 @@ async function saveOrUpdateDraft() {
   }
 }
 
+/* -----------------------------
+   HISTORY FILTERS
+------------------------------*/
 function toggleTeamFilterMode() {
   const filter = document.getElementById('teamFilter');
   const selected = Array.from(filter.selectedOptions).map(o => o.value);
@@ -1912,7 +2043,10 @@ async function loadAllDraftRecords() {
     .order('match_date', { ascending: false })
     .order('id', { ascending: false });
 
-  if (error) { console.error("❌ Failed to fetch draft records:", error); return; }
+  if (error) {
+    console.error("❌ Failed to fetch draft records:", error);
+    return;
+  }
 
   ALL_DRAFT_RECORDS = data || [];
 
@@ -2016,19 +2150,19 @@ async function loadAllDraftRecords() {
     row.innerHTML = `
       <td>${record.match_date}</td>
       <td>Game ${record.game_number}</td>
-      <td style="text-align:left;">${record.team_left} ${isLeftWinner ? '🏆' : ''}</td>
+      <td style="text-align:left;">${esc(record.team_left)} ${isLeftWinner ? '🏆' : ''}</td>
       <td>${record.team_left_score ?? '-'}</td>
-      <td style="text-align:left;">${record.team_right} ${isRightWinner ? '🏆' : ''}</td>
+      <td style="text-align:left;">${esc(record.team_right)} ${isRightWinner ? '🏆' : ''}</td>
       <td>${record.team_right_score ?? '-'}</td>
-      <td>${record.map ?? '-'}</td>
-      <td>${record.tournament_name ?? '-'}</td>
+      <td>${esc(record.map ?? '-')}</td>
+      <td>${esc(record.tournament_name ?? '-')}</td>
       <td><button onclick="loadSpecificDraft(${record.id})">Load</button></td>
     `;
     table.appendChild(row);
   });
 
   LAST_MATCHED_RECORDS = matchedRecords;
-  applyPBFilters(); // renders accordion + counts
+  applyPBFilters();
 }
 
 async function loadSpecificDraft(id) {
@@ -2038,7 +2172,10 @@ async function loadSpecificDraft(id) {
     .eq('id', id)
     .single();
 
-  if (error || !data) { alert("❌ Failed to load specific draft."); return; }
+  if (error || !data) {
+    alert("❌ Failed to load specific draft.");
+    return;
+  }
 
   draftState = {
     bans: [null, null],
@@ -2069,7 +2206,7 @@ async function loadSpecificDraft(id) {
 }
 
 /* -----------------------------
-   ✅ PB FILTERS + MATCH SUMMARY
+   PB FILTERS + MATCH SUMMARY
 ------------------------------*/
 function applyPBFiltersToRecords(records){
   const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
@@ -2089,7 +2226,7 @@ function applyPBFilters(){
 }
 
 /* -----------------------------
-   ✅ MATCH SUMMARY ACCORDION
+   MATCH SUMMARY ACCORDION
 ------------------------------*/
 function renderTeamAccordionSummaries(records) {
   const container = document.getElementById('teamDraftCards');
@@ -2125,7 +2262,7 @@ function renderTeamAccordionSummaries(records) {
     const sum = document.createElement('summary');
     const left = document.createElement('div');
     left.className = 'acc-left';
-    left.innerHTML = `<div class="acc-title">${team}</div>`;
+    left.innerHTML = `<div class="acc-title">${esc(team)}</div>`;
 
     const badge = document.createElement('div');
     badge.className = 'acc-badge';
@@ -2146,9 +2283,9 @@ function renderTeamAccordionSummaries(records) {
       const meta = document.createElement('div');
       meta.className = 'team-meta';
       meta.innerHTML = `
-        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map ?? '—'}<br>
-        🏆 ${r.tournament_name ?? '—'}<br>
-        🆚 ${r.team_left} ${r.team_left_score ?? '-'} - ${r.team_right_score ?? '-'} ${r.team_right}
+        📅 ${esc(r.match_date)} | 🎮 Game ${esc(r.game_number)} | 🗺️ ${esc(r.map ?? '—')}<br>
+        🏆 ${esc(r.tournament_name ?? '—')}<br>
+        🆚 ${esc(r.team_left)} ${esc(r.team_left_score ?? '-')} - ${esc(r.team_right_score ?? '-')} ${esc(r.team_right)}
       `;
       body.appendChild(meta);
 
@@ -2187,10 +2324,10 @@ function renderTeamAccordionSummaries(records) {
         const heroSkill = hero?.skill || '';
 
         pCard.innerHTML = `
-          <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
-          <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
-          <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
-          <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
+          <img src="${esc(heroImg)}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
+          <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${esc(heroName)}</div>
+          <div style="color:rgba(170,177,197,.85); font-weight:900;">${esc(playerName)}</div>
+          <div style="color:rgba(77,211,255,.95); font-weight:900;">${esc(heroSkill)}</div>
         `;
 
         passives.forEach(ps => {
@@ -2242,7 +2379,7 @@ function renderTeamAccordionSummaries(records) {
 }
 
 /* -----------------------------
-   ✅ PICK/BAN COUNTS
+   PICK/BAN COUNTS
 ------------------------------*/
 function computeTeamPickBanCountsFromRecords(records) {
   const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
@@ -2265,23 +2402,22 @@ function computeTeamPickBanCountsFromRecords(records) {
     if (team === '__ALL__') {
       totalMatches += 1;
 
-      [0,1,2,3,4,5,6,7].forEach(i => {
+      for (let i=0;i<8;i++){
         const hero = picks[i];
         const name = hero?.name;
         if (name) {
           pickCounts.set(name, (pickCounts.get(name) || 0) + 1);
           totalPicks += 1;
         }
-      });
+      }
 
-      [0,1].forEach(bi => {
-        const b = bans[bi];
-        const bName = b?.name;
+      for (let bi=0;bi<2;bi++){
+        const bName = bans[bi]?.name;
         if (bName) {
           banCounts.set(bName, (banCounts.get(bName) || 0) + 1);
           totalBans += 1;
         }
-      });
+      }
 
       return;
     }
@@ -2292,20 +2428,17 @@ function computeTeamPickBanCountsFromRecords(records) {
 
     totalMatches += 1;
 
-    // ✅ picks side for team
     const idx = isLeft ? [0,1,2,3] : [4,5,6,7];
     idx.forEach(i => {
-      const hero = picks[i];
-      const skillName = hero?.name || null;
-      if (skillName) {
-        pickCounts.set(skillName, (pickCounts.get(skillName) || 0) + 1);
+      const name = picks[i]?.name;
+      if (name) {
+        pickCounts.set(name, (pickCounts.get(name) || 0) + 1);
         totalPicks += 1;
       }
     });
 
-    // ✅ ban credited to team side
     const banHero = bans[isLeft ? 0 : 1];
-    const banName = banHero?.name || null;
+    const banName = banHero?.name;
     if (banName) {
       banCounts.set(banName, (banCounts.get(banName) || 0) + 1);
       totalBans += 1;
@@ -2331,7 +2464,7 @@ function computeTeamPickBanCountsFromRecords(records) {
     .sort((a,b) => b[1] - a[1])
     .forEach(([name, count]) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
+      tr.innerHTML = `<td>${esc(name)}</td><td>${count}</td>`;
       pickBody.appendChild(tr);
     });
 
@@ -2339,17 +2472,14 @@ function computeTeamPickBanCountsFromRecords(records) {
     .sort((a,b) => b[1] - a[1])
     .forEach(([name, count]) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
+      tr.innerHTML = `<td>${esc(name)}</td><td>${count}</td>`;
       banBody.appendChild(tr);
     });
 
   if (totalMatches === 0) {
-    document.getElementById('teamPBTotals').innerHTML = 'No matches for current filter.';
+    totalsEl.innerHTML = 'No matches for current filter.';
   }
 }
-
-// keep draft layout correct if user rotates/resizes
-window.addEventListener('resize', () => drawDraft());
 </script>
 </body>
 </html>
