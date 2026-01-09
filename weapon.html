@@ -918,16 +918,42 @@
     }
     html[data-theme="light"] .kv .v{ color: rgba(18,20,40,.92); }
 
-    /* ===== Mobile optimization ===== */
+   /* ===== Mobile optimization (FIXED: no topbar wrapping + merged 980 blocks) ===== */
+
+    /* <= 980px (tablet / mobile) */
     @media (max-width: 980px){
       .app{
         padding:12px;
-        max-width: none;
+        max-width:none;
       }
-      .topbar{top:12px;}
+    
+      /* Topbar: edge-to-edge + SINGLE ROW (no wrap) */
+      .topbar{
+        top: env(safe-area-inset-top);
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        margin: -10px -10px 0 -10px; /* edge-to-edge */
+        padding: 10px 10px;
+        gap: 10px;
+    
+        flex-wrap: nowrap;          /* ✅ prevent wrap */
+        overflow-x: auto;           /* ✅ allow scroll instead */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;      /* Firefox hide */
+      }
+      .topbar::-webkit-scrollbar{ display:none; } /* Chrome/Safari hide */
+    
+      /* Ensure children can shrink instead of forcing wrap */
+      .search{ min-width: 240px; flex: 1 1 auto; }
+      .top-actions{ flex: 0 0 auto; }
+      .userchip{ max-width: 220px; min-width: 0; }
+      .usertext b{ max-width: 150px; font-size: .88rem; }
+      .usertext span{ display:none; } /* hide email line on mobile */
+    
       :root{ --wep-min: 130px; }
-
-      /* Off-canvas sidebar (instead of hiding) */
+    
+      /* Off-canvas sidebar (drawer) */
       .sidebar{
         position: fixed;
         left: 12px;
@@ -939,16 +965,16 @@
       }
       .sidebar.open{ transform: translateX(0); }
       .sidebar.collapsed{ width: min(86vw, 320px); } /* disable collapsed behavior on mobile */
-
+    
       .sb-close{display:grid;}
       .sidebar .brand{padding-right:10px;}
-
+    
       /* keep labels visible on mobile even if collapsed class exists */
       .sidebar.collapsed .brand h1,
       .sidebar.collapsed .brand small,
       .sidebar.collapsed .nav-label{display:block;}
       .sidebar.collapsed .nav-item{justify-content:flex-start; gap:10px; padding:10px 10px;}
-
+    
       /* Pills row: allow horizontal scroll */
       .controls-left{
         flex-wrap:nowrap;
@@ -960,45 +986,36 @@
       .controls-left::-webkit-scrollbar{height:8px}
       .controls-left::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:999px}
       .controls-left .pill{flex:0 0 auto;}
-
+    
       .controls-right{width:100%;}
       .grid.list-view .wep-thumb{width: 140px;}
     }
-
+    
+    /* <= 620px (phone) */
     @media (max-width: 620px){
-      .topbar{flex-wrap:wrap;}
-      .search{width:100%; order: 2;}
-      .top-actions{width:100%; justify-content:space-between; order: 3;}
-      .userchip{max-width:none;}
-      .usertext span{display:none;} /* hide email line on small screens */
-
+      /* ✅ still no wrap; just tighten */
+      .search{ min-width: 220px; }
+      .userchip{ max-width: 180px; }
+      .usertext b{ max-width: 120px; }
+    
       .field{flex:1 1 160px;}
       .btn{flex: 1 1 160px;}
-
+    
       .hero{height: 132px;}
       .hero-title h2{font-size: 1.2rem;}
     }
-
+    
+    /* <= 420px (small phone) */
     @media (max-width: 420px){
       :root{ --wep-min: 118px; }
       .grid.list-view .wep-thumb{width: 120px;}
       .grid.list-view .wep-mini{-webkit-line-clamp: 3;}
-      .topbar{padding:10px;}
-    }
-    @media (max-width: 980px){
-  .topbar{
-    top: env(safe-area-inset-top);
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    margin: -10px -10px 0 -10px; /* edge-to-edge */
-    padding: 10px 10px;
-    gap: 10px;
-  }
-
-  .usertext span{display:none;}
-  .usertext b{max-width: 45vw; font-size: .88rem;}
-}
+    
+      /* keep topbar single row; just smaller padding */
+      .topbar{ padding:10px; }
+      .search{ min-width: 200px; }
+    } 
+    
   </style>
 </head>
 
