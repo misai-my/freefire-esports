@@ -1121,7 +1121,90 @@
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+     :root{
+    color-scheme: dark;
+  }
+  :root[data-theme="light"]{
+    color-scheme: light;
+
+    --bg:#f6f8ff;
+    --bg2:#e9eefc;
+
+    --panel: rgba(255, 255, 255, .78);
+    --panel2: rgba(255, 255, 255, .72);
+
+    --line: rgba(10, 20, 40, .10);
+    --ink:#0d1220;
+    --muted:#4a5871;
+
+    --shadow: 0 22px 70px rgba(16,24,40,.12);
+  }
+
+  /* Light-mode touchups for “dark glass” hardcoded backgrounds */
+  :root[data-theme="light"] body{
+    background:
+      radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.22), transparent 60%),
+      radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.20), transparent 60%),
+      radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.16), transparent 60%),
+      linear-gradient(180deg, var(--bg), var(--bg2));
+  }
+
+  :root[data-theme="light"] .search,
+  :root[data-theme="light"] .lang-select,
+  :root[data-theme="light"] .qv-btn,
+  :root[data-theme="light"] .qv-count,
+  :root[data-theme="light"] .qv-thumb,
+  :root[data-theme="light"] .pick-thumb,
+  :root[data-theme="light"] .modal-controls input,
+  :root[data-theme="light"] .modal-controls select,
+  :root[data-theme="light"] .map-toolbar select,
+  :root[data-theme="light"] select{
+    background: rgba(255,255,255,.62) !important;
+    border-color: rgba(10,20,40,.14) !important;
+    color: var(--ink) !important;
+  }
+
+  :root[data-theme="light"] .nav-ico{
+    background: rgba(10,20,40,.05);
+    border-color: rgba(10,20,40,.10);
+  }
+
+  :root[data-theme="light"] .icon-btn,
+  :root[data-theme="light"] .userchip,
+  :root[data-theme="light"] .logout{
+    background: rgba(10,20,40,.04);
+    border-color: rgba(10,20,40,.10);
+    color: var(--ink);
+  }
+
+  :root[data-theme="light"] .modal{
+    background: rgba(10,14,20,.45);
+  }
+  :root[data-theme="light"] .modal-card{
+    background: rgba(255,255,255,.92);
+    border-color: rgba(10,20,40,.12);
+  }
+
+  /* ✅ Make dropdown options match theme */
+  select{
+    color-scheme: inherit; /* (was: dark) */
+  }
+  select option{
+    background: var(--bg2);
+    color: var(--ink);
+  }
+
   </style>
+  <script>
+  (function(){
+    const key = 'ff_theme_v1';
+    const saved = localStorage.getItem(key);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
 </head>
 
 <body>
@@ -1285,6 +1368,9 @@
         <select id="langSelect" class="lang-select" aria-label="Language"></select>
 
         <div class="top-actions">
+          <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"></svg>
+</button>
           <div class="userchip">
             <div class="avatar"></div>
             <div class="usertext">
@@ -2518,11 +2604,84 @@
     });
 
     /***********************
+ * Theme Toggle (Light/Dark)
+ ***********************/
+const THEME = { key: 'ff_theme_v1' };
+
+function getSystemTheme(){
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? 'dark' : 'light';
+}
+
+function getSavedTheme(){
+  const t = localStorage.getItem(THEME.key);
+  return (t === 'light' || t === 'dark') ? t : null;
+}
+
+function applyTheme(theme, persist=false){
+  if (theme !== 'light' && theme !== 'dark') theme = getSystemTheme();
+  document.documentElement.dataset.theme = theme;
+  if (persist) localStorage.setItem(THEME.key, theme);
+  syncThemeToggleUI();
+}
+
+function syncThemeToggleUI(){
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+
+  const theme = document.documentElement.dataset.theme || 'dark';
+  const next = (theme === 'dark') ? 'light' : 'dark';
+
+  // show icon for the NEXT mode (dark -> sun, light -> moon)
+  const svg = btn.querySelector('svg');
+  if (svg){
+    svg.innerHTML = (next === 'light')
+      ? `
+        <path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      `
+      : `
+        <path d="M21 12.5A7.5 7.5 0 0 1 11.5 3a6.7 6.7 0 1 0 9.5 9.5Z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      `;
+  }
+
+  btn.title = `Switch to ${next} mode`;
+  btn.setAttribute('aria-label', btn.title);
+}
+
+function initThemeToggle(){
+  // If theme already applied in <head>, just sync UI
+  const cur = document.documentElement.dataset.theme || getSystemTheme();
+  applyTheme(cur, false);
+
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    const current = document.documentElement.dataset.theme || 'dark';
+    const next = (current === 'dark') ? 'light' : 'dark';
+    applyTheme(next, true);
+  });
+
+  // Optional: follow OS changes ONLY if user hasn't chosen a saved theme
+  const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq && mq.addEventListener){
+    mq.addEventListener('change', () => {
+      if (!getSavedTheme()){
+        applyTheme(getSystemTheme(), false);
+      }
+    });
+  }
+}
+
+    /***********************
      * Init
      ***********************/
     window.addEventListener('DOMContentLoaded', async () => {
-      const session = await ensureSession();
-      if (!session) return;
+  initThemeToggle(); // ✅ add this line
+
+  const session = await ensureSession();
+  if (!session) return;
 
       // init language selector first (so initial render uses correct lang)
       initLangSelect();
