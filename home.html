@@ -249,6 +249,7 @@
     /* --- TOPBAR: never wrap --- */
     .topbar{
       flex-wrap: nowrap;        /* ✅ no wrap */
+      overflow: hidden;
       min-width: 0;
     }
     
@@ -261,7 +262,53 @@
       scrollbar-width: none;     /* Firefox */
     }
     .topbar::-webkit-scrollbar{ display:none; } /* Chrome/Safari */
-        
+
+    @media (max-width: 980px){
+  .topbar{ gap:10px; }
+
+  /* search must be the flexible one */
+  .search{
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+
+  /* language stays compact */
+  .lang-select{
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 150px;
+  }
+
+  /* right cluster must not force wrap */
+  .top-actions{
+    flex: 0 0 auto;
+    gap: 8px;
+  }
+
+  /* compress userchip */
+  .userchip{
+    max-width: 160px;
+    padding: 6px 8px;
+    gap: 8px;
+  }
+  .usertext span{ display:none; } /* hide email */
+}
+
+/* Even tighter: hide userchip text (keep avatar) */
+@media (max-width: 720px){
+  .usertext{ display:none; }  /* avatar only */
+  .userchip{ padding: 6px; }
+}
+
+/* Extreme: hide language dropdown text by shrinking it hard */
+@media (max-width: 520px){
+  .lang-select{
+    max-width: 110px;
+    font-size: .8rem;
+    padding: 10px 10px;
+  }
+}
+    
     .search{
       flex:1;
       display:flex;
