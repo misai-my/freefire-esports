@@ -404,6 +404,46 @@
     /* theme icon size inside search */
     #themeIcon svg{ width:18px; height:18px; opacity:.92; display:block; }
 
+    /* --- Search actions (clear + theme) --- */
+    .search{
+      position: relative;
+    }
+    
+    .search-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
+    }
+    
+    .search .icon-btn{
+      width:38px;
+      height:38px;
+      border-radius:12px;
+    }
+    
+    /* Clear button appears only when there is text */
+    .search-clear{
+      display:none;
+    }
+    .search.has-text .search-clear{
+      display:grid;
+    }
+    
+    /* Logout icon button (top-right) */
+    .logout-btn{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+    }
+    .logout-btn:hover{
+      border-color: rgba(255,77,77,.35);
+      box-shadow: 0 0 0 3px rgba(255,77,77,.10);
+    }
+    html[data-theme="light"] .logout-btn:hover{
+      box-shadow: 0 0 0 3px rgba(255,77,77,.14);
+    }
+    
     .top-actions{
       display:flex;
       align-items:center;
@@ -1126,23 +1166,34 @@
         </button>
 
         <!-- ✅ Search bar with theme toggle INSIDE (same placement as pet.html) -->
-        <div class="search">
+
+        <div class="search" id="searchBar">
           <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85">
             <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-
+        
           <input id="searchInput" placeholder="Search weapons (name / type / armory / attributes)..." />
-
-          <button class="icon-btn" id="themeToggle"
-            type="button"
-            title="Toggle Light/Dark"
-            aria-label="Toggle theme"
-            aria-pressed="false"
-            style="width:38px;height:38px;border-radius:12px;">
-            <span id="themeIcon" aria-hidden="true"></span>
-          </button>
+        
+          <div class="search-actions">
+            <button class="icon-btn search-clear" id="searchClear"
+              type="button"
+              title="Clear search"
+              aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+        
+            <button class="icon-btn" id="themeToggle"
+              type="button"
+              title="Toggle Light/Dark"
+              aria-label="Toggle theme"
+              aria-pressed="false">
+              <span id="themeIcon" aria-hidden="true"></span>
+            </button>
+          </div>
         </div>
-
+        
         <div class="top-actions">
           <div class="userchip">
             <div class="avatar"></div>
@@ -1152,7 +1203,14 @@
             </div>
           </div>
 
-          <a class="logout" href="#" id="logoutBtn">Logout</a>
+          <button class="icon-btn logout-btn" id="logoutBtn" type="button" title="Logout" aria-label="Logout">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15 12H3m0 0 3-3M3 12l3 3"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -1360,12 +1418,15 @@
       sbOverlay.classList.add('show');
       sbOverlay.setAttribute('aria-hidden', 'false');
       document.body.classList.add('sb-open');
+      setToggleIcon();
+      setTimeout(() => { try{ document.getElementById('searchInput')?.focus(); }catch(_){ } }, 0);
     }
     function closeMobileSidebar(){
       sidebar.classList.remove('open');
       sbOverlay.classList.remove('show');
       sbOverlay.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('sb-open');
+      setToggleIcon();
     }
     function toggleMobileSidebar(){
       if (sidebar.classList.contains('open')) closeMobileSidebar();
@@ -1379,21 +1440,27 @@
       const path = document.getElementById('sbTogglePath');
 
       function setToggleIcon(){
-        if (!path) return;
-
-        if (isMobile()){
-          // hamburger
-          path.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
-          path.setAttribute('stroke-linejoin', 'round');
-        } else {
-          // chevron
-          path.setAttribute('d', sidebar.classList.contains('collapsed')
-            ? 'M10 7l5 5-5 5'
-            : 'M14 7l-5 5 5 5'
-          );
-        }
+      if (!path) return;
+    
+      const mobile = isMobile();
+      const open = sidebar.classList.contains('open');
+      const collapsed = sidebar.classList.contains('collapsed');
+    
+      if (mobile){
+        // Mobile: hamburger when closed, X when open
+        path.setAttribute('d', open
+          ? 'M6 6l12 12M18 6 6 18'
+          : 'M4 6h16M4 12h16M4 18h16'
+        );
+        path.setAttribute('stroke-linejoin', 'round');
+      } else {
+        // Desktop: chevron indicates collapse
+        path.setAttribute('d', collapsed
+          ? 'M10 7l5 5-5 5'
+          : 'M14 7l-5 5 5 5'
+        );
       }
-
+    }
       // Apply saved collapsed state ONLY for desktop
       const saved = localStorage.getItem(key);
       if (saved === '1') sidebar.classList.add('collapsed');
@@ -1870,6 +1937,32 @@
       if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
     });
 
+    const searchBar = document.getElementById('searchBar');
+    const searchClear = document.getElementById('searchClear');
+    
+    function syncSearchUI(){
+      const has = !!(searchInput?.value || '').trim();
+      searchBar?.classList.toggle('has-text', has);
+    }
+    
+    searchInput?.addEventListener('input', (e) => {
+      currentSearch = e.target.value || '';
+      syncSearchUI();
+      renderWeapons();
+    });
+    
+    searchClear?.addEventListener('click', () => {
+      if (!searchInput) return;
+      searchInput.value = '';
+      currentSearch = '';
+      syncSearchUI();
+      renderWeapons();
+      searchInput.focus();
+    });
+    
+    // init state
+    syncSearchUI();
+        
     /***********************
      * Events
      ***********************/
@@ -1898,10 +1991,7 @@
       applyViewMode();
     });
 
-    document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      logout();
-    });
+    document.getElementById('logoutBtn')?.addEventListener('click', () => logout());
 
     /***********************
      * Init
