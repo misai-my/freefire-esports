@@ -1293,11 +1293,14 @@
     });
 
       /***********************
-       * ✅ Theme toggle (dark / light) — ICON (sun/moon)
+       * ✅ Theme toggle (dark / light) — FIXED ICON + LABELS
+       * Uses shared key: ff_theme_v1 (same as weapon.html) + migrates old pet key
        ***********************/
-      const KEY_THEME = 'ff_theme_pet_v1'; // 'dark' | 'light'
+      const KEY_THEME = 'ff_theme_v1';          // shared across pages
+      const OLD_KEY_THEME = 'ff_theme_pet_v1';  // migrate from older pet-only key
+      
       const themeToggle = document.getElementById('themeToggle');
-      const themeIcon = document.getElementById('themeIcon');
+      const themeIcon   = document.getElementById('themeIcon');
       
       const ICON_SUN = `
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1312,33 +1315,42 @@
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
       
+      function setMetaThemeColor(isLight){
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', isLight ? '#f4f6ff' : '#07090f');
+      }
+      
       function applyTheme(mode){
         const isLight = (mode === 'light');
         document.body.classList.toggle('theme-light', isLight);
       
-        // icon + a11y
-        if (themeIcon) themeIcon.innerHTML = isLight ? ICON_SUN : ICON_MOON;
+        // ✅ show icon for the MODE YOU WILL SWITCH TO
+        // light now -> show moon (tap -> dark)
+        // dark now  -> show sun  (tap -> light)
+        if (themeIcon) themeIcon.innerHTML = isLight ? ICON_MOON : ICON_SUN;
+      
         if (themeToggle){
           themeToggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-          themeToggle.title = isLight ? 'Light mode (tap to switch to Dark)' : 'Dark mode (tap to switch to Light)';
-          themeToggle.setAttribute('aria-label', isLight ? 'Light mode' : 'Dark mode');
+          themeToggle.title = isLight ? 'Switch to Dark mode' : 'Switch to Light mode';
+          themeToggle.setAttribute('aria-label', isLight ? 'Switch to Dark mode' : 'Switch to Light mode');
         }
       
-        // optional: mobile browser top bar
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta){
-          meta.setAttribute('content', isLight ? '#f4f6ff' : '#07090f');
-        }
+        setMetaThemeColor(isLight);
       }
       
       function initTheme(){
-        const saved = localStorage.getItem(KEY_THEME) || 'dark';
+        // migrate old pet key if it exists
+        const saved = localStorage.getItem(KEY_THEME) || localStorage.getItem(OLD_KEY_THEME) || 'dark';
+        try{
+          localStorage.setItem(KEY_THEME, saved);
+          localStorage.removeItem(OLD_KEY_THEME);
+        }catch(_){}
         applyTheme(saved);
       }
       
       themeToggle?.addEventListener('click', () => {
         const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
-        localStorage.setItem(KEY_THEME, next);
+        try{ localStorage.setItem(KEY_THEME, next); }catch(_){}
         applyTheme(next);
       });
 
