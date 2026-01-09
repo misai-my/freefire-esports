@@ -607,33 +607,27 @@
     .hero-grid-item img{ width:80px; height:80px; object-fit:contain; margin-bottom:6px; }
     .hero-grid-item div{ font-size:10px; text-align:center; color: rgba(244,246,255,.82); max-width: 86px; overflow-wrap:anywhere; }
 
-    /* draft history table (scroll both directions as needed) */
+    /* draft history table */
     .table-scroll{
       width: 100%;
       max-height: calc(var(--rowH) * 6); /* header + 5 rows */
-      overflow: auto;                 /* ✅ allow X + Y scrolling */
-      -webkit-overflow-scrolling: touch;
+      overflow-y: auto;
+      overflow-x: hidden;
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,.10);
       box-shadow: 0 18px 55px rgba(0,0,0,.45);
-      overscroll-behavior: contain;
     }
-    
-    /* ensure table doesn’t squeeze columns too much */
+
     #recordTable{
-      width: max-content;             /* ✅ table can be wider than container */
-      min-width: 100%;                /* but never smaller than container */
+      width: 100%;
       border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 16px;
+      border: none;
+      box-shadow: none;
     }
-    
-    /* keep sticky header working inside the scroller */
-    #recordTable thead th{
-      position: sticky;
-      top: 0;
-      z-index: 4;
-      background: rgba(255,255,255,.08) !important;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+    #recordTable thead{
+      background: rgba(255,255,255,.06) !important;
     }
     #recordTable th, #recordTable td{
       border-bottom: 1px solid rgba(255,255,255,.08);
@@ -902,57 +896,108 @@
       .team-row{ flex-wrap:wrap; justify-content:center; }
       details.team-accordion{ width: min(520px, 100%); }
     }
-    /* =========================================
-       MOBILE SWIPE CONTROLS + PANELS
-       ========================================= */
-    
-    @media (max-width: 900px){
-      .top-controls{
-        justify-content:flex-start;
-        flex-wrap: nowrap;            /* ✅ no wrap */
-        overflow-x: auto;             /* ✅ swipe */
-        -webkit-overflow-scrolling: touch;
-        padding: 12px;
-        gap: 10px;
-        overscroll-behavior-x: contain;
-      }
-      .top-controls > *{
-        flex: 0 0 auto;               /* ✅ keep natural widths */
-      }
-      .top-controls a,
-      .top-controls button{
-        white-space: nowrap;
-      }
-      /* slightly tighter inputs */
-      .top-controls input[type="text"]{ width: 220px; }
-      .top-controls select{ min-width: 160px; }
-    }
-    @media (max-width: 900px){
-  .draft-wrapper{
-    gap: 14px;
-    flex-wrap: nowrap;            /* ✅ keep in a row */
-    overflow-x: auto;             /* ✅ swipe between teams */
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    padding: 0 14px 8px;
-    overscroll-behavior-x: contain;
-  }
 
-  .team-container{
-    min-width: calc(100vw - 28px); /* ✅ full viewport width */
-    scroll-snap-align: start;
-  }
-}
+    /* =====================================================
+       ✅ MOBILE DRAFT LAYOUT:
+       Ban on top, then Players 1-4 stacked
+       Each player row = 3 columns:
+       [Active+Player] [3 Passives stacked] [3 Weapons stacked]
+       ===================================================== */
+    @media (max-width: 900px){
+      /* stack items vertically inside each team */
+      .team-row{
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+      }
+
+      /* ✅ ensure BAN shows first even for right side (ban is appended last there) */
+      .slot-ban{ order: -1; }
+
+      /* pick card becomes a grid row */
+      .slot-pick{
+        width: 100%;
+        max-width: 520px;
+        display: grid;
+        grid-template-columns: 1fr 120px 120px;
+        gap: 10px;
+        align-items: start;
+        padding: 10px;
+        border-radius: 16px;
+        background: rgba(255,255,255,.04);
+        border: 1px solid rgba(255,255,255,.10);
+      }
+
+      /* main (active+name+player) */
+      .pick-main{
+        display: grid;
+        grid-template-rows: auto auto auto;
+        gap: 8px;
+        justify-items: center;
+      }
+
+      /* shrink active card a bit on mobile */
+      .slot-pick .pick-slot{
+        width: 110px;
+        height: 150px;
+      }
+
+      .slot-pick .slot-name{
+        max-width: 150px;
+      }
+
+      /* passives / weapons columns */
+      .pick-passives, .pick-weapons{
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+
+      /* force vertical stacks (no wrap) */
+      .slot-pick .passive-slots,
+      .slot-pick .weapon-slots{
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      /* passives look */
+      .slot-pick .passive-slot{
+        width: 38px;
+        height: 56px;
+      }
+      .slot-pick .passive-name{
+        max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .slot-pick .weapon-slot{
+        width: 110px;
+        height: 44px;
+      }
+      .slot-pick .weapon-name{
+        max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* player input fits better */
+      .slot-pick .player-input{
+        width: 140px;
+      }
+    }
+
     @media (max-width: 420px){
-  .ban-slot, .pick-slot{ width: 88px; height: 132px; }
-  .slot-name{ max-width: 88px; }
-  .weapon-slot{ width: 88px; height: 40px; }
-  .player-input{ width: 88px; }
-}
-    @media (max-width: 520px){
-  .counts-card{ overflow-x:auto; -webkit-overflow-scrolling: touch; }
-  table.counts-table{ min-width: 360px; }
-}
+      .slot-pick{ grid-template-columns: 1fr 108px 108px; }
+      .slot-pick .pick-slot{ width: 102px; height: 142px; }
+      .slot-pick .weapon-slot{ width: 102px; }
+    }
   </style>
 </head>
 <body>
@@ -1203,26 +1248,37 @@ function drawDraft(){
 }
 
 function makeSlot(type,index){
-  const c=document.createElement('div'); c.className='slot';
+  const c=document.createElement('div');
+  c.className = (type === 'ban') ? 'slot slot-ban' : 'slot slot-pick';
+
   const m=document.createElement('div'); m.className=type==='ban'?'ban-slot':'pick-slot';
   const img=document.createElement('img'); img.src='https://imgur.com/AdvPwAO.png';
   img.style.width='100%'; img.style.height='100%'; img.style.borderRadius='14px';
   img.style.objectFit='cover';
   m.appendChild(img);
+
   const nameDiv=document.createElement('div'); nameDiv.className='slot-name';
 
   if(type==='ban'){
     const h=draftState.bans[index];
     if(h){img.src=h.image_url;nameDiv.innerText=h.name;}
     m.onclick=()=>{currentSlot={type,index};openModal('Select Hero to Ban');};
+
+    // ban layout unchanged
+    c.appendChild(m);
+    c.appendChild(nameDiv);
+
   } else {
     const h=draftState.picks[index];
     if(h){img.src=h.image_url;nameDiv.innerText=h.name;}
     m.onclick=()=>{currentSlot={type,index};openModal('Select Active Skill');};
-  }
-  c.appendChild(m); c.appendChild(nameDiv);
 
-  if (type === 'pick') {
+    // ✅ PICK: main column wrapper (Active + Name + Player)
+    const main = document.createElement('div');
+    main.className = 'pick-main';
+    main.appendChild(m);
+    main.appendChild(nameDiv);
+
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Player Name';
@@ -1232,27 +1288,42 @@ function makeSlot(type,index){
       draftState.playerCards[index] = input.value;
       saveDraftState();
     };
-    c.appendChild(input);
-  }
+    main.appendChild(input);
+    c.appendChild(main);
 
-  if(type==='pick'){
+    // ✅ passives
     const passives=draftState.passives[index];
+    const passWrap = document.createElement('div');
+    passWrap.className = 'pick-passives';
+
     const pDiv=document.createElement('div'); pDiv.className='passive-slots';
-    passives.forEach((ps,i)=>{const p=document.createElement('div'); p.className='passive-slot';
+    passives.forEach((ps,i)=>{
+      const p=document.createElement('div'); p.className='passive-slot';
       const pn=document.createElement('div');pn.className='passive-name';
       if(ps){p.style.backgroundImage=`url(${ps.image_url})`;pn.innerText=ps.name;}
       p.onclick=()=>{currentSlot={type:'passive',pickIndex:index,passiveIndex:i};openModal('Select Passive Skill');};
       const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';
-      box.style.alignItems='center';box.appendChild(p);box.appendChild(pn);pDiv.appendChild(box);});
-    c.appendChild(pDiv);
+      box.style.alignItems='center';box.appendChild(p);box.appendChild(pn);pDiv.appendChild(box);
+    });
+    passWrap.appendChild(pDiv);
+    c.appendChild(passWrap);
+
+    // ✅ weapons
+    const weapWrap = document.createElement('div');
+    weapWrap.className = 'pick-weapons';
 
     const wDiv=document.createElement('div'); wDiv.className='weapon-slots';
-    draftState.weapons[index].forEach((w,i)=>{const wSlot=document.createElement('div'); wSlot.className='weapon-slot'; if(i===0)wSlot.style.border='1px solid rgba(255,189,89,.65)';
+    draftState.weapons[index].forEach((w,i)=>{
+      const wSlot=document.createElement('div'); wSlot.className='weapon-slot';
+      if(i===0)wSlot.style.border='1px solid rgba(255,189,89,.65)';
       const wn=document.createElement('div');wn.className='weapon-name';
       if(w){const wImg=document.createElement('img');wImg.src=w.image_url;wSlot.appendChild(wImg);wn.innerText=w.name;}
       wSlot.onclick=()=>{currentSlot={type:'weapon',pickIndex:index,weaponIndex:i};openModal('Select Weapon');};
       const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';box.style.alignItems='center';
-      box.appendChild(wSlot);box.appendChild(wn);wDiv.appendChild(box);}); c.appendChild(wDiv);
+      box.appendChild(wSlot);box.appendChild(wn);wDiv.appendChild(box);
+    });
+    weapWrap.appendChild(wDiv);
+    c.appendChild(weapWrap);
   }
 
   return c;
@@ -1944,12 +2015,10 @@ function renderTeamAccordionSummaries(records) {
 
       let pickIndexes;
       if (focusTeam !== '__ALL__') {
-        // when focused, show the focused team side for each match
         const focused = focusTeam;
         const focusedIsLeft = (focused === r.team_left);
         pickIndexes = focusedIsLeft ? [0,1,2,3] : [7,6,5,4];
       } else {
-        // when showing all teams, show current team side
         if (isLeft) pickIndexes = [0,1,2,3];
         else if (isRight) pickIndexes = [7,6,5,4];
         else pickIndexes = [0,1,2,3];
