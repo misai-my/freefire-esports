@@ -246,6 +246,22 @@
       gap:12px;
     }
 
+    /* --- TOPBAR: never wrap --- */
+    .topbar{
+      flex-wrap: nowrap;        /* ✅ no wrap */
+      min-width: 0;
+    }
+    
+    .topbar > *{ min-width: 0; } /* ✅ allow flex children to shrink */
+    
+    /* If it still gets tight, allow horizontal scroll instead of wrapping */
+    .topbar{
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;     /* Firefox */
+    }
+    .topbar::-webkit-scrollbar{ display:none; } /* Chrome/Safari */
+        
     .search{
       flex:1;
       display:flex;
@@ -870,15 +886,45 @@
     @media (max-width: 1200px){
       .quickbar{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+    
     @media (max-width: 980px){
-      .quickbar{ grid-template-columns: 1fr; }
-      .modal-controls input{min-width: 0; width:100%;}
-      .modal-controls select{min-width: 0; width:100%;}
-      .lang-select{ width: 100%; max-width: none; }
-      .topbar{ flex-wrap: wrap; }
-      .search{ flex: 1 1 280px; }
+    .quickbar{ grid-template-columns: 1fr; }
+    .modal-controls input{min-width: 0; width:100%;}
+    .modal-controls select{min-width: 0; width:100%;}
+  
+    /* ✅ keep topbar on ONE LINE */
+    .topbar{
+      flex-wrap: nowrap;
+      gap:10px;
     }
-
+  
+    /* ✅ let search shrink properly */
+    .search{
+      flex: 1 1 auto;
+      min-width: 160px;
+    }
+  
+    /* ✅ keep dropdown compact */
+    .lang-select{
+      flex: 0 0 auto;
+      width: auto;
+      max-width: 160px;
+    }
+  
+    /* ✅ keep actions from forcing wrap */
+    .top-actions{
+      flex: 0 0 auto;
+      gap: 8px;
+    }
+  
+    /* ✅ userchip becomes compact (prevents wrapping) */
+    .userchip{
+      max-width: 180px;
+    }
+    .usertext span{
+      display:none; /* hide email on small widths */
+    }
+  }
     /* ===== Map Window bar (Dashboard) ===== */
     .mapbar{
       margin-top:12px;
