@@ -1420,13 +1420,15 @@ function setTheme(theme){
 function syncThemeIcon(){
   const t = document.documentElement.getAttribute('data-theme') || 'dark';
 
-  // Moon icon for dark, Sun icon for light
+  // Moon icon for switching to dark, Sun icon for switching to light
   const moonPath = "M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z";
   const sunPath  = "M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Zm0-16v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41";
 
+  // If current is light, show moon (switch to dark). If current is dark, show sun (switch to light).
   if (themeIconPath){
-    themeIconPath.setAttribute('d', (t === 'light') ? sunPath : moonPath);
+    themeIconPath.setAttribute('d', (t === 'light') ? moonPath : sunPath);
   }
+
   if (themeBtn){
     themeBtn.title = (t === 'light') ? 'Switch to Dark' : 'Switch to Light';
     themeBtn.setAttribute('aria-label', themeBtn.title);
