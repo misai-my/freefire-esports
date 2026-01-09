@@ -11,6 +11,16 @@
   <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- ✅ Theme pre-load (prevents flash) -->
+  <script>
+    (function(){
+      const KEY = 'ff_theme_v1';
+      const saved = localStorage.getItem(KEY);
+      const theme = (saved === 'light') ? 'light' : 'dark'; // default dark (current theme)
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
   <style>
     :root{
       --bg:#07090f;
@@ -44,6 +54,110 @@
 
       --cs:#4dd3ff;
     }
+
+    /* ✅ Color scheme per theme */
+    html[data-theme="dark"]{ color-scheme: dark; }
+    html[data-theme="light"]{ color-scheme: light; }
+
+    /* ✅ Light theme overrides */
+    html[data-theme="light"]{
+      --bg:#f6f7fb;
+      --bg2:#e9ecf5;
+      --panel: rgba(255,255,255,.78);
+      --panel2: rgba(255,255,255,.86);
+      --line: rgba(0,0,0,.10);
+      --ink:#121428;
+      --muted:#5b647a;
+      --shadow: 0 18px 60px rgba(0,0,0,.14);
+
+      --chip-bg: rgba(255,255,255,.74);
+      --chip-bd: rgba(0,0,0,.12);
+    }
+
+    html[data-theme="light"] body::before,
+    html[data-theme="light"] body::after{
+      border-color: rgba(77,211,255,.18);
+    }
+
+    html[data-theme="light"] .nav-item:hover{
+      background: rgba(0,0,0,.04);
+      border-color: rgba(0,0,0,.08);
+      color: var(--ink);
+    }
+    html[data-theme="light"] .nav-ico{
+      background: rgba(0,0,0,.04);
+      border-color: rgba(0,0,0,.08);
+    }
+    html[data-theme="light"] .icon-btn{
+      background: rgba(0,0,0,.04);
+      border-color: rgba(0,0,0,.10);
+      color: var(--ink);
+    }
+    html[data-theme="light"] .search{
+      background: rgba(255,255,255,.72);
+      border-color: rgba(0,0,0,.10);
+    }
+    html[data-theme="light"] .field{
+      background: rgba(255,255,255,.72);
+      border-color: rgba(0,0,0,.10);
+    }
+    html[data-theme="light"] .field select{
+      background: rgba(255,255,255,.82);
+      border-color: rgba(0,0,0,.10);
+      color: var(--ink);
+    }
+    html[data-theme="light"] .btn{
+      background: rgba(255,255,255,.72);
+      border-color: rgba(0,0,0,.10);
+      color: var(--ink);
+    }
+    html[data-theme="light"] .btn:hover{
+      background: rgba(255,255,255,.86);
+      border-color: rgba(77,211,255,.30);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.14);
+    }
+    html[data-theme="light"] .logout{
+      background: rgba(0,0,0,.03);
+      border-color: rgba(0,0,0,.10);
+      color: rgba(0,0,0,.72);
+    }
+    html[data-theme="light"] .logout:hover{
+      border-color: rgba(255,77,77,.35);
+      color: #c21f1f;
+      box-shadow: 0 0 0 3px rgba(255,77,77,.14);
+    }
+    html[data-theme="light"] .wep-card{
+      background: rgba(0,0,0,.03);
+      border-color: rgba(0,0,0,.08);
+    }
+    html[data-theme="light"] .wep-card:hover{
+      background: rgba(0,0,0,.05);
+      border-color: rgba(255,189,89,.35);
+    }
+    html[data-theme="light"] .wep-thumb{
+      background: rgba(0,0,0,.03);
+      border-color: rgba(0,0,0,.10);
+    }
+    html[data-theme="light"] .empty-msg{
+      background: rgba(0,0,0,.03);
+      border-color: rgba(0,0,0,.14);
+      color: var(--muted);
+    }
+    html[data-theme="light"] .modal-card{
+      background: rgba(255,255,255,.95);
+      border-color: rgba(0,0,0,.10);
+      box-shadow: 0 26px 80px rgba(0,0,0,.18);
+    }
+    html[data-theme="light"] .info-block{
+      background: rgba(0,0,0,.03);
+      border-color: rgba(0,0,0,.10);
+    }
+
+    /* Theme icon swap */
+    #themeToggle .ico-sun{ display:none; }
+    #themeToggle .ico-moon{ display:none; }
+    html[data-theme="dark"] #themeToggle .ico-sun{ display:block; }
+    html[data-theme="light"] #themeToggle .ico-moon{ display:block; }
 
     *{box-sizing:border-box}
     html,body{min-height:100%}
@@ -80,11 +194,17 @@
 
     a{color:inherit}
     select, input{
-      color-scheme: dark;
+      color-scheme: inherit;
       background: rgba(0,0,0,.28);
       color: var(--ink);
     }
+    html[data-theme="light"] select,
+    html[data-theme="light"] input{
+      background: rgba(255,255,255,.82);
+      color: var(--ink);
+    }
     select option{ background:#0b1020; color:var(--ink); }
+    html[data-theme="light"] select option{ background:#ffffff; color:var(--ink); }
 
     /* Layout */
     .app{
@@ -283,6 +403,7 @@
       font-size: .95rem;
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
+    html[data-theme="light"] .search input::placeholder{color: rgba(91,100,122,.75)}
 
     .top-actions{
       display:flex;
@@ -314,11 +435,16 @@
       border:1px solid rgba(255,255,255,.10);
       max-width: 260px;
     }
+    html[data-theme="light"] .userchip{
+      background: rgba(0,0,0,.03);
+      border-color: rgba(0,0,0,.10);
+    }
     .avatar{
       width:28px;height:28px;border-radius:10px;
       background: linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));
       border:1px solid rgba(255,255,255,.10);
     }
+    html[data-theme="light"] .avatar{ border-color: rgba(0,0,0,.10); }
     .usertext{min-width:0}
     .usertext b{
       display:block;
@@ -368,6 +494,11 @@
       border-bottom: 1px solid var(--line);
       background:
         linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.10)),
+        url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
+    }
+    html[data-theme="light"] .hero{
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.70), rgba(255,255,255,.20)),
         url('https://i.imgur.com/qXFpizS.jpg') center/cover no-repeat;
     }
     .hero::after{
@@ -431,6 +562,8 @@
       font-size:.82rem;
       white-space:nowrap;
     }
+    html[data-theme="light"] .pill{ color: rgba(18,20,40,.88); }
+
     .dot{
       width:9px;height:9px;border-radius:50%;
       display:inline-block;
@@ -448,11 +581,15 @@
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.18);
     }
+    html[data-theme="light"] .field{ border-color: rgba(0,0,0,.10); }
+
     .field label{
       font-size:.82rem;
       font-weight:900;
       color: rgba(244,246,255,.85);
     }
+    html[data-theme="light"] .field label{ color: rgba(18,20,40,.82); }
+
     .field select{
       border:0;
       outline:none;
@@ -496,6 +633,7 @@
       font-size: 1.02rem;
       color: rgba(244,246,255,.92);
     }
+    html[data-theme="light"] .section-title{ color: rgba(18,20,40,.92); }
     .section-title .hint{
       font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
       color: var(--muted);
@@ -574,6 +712,8 @@
       text-align:center;
       padding: 0 2px;
     }
+    html[data-theme="light"] .wep-name{ color: rgba(18,20,40,.92); }
+
     .wep-sub{
       display:flex;
       justify-content:center;
@@ -592,6 +732,7 @@
       white-space:nowrap;
       max-width: 100%;
     }
+    html[data-theme="light"] .chip{ color: rgba(18,20,40,.88); }
     .chip.brand{
       border-color: rgba(255,189,89,.26);
       background: rgba(255,189,89,.12);
@@ -737,6 +878,8 @@
       font-size: .92rem;
       font-weight:1000;
     }
+    html[data-theme="light"] .info-block b{ color: rgba(18,20,40,.92); }
+
     .info-block .txt{
       margin:0;
       color: rgba(244,246,255,.86);
@@ -744,6 +887,7 @@
       line-height: 1.28rem;
       white-space: normal;
     }
+    html[data-theme="light"] .info-block .txt{ color: rgba(18,20,40,.86); }
 
     .kv{
       display:grid;
@@ -763,6 +907,7 @@
       color: rgba(244,246,255,.92);
       word-break: break-word;
     }
+    html[data-theme="light"] .kv .v{ color: rgba(18,20,40,.92); }
 
     /* ===== Mobile optimization ===== */
     @media (max-width: 980px){
@@ -831,52 +976,6 @@
       .grid.list-view .wep-mini{-webkit-line-clamp: 3;}
       .topbar{padding:10px;}
     }
-
-    /* ================================
-   Character page — skill title contrast fix
-   Paste at END of <style>
-================================ */
-
-/* 1) Make the skill title/header background dark (so white/brand text is readable) */
-.skill-title,
-.skill-name,
-.skill-header,
-.skill-head,
-.skill-card h3,
-.skill-box h3,
-.skill-item h3{
-  color: var(--brand) !important;            /* title becomes brand gold */
-  text-shadow: 0 0 14px rgba(255,189,89,.18);
-}
-
-/* If your title sits inside a header bar/container, darken it */
-.skill-header,
-.skill-head,
-.skill-top,
-.skill-card .head,
-.skill-card .title,
-.skill-item .title{
-  background: rgba(0,0,0,.22) !important;
-  border: 1px solid rgba(255,255,255,.10) !important;
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-
-/* 2) If you also have ACTIVE/PASSIVE labels, keep them themed */
-.skill-type.active,
-.badge.active,
-.chip.active{
-  color: var(--skill-active) !important;
-  border-color: rgba(77,211,255,.26) !important;
-  background: rgba(77,211,255,.10) !important;
-}
-.skill-type.passive,
-.badge.passive,
-.chip.passive{
-  color: var(--skill-passive) !important;
-  border-color: rgba(255,89,199,.26) !important;
-  background: rgba(255,89,199,.10) !important;
-}
   </style>
 </head>
 
@@ -934,7 +1033,7 @@
               <path d="M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <path d="M8 20v-4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            </span>
+          </span>
           <span class="nav-label">Loadout</span>
         </a>
 
@@ -969,7 +1068,7 @@
           </span>
           <span class="nav-label">BR Data</span>
         </a>
-        
+
         <!-- CS Draft (document + pencil) -->
         <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft-team.html" title="CS Draft">
           <span class="nav-ico">
@@ -989,30 +1088,19 @@
         <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none">
-              <!-- subtle container -->
               <path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- crossed swords -->
-              <path d="M8 16l6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 16l-6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- sword tips -->
-              <path d="M13.5 8.5l2-2 2 2-2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M10.5 8.5l-2-2-2 2 2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- handles -->
-              <path d="M7.2 17.8l2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16.8 17.8l-2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 16l6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 16l-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.5 8.5l2-2 2 2-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10.5 8.5l-2-2-2 2 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.2 17.8l2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16.8 17.8l-2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
           <span class="nav-label">CS Data</span>
         </a>
 
-        
         <!-- Split View (two panes) -->
         <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
           <span class="nav-ico">
@@ -1023,7 +1111,6 @@
           </span>
           <span class="nav-label">Split View</span>
         </a>
-
       </nav>
     </aside>
 
@@ -1045,6 +1132,23 @@
         </div>
 
         <div class="top-actions">
+          <!-- ✅ Light/Dark toggle -->
+          <button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle theme" title="Toggle light/dark">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <!-- Sun (shown in DARK mode to switch to LIGHT) -->
+              <g class="ico-sun">
+                <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </g>
+              <!-- Moon (shown in LIGHT mode to switch to DARK) -->
+              <g class="ico-moon">
+                <path d="M21 13.2A8 8 0 0 1 10.8 3a7 7 0 1 0 10.2 10.2Z"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </svg>
+          </button>
+
           <div class="userchip">
             <div class="avatar"></div>
             <div class="usertext">
@@ -1172,6 +1276,33 @@
   </div>
 
   <script>
+    /***********************
+     * ✅ Theme toggle (persisted)
+     ***********************/
+    const THEME_KEY = 'ff_theme_v1';
+    const themeToggleBtn = document.getElementById('themeToggle');
+
+    function getTheme(){
+      return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+    function applyTheme(theme){
+      document.documentElement.setAttribute('data-theme', theme);
+      try{ localStorage.setItem(THEME_KEY, theme); }catch(_){}
+      if (themeToggleBtn){
+        const next = (theme === 'dark') ? 'Switch to light mode' : 'Switch to dark mode';
+        themeToggleBtn.setAttribute('title', next);
+        themeToggleBtn.setAttribute('aria-label', next);
+        themeToggleBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+      }
+    }
+    themeToggleBtn?.addEventListener('click', () => {
+      const next = (getTheme() === 'dark') ? 'light' : 'dark';
+      applyTheme(next);
+    });
+
+    // Ensure button text/labels match current theme on load
+    applyTheme(getTheme());
+
     /***********************
      * Supabase Auth
      ***********************/
