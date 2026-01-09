@@ -934,6 +934,86 @@
       .modal-top{padding: 12px;}
       .modal-top h3{font-size: 1.05rem;}
     }
+
+    /* =========================
+   Theme toggle (Dark default)
+   ========================= */
+
+html[data-theme="dark"]{ color-scheme: dark; }
+html[data-theme="light"]{ color-scheme: light; }
+
+/* Light theme variable overrides */
+html[data-theme="light"]{
+  --bg:#f6f7fb;
+  --bg2:#e9ecf6;
+  --panel: rgba(255,255,255,.78);
+  --panel2: rgba(255,255,255,.86);
+  --line: rgba(10,15,25,.10);
+  --ink:#0b1020;
+  --muted:#5b647a;
+
+  --shadow: 0 22px 70px rgba(0,0,0,.16);
+}
+
+/* Light theme background */
+html[data-theme="light"] body{
+  background:
+    radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.16), transparent 60%),
+    radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.16), transparent 60%),
+    radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.12), transparent 60%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+}
+
+/* Light theme component surfaces */
+html[data-theme="light"] .nav-search input,
+html[data-theme="light"] .search,
+html[data-theme="light"] .btn,
+html[data-theme="light"] .pill,
+html[data-theme="light"] .chip,
+html[data-theme="light"] .userchip,
+html[data-theme="light"] .icon-btn,
+html[data-theme="light"] .logout,
+html[data-theme="light"] .char-card,
+html[data-theme="light"] .empty-msg,
+html[data-theme="light"] .info-block{
+  background: rgba(255,255,255,.72) !important;
+  border-color: rgba(10,15,25,.12) !important;
+  color: var(--ink) !important;
+}
+
+html[data-theme="light"] .nav-item:hover{
+  background: rgba(10,15,25,.04);
+  border-color: rgba(10,15,25,.10);
+}
+
+html[data-theme="light"] .nav-item.active{
+  background: linear-gradient(135deg, rgba(255,189,89,.22), rgba(77,211,255,.14));
+  border-color: rgba(255,189,89,.35);
+  color: var(--ink);
+}
+
+/* Inputs/selects */
+html[data-theme="light"] select{
+  color-scheme: light;
+  background: rgba(255,255,255,.78);
+  color: var(--ink);
+}
+html[data-theme="light"] select option{
+  background: #fff;
+  color: var(--ink);
+}
+
+/* Modal surface */
+html[data-theme="light"] .modal-card{
+  background: rgba(255,255,255,.92);
+  border-color: rgba(10,15,25,.12);
+}
+
+/* Light theme: reduce heavy rings */
+html[data-theme="light"] body::before,
+html[data-theme="light"] body::after{
+  border-color: rgba(77,211,255,.18);
+}
   </style>
 </head>
 
@@ -1094,7 +1174,15 @@
         </div>
 
         <div class="top-actions">
-          <div class="userchip">
+  <!-- Theme toggle -->
+  <button class="icon-btn" id="themeToggle" type="button"
+          aria-label="Toggle theme" title="Toggle theme">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <!-- icon is injected by JS -->
+    </svg>
+  </button>
+
+  <div class="userchip">
             <div class="avatar" aria-hidden="true"></div>
             <div class="usertext">
               <b id="gamertag">PlayerOne</b>
@@ -1676,6 +1764,56 @@
       }
     }
 
+    /***********************
+ * Theme toggle (Dark default)
+ ***********************/
+const THEME_KEY = 'ff_theme_v1';
+
+const themeToggleBtn = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+
+const ICON_SUN = `
+  <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2"/>
+  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+`;
+
+const ICON_MOON = `
+  <path d="M21 12.8A7.2 7.2 0 0 1 11.2 3a6.5 6.5 0 1 0 9.8 9.8Z"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+`;
+
+function applyTheme(mode){
+  const m = (mode === 'light') ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', m);
+  try{ localStorage.setItem(THEME_KEY, m); }catch(_){}
+  syncThemeToggleUI();
+}
+
+function syncThemeToggleUI(){
+  const mode = document.documentElement.getAttribute('data-theme') || 'dark';
+  const isDark = mode === 'dark';
+
+  // If dark → show sun (switch to light). If light → show moon (switch to dark).
+  if (themeIcon) themeIcon.innerHTML = isDark ? ICON_SUN : ICON_MOON;
+  if (themeToggleBtn){
+    themeToggleBtn.title = isDark ? 'Switch to Light mode' : 'Switch to Dark mode';
+    themeToggleBtn.setAttribute('aria-label', themeToggleBtn.title);
+  }
+}
+
+function initTheme(){
+  let saved = null;
+  try{ saved = localStorage.getItem(THEME_KEY); }catch(_){}
+  // Dark is the default (your current theme)
+  applyTheme(saved || 'dark');
+}
+
+themeToggleBtn?.addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
+    
     function closeInfo(){
       infoModal.classList.remove('show');
       infoModal.setAttribute('aria-hidden','true');
@@ -1704,6 +1842,7 @@
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
+      initTheme();
       syncSidebarMode();
       syncLangToggleUI();
 
