@@ -113,14 +113,12 @@
       backdrop-filter: blur(18px) saturate(145%);
     }
 
-    /* =========================
-       HEADER FIX (no overlap)
-       ========================= */
+    /* header */
     header{
       position:sticky;
       top:0;
       z-index:50;
-      padding:14px 14px;
+      padding:18px 14px;
       border-bottom:1px solid var(--line);
       background:rgba(14,18,28,.62);
       -webkit-backdrop-filter: blur(16px) saturate(145%);
@@ -134,18 +132,6 @@
       background:linear-gradient(90deg, transparent, rgba(255,189,89,.85), rgba(255,119,51,.65), transparent);
       opacity:.9;
     }
-
-    .header-inner{
-      width: 100%;
-      max-width: 1400px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 12px;
-    }
-    .header-spacer{ min-height: 1px; }
-
     h1{
       font-family:'Orbitron',sans-serif;
       margin:0;
@@ -154,16 +140,15 @@
       color:var(--brand);
       font-size:2rem;
       text-shadow:0 8px 30px rgba(0,0,0,.55);
-      justify-self: center;
     }
 
     .user-controls{
-      position: static;
-      justify-self: end;
+      position:absolute;
+      top:14px;
+      right:14px;
       display:flex;
       align-items:center;
       gap:10px;
-      min-width: 0;
     }
     .user-controls #user-info{
       font-size:12px;
@@ -216,47 +201,6 @@
       box-shadow: 0 0 0 3px rgba(77,211,255,.14), 0 16px 40px rgba(0,0,0,.45);
     }
 
-    /* ✅ TEAM LOGO PRIMITIVES (MERGED) */
-    .team-cell{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:0;
-    }
-    .team-ico{
-      width:20px;
-      height:20px;
-      border-radius:8px;
-      object-fit:cover;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(14,18,28,.35);
-      box-shadow: 0 10px 22px rgba(0,0,0,.25);
-      flex:0 0 auto;
-    }
-    .team-ico.lg{
-      width:42px;
-      height:42px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow: 0 14px 34px rgba(0,0,0,.35);
-      background: rgba(14,18,28,.45);
-    }
-    .team-head{
-      width: 100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      margin-bottom: 8px;
-    }
-    .team-name-wrap{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:4px;
-      min-width:0;
-    }
-
     /* details (Draft History ONLY) */
     details.glassy{
       margin: 20px auto;
@@ -283,9 +227,7 @@
     }
     details.glassy > summary::-webkit-details-marker{ display:none; }
 
-    /* =========================
-       TOP SELECTION BAR FIX
-       ========================= */
+    /* top controls */
     .top-controls{
       width: 95%;
       max-width: 1400px;
@@ -295,7 +237,7 @@
       justify-content:center;
       align-items:center;
       gap:10px;
-      padding:12px;
+      padding:10px;
     }
     .top-controls.glassbar{
       background:rgba(20,26,38,.52);
@@ -305,7 +247,6 @@
       backdrop-filter: blur(14px) saturate(140%);
       box-shadow: 0 18px 55px rgba(0,0,0,.45);
     }
-
     .top-controls a{
       display:inline-flex;
       align-items:center;
@@ -337,31 +278,60 @@
     }
     .top-controls button:hover{ transform: translateY(-1px); filter:brightness(1.03); }
 
-    /* make everything the same height + aligned */
-    .top-controls a,
-    .top-controls button,
-    .top-controls input[type="date"],
-    .top-controls input[type="text"],
-    .top-controls select{
-      height: 44px;
-      display: inline-flex;
+    /* =========================
+       HEADER FIX (no overlap)
+       ========================= */
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      padding:14px 14px;
+      border-bottom:1px solid var(--line);
+      background:rgba(14,18,28,.62);
+      -webkit-backdrop-filter: blur(16px) saturate(145%);
+      backdrop-filter: blur(16px) saturate(145%);
+    }
+
+    .header-inner{
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
+      gap: 12px;
     }
-    .top-controls label{
-      display:inline-flex;
+
+    .header-spacer{ min-height: 1px; }
+
+    h1{
+      font-family:'Orbitron',sans-serif;
+      margin:0;
+      text-align:center;
+      letter-spacing:.6px;
+      color:var(--brand);
+      font-size:2rem;
+      text-shadow:0 8px 30px rgba(0,0,0,.55);
+      justify-self: center;
+    }
+
+    .user-controls{
+      position: static;            /* ✅ stop absolute overlap */
+      justify-self: end;
+      display:flex;
       align-items:center;
-      height:44px;
-      padding: 0 4px;
-      white-space:nowrap;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .user-controls #user-info{
+      font-size:12px;
       color:var(--muted);
-      font-weight:800;
+      max-width:320px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .top-controls input[type="date"],
-    .top-controls input[type="text"],
-    .top-controls select{
-      padding: 8px 12px;
-    }
-    #tournamentInput{ width: 260px; }
 
     /* mobile header: stack neatly */
     @media (max-width: 720px){
@@ -381,6 +351,54 @@
         text-align: center;
       }
     }
+
+    /* =========================
+       TOP SELECTION BAR FIX
+       ========================= */
+    .top-controls{
+      width: 95%;
+      max-width: 1400px;
+      margin: 14px auto 0;
+      display:flex;
+      flex-wrap:nowrap;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      padding:12px;
+    }
+
+    /* make everything the same height + aligned */
+    .top-controls a,
+    .top-controls button,
+    .top-controls input[type="date"],
+    .top-controls input[type="text"],
+    .top-controls select{
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .top-controls label{
+      display:inline-flex;
+      align-items:center;
+      height:44px;
+      padding: 0 4px;
+      white-space:nowrap;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    /* ensure inputs feel consistent */
+    .top-controls input[type="date"],
+    .top-controls input[type="text"],
+    .top-controls select{
+      padding: 8px 12px;
+    }
+
+    /* keep the tournament input from becoming too huge on desktop */
+    #tournamentInput{ width: 260px; }
+
+    /* mobile swipe still works, but spacing is cleaner */
     @media (max-width: 900px){
       #tournamentInput{ width: 220px; }
       .top-controls{
@@ -446,7 +464,6 @@
       padding:6px 10px;
       border-radius:12px;
       outline:none;
-      max-width: 360px;
     }
     .team-label:focus{
       background:rgba(10,14,24,.45);
@@ -602,17 +619,6 @@
       letter-spacing:.5px;
     }
 
-    .sum-team-head{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      margin: 4px 0 10px;
-    }
-    .sum-team-head .team-ico.lg{
-      width:38px;height:38px;border-radius:14px;
-    }
-
     .summary-row{ display:flex; flex-direction:row; gap:10px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
     .summary-card{
       background:rgba(255,255,255,.05);
@@ -756,7 +762,9 @@
       -webkit-box-orient: vertical;
       overflow:hidden;
     }
-    .sum-card.expanded .sum-desc{ -webkit-line-clamp: initial; }
+    .sum-card.expanded .sum-desc{
+      -webkit-line-clamp: initial;
+    }
 
     /* ✅ passive/weapon item with description (clamped; expands on More) */
     .sum-item{
@@ -797,7 +805,9 @@
       -webkit-box-orient: vertical;
       overflow:hidden;
     }
-    .sum-card.expanded .sum-item-desc{ -webkit-line-clamp: initial; }
+    .sum-card.expanded .sum-item-desc{
+      -webkit-line-clamp: initial;
+    }
 
     /* modal */
     .modal{
@@ -914,7 +924,7 @@
     .table-scroll{
       width: 100%;
       max-height: calc(var(--rowH) * 6); /* header + 5 rows */
-      overflow: auto;
+      overflow: auto;                 /* ✅ allow X + Y scrolling */
       -webkit-overflow-scrolling: touch;
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,.10);
@@ -924,8 +934,8 @@
 
     /* ensure table doesn’t squeeze columns too much */
     #recordTable{
-      width: max-content;
-      min-width: 100%;
+      width: max-content;             /* ✅ table can be wider than container */
+      min-width: 100%;                /* but never smaller than container */
       border-collapse: collapse;
     }
 
@@ -946,7 +956,6 @@
       height: var(--rowH);
       vertical-align: middle;
       background: transparent;
-      white-space: nowrap;
     }
     #recordTable tbody{
       background: rgba(14,18,28,.35) !important;
@@ -1077,7 +1086,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 210px;
+      max-width: 230px;
     }
     .acc-badge{
       font-size: 11px;
@@ -1105,7 +1114,9 @@
     }
     details.team-accordion[open] .acc-chevron{ transform: rotate(180deg); }
 
-    .team-accordion-body{ padding: 0 12px 12px; }
+    .team-accordion-body{
+      padding: 0 12px 12px;
+    }
 
     .team-meta{
       font-size: 12px;
@@ -1114,7 +1125,6 @@
       padding-bottom: 10px;
       color: rgba(244,246,255,.78);
     }
-
     .mini-player{
       width: 68px;
       text-align:center;
@@ -1204,15 +1214,20 @@
     @media (max-width: 900px){
       .top-controls{
         justify-content:flex-start;
-        flex-wrap: nowrap;
-        overflow-x: auto;
+        flex-wrap: nowrap;            /* ✅ no wrap */
+        overflow-x: auto;             /* ✅ swipe */
         -webkit-overflow-scrolling: touch;
         padding: 12px;
         gap: 10px;
         overscroll-behavior-x: contain;
       }
-      .top-controls > *{ flex: 0 0 auto; }
-      .top-controls a, .top-controls button{ white-space: nowrap; }
+      .top-controls > *{
+        flex: 0 0 auto;               /* ✅ keep natural widths */
+      }
+      .top-controls a,
+      .top-controls button{
+        white-space: nowrap;
+      }
       .top-controls input[type="text"]{ width: 220px; }
       .top-controls select{ min-width: 160px; }
     }
@@ -1220,15 +1235,16 @@
     @media (max-width: 900px){
       .draft-wrapper{
         gap: 14px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
+        flex-wrap: nowrap;            /* ✅ keep in a row */
+        overflow-x: auto;             /* ✅ swipe between teams */
         -webkit-overflow-scrolling: touch;
         scroll-snap-type: x mandatory;
         padding: 0 14px 8px;
         overscroll-behavior-x: contain;
       }
+
       .team-container{
-        min-width: calc(100vw - 28px);
+        min-width: calc(100vw - 28px); /* ✅ full viewport width */
         scroll-snap-align: start;
       }
     }
@@ -1238,7 +1254,6 @@
       .slot-name{ max-width: 88px; }
       .weapon-slot{ width: 88px; height: 40px; }
       .player-input{ width: 88px; }
-      .team-label{ max-width: 260px; }
     }
 
     @media (max-width: 520px){
@@ -1247,13 +1262,12 @@
     }
   </style>
 </head>
+
 <body>
   <header>
     <div class="header-inner">
       <div class="header-spacer"></div>
-
       <h1>Clash Squad Draft</h1>
-
       <div class="user-controls">
         <span id="user-info">Checking login...</span>
         <button class="logout-btn" onclick="logout()">Logout</button>
@@ -1340,38 +1354,20 @@
 
   <div class="draft-wrapper">
     <div class="team-container glassbox">
-      <!-- ✅ LOGO (updates based on current filters / records / team name) -->
-      <div class="team-head">
-        <img id="teamLogoLeft" class="team-ico lg" alt="Team Left logo" />
-        <div class="team-name-wrap">
-          <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
-          <div style="color: rgba(170,177,197,.78); font-weight:900; font-size:11px;">Team Left</div>
-        </div>
-      </div>
-
+      <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
       <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
         <label for="teamLeftScore">Left Score:</label>
         <input type="number" id="teamLeftScore" min="0" style="width: 80px; margin-left: 8px;" />
       </div>
-
       <div class="team-row" id="teamLeft"></div>
     </div>
 
     <div class="team-container glassbox">
-      <!-- ✅ LOGO -->
-      <div class="team-head">
-        <img id="teamLogoRight" class="team-ico lg" alt="Team Right logo" />
-        <div class="team-name-wrap">
-          <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
-          <div style="color: rgba(170,177,197,.78); font-weight:900; font-size:11px;">Team Right</div>
-        </div>
-      </div>
-
+      <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
       <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
         <label for="teamRightScore">Right Score:</label>
         <input type="number" id="teamRightScore" min="0" style="width: 80px; margin-left: 8px;" />
       </div>
-
       <div class="team-row" id="teamRight"></div>
     </div>
   </div>
@@ -1390,7 +1386,6 @@
     </div>
   </div>
 
-  <!-- ✅ moved PB filters ABOVE match summary; removed date range -->
   <div id="pbFilterBar">
     <h2>Filters</h2>
     <div class="counts-controls">
@@ -1443,14 +1438,18 @@ let characters = [], weapons = [], currentSlot = null;
 let ALL_DRAFT_RECORDS = [];
 let LAST_MATCHED_RECORDS = [];
 
-/* ✅ TEAM LOGO CACHE (MERGED) */
-const TEAM_LOGOS = new Map(); // key: normalized team name, value: logo_url
-const TEAM_LOGO_TABLE_CANDIDATES = [
-  { table: 'team_logos', nameCol: 'team_name', logoCol: 'logo_url' },
-  { table: 'teams',      nameCol: 'name',      logoCol: 'logo_url' },
-  { table: 'team_database', nameCol: 'team_name', logoCol: 'logo_url' },
-  { table: 'scoreboard_teams', nameCol: 'team_name', logoCol: 'logo_url' }
-];
+/* ✅ Track whether the user manually touched filters (so we don't override their choice) */
+let HISTORY_TOURN_TOUCHED = false;
+let COUNTS_TOURN_TOUCHED  = false;
+
+/* ✅ Find the latest non-empty tournament_name in the already-sorted records */
+function getLatestTournamentName(records){
+  for (const r of (records || [])) {
+    const tn = (r?.tournament_name || '').trim();
+    if (tn) return tn;
+  }
+  return '__ALL__';
+}
 
 // state now includes tournamentName
 let draftState = {
@@ -1510,113 +1509,6 @@ function debounce(fn, wait=450){
   };
 }
 
-/* -----------------------------
-   ✅ TEAM LOGO HELPERS (MERGED)
-------------------------------*/
-function normTeamName(name){
-  return (name || '').toString().trim().toLowerCase();
-}
-
-function initialsFromTeam(name){
-  const s = (name || '').toString().trim();
-  if (!s) return '??';
-  const parts = s.split(/[\s\-|x|×|\/|_]+/i).filter(Boolean);
-  const a = (parts[0]?.[0] || s[0] || '?').toUpperCase();
-  const b = (parts[1]?.[0] || parts[0]?.[1] || s[1] || '').toUpperCase();
-  return (a + b).slice(0,2);
-}
-
-function makeInitialsLogo(teamName){
-  const initials = initialsFromTeam(teamName);
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#ffbd59"/>
-        <stop offset="1" stop-color="#ff7733"/>
-      </linearGradient>
-      <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity=".45"/>
-      </filter>
-    </defs>
-    <rect x="8" y="8" width="112" height="112" rx="26" fill="rgba(14,18,28,.65)" stroke="rgba(255,255,255,.18)" />
-    <circle cx="64" cy="64" r="42" fill="url(#g)" opacity=".95" filter="url(#s)"/>
-    <text x="64" y="73" text-anchor="middle" font-family="Orbitron, system-ui, sans-serif" font-size="34" font-weight="800" fill="#12131a">${initials}</text>
-  </svg>`;
-  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.trim());
-}
-
-function getTeamLogoUrl(teamName){
-  const key = normTeamName(teamName);
-  return TEAM_LOGOS.get(key) || makeInitialsLogo(teamName);
-}
-
-function setTeamLogo(teamName, url){
-  const key = normTeamName(teamName);
-  if (!key) return;
-  if (url) TEAM_LOGOS.set(key, url);
-}
-
-async function ensureLogosForTeams(teamNames){
-  const unique = Array.from(new Set((teamNames || []).map(t => (t || '').toString().trim()).filter(Boolean)));
-  const missing = unique.filter(t => !TEAM_LOGOS.has(normTeamName(t)));
-  if (!missing.length) return;
-
-  // chunk to avoid too-long queries
-  const chunks = [];
-  const chunkSize = 60;
-  for (let i=0;i<missing.length;i+=chunkSize) chunks.push(missing.slice(i,i+chunkSize));
-
-  for (const chunk of chunks){
-    let resolved = false;
-
-    for (const cand of TEAM_LOGO_TABLE_CANDIDATES){
-      try{
-        const { data, error } = await client
-          .from(cand.table)
-          .select(`${cand.nameCol},${cand.logoCol}`)
-          .in(cand.nameCol, chunk);
-
-        if (error) {
-          // try next table
-          continue;
-        }
-
-        if (Array.isArray(data) && data.length){
-          data.forEach(row => {
-            const name = row?.[cand.nameCol];
-            const url  = row?.[cand.logoCol];
-            if (name && url) setTeamLogo(name, url);
-          });
-          resolved = true;
-          break;
-        }
-      } catch(e){
-        // try next table
-      }
-    }
-
-    // if none resolved, we still have initials placeholders (no need to error)
-    if (!resolved){
-      chunk.forEach(t => { if (!TEAM_LOGOS.has(normTeamName(t))) TEAM_LOGOS.set(normTeamName(t), null); });
-    }
-  }
-}
-
-function refreshTeamHeaderLogos(){
-  const leftName  = draftState.teamNames?.[0] || 'TEAM LEFT';
-  const rightName = draftState.teamNames?.[1] || 'TEAM RIGHT';
-
-  const leftEl = document.getElementById('teamLogoLeft');
-  const rightEl= document.getElementById('teamLogoRight');
-
-  if (leftEl)  leftEl.src  = getTeamLogoUrl(leftName);
-  if (rightEl) rightEl.src = getTeamLogoUrl(rightName);
-}
-
-/* -----------------------------
-   INIT
-------------------------------*/
 // called from top-level DOMContentLoaded AFTER session is ready
 async function initDraftPage() {
   characters = await (await fetch('https://misai-my.github.io/freefire-esports/character.json')).json();
@@ -1625,6 +1517,9 @@ async function initDraftPage() {
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;
 
+  // Debounced autosave
+  const autoSave = debounce(saveDraftState, 450);
+
   // auto-save header changes into public.draft
   document.getElementById('matchDate').addEventListener('change', saveDraftState);
   document.getElementById('gameNumberSelect').addEventListener('change', saveDraftState);
@@ -1632,6 +1527,13 @@ async function initDraftPage() {
   document.getElementById('teamLeftScore').addEventListener('change', saveDraftState);
   document.getElementById('teamRightScore').addEventListener('change', saveDraftState);
   document.getElementById('tournamentInput').addEventListener('change', saveDraftState);
+
+  /* ✅ mark tournament filters as "touched" when user changes them */
+  const histT = document.getElementById('tournamentFilter');
+  if (histT) histT.addEventListener('change', () => { HISTORY_TOURN_TOUCHED = true; });
+
+  const cntT = document.getElementById('countTournamentSelect');
+  if (cntT) cntT.addEventListener('change', () => { COUNTS_TOURN_TOUCHED = true; });
 
   await loadDraftState(); // from public.draft
 
@@ -1659,7 +1561,7 @@ async function initDraftPage() {
     })
     .subscribe();
 
-  await loadAllDraftRecords();
+  loadAllDraftRecords();
 }
 
 function drawDraft(){
@@ -1674,7 +1576,6 @@ function drawDraft(){
   document.getElementById('teamNameLeft').value = draftState.teamNames[0];
   document.getElementById('teamNameRight').value = draftState.teamNames[1];
 
-  refreshTeamHeaderLogos();
   updateSummary();
 }
 
@@ -1734,11 +1635,9 @@ function makeSlot(type,index){
   return c;
 }
 
-async function updateTeamName(teamIndex) {
+function updateTeamName(teamIndex) {
   const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
   draftState.teamNames[teamIndex] = input.value;
-  await ensureLogosForTeams([draftState.teamNames[teamIndex]]);
-  refreshTeamHeaderLogos();
   saveDraftState();
 }
 
@@ -1935,12 +1834,8 @@ function updateSummary() {
   }
 
   function renderTeam(teamLabel, banIdx, pickOrder, labelPrefix){
-    const logo = getTeamLogoUrl(teamLabel);
     return `
-      <div class="sum-team-head">
-        <img class="team-ico lg" src="${esc(logo)}" alt="">
-        <h3 style="margin:0;">${esc(teamLabel)}</h3>
-      </div>
+      <h3>${esc(teamLabel)}</h3>
       ${renderBan(banIdx)}
       <div class="sum-section-title">Players</div>
       <div class="sum-players">
@@ -1971,8 +1866,6 @@ function resetDraft() {
   document.getElementById('teamLeftScore').value = 0;
   document.getElementById('teamRightScore').value = 0;
   document.getElementById('tournamentInput').value = '';
-
-  refreshTeamHeaderLogos();
   drawDraft();
   saveDraftState();
 }
@@ -1992,8 +1885,6 @@ function applyStateToControls() {
   document.getElementById('teamRightScore').value = draftState.teamRightScore ?? 0;
   document.getElementById('mapSelect').value = draftState.map || 'Bermuda';
   document.getElementById('tournamentInput').value = draftState.tournamentName || '';
-
-  refreshTeamHeaderLogos();
 }
 
 async function saveDraftState() {
@@ -2058,7 +1949,6 @@ async function loadDraftState() {
     ...data.state
   };
 
-  await ensureLogosForTeams([draftState.teamNames?.[0], draftState.teamNames?.[1]].filter(Boolean));
   applyStateToControls();
   drawDraft();
   console.log('✅ Draft state loaded from public.draft');
@@ -2111,7 +2001,6 @@ async function loadDraftRecord() {
     draftState.gameNumber = data.game_number || draftState.gameNumber;
     draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
 
-    await ensureLogosForTeams([draftState.teamNames?.[0], draftState.teamNames?.[1]].filter(Boolean));
     applyStateToControls();
     drawDraft();
     await saveDraftState();
@@ -2173,16 +2062,6 @@ function toggleTeamFilterMode() {
   Array.from(filter.options).forEach(o => { o.selected = selected.includes(o.value); });
 }
 
-function teamCellHTML(teamName){
-  const logo = getTeamLogoUrl(teamName);
-  return `
-    <span class="team-cell">
-      <img class="team-ico" src="${esc(logo)}" alt="">
-      <span style="min-width:0; overflow:hidden; text-overflow:ellipsis;">${esc(teamName)}</span>
-    </span>
-  `;
-}
-
 async function loadAllDraftRecords() {
   const { data, error } = await client
     .from('draft_records')
@@ -2220,8 +2099,8 @@ async function loadAllDraftRecords() {
     if (record.tournament_name) allTournaments.add(record.tournament_name);
   });
 
-  // ✅ ensure we have logos for teams in this dataset (used across History + Summary)
-  await ensureLogosForTeams(Array.from(allTeams));
+  /* ✅ Determine latest tournament from the newest records (data is already ordered desc) */
+  const latestTournament = getLatestTournamentName(data);
 
   const prevSelectedTeams = new Set(selectedTeams);
   const prevTeamCount = teamCountSelect.value || '__ALL__';
@@ -2257,7 +2136,14 @@ async function loadAllDraftRecords() {
     o.textContent = (tn === '__ALL__') ? 'All tournaments' : tn;
     tournamentFilter.appendChild(o);
   });
-  tournamentFilter.value = prevTournamentHistory || '__ALL__';
+
+  /* ✅ Default history tournament to latest tournament unless user already touched it */
+  const historyTarget =
+    (!HISTORY_TOURN_TOUCHED && latestTournament !== '__ALL__')
+      ? latestTournament
+      : (tournamentsSorted.includes(prevTournamentHistory) ? prevTournamentHistory : (latestTournament || '__ALL__'));
+
+  tournamentFilter.value = historyTarget || '__ALL__';
 
   countTournamentSelect.innerHTML = '';
   tournamentsSorted.forEach(tn => {
@@ -2266,7 +2152,14 @@ async function loadAllDraftRecords() {
     o2.textContent = (tn === '__ALL__') ? 'All tournaments' : tn;
     countTournamentSelect.appendChild(o2);
   });
-  countTournamentSelect.value = prevTournamentCounts || '__ALL__';
+
+  /* ✅ Default counts tournament to match history tournament unless user touched it */
+  const countsTarget =
+    (!COUNTS_TOURN_TOUCHED)
+      ? (tournamentFilter.value || '__ALL__')
+      : (tournamentsSorted.includes(prevTournamentCounts) ? prevTournamentCounts : (tournamentFilter.value || '__ALL__'));
+
+  countTournamentSelect.value = countsTarget || '__ALL__';
 
   if (tournamentInputList) {
     tournamentInputList.innerHTML = '';
@@ -2275,6 +2168,17 @@ async function loadAllDraftRecords() {
       opt.value = tn;
       tournamentInputList.appendChild(opt);
     });
+  }
+
+  /* ✅ Optional: auto-fill the top Tournament input on first load */
+  const topTournamentInput = document.getElementById('tournamentInput');
+  if (!draftState.tournamentName && topTournamentInput && !topTournamentInput.value) {
+    const t = tournamentFilter.value;
+    if (t && t !== '__ALL__') {
+      topTournamentInput.value = t;
+      draftState.tournamentName = t;
+      saveDraftState();
+    }
   }
 
   const selectedTournament = tournamentFilter.value || '__ALL__';
@@ -2300,9 +2204,9 @@ async function loadAllDraftRecords() {
     row.innerHTML = `
       <td>${record.match_date}</td>
       <td>Game ${record.game_number}</td>
-      <td style="text-align:left;">${teamCellHTML(record.team_left)} ${isLeftWinner ? '🏆' : ''}</td>
+      <td style="text-align:left;">${record.team_left} ${isLeftWinner ? '🏆' : ''}</td>
       <td>${record.team_left_score ?? '-'}</td>
-      <td style="text-align:left;">${teamCellHTML(record.team_right)} ${isRightWinner ? '🏆' : ''}</td>
+      <td style="text-align:left;">${record.team_right} ${isRightWinner ? '🏆' : ''}</td>
       <td>${record.team_right_score ?? '-'}</td>
       <td>${record.map ?? '-'}</td>
       <td>${record.tournament_name ?? '-'}</td>
@@ -2312,11 +2216,6 @@ async function loadAllDraftRecords() {
   });
 
   LAST_MATCHED_RECORDS = matchedRecords;
-
-  // ✅ keep the big logos consistent with what’s currently in the draft
-  await ensureLogosForTeams([draftState.teamNames?.[0], draftState.teamNames?.[1]].filter(Boolean));
-  refreshTeamHeaderLogos();
-
   applyPBFilters(); // renders accordion + counts (no date range)
 }
 
@@ -2355,8 +2254,6 @@ async function loadSpecificDraft(id) {
   draftState.gameNumber = data.game_number || draftState.gameNumber;
   draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
 
-  await ensureLogosForTeams([draftState.teamNames?.[0], draftState.teamNames?.[1]].filter(Boolean));
-
   applyStateToControls();
   drawDraft();
   await saveDraftState();
@@ -2380,15 +2277,8 @@ function applyPBFiltersToRecords(records){
 
 function applyPBFilters(){
   const filtered = applyPBFiltersToRecords(LAST_MATCHED_RECORDS);
-  // ✅ make sure logos exist for ONLY the currently filtered teams (fast + consistent)
-  const teamsInFiltered = new Set();
-  filtered.forEach(r => { teamsInFiltered.add(r.team_left); teamsInFiltered.add(r.team_right); });
-  ensureLogosForTeams(Array.from(teamsInFiltered)).then(() => {
-    renderTeamAccordionSummaries(filtered);
-    computeTeamPickBanCountsFromRecords(filtered);
-    refreshTeamHeaderLogos();
-    updateSummary();
-  });
+  renderTeamAccordionSummaries(filtered);
+  computeTeamPickBanCountsFromRecords(filtered);
 }
 
 /* -----------------------------
@@ -2428,12 +2318,7 @@ function renderTeamAccordionSummaries(records) {
     const sum = document.createElement('summary');
     const left = document.createElement('div');
     left.className = 'acc-left';
-
-    const logo = getTeamLogoUrl(team);
-    left.innerHTML = `
-      <img class="team-ico" src="${esc(logo)}" alt="">
-      <div class="acc-title">${esc(team)}</div>
-    `;
+    left.innerHTML = `<div class="acc-title">${team}</div>`;
 
     const badge = document.createElement('div');
     badge.className = 'acc-badge';
@@ -2453,11 +2338,10 @@ function renderTeamAccordionSummaries(records) {
     teamMap[team].forEach(r => {
       const meta = document.createElement('div');
       meta.className = 'team-meta';
-
       meta.innerHTML = `
-        📅 ${esc(r.match_date)} | 🎮 Game ${esc(r.game_number)} | 🗺️ ${esc(r.map ?? '—')}<br>
-        🏆 ${esc(r.tournament_name ?? '—')}<br>
-        🆚 ${esc(r.team_left)} ${esc(r.team_left_score ?? '-')} - ${esc(r.team_right_score ?? '-')} ${esc(r.team_right)}
+        📅 ${r.match_date} | 🎮 Game ${r.game_number} | 🗺️ ${r.map ?? '—'}<br>
+        🏆 ${r.tournament_name ?? '—'}<br>
+        🆚 ${r.team_left} ${r.team_left_score ?? '-'} - ${r.team_right_score ?? '-'} ${r.team_right}
       `;
       body.appendChild(meta);
 
@@ -2469,7 +2353,8 @@ function renderTeamAccordionSummaries(records) {
 
       let pickIndexes;
       if (focusTeam !== '__ALL__') {
-        const focusedIsLeft = (focusTeam === r.team_left);
+        const focused = focusTeam;
+        const focusedIsLeft = (focused === r.team_left);
         pickIndexes = focusedIsLeft ? [0,1,2,3] : [7,6,5,4];
       } else {
         if (isLeft) pickIndexes = [0,1,2,3];
@@ -2496,10 +2381,10 @@ function renderTeamAccordionSummaries(records) {
         const heroSkill = hero?.skill || '';
 
         pCard.innerHTML = `
-          <img src="${esc(heroImg)}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
-          <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${esc(heroName)}</div>
-          <div style="color:rgba(170,177,197,.85); font-weight:900;">${esc(playerName)}</div>
-          <div style="color:rgba(77,211,255,.95); font-weight:900;">${esc(heroSkill)}</div>
+          <img src="${heroImg}" style="width:44px;height:44px;border-radius:12px; box-shadow: 0 10px 22px rgba(0,0,0,.35);"><br>
+          <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
+          <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
+          <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
         `;
 
         passives.forEach(ps => {
@@ -2540,7 +2425,6 @@ function renderTeamAccordionSummaries(records) {
     container.appendChild(d);
   });
 
-  // ✅ true accordion behavior: opening one closes others
   const acc = Array.from(container.querySelectorAll('details.team-accordion'));
   acc.forEach(d => {
     d.addEventListener('toggle', () => {
@@ -2638,7 +2522,7 @@ function computeTeamPickBanCountsFromRecords(records) {
     .sort((a,b) => b[1] - a[1])
     .forEach(([name, count]) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${esc(name)}</td><td>${count}</td>`;
+      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
       pickBody.appendChild(tr);
     });
 
@@ -2646,7 +2530,7 @@ function computeTeamPickBanCountsFromRecords(records) {
     .sort((a,b) => b[1] - a[1])
     .forEach(([name, count]) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${esc(name)}</td><td>${count}</td>`;
+      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
       banBody.appendChild(tr);
     });
 
