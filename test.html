@@ -551,6 +551,42 @@
       margin-top: 4px;
     }
 
+    /* ✅ PET (per player) */
+    .pet-wrap{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      margin-top: 2px;
+    }
+    .pet-slot{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      cursor:pointer;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      background-size:cover;
+      background-position:center;
+      -webkit-backdrop-filter: blur(12px) saturate(135%);
+      backdrop-filter: blur(12px) saturate(135%);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease, border-color .15s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+    }
+    .pet-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .pet-slot:after{
+      content:"PET";
+      position:absolute;
+      bottom:-14px;
+      font-size:9px;
+      font-weight:900;
+      color: rgba(170,177,197,.78);
+      letter-spacing:.3px;
+    }
+
     /* --- pick internals (desktop base) --- */
     .pick-pack{ width:100%; display:flex; flex-direction:column; align-items:center; gap:6px; }
     .pick-main{ display:flex; flex-direction:column; align-items:center; gap:6px; }
@@ -766,7 +802,7 @@
       -webkit-line-clamp: initial;
     }
 
-    /* ✅ passive/weapon item with description (clamped; expands on More) */
+    /* ✅ passive/weapon/pet item with description (clamped; expands on More) */
     .sum-item{
       display:flex;
       align-items:flex-start;
@@ -1433,7 +1469,7 @@
   </div>
 
 <script>
-let characters = [], weapons = [], currentSlot = null;
+let characters = [], weapons = [], pets = [], currentSlot = null;
 
 let ALL_DRAFT_RECORDS = [];
 let LAST_MATCHED_RECORDS = [];
@@ -1451,12 +1487,13 @@ function getLatestTournamentName(records){
   return '__ALL__';
 }
 
-// state now includes tournamentName
+// ✅ state now includes pets (1 per player)
 let draftState = {
   bans: [null, null],
   picks: Array(8).fill(null),
   passives: Array(8).fill(0).map(() => [null, null, null]),
   weapons: Array(8).fill(0).map(() => [null, null, null]),
+  pets: Array(8).fill(null),                 // ✅ NEW
   teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
   playerCards: Array(8).fill(''),
   matchDate: '',
@@ -1501,6 +1538,18 @@ function formatWeaponDesc(w){
   return parts.length ? parts.join(' • ') : '—';
 }
 
+function formatPetDesc(p){
+  const d = getDesc(p);
+  if (d) return d;
+
+  // fallback common fields if your pet.json has them
+  const parts = [];
+  if (p?.skill) parts.push(p.skill);
+  if (p?.effect) parts.push(p.effect);
+  if (p?.type) parts.push(p.type);
+  return parts.length ? parts.join(' • ') : '—';
+}
+
 function debounce(fn, wait=450){
   let t=null;
   return (...args)=>{
@@ -1512,7 +1561,8 @@ function debounce(fn, wait=450){
 // called from top-level DOMContentLoaded AFTER session is ready
 async function initDraftPage() {
   characters = await (await fetch('https://misai-my.github.io/freefire-esports/character.json')).json();
-  weapons = await (await fetch('https://misai-my.github.io/freefire-esports/weapon.json')).json();
+  weapons    = await (await fetch('https://misai-my.github.io/freefire-esports/weapon.json')).json();
+  pets       = await (await fetch('https://misai-my.github.io/freefire-esports/pet.json')).json(); // ✅ NEW
 
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;
@@ -1610,6 +1660,32 @@ function makeSlot(type,index){
       saveDraftState();
     };
     c.appendChild(input);
+
+    // ✅ PET SLOT (per player)
+    const petWrap = document.createElement('div');
+    petWrap.className = 'pet-wrap';
+    const petSlot = document.createElement('div');
+    petSlot.className = 'pet-slot';
+
+    const pet = draftState.pets?.[index] || null;
+    if (pet?.image_url) {
+      petSlot.style.backgroundImage = `url(${pet.image_url})`;
+      petSlot.style.borderColor = 'rgba(255,189,89,.35)';
+    } else {
+      petSlot.style.backgroundImage = `url(https://imgur.com/AdvPwAO.png)`;
+      petSlot.style.backgroundSize = 'contain';
+      petSlot.style.backgroundRepeat = 'no-repeat';
+      petSlot.style.backgroundPosition = 'center';
+      petSlot.style.opacity = '0.95';
+    }
+
+    petSlot.onclick = () => {
+      currentSlot = { type:'pet', pickIndex:index };
+      openModal('Select Pet');
+    };
+
+    petWrap.appendChild(petSlot);
+    c.appendChild(petWrap);
   }
 
   if(type==='pick'){
@@ -1645,6 +1721,44 @@ function openModal(title) {
   document.getElementById('modalTitle').innerText = title;
   const grid = document.getElementById('heroGrid');
   grid.innerHTML = '';
+
+  // ✅ PET PICKER
+  if (currentSlot.type === 'pet') {
+    const clearCard = document.createElement('div');
+    clearCard.className = 'hero-grid-item';
+    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+    const clearImg = document.createElement('img');
+    clearImg.src = 'https://imgur.com/AdvPwAO.png';
+    clearImg.alt = 'Clear';
+    clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
+    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
+    clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
+    clearCard.onclick = () => {
+      draftState.pets[currentSlot.pickIndex] = null;
+      closeModal();
+      drawDraft();
+      saveDraftState();
+    };
+    grid.appendChild(clearCard);
+
+    (pets || []).forEach(item => {
+      const card = document.createElement('div'); card.className = 'hero-grid-item';
+      const img = document.createElement('img'); img.src = item.image_url || 'https://imgur.com/AdvPwAO.png'; img.alt = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
+      const name = document.createElement('div'); name.textContent = item.name || 'Pet';
+      card.appendChild(img); card.appendChild(name);
+
+      card.onclick = () => {
+        draftState.pets[currentSlot.pickIndex] = item;
+        closeModal();
+        drawDraft();
+        saveDraftState();
+      };
+      grid.appendChild(card);
+    });
+
+    document.getElementById('heroModal').style.display = 'block';
+    return;
+  }
 
   if (currentSlot.type === 'weapon') {
     const filterWrapper = document.createElement('div');
@@ -1744,7 +1858,7 @@ function closeModal(){document.getElementById('heroModal').style.display='none';
 
 /* -----------------------------
    SUMMARY (TEAM LEFT / RIGHT)
-   ✅ one “More” expands Active + Passive + Weapon descriptions
+   ✅ one “More” expands Active + Pet + Passive + Weapon descriptions
 ------------------------------*/
 function toggleSum(id){
   const el = document.getElementById(id);
@@ -1768,6 +1882,20 @@ function updateSummary() {
         <div class="sum-ban-title">${banIdx===0 ? esc(draftState.teamNames[0] || 'TEAM LEFT') : esc(draftState.teamNames[1] || 'TEAM RIGHT')}</div>
         <div class="sum-ban-name">${esc(name)}</div>
         <div class="sum-ban-desc">${esc(desc)}</div>
+      </div>
+    `;
+  }
+
+  function renderPetHTML(i){
+    const pet = draftState.pets?.[i] || null;
+    if (!pet) return `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
+    return `
+      <div class="sum-item">
+        ${pet.image_url ? `<img src="${esc(pet.image_url)}" alt="">` : ''}
+        <div class="sum-item-text">
+          <div class="sum-item-name">${esc(pet.name || 'Pet')}</div>
+          <div class="sum-item-desc">${esc(formatPetDesc(pet))}</div>
+        </div>
       </div>
     `;
   }
@@ -1824,6 +1952,9 @@ function updateSummary() {
 
         <div class="sum-desc">${esc(activeDesc)}</div>
 
+        <div class="sum-section-title" style="margin-top:2px;">Pet</div>
+        ${renderPetHTML(i)}
+
         <div class="sum-section-title" style="margin-top:2px;">Passives</div>
         ${passivesHTML}
 
@@ -1854,6 +1985,7 @@ function resetDraft() {
     picks: Array(8).fill(null),
     passives: Array(8).fill(0).map(() => [null, null, null]),
     weapons: Array(8).fill(0).map(() => [null, null, null]),
+    pets: Array(8).fill(null), // ✅ NEW
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     matchDate: document.getElementById('matchDate').value || '',
@@ -1938,6 +2070,7 @@ async function loadDraftState() {
     picks: Array(8).fill(null),
     passives: Array(8).fill(0).map(() => [null, null, null]),
     weapons: Array(8).fill(0).map(() => [null, null, null]),
+    pets: Array(8).fill(null), // ✅ NEW default
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     matchDate: '',
@@ -1983,6 +2116,7 @@ async function loadDraftRecord() {
       picks: Array(8).fill(null),
       passives: Array(8).fill(0).map(() => [null, null, null]),
       weapons: Array(8).fill(0).map(() => [null, null, null]),
+      pets: Array(8).fill(null), // ✅ NEW default
       teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
       playerCards: Array(8).fill(''),
       teamLeftScore: 0,
@@ -2236,6 +2370,7 @@ async function loadSpecificDraft(id) {
     picks: Array(8).fill(null),
     passives: Array(8).fill(0).map(() => [null, null, null]),
     weapons: Array(8).fill(0).map(() => [null, null, null]),
+    pets: Array(8).fill(null), // ✅ NEW default
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     teamLeftScore: 0,
@@ -2372,6 +2507,7 @@ function renderTeamAccordionSummaries(records) {
         const hero = draft.picks[i];
         const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
         const passives = draft.passives?.[i] || [];
+        const pet = draft.pets?.[i] || null; // ✅ NEW
 
         const pCard = document.createElement('div');
         pCard.className = 'mini-player';
@@ -2386,6 +2522,31 @@ function renderTeamAccordionSummaries(records) {
           <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
           <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
         `;
+
+        // ✅ Pet line
+        if (pet) {
+          const petLine = document.createElement('div');
+          petLine.style.display = 'flex';
+          petLine.style.alignItems = 'center';
+          petLine.style.gap = '4px';
+          petLine.style.justifyContent = 'center';
+          petLine.style.fontSize = '9px';
+          petLine.style.color = 'rgba(244,246,255,.72)';
+          petLine.style.marginTop = '6px';
+
+          if (pet.image_url) {
+            const img = document.createElement('img');
+            img.src = pet.image_url;
+            img.style.width = '14px';
+            img.style.height = '14px';
+            img.style.borderRadius = '6px';
+            petLine.appendChild(img);
+          }
+          const label = document.createElement('span');
+          label.textContent = pet.name || 'Pet';
+          petLine.appendChild(label);
+          pCard.appendChild(petLine);
+        }
 
         passives.forEach(ps => {
           if (!ps) return;
