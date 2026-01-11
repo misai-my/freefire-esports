@@ -20,7 +20,7 @@
 
     // IMPORTANT: wait for session BEFORE running any DB logic
     document.addEventListener('DOMContentLoaded', async () => {
-      const { data: { session }, error } = await client.auth.getSession();
+      const { data: { session } } = await client.auth.getSession();
 
       if (!session) {
         window.location.href = "index.html";
@@ -88,37 +88,12 @@
       opacity:.22;
     }
 
-    /* glass primitives */
-    .glass{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      -webkit-backdrop-filter: blur(14px) saturate(135%);
-      backdrop-filter: blur(14px) saturate(135%);
-    }
-    .glass-soft{
-      background:rgba(20, 26, 38, .52);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      -webkit-backdrop-filter: blur(12px) saturate(130%);
-      backdrop-filter: blur(12px) saturate(130%);
-    }
-    .glass-hard{
-      background:rgba(14, 18, 28, .82);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:var(--radius-lg);
-      box-shadow:var(--shadow);
-      -webkit-backdrop-filter: blur(18px) saturate(145%);
-      backdrop-filter: blur(18px) saturate(145%);
-    }
-
     /* header */
     header{
       position:sticky;
       top:0;
       z-index:50;
-      padding:18px 14px;
+      padding:14px 14px;
       border-bottom:1px solid var(--line);
       background:rgba(14,18,28,.62);
       -webkit-backdrop-filter: blur(16px) saturate(145%);
@@ -132,6 +107,19 @@
       background:linear-gradient(90deg, transparent, rgba(255,189,89,.85), rgba(255,119,51,.65), transparent);
       opacity:.9;
     }
+
+    .header-inner{
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-spacer{ min-height: 1px; }
+
     h1{
       font-family:'Orbitron',sans-serif;
       margin:0;
@@ -140,16 +128,18 @@
       color:var(--brand);
       font-size:2rem;
       text-shadow:0 8px 30px rgba(0,0,0,.55);
+      justify-self: center;
     }
 
     .user-controls{
-      position:absolute;
-      top:14px;
-      right:14px;
+      position: static;
+      justify-self: end;
       display:flex;
       align-items:center;
       gap:10px;
+      min-width: 0;
     }
+
     .user-controls #user-info{
       font-size:12px;
       color:var(--muted);
@@ -159,20 +149,6 @@
       text-overflow:ellipsis;
     }
 
-    .btn{
-      background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.95));
-      color:#141620;
-      font-weight:800;
-      border:none;
-      border-radius:12px;
-      padding:8px 12px;
-      cursor:pointer;
-      box-shadow: 0 14px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease;
-    }
-    .btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .btn:active{ transform: translateY(0); }
-    .logout-btn{ composes: btn; } /* harmless if unsupported */
     .user-controls .logout-btn{
       background:linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,189,89,.78));
       color:#12131a;
@@ -180,8 +156,30 @@
       border-radius:12px;
       padding:8px 12px;
       border:1px solid rgba(255,255,255,.10);
+      cursor:pointer;
+      box-shadow: 0 14px 30px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
     }
-    .user-controls .logout-btn:hover{ filter:brightness(1.05); }
+    .user-controls .logout-btn:hover{ filter:brightness(1.05); transform: translateY(-1px); }
+
+    /* mobile header: stack neatly */
+    @media (max-width: 720px){
+      .header-inner{
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 10px;
+      }
+      h1{ font-size: 1.5rem; }
+      .user-controls{
+        justify-self: center;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .user-controls #user-info{
+        max-width: 260px;
+        text-align: center;
+      }
+    }
 
     /* inputs & selects */
     input[type="text"], input[type="date"], input[type="number"], select{
@@ -237,9 +235,7 @@
       justify-content:center;
       align-items:center;
       gap:10px;
-      padding:10px;
-    }
-    .top-controls.glassbar{
+      padding:12px;
       background:rgba(20,26,38,.52);
       border:1px solid var(--line);
       border-radius:var(--radius-lg);
@@ -247,6 +243,7 @@
       backdrop-filter: blur(14px) saturate(140%);
       box-shadow: 0 18px 55px rgba(0,0,0,.45);
     }
+
     .top-controls a{
       display:inline-flex;
       align-items:center;
@@ -262,7 +259,6 @@
       transition: transform .15s ease, filter .15s ease;
     }
     .top-controls a:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .top-controls label{ color:var(--muted); font-weight:800; }
 
     .top-controls button{
       background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.78));
@@ -278,96 +274,6 @@
     }
     .top-controls button:hover{ transform: translateY(-1px); filter:brightness(1.03); }
 
-    /* =========================
-       HEADER FIX (no overlap)
-       ========================= */
-    header{
-      position:sticky;
-      top:0;
-      z-index:50;
-      padding:14px 14px;
-      border-bottom:1px solid var(--line);
-      background:rgba(14,18,28,.62);
-      -webkit-backdrop-filter: blur(16px) saturate(145%);
-      backdrop-filter: blur(16px) saturate(145%);
-    }
-
-    .header-inner{
-      width: 100%;
-      max-width: 1400px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-spacer{ min-height: 1px; }
-
-    h1{
-      font-family:'Orbitron',sans-serif;
-      margin:0;
-      text-align:center;
-      letter-spacing:.6px;
-      color:var(--brand);
-      font-size:2rem;
-      text-shadow:0 8px 30px rgba(0,0,0,.55);
-      justify-self: center;
-    }
-
-    .user-controls{
-      position: static;            /* ✅ stop absolute overlap */
-      justify-self: end;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width: 0;
-    }
-
-    .user-controls #user-info{
-      font-size:12px;
-      color:var(--muted);
-      max-width:320px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    /* mobile header: stack neatly */
-    @media (max-width: 720px){
-      .header-inner{
-        grid-template-columns: 1fr;
-        justify-items: center;
-        gap: 10px;
-      }
-      h1{ font-size: 1.5rem; }
-      .user-controls{
-        justify-self: center;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      .user-controls #user-info{
-        max-width: 260px;
-        text-align: center;
-      }
-    }
-
-    /* =========================
-       TOP SELECTION BAR FIX
-       ========================= */
-    .top-controls{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
-      display:flex;
-      flex-wrap:nowrap;
-      justify-content:center;
-      align-items:center;
-      gap:10px;
-      padding:12px;
-    }
-
-    /* make everything the same height + aligned */
     .top-controls a,
     .top-controls button,
     .top-controls input[type="date"],
@@ -388,17 +294,8 @@
       font-weight:800;
     }
 
-    /* ensure inputs feel consistent */
-    .top-controls input[type="date"],
-    .top-controls input[type="text"],
-    .top-controls select{
-      padding: 8px 12px;
-    }
-
-    /* keep the tournament input from becoming too huge on desktop */
     #tournamentInput{ width: 260px; }
 
-    /* mobile swipe still works, but spacing is cleaner */
     @media (max-width: 900px){
       #tournamentInput{ width: 220px; }
       .top-controls{
@@ -444,8 +341,6 @@
       gap:10px;
       padding:14px;
       width: min(620px, 100%);
-    }
-    .team-container.glassbox{
       background:rgba(20,26,38,.48);
       border:1px solid var(--line);
       border-radius:var(--radius-lg);
@@ -496,9 +391,28 @@
     .ban-slot:hover, .pick-slot:hover{ transform: translateY(-2px); filter:brightness(1.03); }
     .ban-slot.disabled, .pick-slot.disabled{ opacity:0.4; pointer-events:none; }
 
-    .slot-name{ font-size:12px; color:rgba(244,246,255,.78); text-align:center; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .slot-name{
+      font-size:12px;
+      color:rgba(244,246,255,.78);
+      text-align:center;
+      max-width:100px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
-    .passive-slots, .weapon-slots{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+    .passive-slots, .weapon-slots{ display:flex; justify-content:center; flex-wrap:wrap; }
+
+    /* ✅ FIX: passive names overlapping */
+    .passive-slots{ gap:10px; }
+    .passive-box{
+      width:56px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+    }
+
     .passive-slot{
       width:26px; height:52px;
       border-radius:10px;
@@ -514,6 +428,21 @@
     }
     .passive-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
 
+    .passive-name{
+      font-size:10px;
+      color:rgba(244,246,255,.72);
+      text-align:center;
+      max-width:56px;
+      white-space:normal;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      line-height:1.1;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+    }
+
+    .weapon-slots{ gap:6px; }
     .weapon-slot{
       width:100px; height:44px;
       border-radius:14px;
@@ -532,7 +461,7 @@
     .weapon-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
     .weapon-slot img{ max-height:100%; max-width:100%; }
 
-    .passive-name, .weapon-name{
+    .weapon-name{
       font-size:10px;
       color:rgba(244,246,255,.72);
       text-align:center;
@@ -553,10 +482,11 @@
 
     /* ✅ PET (per player) */
     .pet-wrap{
-      width:100%;
       display:flex;
-      justify-content:center;
-      margin-top: 2px;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      margin-top: 6px;
     }
     .pet-slot{
       width:44px;
@@ -570,58 +500,20 @@
       -webkit-backdrop-filter: blur(12px) saturate(135%);
       backdrop-filter: blur(12px) saturate(135%);
       box-shadow: 0 12px 30px rgba(0,0,0,.35);
-      transition: transform .15s ease, filter .15s ease, border-color .15s ease;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:relative;
+      transition: transform .15s ease, filter .15s ease;
     }
     .pet-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .pet-slot:after{
-      content:"PET";
-      position:absolute;
-      bottom:-14px;
-      font-size:9px;
-      font-weight:900;
-      color: rgba(170,177,197,.78);
-      letter-spacing:.3px;
-    }
-
-    /* --- pick internals (desktop base) --- */
-    .pick-pack{ width:100%; display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .pick-main{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .pick-side{
-      width:100%;
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      align-items:flex-start;
-      flex-wrap:wrap;
-    }
-    .pick-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .pick-col-title{
+    .pet-name{
       font-size:10px;
-      font-weight:950;
-      color: rgba(170,177,197,.85);
-      letter-spacing:.3px;
-      text-transform: uppercase;
+      color:rgba(244,246,255,.72);
+      text-align:center;
+      max-width:100px;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
     }
-    .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
 
-    .banned-overlay{
-      position:absolute; inset:0;
-      background: rgba(255, 90, 90, .28);
-      color: var(--ink);
-      font-weight: 950;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      border-radius:14px;
-      font-size:12px;
-      border:1px solid rgba(255,90,90,.35);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-    }
+    .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
 
     /* summary */
     .summary-wrapper{
@@ -653,36 +545,6 @@
       font-family:'Orbitron',sans-serif;
       color: var(--brand);
       letter-spacing:.5px;
-    }
-
-    .summary-row{ display:flex; flex-direction:row; gap:10px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
-    .summary-card{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:10px;
-      width: 120px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      font-size:10px;
-      text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-    .summary-ban{
-      min-width: 460px;
-      max-width: 460px;
-      background:rgba(255,90,90,.10);
-      border:1px solid rgba(255,90,90,.35);
-      border-radius:14px;
-      padding:10px;
-      font-size:10px;
-      text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
     }
 
     .sum-section-title{
@@ -798,11 +660,9 @@
       -webkit-box-orient: vertical;
       overflow:hidden;
     }
-    .sum-card.expanded .sum-desc{
-      -webkit-line-clamp: initial;
-    }
+    .sum-card.expanded .sum-desc{ -webkit-line-clamp: initial; }
 
-    /* ✅ passive/weapon/pet item with description (clamped; expands on More) */
+    /* item with description */
     .sum-item{
       display:flex;
       align-items:flex-start;
@@ -841,9 +701,7 @@
       -webkit-box-orient: vertical;
       overflow:hidden;
     }
-    .sum-card.expanded .sum-item-desc{
-      -webkit-line-clamp: initial;
-    }
+    .sum-card.expanded .sum-item-desc{ -webkit-line-clamp: initial; }
 
     /* modal */
     .modal{
@@ -959,23 +817,19 @@
     /* draft history table (scroll both directions as needed) */
     .table-scroll{
       width: 100%;
-      max-height: calc(var(--rowH) * 6); /* header + 5 rows */
-      overflow: auto;                 /* ✅ allow X + Y scrolling */
+      max-height: calc(var(--rowH) * 6);
+      overflow: auto;
       -webkit-overflow-scrolling: touch;
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,.10);
       box-shadow: 0 18px 55px rgba(0,0,0,.45);
       overscroll-behavior: contain;
     }
-
-    /* ensure table doesn’t squeeze columns too much */
     #recordTable{
-      width: max-content;             /* ✅ table can be wider than container */
-      min-width: 100%;                /* but never smaller than container */
+      width: max-content;
+      min-width: 100%;
       border-collapse: collapse;
     }
-
-    /* keep sticky header working inside the scroller */
     #recordTable thead th{
       position: sticky;
       top: 0;
@@ -1032,7 +886,6 @@
       margin: 6px 0 14px;
     }
 
-    /* shared controls look */
     .counts-controls{
       display:flex;
       gap: 10px;
@@ -1053,6 +906,7 @@
       font-weight: 950;
       border: 1px solid rgba(255,255,255,.10);
       box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      transition: transform .15s ease, filter .15s ease;
     }
     .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
 
@@ -1108,12 +962,7 @@
     }
     details.team-accordion > summary::-webkit-details-marker{ display:none; }
 
-    .acc-left{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      min-width: 0;
-    }
+    .acc-left{ display:flex; align-items:center; gap: 10px; min-width: 0; }
     .acc-title{
       color: var(--brand2);
       font-family:'Orbitron',sans-serif;
@@ -1150,10 +999,7 @@
     }
     details.team-accordion[open] .acc-chevron{ transform: rotate(180deg); }
 
-    .team-accordion-body{
-      padding: 0 12px 12px;
-    }
-
+    .team-accordion-body{ padding: 0 12px 12px; }
     .team-meta{
       font-size: 12px;
       margin: 8px 0 10px;
@@ -1244,43 +1090,33 @@
       details.team-accordion{ width: min(520px, 100%); }
     }
 
-    /* =========================================
-       MOBILE SWIPE CONTROLS + PANELS
-       ========================================= */
+    /* MOBILE SWIPE */
     @media (max-width: 900px){
       .top-controls{
         justify-content:flex-start;
-        flex-wrap: nowrap;            /* ✅ no wrap */
-        overflow-x: auto;             /* ✅ swipe */
+        flex-wrap: nowrap;
+        overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         padding: 12px;
         gap: 10px;
         overscroll-behavior-x: contain;
       }
-      .top-controls > *{
-        flex: 0 0 auto;               /* ✅ keep natural widths */
-      }
-      .top-controls a,
-      .top-controls button{
-        white-space: nowrap;
-      }
+      .top-controls > *{ flex: 0 0 auto; }
+      .top-controls a, .top-controls button{ white-space: nowrap; }
       .top-controls input[type="text"]{ width: 220px; }
       .top-controls select{ min-width: 160px; }
-    }
 
-    @media (max-width: 900px){
       .draft-wrapper{
         gap: 14px;
-        flex-wrap: nowrap;            /* ✅ keep in a row */
-        overflow-x: auto;             /* ✅ swipe between teams */
+        flex-wrap: nowrap;
+        overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         scroll-snap-type: x mandatory;
         padding: 0 14px 8px;
         overscroll-behavior-x: contain;
       }
-
       .team-container{
-        min-width: calc(100vw - 28px); /* ✅ full viewport width */
+        min-width: calc(100vw - 28px);
         scroll-snap-align: start;
       }
     }
@@ -1352,7 +1188,7 @@
     </div>
   </details>
 
-  <div class="top-controls glassbar">
+  <div class="top-controls">
     <a href="home.html">← Back to Dashboard</a>
 
     <label for="matchDate">Date:</label>
@@ -1389,7 +1225,7 @@
   <button class="reset-btn" onclick="resetDraft()">Reset All</button>
 
   <div class="draft-wrapper">
-    <div class="team-container glassbox">
+    <div class="team-container">
       <input class="team-label" id="teamNameLeft" value="TEAM LEFT" onchange="updateTeamName(0)" />
       <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
         <label for="teamLeftScore">Left Score:</label>
@@ -1398,7 +1234,7 @@
       <div class="team-row" id="teamLeft"></div>
     </div>
 
-    <div class="team-container glassbox">
+    <div class="team-container">
       <input class="team-label" id="teamNameRight" value="TEAM RIGHT" onchange="updateTeamName(1)" />
       <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
         <label for="teamRightScore">Right Score:</label>
@@ -1417,8 +1253,7 @@
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal()">X</span>
       <h3 id="modalTitle">Select</h3>
-      <div id="weaponFilterHost"></div>
-      <div class="hero-grid" id="heroGrid"></div>
+      <div id="heroGrid"></div>
     </div>
   </div>
 
@@ -1434,7 +1269,7 @@
       <button onclick="applyPBFilters()">Apply</button>
     </div>
     <div style="text-align:center; color: rgba(244,246,255,.70); font-size:12px; font-weight:800;">
-      Affects: Match Summary + Pick/Ban Counts
+      Affects: Match Summary + Pick/Ban/Pet Counts
     </div>
   </div>
 
@@ -1444,13 +1279,15 @@
   </div>
 
   <div id="teamPBCounts">
-    <h2>Team Pick/Ban Counts</h2>
+    <h2>Team Pick/Ban/Pet Counts</h2>
     <div class="counts-summary" id="teamPBMeta"></div>
+
     <div class="counts-grid">
       <div class="counts-card">
         <h3>Totals</h3>
         <div id="teamPBTotals">—</div>
       </div>
+
       <div class="counts-card">
         <h3>Pick Breakdown</h3>
         <table class="counts-table">
@@ -1458,11 +1295,20 @@
           <tbody id="teamPickBreakdown"></tbody>
         </table>
       </div>
+
       <div class="counts-card">
         <h3>Ban Breakdown</h3>
         <table class="counts-table">
           <thead><tr><th>Skill</th><th>Count</th></tr></thead>
           <tbody id="teamBanBreakdown"></tbody>
+        </table>
+      </div>
+
+      <div class="counts-card">
+        <h3>Pet Breakdown</h3>
+        <table class="counts-table">
+          <thead><tr><th>Pet</th><th>Count</th></tr></thead>
+          <tbody id="teamPetBreakdown"></tbody>
         </table>
       </div>
     </div>
@@ -1487,13 +1333,15 @@ function getLatestTournamentName(records){
   return '__ALL__';
 }
 
-// ✅ state now includes pets (1 per player)
+/* -----------------------------
+   STATE (now includes pets)
+------------------------------*/
 let draftState = {
   bans: [null, null],
   picks: Array(8).fill(null),
+  pets: Array(8).fill(null), // ✅ NEW
   passives: Array(8).fill(0).map(() => [null, null, null]),
   weapons: Array(8).fill(0).map(() => [null, null, null]),
-  pets: Array(8).fill(null),                 // ✅ NEW
   teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
   playerCards: Array(8).fill(''),
   matchDate: '',
@@ -1507,8 +1355,6 @@ let draftState = {
 /* -----------------------------
    HELPERS
 ------------------------------*/
-const isMobile = () => window.matchMedia('(max-width: 820px) and (orientation: portrait)').matches;
-
 function esc(s){
   return (s ?? '').toString()
     .replaceAll('&','&amp;')
@@ -1538,18 +1384,6 @@ function formatWeaponDesc(w){
   return parts.length ? parts.join(' • ') : '—';
 }
 
-function formatPetDesc(p){
-  const d = getDesc(p);
-  if (d) return d;
-
-  // fallback common fields if your pet.json has them
-  const parts = [];
-  if (p?.skill) parts.push(p.skill);
-  if (p?.effect) parts.push(p.effect);
-  if (p?.type) parts.push(p.type);
-  return parts.length ? parts.join(' • ') : '—';
-}
-
 function debounce(fn, wait=450){
   let t=null;
   return (...args)=>{
@@ -1558,19 +1392,17 @@ function debounce(fn, wait=450){
   };
 }
 
-// called from top-level DOMContentLoaded AFTER session is ready
+/* -----------------------------
+   INIT
+------------------------------*/
 async function initDraftPage() {
   characters = await (await fetch('https://misai-my.github.io/freefire-esports/character.json')).json();
   weapons    = await (await fetch('https://misai-my.github.io/freefire-esports/weapon.json')).json();
-  pets       = await (await fetch('https://misai-my.github.io/freefire-esports/pet.json')).json(); // ✅ NEW
+  pets       = await (await fetch('https://misai-my.github.io/freefire-esports/pet.json')).json();
 
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;
 
-  // Debounced autosave
-  const autoSave = debounce(saveDraftState, 450);
-
-  // auto-save header changes into public.draft
   document.getElementById('matchDate').addEventListener('change', saveDraftState);
   document.getElementById('gameNumberSelect').addEventListener('change', saveDraftState);
   document.getElementById('mapSelect').addEventListener('change', saveDraftState);
@@ -1578,14 +1410,13 @@ async function initDraftPage() {
   document.getElementById('teamRightScore').addEventListener('change', saveDraftState);
   document.getElementById('tournamentInput').addEventListener('change', saveDraftState);
 
-  /* ✅ mark tournament filters as "touched" when user changes them */
   const histT = document.getElementById('tournamentFilter');
   if (histT) histT.addEventListener('change', () => { HISTORY_TOURN_TOUCHED = true; });
 
   const cntT = document.getElementById('countTournamentSelect');
   if (cntT) cntT.addEventListener('change', () => { COUNTS_TOURN_TOUCHED = true; });
 
-  await loadDraftState(); // from public.draft
+  await loadDraftState();
 
   window.addEventListener('resize', debounce(() => drawDraft(), 150));
 
@@ -1612,15 +1443,19 @@ async function initDraftPage() {
     .subscribe();
 
   loadAllDraftRecords();
+  drawDraft();
 }
 
+/* -----------------------------
+   DRAW DRAFT
+------------------------------*/
 function drawDraft(){
-  const l=document.getElementById('teamLeft'),r=document.getElementById('teamRight');
+  const l=document.getElementById('teamLeft'), r=document.getElementById('teamRight');
   l.innerHTML=''; r.innerHTML='';
 
   l.appendChild(makeSlot('ban',0));
-  for(let i=0;i<4;i++)l.appendChild(makeSlot('pick',i));
-  for(let i=7;i>=4;i--)r.appendChild(makeSlot('pick',i));
+  for(let i=0;i<4;i++) l.appendChild(makeSlot('pick',i));
+  for(let i=7;i>=4;i--) r.appendChild(makeSlot('pick',i));
   r.appendChild(makeSlot('ban',1));
 
   document.getElementById('teamNameLeft').value = draftState.teamNames[0];
@@ -1640,14 +1475,16 @@ function makeSlot(type,index){
 
   if(type==='ban'){
     const h=draftState.bans[index];
-    if(h){img.src=h.image_url;nameDiv.innerText=h.name;}
-    m.onclick=()=>{currentSlot={type,index};openModal('Select Hero to Ban');};
+    if(h){ img.src=h.image_url; nameDiv.innerText=h.name; }
+    m.onclick=()=>{ currentSlot={type,index}; openModal('Select Hero to Ban'); };
   } else {
     const h=draftState.picks[index];
-    if(h){img.src=h.image_url;nameDiv.innerText=h.name;}
-    m.onclick=()=>{currentSlot={type,index};openModal('Select Active Skill');};
+    if(h){ img.src=h.image_url; nameDiv.innerText=h.name; }
+    m.onclick=()=>{ currentSlot={type,index}; openModal('Select Active Skill'); };
   }
-  c.appendChild(m); c.appendChild(nameDiv);
+
+  c.appendChild(m);
+  c.appendChild(nameDiv);
 
   if (type === 'pick') {
     const input = document.createElement('input');
@@ -1658,54 +1495,87 @@ function makeSlot(type,index){
     input.onchange = () => {
       draftState.playerCards[index] = input.value;
       saveDraftState();
+      updateSummary();
     };
     c.appendChild(input);
 
     // ✅ PET SLOT (per player)
     const petWrap = document.createElement('div');
     petWrap.className = 'pet-wrap';
+
     const petSlot = document.createElement('div');
     petSlot.className = 'pet-slot';
 
+    const petName = document.createElement('div');
+    petName.className = 'pet-name';
+
     const pet = draftState.pets?.[index] || null;
-    if (pet?.image_url) {
-      petSlot.style.backgroundImage = `url(${pet.image_url})`;
-      petSlot.style.borderColor = 'rgba(255,189,89,.35)';
-    } else {
-      petSlot.style.backgroundImage = `url(https://imgur.com/AdvPwAO.png)`;
-      petSlot.style.backgroundSize = 'contain';
-      petSlot.style.backgroundRepeat = 'no-repeat';
-      petSlot.style.backgroundPosition = 'center';
-      petSlot.style.opacity = '0.95';
-    }
+    if (pet?.image_url) petSlot.style.backgroundImage = `url(${pet.image_url})`;
+    petName.textContent = pet?.name || '—'; // ✅ pet name replaces word "pet"
 
     petSlot.onclick = () => {
-      currentSlot = { type:'pet', pickIndex:index };
+      currentSlot = { type: 'pet', pickIndex: index };
       openModal('Select Pet');
     };
 
     petWrap.appendChild(petSlot);
+    petWrap.appendChild(petName);
     c.appendChild(petWrap);
   }
 
   if(type==='pick'){
     const passives=draftState.passives[index];
     const pDiv=document.createElement('div'); pDiv.className='passive-slots';
-    passives.forEach((ps,i)=>{const p=document.createElement('div'); p.className='passive-slot';
-      const pn=document.createElement('div');pn.className='passive-name';
-      if(ps){p.style.backgroundImage=`url(${ps.image_url})`;pn.innerText=ps.name;}
-      p.onclick=()=>{currentSlot={type:'passive',pickIndex:index,passiveIndex:i};openModal('Select Passive Skill');};
-      const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';
-      box.style.alignItems='center';box.appendChild(p);box.appendChild(pn);pDiv.appendChild(box);});
+
+    passives.forEach((ps,i)=>{
+      const p=document.createElement('div'); p.className='passive-slot';
+      const pn=document.createElement('div'); pn.className='passive-name';
+
+      if(ps){ p.style.backgroundImage=`url(${ps.image_url})`; pn.innerText=ps.name; }
+
+      p.onclick=()=>{
+        currentSlot={type:'passive',pickIndex:index,passiveIndex:i};
+        openModal('Select Passive Skill');
+      };
+
+      const box = document.createElement('div');
+      box.className = 'passive-box';
+      box.appendChild(p);
+      box.appendChild(pn);
+
+      pDiv.appendChild(box);
+    });
+
     c.appendChild(pDiv);
 
     const wDiv=document.createElement('div'); wDiv.className='weapon-slots';
-    draftState.weapons[index].forEach((w,i)=>{const wSlot=document.createElement('div'); wSlot.className='weapon-slot'; if(i===0)wSlot.style.border='1px solid rgba(255,189,89,.65)';
-      const wn=document.createElement('div');wn.className='weapon-name';
-      if(w){const wImg=document.createElement('img');wImg.src=w.image_url;wSlot.appendChild(wImg);wn.innerText=w.name;}
-      wSlot.onclick=()=>{currentSlot={type:'weapon',pickIndex:index,weaponIndex:i};openModal('Select Weapon');};
-      const box=document.createElement('div');box.style.display='flex';box.style.flexDirection='column';box.style.alignItems='center';
-      box.appendChild(wSlot);box.appendChild(wn);wDiv.appendChild(box);}); c.appendChild(wDiv);
+    draftState.weapons[index].forEach((w,i)=>{
+      const wSlot=document.createElement('div'); wSlot.className='weapon-slot';
+      if(i===0) wSlot.style.border='1px solid rgba(255,189,89,.65)';
+      const wn=document.createElement('div'); wn.className='weapon-name';
+
+      if(w){
+        const wImg=document.createElement('img');
+        wImg.src=w.image_url;
+        wSlot.appendChild(wImg);
+        wn.innerText=w.name;
+      }
+
+      wSlot.onclick=()=>{
+        currentSlot={type:'weapon',pickIndex:index,weaponIndex:i};
+        openModal('Select Weapon');
+      };
+
+      const box=document.createElement('div');
+      box.style.display='flex';
+      box.style.flexDirection='column';
+      box.style.alignItems='center';
+      box.appendChild(wSlot);
+      box.appendChild(wn);
+      wDiv.appendChild(box);
+    });
+
+    c.appendChild(wDiv);
   }
 
   return c;
@@ -1715,58 +1585,30 @@ function updateTeamName(teamIndex) {
   const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
   draftState.teamNames[teamIndex] = input.value;
   saveDraftState();
+  updateSummary();
 }
 
+/* -----------------------------
+   MODAL
+------------------------------*/
 function openModal(title) {
   document.getElementById('modalTitle').innerText = title;
   const grid = document.getElementById('heroGrid');
   grid.innerHTML = '';
 
-  // ✅ PET PICKER
-  if (currentSlot.type === 'pet') {
-    const clearCard = document.createElement('div');
-    clearCard.className = 'hero-grid-item';
-    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
-    const clearImg = document.createElement('img');
-    clearImg.src = 'https://imgur.com/AdvPwAO.png';
-    clearImg.alt = 'Clear';
-    clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
-    clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
-    clearCard.onclick = () => {
-      draftState.pets[currentSlot.pickIndex] = null;
-      closeModal();
-      drawDraft();
-      saveDraftState();
-    };
-    grid.appendChild(clearCard);
-
-    (pets || []).forEach(item => {
-      const card = document.createElement('div'); card.className = 'hero-grid-item';
-      const img = document.createElement('img'); img.src = item.image_url || 'https://imgur.com/AdvPwAO.png'; img.alt = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
-      const name = document.createElement('div'); name.textContent = item.name || 'Pet';
-      card.appendChild(img); card.appendChild(name);
-
-      card.onclick = () => {
-        draftState.pets[currentSlot.pickIndex] = item;
-        closeModal();
-        drawDraft();
-        saveDraftState();
-      };
-      grid.appendChild(card);
-    });
-
-    document.getElementById('heroModal').style.display = 'block';
-    return;
-  }
-
+  // WEAPON PICKER
   if (currentSlot.type === 'weapon') {
     const filterWrapper = document.createElement('div');
     filterWrapper.className = 'weapon-filter-wrapper';
 
     const armoryFilter = document.createElement('select');
     const armoryOptions = ['All', 'Andrew', 'Kelly', 'Laura', 'Mocco', 'Hayato', 'Tatsuya'];
-    armoryOptions.forEach(name => { const option = document.createElement('option'); option.value = name.toLowerCase(); option.textContent = name; armoryFilter.appendChild(option); });
+    armoryOptions.forEach(name => {
+      const option = document.createElement('option');
+      option.value = name.toLowerCase();
+      option.textContent = name;
+      armoryFilter.appendChild(option);
+    });
     filterWrapper.appendChild(armoryFilter);
     grid.appendChild(filterWrapper);
 
@@ -1776,52 +1618,155 @@ function openModal(title) {
       const clearCard = document.createElement('div');
       clearCard.className = 'hero-grid-item';
       clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+
       const clearImg = document.createElement('img');
       clearImg.src = 'https://imgur.com/AdvPwAO.png';
       clearImg.alt = 'Clear';
-      clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-      const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
-      clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
+      clearImg.style.width = '60px';
+      clearImg.style.height = '60px';
+      clearImg.style.opacity = '0.35';
+      clearImg.style.objectFit = 'contain';
+      clearImg.style.marginBottom = '6px';
+
+      const clearLabel = document.createElement('div');
+      clearLabel.textContent = 'Clear';
+      clearLabel.style.fontSize = '10px';
+      clearLabel.style.color = 'rgba(244,246,255,.75)';
+      clearLabel.style.textAlign = 'center';
+
+      clearCard.appendChild(clearImg);
+      clearCard.appendChild(clearLabel);
+
       clearCard.onclick = () => {
         draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = null;
         closeModal();
         drawDraft();
         saveDraftState();
       };
+
       grid.appendChild(clearCard);
 
       weapons.forEach(item => {
         if (!item.armory) return;
         if (filter !== 'all' && !item.armory.toLowerCase().includes(filter)) return;
-        const card = document.createElement('div'); card.className = 'hero-grid-item';
-        const img = document.createElement('img'); img.src = item.image_url; img.alt = item.name; img.style.width = '80px'; img.style.height = '80px'; img.style.objectFit = 'contain'; img.style.marginBottom = '6px';
-        const name = document.createElement('div'); name.textContent = item.name;
-        card.appendChild(img); card.appendChild(name);
+
+        const card = document.createElement('div');
+        card.className = 'hero-grid-item';
+
+        const img = document.createElement('img');
+        img.src = item.image_url;
+        img.alt = item.name;
+
+        const name = document.createElement('div');
+        name.textContent = item.name;
+
+        card.appendChild(img);
+        card.appendChild(name);
+
         card.onclick = () => {
           draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = item;
           closeModal();
           drawDraft();
           saveDraftState();
         };
+
         grid.appendChild(card);
       });
     }
 
     renderWeapons('all');
     armoryFilter.addEventListener('change', () => renderWeapons(armoryFilter.value));
+  }
 
-  } else {
+  // PET PICKER
+  else if (currentSlot.type === 'pet') {
     const clearCard = document.createElement('div');
     clearCard.className = 'hero-grid-item';
     clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
-    const clearImg = document.createElement('img'); clearImg.src = 'https://imgur.com/AdvPwAO.png'; clearImg.alt = 'Clear'; clearImg.style.width = '60px'; clearImg.style.height = '60px'; clearImg.style.opacity = '0.35'; clearImg.style.objectFit = 'contain'; clearImg.style.marginBottom = '6px';
-    const clearLabel = document.createElement('div'); clearLabel.textContent = 'Clear'; clearLabel.style.fontSize = '10px'; clearLabel.style.color = 'rgba(244,246,255,.75)'; clearLabel.style.textAlign = 'center';
-    clearCard.appendChild(clearImg); clearCard.appendChild(clearLabel);
+
+    const clearImg = document.createElement('img');
+    clearImg.src = 'https://imgur.com/AdvPwAO.png';
+    clearImg.alt = 'Clear';
+    clearImg.style.width = '60px';
+    clearImg.style.height = '60px';
+    clearImg.style.opacity = '0.35';
+    clearImg.style.objectFit = 'contain';
+    clearImg.style.marginBottom = '6px';
+
+    const clearLabel = document.createElement('div');
+    clearLabel.textContent = 'Clear';
+    clearLabel.style.fontSize = '10px';
+    clearLabel.style.color = 'rgba(244,246,255,.75)';
+    clearLabel.style.textAlign = 'center';
+
+    clearCard.appendChild(clearImg);
+    clearCard.appendChild(clearLabel);
+
+    clearCard.onclick = () => {
+      draftState.pets[currentSlot.pickIndex] = null;
+      closeModal();
+      drawDraft();
+      saveDraftState();
+    };
+
+    grid.appendChild(clearCard);
+
+    (pets || []).forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'hero-grid-item';
+
+      const img = document.createElement('img');
+      img.src = item.image_url || 'https://imgur.com/AdvPwAO.png';
+      img.alt = item.name || 'Pet';
+
+      const name = document.createElement('div');
+      name.textContent = item.name || '—';
+
+      card.appendChild(img);
+      card.appendChild(name);
+
+      card.onclick = () => {
+        draftState.pets[currentSlot.pickIndex] = item;
+        closeModal();
+        drawDraft();
+        saveDraftState();
+      };
+
+      grid.appendChild(card);
+    });
+  }
+
+  // SKILL PICKER (ban/pick/passive)
+  else {
+    const clearCard = document.createElement('div');
+    clearCard.className = 'hero-grid-item';
+    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+
+    const clearImg = document.createElement('img');
+    clearImg.src = 'https://imgur.com/AdvPwAO.png';
+    clearImg.alt = 'Clear';
+    clearImg.style.width = '60px';
+    clearImg.style.height = '60px';
+    clearImg.style.opacity = '0.35';
+    clearImg.style.objectFit = 'contain';
+    clearImg.style.marginBottom = '6px';
+
+    const clearLabel = document.createElement('div');
+    clearLabel.textContent = 'Clear';
+    clearLabel.style.fontSize = '10px';
+    clearLabel.style.color = 'rgba(244,246,255,.75)';
+    clearLabel.style.textAlign = 'center';
+
+    clearCard.appendChild(clearImg);
+    clearCard.appendChild(clearLabel);
+
     clearCard.onclick = () => {
       if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = null;
       if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = null;
       if (currentSlot.type === 'passive') draftState.passives[currentSlot.pickIndex][currentSlot.passiveIndex] = null;
-      closeModal(); drawDraft(); saveDraftState();
+      closeModal();
+      drawDraft();
+      saveDraftState();
     };
     grid.appendChild(clearCard);
 
@@ -1829,11 +1774,17 @@ function openModal(title) {
     draftState.bans.forEach(h => h && used.add(h.name));
     draftState.picks.forEach(h => h && used.add(h.name));
 
-    let list = characters.filter(h => (currentSlot.type === 'passive') ? h.skill_type === 'Passive' : h.skill_type === 'Active');
+    const list = characters.filter(h =>
+      (currentSlot.type === 'passive') ? h.skill_type === 'Passive' : h.skill_type === 'Active'
+    );
 
     list.forEach(item => {
-      const box = document.createElement('div'); box.className = 'hero-grid-item';
-      const img = document.createElement('img'); img.src = item.image_url; img.title = item.name;
+      const box = document.createElement('div');
+      box.className = 'hero-grid-item';
+
+      const img = document.createElement('img');
+      img.src = item.image_url;
+      img.title = item.name;
 
       if ((currentSlot.type === 'ban' || currentSlot.type === 'pick') && used.has(item.name)) {
         img.classList.add('disabled');
@@ -1842,23 +1793,28 @@ function openModal(title) {
           if (currentSlot.type === 'ban') draftState.bans[currentSlot.index] = item;
           if (currentSlot.type === 'pick') draftState.picks[currentSlot.index] = item;
           if (currentSlot.type === 'passive') draftState.passives[currentSlot.pickIndex][currentSlot.passiveIndex] = item;
-          closeModal(); drawDraft(); saveDraftState();
+          closeModal();
+          drawDraft();
+          saveDraftState();
         };
       }
 
-      const label = document.createElement('div'); label.textContent = item.name;
-      box.appendChild(img); box.appendChild(label); grid.appendChild(box);
+      const label = document.createElement('div');
+      label.textContent = item.name;
+
+      box.appendChild(img);
+      box.appendChild(label);
+      grid.appendChild(box);
     });
   }
 
   document.getElementById('heroModal').style.display = 'block';
 }
 
-function closeModal(){document.getElementById('heroModal').style.display='none';}
+function closeModal(){ document.getElementById('heroModal').style.display='none'; }
 
 /* -----------------------------
    SUMMARY (TEAM LEFT / RIGHT)
-   ✅ one “More” expands Active + Pet + Passive + Weapon descriptions
 ------------------------------*/
 function toggleSum(id){
   const el = document.getElementById(id);
@@ -1886,20 +1842,6 @@ function updateSummary() {
     `;
   }
 
-  function renderPetHTML(i){
-    const pet = draftState.pets?.[i] || null;
-    if (!pet) return `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
-    return `
-      <div class="sum-item">
-        ${pet.image_url ? `<img src="${esc(pet.image_url)}" alt="">` : ''}
-        <div class="sum-item-text">
-          <div class="sum-item-name">${esc(pet.name || 'Pet')}</div>
-          <div class="sum-item-desc">${esc(formatPetDesc(pet))}</div>
-        </div>
-      </div>
-    `;
-  }
-
   function renderPlayerCard(i, labelPrefix){
     const hero = draftState.picks[i];
     const playerName = (draftState.playerCards?.[i] || `${labelPrefix} ${(i%4)+1}`).trim();
@@ -1907,6 +1849,20 @@ function updateSummary() {
     const activeName = hero?.name || 'None';
     const activeSkill = hero?.skill || '';
     const activeDesc = getDesc(hero) || '—';
+
+    const pet = draftState.pets?.[i] || null;
+
+    const petHTML = pet
+      ? `
+        <div class="sum-item">
+          ${pet.image_url ? `<img src="${esc(pet.image_url)}" alt="">` : ''}
+          <div class="sum-item-text">
+            <div class="sum-item-name">${esc(pet.name || '—')}</div>
+            <div class="sum-item-desc">${esc(getDesc(pet) || '—')}</div>
+          </div>
+        </div>
+      `
+      : `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
 
     const passives = (draftState.passives?.[i] || []).filter(Boolean);
     const weaponsArr = (draftState.weapons?.[i] || []).filter(Boolean);
@@ -1953,7 +1909,7 @@ function updateSummary() {
         <div class="sum-desc">${esc(activeDesc)}</div>
 
         <div class="sum-section-title" style="margin-top:2px;">Pet</div>
-        ${renderPetHTML(i)}
+        ${petHTML}
 
         <div class="sum-section-title" style="margin-top:2px;">Passives</div>
         ${passivesHTML}
@@ -1983,9 +1939,9 @@ function resetDraft() {
   draftState = {
     bans: [null, null],
     picks: Array(8).fill(null),
+    pets: Array(8).fill(null), // ✅ NEW
     passives: Array(8).fill(0).map(() => [null, null, null]),
     weapons: Array(8).fill(0).map(() => [null, null, null]),
-    pets: Array(8).fill(null), // ✅ NEW
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     matchDate: document.getElementById('matchDate').value || '',
@@ -1995,6 +1951,7 @@ function resetDraft() {
     map: document.getElementById('mapSelect').value || 'Bermuda',
     tournamentName: ''
   };
+
   document.getElementById('teamLeftScore').value = 0;
   document.getElementById('teamRightScore').value = 0;
   document.getElementById('tournamentInput').value = '';
@@ -2007,11 +1964,9 @@ function getWeaponArmory(weaponName) {
   return weapon && weapon.armory ? weapon.armory : "";
 }
 
-// sync form controls from draftState
+/* sync form controls from draftState */
 function applyStateToControls() {
-  if (draftState.matchDate) {
-    document.getElementById('matchDate').value = draftState.matchDate;
-  }
+  if (draftState.matchDate) document.getElementById('matchDate').value = draftState.matchDate;
   document.getElementById('gameNumberSelect').value = draftState.gameNumber || 1;
   document.getElementById('teamLeftScore').value = draftState.teamLeftScore ?? 0;
   document.getElementById('teamRightScore').value = draftState.teamRightScore ?? 0;
@@ -2040,11 +1995,7 @@ async function saveDraftState() {
       updated_at: new Date().toISOString()
     });
 
-  if (error) {
-    console.error('❌ Failed to save draft state:', error);
-  } else {
-    console.log('✅ Draft state saved → public.draft');
-  }
+  if (error) console.error('❌ Failed to save draft state:', error);
 }
 
 async function loadDraftState() {
@@ -2068,9 +2019,9 @@ async function loadDraftState() {
   draftState = {
     bans: [null, null],
     picks: Array(8).fill(null),
+    pets: Array(8).fill(null), // ✅ NEW
     passives: Array(8).fill(0).map(() => [null, null, null]),
     weapons: Array(8).fill(0).map(() => [null, null, null]),
-    pets: Array(8).fill(null), // ✅ NEW default
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     matchDate: '',
@@ -2084,7 +2035,6 @@ async function loadDraftState() {
 
   applyStateToControls();
   drawDraft();
-  console.log('✅ Draft state loaded from public.draft');
 }
 
 async function loadDraftRecord() {
@@ -2110,37 +2060,36 @@ async function loadDraftRecord() {
   if (error || !data) {
     console.error("❌ Failed to load draft record:", error);
     alert(`No saved draft for Game ${gameNumber} on ${matchDate}`);
-  } else {
-    draftState = {
-      bans: [null, null],
-      picks: Array(8).fill(null),
-      passives: Array(8).fill(0).map(() => [null, null, null]),
-      weapons: Array(8).fill(0).map(() => [null, null, null]),
-      pets: Array(8).fill(null), // ✅ NEW default
-      teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
-      playerCards: Array(8).fill(''),
-      teamLeftScore: 0,
-      teamRightScore: 0,
-      map: 'Bermuda',
-      matchDate: '',
-      gameNumber: 1,
-      tournamentName: '',
-      ...data.state
-    };
-
-    draftState.teamLeftScore = data.team_left_score ?? draftState.teamLeftScore;
-    draftState.teamRightScore = data.team_right_score ?? draftState.teamRightScore;
-    draftState.map = data.map ?? draftState.map;
-    draftState.matchDate = data.match_date || draftState.matchDate;
-    draftState.gameNumber = data.game_number || draftState.gameNumber;
-    draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
-
-    applyStateToControls();
-    drawDraft();
-    await saveDraftState();
-
-    console.log("✅ Draft record loaded from draft_records and synced to draft.");
+    return;
   }
+
+  draftState = {
+    bans: [null, null],
+    picks: Array(8).fill(null),
+    pets: Array(8).fill(null), // ✅ NEW
+    passives: Array(8).fill(0).map(() => [null, null, null]),
+    weapons: Array(8).fill(0).map(() => [null, null, null]),
+    teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
+    playerCards: Array(8).fill(''),
+    teamLeftScore: 0,
+    teamRightScore: 0,
+    map: 'Bermuda',
+    matchDate: '',
+    gameNumber: 1,
+    tournamentName: '',
+    ...data.state
+  };
+
+  draftState.teamLeftScore = data.team_left_score ?? draftState.teamLeftScore;
+  draftState.teamRightScore = data.team_right_score ?? draftState.teamRightScore;
+  draftState.map = data.map ?? draftState.map;
+  draftState.matchDate = data.match_date || draftState.matchDate;
+  draftState.gameNumber = data.game_number || draftState.gameNumber;
+  draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
+
+  applyStateToControls();
+  drawDraft();
+  await saveDraftState();
 }
 
 async function saveOrUpdateDraft() {
@@ -2171,13 +2120,9 @@ async function saveOrUpdateDraft() {
     updated_at:       new Date().toISOString()
   };
 
-  console.log("📦 Upserting payload:", payload);
-
   const { error } = await client
     .from('draft_records')
-    .upsert(payload, {
-      onConflict: 'match_date,game_number,team_left,team_right'
-    });
+    .upsert(payload, { onConflict: 'match_date,game_number,team_left,team_right' });
 
   if (error) {
     alert("❌ Failed to save draft:\n" + error.message);
@@ -2227,13 +2172,12 @@ async function loadAllDraftRecords() {
   const allTournaments = new Set();
   const matchedRecords = [];
 
-  data.forEach(record => {
+  (data || []).forEach(record => {
     allTeams.add(record.team_left);
     allTeams.add(record.team_right);
     if (record.tournament_name) allTournaments.add(record.tournament_name);
   });
 
-  /* ✅ Determine latest tournament from the newest records (data is already ordered desc) */
   const latestTournament = getLatestTournamentName(data);
 
   const prevSelectedTeams = new Set(selectedTeams);
@@ -2253,6 +2197,7 @@ async function loadAllDraftRecords() {
   allOpt.value = '__ALL__';
   allOpt.textContent = 'All teams';
   teamCountSelect.appendChild(allOpt);
+
   Array.from(allTeams).sort().forEach(team => {
     const option2 = document.createElement('option');
     option2.value = team;
@@ -2271,7 +2216,6 @@ async function loadAllDraftRecords() {
     tournamentFilter.appendChild(o);
   });
 
-  /* ✅ Default history tournament to latest tournament unless user already touched it */
   const historyTarget =
     (!HISTORY_TOURN_TOUCHED && latestTournament !== '__ALL__')
       ? latestTournament
@@ -2287,7 +2231,6 @@ async function loadAllDraftRecords() {
     countTournamentSelect.appendChild(o2);
   });
 
-  /* ✅ Default counts tournament to match history tournament unless user touched it */
   const countsTarget =
     (!COUNTS_TOURN_TOUCHED)
       ? (tournamentFilter.value || '__ALL__')
@@ -2304,7 +2247,6 @@ async function loadAllDraftRecords() {
     });
   }
 
-  /* ✅ Optional: auto-fill the top Tournament input on first load */
   const topTournamentInput = document.getElementById('tournamentInput');
   if (!draftState.tournamentName && topTournamentInput && !topTournamentInput.value) {
     const t = tournamentFilter.value;
@@ -2317,7 +2259,7 @@ async function loadAllDraftRecords() {
 
   const selectedTournament = tournamentFilter.value || '__ALL__';
 
-  data.forEach(record => {
+  (data || []).forEach(record => {
     const matchTeam =
       selectedTeams.length === 0 ||
       selectedTeams.includes(record.team_left.toLowerCase()) ||
@@ -2350,7 +2292,7 @@ async function loadAllDraftRecords() {
   });
 
   LAST_MATCHED_RECORDS = matchedRecords;
-  applyPBFilters(); // renders accordion + counts (no date range)
+  applyPBFilters();
 }
 
 async function loadSpecificDraft(id) {
@@ -2368,9 +2310,9 @@ async function loadSpecificDraft(id) {
   draftState = {
     bans: [null, null],
     picks: Array(8).fill(null),
+    pets: Array(8).fill(null), // ✅ NEW
     passives: Array(8).fill(0).map(() => [null, null, null]),
     weapons: Array(8).fill(0).map(() => [null, null, null]),
-    pets: Array(8).fill(null), // ✅ NEW default
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     teamLeftScore: 0,
@@ -2392,12 +2334,10 @@ async function loadSpecificDraft(id) {
   applyStateToControls();
   drawDraft();
   await saveDraftState();
-
-  console.log("✅ Specific draft loaded and synced to draft.");
 }
 
 /* -----------------------------
-   ✅ PB FILTERS + MATCH SUMMARY
+   PB FILTERS
 ------------------------------*/
 function applyPBFiltersToRecords(records){
   const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
@@ -2413,11 +2353,11 @@ function applyPBFiltersToRecords(records){
 function applyPBFilters(){
   const filtered = applyPBFiltersToRecords(LAST_MATCHED_RECORDS);
   renderTeamAccordionSummaries(filtered);
-  computeTeamPickBanCountsFromRecords(filtered);
+  computeTeamPickBanPetCountsFromRecords(filtered);
 }
 
 /* -----------------------------
-   ✅ MATCH SUMMARY ACCORDION
+   MATCH SUMMARY ACCORDION
 ------------------------------*/
 function renderTeamAccordionSummaries(records) {
   const container = document.getElementById('teamDraftCards');
@@ -2426,7 +2366,7 @@ function renderTeamAccordionSummaries(records) {
   const focusTeam = document.getElementById('teamCountSelect')?.value || '__ALL__';
 
   const teamMap = {};
-  records.forEach(record => {
+  (records || []).forEach(record => {
     if (focusTeam !== '__ALL__') {
       if (!teamMap[focusTeam]) teamMap[focusTeam] = [];
       teamMap[focusTeam].push(record);
@@ -2488,8 +2428,7 @@ function renderTeamAccordionSummaries(records) {
 
       let pickIndexes;
       if (focusTeam !== '__ALL__') {
-        const focused = focusTeam;
-        const focusedIsLeft = (focused === r.team_left);
+        const focusedIsLeft = (focusTeam === r.team_left);
         pickIndexes = focusedIsLeft ? [0,1,2,3] : [7,6,5,4];
       } else {
         if (isLeft) pickIndexes = [0,1,2,3];
@@ -2505,9 +2444,9 @@ function renderTeamAccordionSummaries(records) {
 
       pickIndexes.forEach(i => {
         const hero = draft.picks[i];
+        const pet = draft.pets?.[i] || null;
         const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
         const passives = draft.passives?.[i] || [];
-        const pet = draft.pets?.[i] || null; // ✅ NEW
 
         const pCard = document.createElement('div');
         pCard.className = 'mini-player';
@@ -2521,32 +2460,15 @@ function renderTeamAccordionSummaries(records) {
           <div style="color:rgba(244,246,255,.92); font-weight:950; margin-top:6px;">${heroName}</div>
           <div style="color:rgba(170,177,197,.85); font-weight:900;">${playerName}</div>
           <div style="color:rgba(77,211,255,.95); font-weight:900;">${heroSkill}</div>
+          ${pet ? `
+            <div style="margin-top:6px; display:flex; align-items:center; justify-content:center; gap:6px;">
+              ${pet.image_url ? `<img src="${pet.image_url}" style="width:16px;height:16px;border-radius:6px;">` : ''}
+              <span style="font-size:9px;color:rgba(244,246,255,.78);font-weight:900;">
+                ${pet.name}
+              </span>
+            </div>
+          ` : ''}
         `;
-
-        // ✅ Pet line
-        if (pet) {
-          const petLine = document.createElement('div');
-          petLine.style.display = 'flex';
-          petLine.style.alignItems = 'center';
-          petLine.style.gap = '4px';
-          petLine.style.justifyContent = 'center';
-          petLine.style.fontSize = '9px';
-          petLine.style.color = 'rgba(244,246,255,.72)';
-          petLine.style.marginTop = '6px';
-
-          if (pet.image_url) {
-            const img = document.createElement('img');
-            img.src = pet.image_url;
-            img.style.width = '14px';
-            img.style.height = '14px';
-            img.style.borderRadius = '6px';
-            petLine.appendChild(img);
-          }
-          const label = document.createElement('span');
-          label.textContent = pet.name || 'Pet';
-          petLine.appendChild(label);
-          pCard.appendChild(petLine);
-        }
 
         passives.forEach(ps => {
           if (!ps) return;
@@ -2596,9 +2518,9 @@ function renderTeamAccordionSummaries(records) {
 }
 
 /* -----------------------------
-   ✅ PICK/BAN COUNTS (no date)
+   ✅ PICK/BAN/PET COUNTS (no date)
 ------------------------------*/
-function computeTeamPickBanCountsFromRecords(records) {
+function computeTeamPickBanPetCountsFromRecords(records) {
   const team = document.getElementById('teamCountSelect')?.value || '__ALL__';
   const tourn = document.getElementById('countTournamentSelect')?.value || '__ALL__';
 
@@ -2608,14 +2530,19 @@ function computeTeamPickBanCountsFromRecords(records) {
   let totalMatches = 0;
   let totalPicks = 0;
   let totalBans = 0;
+  let totalPets = 0;
+
   const pickCounts = new Map();
   const banCounts = new Map();
+  const petCounts = new Map();
 
   (records || []).forEach(r => {
     const s = r.state || {};
     const picks = s.picks || [];
     const bans = s.bans || [];
+    const petsArr = s.pets || [];
 
+    // ALL TEAMS
     if (team === '__ALL__') {
       totalMatches += 1;
 
@@ -2625,6 +2552,13 @@ function computeTeamPickBanCountsFromRecords(records) {
         if (name) {
           pickCounts.set(name, (pickCounts.get(name) || 0) + 1);
           totalPicks += 1;
+        }
+
+        const pet = petsArr[i];
+        const pn = pet?.name;
+        if (pn) {
+          petCounts.set(pn, (petCounts.get(pn) || 0) + 1);
+          totalPets += 1;
         }
       });
 
@@ -2640,6 +2574,7 @@ function computeTeamPickBanCountsFromRecords(records) {
       return;
     }
 
+    // SPECIFIC TEAM
     const isLeft = r.team_left === team;
     const isRight = r.team_right === team;
     if (!isLeft && !isRight) return;
@@ -2647,12 +2582,20 @@ function computeTeamPickBanCountsFromRecords(records) {
     totalMatches += 1;
 
     const idx = isLeft ? [0,1,2,3] : [4,5,6,7];
+
     idx.forEach(i => {
       const hero = picks[i];
       const skillName = hero?.name || null;
       if (skillName) {
         pickCounts.set(skillName, (pickCounts.get(skillName) || 0) + 1);
         totalPicks += 1;
+      }
+
+      const pet = petsArr[i];
+      const petName = pet?.name || null;
+      if (petName) {
+        petCounts.set(petName, (petCounts.get(petName) || 0) + 1);
+        totalPets += 1;
       }
     });
 
@@ -2672,12 +2615,16 @@ function computeTeamPickBanCountsFromRecords(records) {
     (totalMatches === 0)
       ? 'No matches for current filter.'
       : `<div><b>Total Picks:</b> ${totalPicks}</div>
-         <div><b>Total Bans:</b> ${totalBans}</div>`;
+         <div><b>Total Bans:</b> ${totalBans}</div>
+         <div><b>Total Pets Used:</b> ${totalPets}</div>`;
 
   const pickBody = document.getElementById('teamPickBreakdown');
-  const banBody = document.getElementById('teamBanBreakdown');
+  const banBody  = document.getElementById('teamBanBreakdown');
+  const petBody  = document.getElementById('teamPetBreakdown');
+
   pickBody.innerHTML = '';
-  banBody.innerHTML = '';
+  banBody.innerHTML  = '';
+  petBody.innerHTML  = '';
 
   [...pickCounts.entries()]
     .sort((a,b) => b[1] - a[1])
@@ -2693,6 +2640,14 @@ function computeTeamPickBanCountsFromRecords(records) {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
       banBody.appendChild(tr);
+    });
+
+  [...petCounts.entries()]
+    .sort((a,b) => b[1] - a[1])
+    .forEach(([name, count]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${name}</td><td>${count}</td>`;
+      petBody.appendChild(tr);
     });
 
   if (totalMatches === 0) {
