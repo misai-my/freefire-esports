@@ -249,7 +249,6 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <!-- ✅ Free Fire logo (replace URL if you want your own hosted version) -->
         <img
           class="fflogo"
           src="https://upload.wikimedia.org/wikipedia/en/7/7d/Garena_Free_Fire_logo.png"
@@ -318,7 +317,6 @@
 
           <div class="field" style="min-width:260px;flex:1.2">
             <label>Explode paths (editable, comma-separated)</label>
-            <!-- ✅ default explode paths -->
             <input id="explodePaths" type="text" value="team_stats" placeholder="e.g. team_stats"/>
             <div class="hint">If Auto-detect is OFF, these are used as the dataset choices.</div>
           </div>
@@ -340,7 +338,6 @@
           <div class="field" style="min-width:220px;flex:1">
             <label>Auto-detect explode paths</label>
             <div class="checkrow">
-              <!-- ✅ defaults unchecked -->
               <input id="autoExplode" type="checkbox" />
               <div>
                 <div style="font-size:12px">Detect arrays-of-objects and auto-fill explode paths</div>
@@ -371,7 +368,6 @@
           </div>
           <div class="field">
             <label>Default Year column value</label>
-            <!-- ✅ defaults to current year via JS on load -->
             <input id="defYear" type="text" placeholder="e.g. 2026"/>
           </div>
         </div>
@@ -938,8 +934,27 @@
     }
   }
 
-  function setStatus(el, msg){
-    $(el).textContent = msg;
+  // ✅ UPDATED: setStatus now supports BOTH call styles:
+  // 1) setStatus("upStatus","message")  (old)
+  // 2) setStatus("message", true)       (your requested error snippet; writes to upStatus by default)
+  function setStatus(a, b, c){
+    let elId, msg, isError;
+
+    if(typeof b === "boolean"){
+      elId = "upStatus";
+      msg = a;
+      isError = b;
+    } else {
+      elId = a;
+      msg = b;
+      isError = !!c;
+    }
+
+    const el = $(elId);
+    if(!el) return;
+    el.textContent = msg ?? "";
+    el.style.borderColor = isError ? "rgba(255,107,107,.35)" : "rgba(255,255,255,.10)";
+    el.style.background  = isError ? "rgba(255,107,107,.08)" : "rgba(0,0,0,.18)";
   }
 
   function injectDefaultsIntoRecords(records){
@@ -991,8 +1006,6 @@
       sel.value = current;
       return;
     }
-
-    // default to base records
     sel.value = "";
   }
 
@@ -1023,7 +1036,7 @@
         shaped = explodeObjects(BASE_RECORDS, explodePaths);
       }catch(err){
         setPill("bad","Explode failed");
-        setStatus("parseStatus", `Explode error:\n${err.message}`);
+        setStatus("parseStatus", `Explode error:\n${err.message}`, true);
         return;
       }
     }
@@ -1079,7 +1092,7 @@ Preview shows up to ${$("maxRows").value} rows.`
     const txt = $("jsonText").value.trim();
     if(!txt){
       setPill("bad", "No JSON");
-      setStatus("parseStatus", "Paste JSON first.");
+      setStatus("parseStatus", "Paste JSON first.", true);
       return;
     }
 
@@ -1087,7 +1100,7 @@ Preview shows up to ${$("maxRows").value} rows.`
       RAW = JSON.parse(txt);
     }catch(e){
       setPill("bad", "Invalid JSON");
-      setStatus("parseStatus", "JSON parse error:\n" + e.message);
+      setStatus("parseStatus", "JSON parse error:\n" + e.message, true);
       return;
     }
 
@@ -1104,7 +1117,7 @@ Preview shows up to ${$("maxRows").value} rows.`
       const v = getByPath(RAW, path);
       if(!Array.isArray(v)){
         setPill("bad", "Path not array");
-        setStatus("parseStatus", `Path "${path}" did not resolve to an array.\nTip: use dot paths like data.matches`);
+        setStatus("parseStatus", `Path "${path}" did not resolve to an array.\nTip: use dot paths like data.matches`, true);
         return;
       }
       records = v;
@@ -1120,13 +1133,12 @@ Preview shows up to ${$("maxRows").value} rows.`
 
     if(!records || !records.length){
       setPill("bad", "No records");
-      setStatus("parseStatus", `Could not find rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`);
+      setStatus("parseStatus", `Could not find rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`, true);
       return;
     }
 
     BASE_RECORDS = injectDefaultsIntoRecords(records.filter(r => r != null && isPlainObject(r)));
 
-    // ✅ Auto-detect defaults OFF; when OFF, we use explodePaths input as choices
     if($("autoExplode").checked){
       DETECTED_PATHS = detectArrayObjectPaths(BASE_RECORDS, {maxDepth: 7, maxPaths: 80, sampleN: 10});
       if(DETECTED_PATHS.length){
@@ -1201,7 +1213,7 @@ Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use
 
   async function uploadToSupabase(){
     if(!ROWS.length){
-      setStatus("upStatus", "No rows to upload. Parse JSON first.");
+      setStatus("upStatus", "No rows to upload. Parse JSON first.", true);
       setProgress(0);
       return;
     }
@@ -1215,14 +1227,14 @@ Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use
     const rowMode = $("sbRows").value;
 
     if(!url || !key || !table){
-      setStatus("upStatus", "Missing Supabase URL / anon key / table name.");
+      setStatus("upStatus", "Missing Supabase URL / anon key / table name.", true);
       setProgress(0);
       return;
     }
 
     const onConflict = resolveOnConflict(onConflictInput);
     if(mode === "upsert" && !onConflict){
-      setStatus("upStatus", "Upsert requires an On conflict column(s).");
+      setStatus("upStatus", "Upsert requires an On conflict column(s).", true);
       setProgress(0);
       return;
     }
@@ -1235,7 +1247,7 @@ Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use
     const rows = buildUploadRows(rowMode);
     const total = rows.length;
     if(!total){
-      setStatus("upStatus", "Nothing to upload after column selection.");
+      setStatus("upStatus", "Nothing to upload after column selection.", true);
       setProgress(0);
       return;
     }
@@ -1258,34 +1270,27 @@ ${mode === "upsert" ? `onConflict: ${onConflict}` : ""}`);
       setProgress(Math.round((i / chunks.length) * 100));
 
       try{
-        let res;
-        if(mode === "insert"){
-          res = await sb.from(table).insert(batch);
-        }else{
-          res = await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
-        }
+        // ✅ Use destructuring so we have `error` directly
+        const { error } = (mode === "insert")
+          ? await sb.from(table).insert(batch)
+          : await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
 
-        if(res.error){
-          failed += batch.length;
-          setStatus("upStatus",
-`Batch ${i+1} error:
-${res.error.message}
-
-Tips:
-- Check RLS policy allows insert/upsert
-- Ensure column types match
-- Ensure onConflict columns exist + have UNIQUE constraint/index
-- If your table doesn’t have created_at/updated_at, uncheck Auto timestamps
-
-Uploaded: ${ok}/${total} • Failed: ${failed}`);
+        // ✅ ADDED: your requested detailed error block
+        if (error) {
+          console.error(error);
+          setStatus(
+            "Supabase error:\n" + JSON.stringify(error, null, 2) +
+            "\n\nTips:\n- Check RLS policy allows insert/upsert\n- Ensure column types match\n- Ensure onConflict columns exist + have UNIQUE constraint/index\n- If your table doesn’t have created_at/updated_at, uncheck Auto timestamps",
+            true
+          );
           setProgress(Math.round(((i+1)/chunks.length)*100));
           return;
-        }else{
-          ok += batch.length;
         }
+
+        ok += batch.length;
       }catch(e){
         failed += batch.length;
-        setStatus("upStatus", `Network/runtime error on batch ${i+1}:\n${e.message}`);
+        setStatus("upStatus", `Network/runtime error on batch ${i+1}:\n${e.message}`, true);
         setProgress(Math.round(((i+1)/chunks.length)*100));
         return;
       }
@@ -1312,14 +1317,12 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
 
-    // ✅ keep autoExplode unchecked by default
     $("autoExplode").checked = false;
 
     $("defMode").value = "";
     $("defTournament").value = "";
     $("defStage").value = "";
 
-    // ✅ default year to current year
     $("defYear").value = String(new Date().getFullYear());
 
     $("defWeek").value = "";
@@ -1370,7 +1373,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
 
-    $("autoExplode").checked = false; // default OFF
+    $("autoExplode").checked = false;
 
     $("defMode").value = "BR";
     $("defTournament").value = "Sample Cup";
@@ -1397,7 +1400,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
       setStatus("parseStatus", `Loaded file: ${f.name}\nClick Parse & Build Table.`);
     }catch(err){
       setPill("bad","File read failed");
-      setStatus("parseStatus", "Could not read file:\n" + err.message);
+      setStatus("parseStatus", "Could not read file:\n" + err.message, true);
     } finally {
       e.target.value = "";
     }
@@ -1406,7 +1409,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   $("btnFetch").addEventListener("click", async ()=>{
     const url = $("fetchUrl").value.trim();
     if(!url){
-      setStatus("parseStatus","Enter a URL first.");
+      setStatus("parseStatus","Enter a URL first.", true);
       return;
     }
     setPill("neutral","Fetching…");
@@ -1425,7 +1428,8 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
 ${e.message}
 
 This is often CORS.
-If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
+If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`,
+        true
       );
     }
   });
@@ -1453,7 +1457,6 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
   });
 
   $("autoExplode").addEventListener("change", ()=>{
-    // rebuild explode choices immediately (without forcing parse)
     if(!$("jsonText").value.trim()) return;
     buildFromJSON();
   });
@@ -1497,9 +1500,9 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
 
   // init defaults
   (function initDefaults(){
-    $("defYear").value = String(new Date().getFullYear()); // ✅ current year default
-    $("autoExplode").checked = false;                      // ✅ unchecked default
-    renderExplodePickOptions(explodePathsInputList());     // ✅ choices from input by default
+    $("defYear").value = String(new Date().getFullYear());
+    $("autoExplode").checked = false;
+    renderExplodePickOptions(explodePathsInputList());
     updateMeta();
     setPill("neutral","Waiting for JSON");
   })();
