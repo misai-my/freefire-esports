@@ -297,9 +297,7 @@
           <div class="field" style="min-width:260px;flex:1.2">
             <label>Explode paths to rows (optional, comma-separated)</label>
             <input id="explodePaths" type="text" value="player_stats" placeholder="e.g. player_stats, teams.players"/>
-            <div class="hint">
-              Each path should point to an <b>array of objects</b>. We will turn each item into its own row.
-            </div>
+            <div class="hint">Each path should point to an <b>array of objects</b>. We will turn each item into its own row.</div>
           </div>
         </div>
 
@@ -314,7 +312,6 @@
             <input id="defTournament" type="text" placeholder="e.g. FFWS Global Finals 2025"/>
           </div>
         </div>
-
         <div class="row">
           <div class="field">
             <label>Default Stage column value</label>
@@ -326,20 +323,31 @@
           </div>
         </div>
 
-        <!-- ✅ Week/Day added -->
+        <!-- ✅ Week/Day -->
         <div class="row">
           <div class="field">
             <label>Default Week column value</label>
-            <input id="defWeek" type="text" placeholder="e.g. 1 / W1 / Week 1"/>
+            <input id="defWeek" type="text" placeholder="e.g. W1 / Week 1 / 1"/>
           </div>
           <div class="field">
             <label>Default Day column value</label>
-            <input id="defDay" type="text" placeholder="e.g. 1 / D1 / Day 1"/>
+            <input id="defDay" type="text" placeholder="e.g. D1 / Day 1 / 1"/>
+          </div>
+        </div>
+
+        <!-- ✅ match_id -->
+        <div class="row">
+          <div class="field">
+            <label>Default match_id column value</label>
+            <input id="defMatchId" type="text" placeholder="e.g. 1725487677733611520"/>
           </div>
         </div>
 
         <div class="hint">
-          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>) and apply the values to every row (you can rename/exclude later).
+          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>)
+          and apply the values to every row (you can rename/exclude later).
+          <br/><br/>
+          If the JSON contains a <span class="kbd">match_id</span> at the root or in common paths, we auto-fill the input once you parse.
         </div>
 
         <div class="row">
@@ -408,7 +416,7 @@
             <div class="row">
               <div class="field" style="flex:1">
                 <label>Table name</label>
-                <input id="sbTable" type="text" placeholder='e.g. match_results'/>
+                <input id="sbTable" type="text" placeholder='e.g. ff_player_stats_raw'/>
               </div>
               <div class="field" style="flex:.8">
                 <label>Mode</label>
@@ -422,7 +430,7 @@
             <div class="row">
               <div class="field">
                 <label>On conflict (Upsert only)</label>
-                <input id="sbConflict" type="text" placeholder="e.g. id  (or match_id,player_id)"/>
+                <input id="sbConflict" type="text" placeholder="e.g. match_id,player_stats.account_id"/>
                 <div class="hint">Comma-separated columns that form a unique key in your table.</div>
               </div>
             </div>
@@ -587,7 +595,6 @@
   }
 
   // Flatten nested objects into dot keys.
-  // If arrMode === "index", arrays of objects become columns like teams[0].tag
   function flattenObject(obj, prefix="", out={}, arrMode="keep"){
     for(const [k, v] of Object.entries(obj || {})){
       const key = prefix ? `${prefix}.${k}` : k;
@@ -674,6 +681,29 @@
     setTimeout(()=>URL.revokeObjectURL(a.href), 800);
   }
 
+  // ✅ Try to infer match_id from common locations in the JSON
+  function inferMatchIdFromRaw(raw){
+    if(!raw) return null;
+
+    if(raw.match_id) return String(raw.match_id);
+    if(raw.matchId)  return String(raw.matchId);
+
+    const v1 = getByPath(raw, "data.match_id");
+    if(v1) return String(v1);
+
+    const v2 = getByPath(raw, "data.matchId");
+    if(v2) return String(v2);
+
+    // Sometimes: data.matches[0].match_id
+    const v3 = getByPath(raw, "data.matches[0].match_id");
+    if(v3) return String(v3);
+
+    const v4 = getByPath(raw, "data.matches[0].matchId");
+    if(v4) return String(v4);
+
+    return null;
+  }
+
   // -----------------------------
   // App state
   // -----------------------------
@@ -686,15 +716,19 @@
     $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`;
   }
 
+  // ✅ FIXED: append each column row to the column list (you were missing box.appendChild(row))
   function renderColList(){
     const box = $("colList");
     box.innerHTML = "";
+
     if(!COLS.length){
       box.innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
       return;
     }
+
     for(const c of COLS){
-      const cfg = COLCFG[c];
+      const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name:c });
+
       const row = document.createElement("div");
       row.className = "colrow";
       row.innerHTML = `
@@ -702,16 +736,20 @@
         <div class="k" title="${c}">${c}</div>
         <input type="text" value="${cfg.name}" aria-label="rename"/>
       `;
+
       const cb = row.querySelector('input[type="checkbox"]');
       const inp = row.querySelector('input[type="text"]');
+
       cb.addEventListener("change", ()=>{
         COLCFG[c].include = cb.checked;
         renderTable();
       });
+
       inp.addEventListener("input", ()=>{
         COLCFG[c].name = inp.value.trim() || c;
         renderTable();
       });
+
       box.appendChild(row);
     }
   }
@@ -736,6 +774,15 @@
 
     const thRow = $("theadRow");
     thRow.innerHTML = "";
+    if(!keys.length){
+      const th = document.createElement("th");
+      th.textContent = "(No columns selected)";
+      th.style.color = "rgba(244,246,255,.65)";
+      thRow.appendChild(th);
+      $("tbody").innerHTML = "";
+      return;
+    }
+
     for(const n of names){
       const th = document.createElement("th");
       th.textContent = n;
@@ -748,8 +795,7 @@
       const tr = document.createElement("tr");
       for(const k of keys){
         const td = document.createElement("td");
-        const v = r[k];
-        td.textContent = (Array.isArray(v) || isPlainObject(v)) ? safeString(v) : safeString(v);
+        td.textContent = safeString(r[k]);
         tr.appendChild(td);
       }
       tb.appendChild(tr);
@@ -760,7 +806,6 @@
     $(el).textContent = msg;
   }
 
-  // ✅ Default columns injection (Mode/Tournament/Stage/Year/Week/Day)
   function injectDefaultsIntoRecords(records){
     const modeVal = ($("defMode").value ?? "").trim();
     const tVal = ($("defTournament").value ?? "").trim();
@@ -769,6 +814,8 @@
 
     const wVal = ($("defWeek").value ?? "").trim();
     const dVal = ($("defDay").value ?? "").trim();
+
+    const midVal = ($("defMatchId").value ?? "").trim();
 
     return records.map(r=>{
       if(!isPlainObject(r)) return r;
@@ -780,6 +827,9 @@
 
       if(!("Week" in r)) r.Week = wVal || null;
       if(!("Day" in r)) r.Day = dVal || null;
+
+      // ✅ guarantee match_id exists as a column (especially after explode)
+      if(!("match_id" in r)) r.match_id = midVal || null;
 
       return r;
     });
@@ -799,6 +849,12 @@
       setPill("bad", "Invalid JSON");
       setStatus("parseStatus", "JSON parse error:\n" + e.message);
       return;
+    }
+
+    // ✅ auto-fill match_id input if found (only if input is empty)
+    const inferred = inferMatchIdFromRaw(RAW);
+    if(inferred && !$("defMatchId").value.trim()){
+      $("defMatchId").value = inferred;
     }
 
     const arrMode = $("arrMode").value || "keep";
@@ -835,8 +891,10 @@
       return;
     }
 
+    // apply defaults (Mode/Tournament/Stage/Year/Week/Day/match_id)
     let shaped = injectDefaultsIntoRecords(records.filter(r => r != null));
 
+    // explode arrays to rows (pre-flatten)
     if(explodePaths.length){
       try{
         shaped = explodeObjects(shaped, explodePaths);
@@ -847,6 +905,7 @@
       }
     }
 
+    // flatten
     const flat = [];
     for(const rec of shaped){
       if(isPlainObject(rec)){
@@ -856,18 +915,20 @@
       }
     }
 
+    // Collect columns
     const colSet = new Set();
     for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
 
-    ["Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
+    // ✅ ensure default columns always exist
+    ["match_id","Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
 
     const cols = Array.from(colSet);
 
+    // Stable-ish ordering
     const common = [
-      "Mode","Tournament","Stage","Year","Week","Day",
-      "id","match_id","matchId","game_id","timestamp",
-      "created_at","updated_at","mode","map","team","team_id",
-      "player","player_id","name","tag"
+      "match_id","Mode","Tournament","Stage","Year","Week","Day",
+      "id","matchId","game_id","timestamp","created_at","updated_at",
+      "mode","map","team","team_id","player","player_id","name","tag"
     ];
     cols.sort((a,b)=>{
       const ia = common.indexOf(a), ib = common.indexOf(b);
@@ -920,7 +981,9 @@ Preview shows up to ${$("maxRows").value} rows.`
     return sourceRows.map(r=>{
       const o = {};
       for(let i=0;i<keys.length;i++){
-        o[names[i]] = r[keys[i]];
+        const srcKey = keys[i];
+        const dbKey = names[i];
+        o[dbKey] = r[srcKey];
       }
 
       if(addTimestamps){
@@ -986,9 +1049,12 @@ Uploaded: ${ok}/${total} • Failed: ${failed}`);
       setProgress(Math.round((i / chunks.length) * 100));
 
       try{
-        const res = (mode === "insert")
-          ? await sb.from(table).insert(batch)
-          : await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
+        let res;
+        if(mode === "insert"){
+          res = await sb.from(table).insert(batch);
+        }else{
+          res = await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
+        }
 
         if(res.error){
           failed += batch.length;
@@ -999,7 +1065,7 @@ ${res.error.message}
 Tips:
 - Check RLS policy allows insert/upsert
 - Ensure column types match (jsonb vs text)
-- Ensure onConflict columns exist + have unique constraint
+- Ensure onConflict columns exist + have UNIQUE constraint/index
 - If your table doesn’t have created_at/updated_at, uncheck Auto timestamps
 
 Uploaded: ${ok}/${total} • Failed: ${failed}`);
@@ -1035,12 +1101,15 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("fetchUrl").value = "";
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
+
     $("defMode").value = "";
     $("defTournament").value = "";
     $("defStage").value = "";
     $("defYear").value = "";
     $("defWeek").value = "";
     $("defDay").value = "";
+    $("defMatchId").value = "";
+
     $("autoTimestamps").checked = true;
 
     RAW = null; ROWS = []; COLS = []; COLCFG = {};
@@ -1075,12 +1144,15 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("explodePaths").value = "player_stats";
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
+
     $("defMode").value = "BR";
     $("defTournament").value = "Sample Cup";
     $("defStage").value = "Finals";
     $("defYear").value = "2026";
     $("defWeek").value = "W1";
     $("defDay").value = "D1";
+    $("defMatchId").value = "1725487677733611520";
+
     setPill("neutral","Sample loaded");
     setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
   });
@@ -1173,7 +1245,6 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
   // init
   updateMeta();
   setPill("neutral","Waiting for JSON");
-  setStatus("upStatus","Ready.");
 </script>
 </body>
 </html>
