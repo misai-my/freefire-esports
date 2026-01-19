@@ -218,7 +218,6 @@
       transition: width .2s ease;
     }
 
-    /* small checkbox row */
     .checkrow{
       display:flex; gap:10px; align-items:center; flex-wrap:wrap;
       padding:10px 12px;
@@ -285,7 +284,6 @@
           </div>
         </div>
 
-        <!-- Explode + array mode -->
         <div class="row">
           <div class="field" style="min-width:220px;flex:.8">
             <label>Flatten arrays of objects</label>
@@ -316,6 +314,7 @@
             <input id="defTournament" type="text" placeholder="e.g. FFWS Global Finals 2025"/>
           </div>
         </div>
+
         <div class="row">
           <div class="field">
             <label>Default Stage column value</label>
@@ -326,11 +325,8 @@
             <input id="defYear" type="text" placeholder="e.g. 2026"/>
           </div>
         </div>
-        <div class="hint">
-          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>) and apply the values to every row (you can rename/exclude later).
-        </div>
-        <!-- ✅ ADD THIS right after the "Default Year column value" row (after defYear) -->
 
+        <!-- ✅ Week/Day added -->
         <div class="row">
           <div class="field">
             <label>Default Week column value</label>
@@ -341,8 +337,9 @@
             <input id="defDay" type="text" placeholder="e.g. 1 / D1 / Day 1"/>
           </div>
         </div>
+
         <div class="hint">
-          These create extra columns (<span class="kbd">Week</span>, <span class="kbd">Day</span>) and apply the values to every row.
+          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>) and apply the values to every row (you can rename/exclude later).
         </div>
 
         <div class="row">
@@ -565,7 +562,6 @@
   }
 
   function findFirstArrayOfObjects(root){
-    // BFS search: find an array where the first element is an object
     const q = [{v: root, path: ""}];
     const seen = new Set();
     while(q.length){
@@ -608,8 +604,7 @@
             flattenObject(item, `${key}[${idx}]`, out, arrMode);
           });
         } else {
-          // keep complex arrays as JSON (best if your DB column is json/jsonb)
-          out[key] = v;
+          out[key] = v; // keep complex arrays as JSON
         }
       } else if (isPlainObject(v)){
         flattenObject(v, key, out, arrMode);
@@ -621,7 +616,6 @@
   }
 
   // Explode paths sequentially into more objects (rows) BEFORE flattening.
-  // Each explode path must point to an array of objects.
   function explodeObjects(records, explodePaths){
     let current = records;
     for(const rawP of explodePaths){
@@ -648,7 +642,6 @@
 
         for(const item of arr){
           const cloned = deepCloneJSON(rec);
-          // replace array at p with a single object item
           deleteByPath(cloned, p);
           setByPath(cloned, p, item);
           next.push(cloned);
@@ -741,7 +734,6 @@
     const max = parseInt($("maxRows").value,10);
     const previewRows = ROWS.slice(0, max);
 
-    // thead
     const thRow = $("theadRow");
     thRow.innerHTML = "";
     for(const n of names){
@@ -750,7 +742,6 @@
       thRow.appendChild(th);
     }
 
-    // tbody
     const tb = $("tbody");
     tb.innerHTML = "";
     for(const r of previewRows){
@@ -769,19 +760,27 @@
     $(el).textContent = msg;
   }
 
+  // ✅ Default columns injection (Mode/Tournament/Stage/Year/Week/Day)
   function injectDefaultsIntoRecords(records){
     const modeVal = ($("defMode").value ?? "").trim();
     const tVal = ($("defTournament").value ?? "").trim();
     const sVal = ($("defStage").value ?? "").trim();
     const yVal = parseYearMaybe($("defYear").value);
 
+    const wVal = ($("defWeek").value ?? "").trim();
+    const dVal = ($("defDay").value ?? "").trim();
+
     return records.map(r=>{
       if(!isPlainObject(r)) return r;
-      // ensure columns exist even if blank
+
       if(!("Mode" in r)) r.Mode = modeVal || null;
       if(!("Tournament" in r)) r.Tournament = tVal || null;
       if(!("Stage" in r)) r.Stage = sVal || null;
       if(!("Year" in r)) r.Year = yVal;
+
+      if(!("Week" in r)) r.Week = wVal || null;
+      if(!("Day" in r)) r.Day = dVal || null;
+
       return r;
     });
   }
@@ -808,7 +807,6 @@
       .map(s => s.trim())
       .filter(Boolean);
 
-    // Resolve records array
     const path = $("pathText").value.trim();
     let records = null;
     let usedPath = "";
@@ -837,10 +835,8 @@
       return;
     }
 
-    // apply default columns
     let shaped = injectDefaultsIntoRecords(records.filter(r => r != null));
 
-    // explode arrays to rows (pre-flatten)
     if(explodePaths.length){
       try{
         shaped = explodeObjects(shaped, explodePaths);
@@ -851,7 +847,6 @@
       }
     }
 
-    // flatten
     const flat = [];
     for(const rec of shaped){
       if(isPlainObject(rec)){
@@ -861,17 +856,19 @@
       }
     }
 
-    // Collect columns
     const colSet = new Set();
     for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
 
-    // Ensure default columns exist even if empty (in case flatten keys got altered)
-    ["Mode","Tournament","Stage","Year"].forEach(k => colSet.add(k));
+    ["Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
 
     const cols = Array.from(colSet);
 
-    // Stable-ish ordering
-    const common = ["Mode","Tournament","Stage","Year","id","match_id","matchId","game_id","timestamp","created_at","updated_at","mode","map","team","team_id","player","player_id","name","tag"];
+    const common = [
+      "Mode","Tournament","Stage","Year","Week","Day",
+      "id","match_id","matchId","game_id","timestamp",
+      "created_at","updated_at","mode","map","team","team_id",
+      "player","player_id","name","tag"
+    ];
     cols.sort((a,b)=>{
       const ia = common.indexOf(a), ib = common.indexOf(b);
       if(ia !== -1 || ib !== -1){
@@ -920,23 +917,18 @@ Preview shows up to ${$("maxRows").value} rows.`
     const addTimestamps = $("autoTimestamps").checked;
     const nowIso = new Date().toISOString();
 
-    const out = sourceRows.map(r=>{
+    return sourceRows.map(r=>{
       const o = {};
       for(let i=0;i<keys.length;i++){
-        const srcKey = keys[i];
-        const dbKey = names[i];
-        o[dbKey] = r[srcKey];
+        o[names[i]] = r[keys[i]];
       }
 
       if(addTimestamps){
-        // only set created_at if missing/empty; always set updated_at
         if(!("created_at" in o) || o.created_at == null || o.created_at === "") o.created_at = nowIso;
         o.updated_at = nowIso;
       }
       return o;
     });
-
-    return out;
   }
 
   async function uploadToSupabase(){
@@ -994,12 +986,9 @@ Uploaded: ${ok}/${total} • Failed: ${failed}`);
       setProgress(Math.round((i / chunks.length) * 100));
 
       try{
-        let res;
-        if(mode === "insert"){
-          res = await sb.from(table).insert(batch);
-        }else{
-          res = await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
-        }
+        const res = (mode === "insert")
+          ? await sb.from(table).insert(batch)
+          : await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
 
         if(res.error){
           failed += batch.length;
@@ -1050,6 +1039,8 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("defTournament").value = "";
     $("defStage").value = "";
     $("defYear").value = "";
+    $("defWeek").value = "";
+    $("defDay").value = "";
     $("autoTimestamps").checked = true;
 
     RAW = null; ROWS = []; COLS = []; COLCFG = {};
@@ -1088,6 +1079,8 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("defTournament").value = "Sample Cup";
     $("defStage").value = "Finals";
     $("defYear").value = "2026";
+    $("defWeek").value = "W1";
+    $("defDay").value = "D1";
     setPill("neutral","Sample loaded");
     setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
   });
@@ -1156,7 +1149,6 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
     const rowMode = $("sbRows").value;
     const rows = buildUploadRows(rowMode);
 
-    // CSV uses renamed column names; stringify json values
     const cols = names;
     const normalized = rows.map(r=>{
       const out = {};
@@ -1181,6 +1173,7 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
   // init
   updateMeta();
   setPill("neutral","Waiting for JSON");
+  setStatus("upStatus","Ready.");
 </script>
 </body>
 </html>
