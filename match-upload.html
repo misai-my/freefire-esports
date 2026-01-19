@@ -48,7 +48,6 @@
     h1{font-size:16px;margin:0;letter-spacing:.3px}
     .sub{font-size:12px;color:var(--muted);margin-top:2px}
     .actions{display:flex;gap:10px;flex-wrap:wrap}
-
     .btn, input, select, textarea{font-family:inherit}
     .btn{
       border:1px solid var(--line);
@@ -130,6 +129,7 @@
     .dot.good{background:var(--good)}
     .dot.bad{background:var(--bad)}
     .dot.neutral{background:var(--accent)}
+
     .split{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
     @media (max-width: 980px){ .split{grid-template-columns:1fr} }
 
@@ -217,6 +217,16 @@
       background: linear-gradient(90deg, rgba(77,211,255,.75), rgba(255,189,89,.72), rgba(255,119,51,.72));
       transition: width .2s ease;
     }
+
+    /* small checkbox row */
+    .checkrow{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      background: rgba(0,0,0,.18);
+    }
+    .checkrow input{width:auto}
   </style>
 </head>
 <body>
@@ -268,14 +278,14 @@
             <label>Max preview rows</label>
             <select id="maxRows">
               <option value="50">50</option>
-              <option value="200" selected>200</option>
+              <option value="200">200</option>
               <option value="500">500</option>
-              <option value="2000">2000</option>
+              <option value="2000" selected>2000</option>
             </select>
           </div>
         </div>
 
-        <!-- NEW: explode + array mode -->
+        <!-- Explode + array mode -->
         <div class="row">
           <div class="field" style="min-width:220px;flex:.8">
             <label>Flatten arrays of objects</label>
@@ -283,17 +293,41 @@
               <option value="keep" selected>Keep as JSON (default)</option>
               <option value="index">Explode to columns with [index] (teams[0].tag)</option>
             </select>
-            <div class="hint">Index mode is good for small fixed arrays. For teams/players, use “Explode paths”.</div>
+            <div class="hint">Index mode is good for small fixed arrays. For stats tables, use “Explode paths”.</div>
           </div>
 
           <div class="field" style="min-width:260px;flex:1.2">
             <label>Explode paths to rows (optional, comma-separated)</label>
-            <input id="explodePaths" type="text" placeholder="e.g. teams, teams.players"/>
+            <input id="explodePaths" type="text" value="player_stats" placeholder="e.g. player_stats, teams.players"/>
             <div class="hint">
               Each path should point to an <b>array of objects</b>. We will turn each item into its own row.
-              Works for nested arrays too (ex: <span class="kbd">teams</span> then <span class="kbd">teams.players</span>).
             </div>
           </div>
+        </div>
+
+        <!-- Default columns -->
+        <div class="row">
+          <div class="field">
+            <label>Default Mode column value</label>
+            <input id="defMode" type="text" placeholder="e.g. BR / CS / scrim"/>
+          </div>
+          <div class="field">
+            <label>Default Tournament column value</label>
+            <input id="defTournament" type="text" placeholder="e.g. FFWS Global Finals 2025"/>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Default Stage column value</label>
+            <input id="defStage" type="text" placeholder="e.g. Finals / Group Stage"/>
+          </div>
+          <div class="field">
+            <label>Default Year column value</label>
+            <input id="defYear" type="text" placeholder="e.g. 2026"/>
+          </div>
+        </div>
+        <div class="hint">
+          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>) and apply the values to every row (you can rename/exclude later).
         </div>
 
         <div class="row">
@@ -376,7 +410,7 @@
             <div class="row">
               <div class="field">
                 <label>On conflict (Upsert only)</label>
-                <input id="sbConflict" type="text" placeholder="e.g. id  (or match_id,team_id)"/>
+                <input id="sbConflict" type="text" placeholder="e.g. id  (or match_id,player_id)"/>
                 <div class="hint">Comma-separated columns that form a unique key in your table.</div>
               </div>
             </div>
@@ -397,6 +431,19 @@
                   <option value="all" selected>All parsed rows</option>
                   <option value="preview">Preview rows only</option>
                 </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field" style="min-width:220px">
+                <label>Auto timestamps</label>
+                <div class="checkrow">
+                  <input id="autoTimestamps" type="checkbox" checked />
+                  <div>
+                    <div style="font-size:12px">Add <span class="kbd">created_at</span> & <span class="kbd">updated_at</span> on upload</div>
+                    <div class="small">If your table doesn’t have these columns, uncheck this.</div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -454,6 +501,12 @@
     return x && typeof x === "object" && !Array.isArray(x);
   }
 
+  function parseYearMaybe(v){
+    const s = (v ?? "").toString().trim();
+    if(!s) return null;
+    return /^[0-9]{4}$/.test(s) ? parseInt(s, 10) : s;
+  }
+
   // Dot path with optional [idx]
   function getByPath(root, path){
     if(!path) return root;
@@ -493,7 +546,6 @@
   }
 
   function deepCloneJSON(x){
-    // JSON-only safe clone (fast enough for typical esports payloads)
     return JSON.parse(JSON.stringify(x));
   }
 
@@ -555,7 +607,6 @@
 
   // Explode paths sequentially into more objects (rows) BEFORE flattening.
   // Each explode path must point to an array of objects.
-  // Example: "teams, teams.players"
   function explodeObjects(records, explodePaths){
     let current = records;
     for(const rawP of explodePaths){
@@ -574,7 +625,6 @@
           continue;
         }
 
-        // Only explode arrays of objects; otherwise keep as-is
         const canExplode = arr.every(isPlainObject);
         if(!canExplode){
           next.push(rec);
@@ -583,7 +633,7 @@
 
         for(const item of arr){
           const cloned = deepCloneJSON(rec);
-          // remove array at p, and set p to a single object item (so nested explosions can continue)
+          // replace array at p with a single object item
           deleteByPath(cloned, p);
           setByPath(cloned, p, item);
           next.push(cloned);
@@ -704,6 +754,23 @@
     $(el).textContent = msg;
   }
 
+  function injectDefaultsIntoRecords(records){
+    const modeVal = ($("defMode").value ?? "").trim();
+    const tVal = ($("defTournament").value ?? "").trim();
+    const sVal = ($("defStage").value ?? "").trim();
+    const yVal = parseYearMaybe($("defYear").value);
+
+    return records.map(r=>{
+      if(!isPlainObject(r)) return r;
+      // ensure columns exist even if blank
+      if(!("Mode" in r)) r.Mode = modeVal || null;
+      if(!("Tournament" in r)) r.Tournament = tVal || null;
+      if(!("Stage" in r)) r.Stage = sVal || null;
+      if(!("Year" in r)) r.Year = yVal;
+      return r;
+    });
+  }
+
   function buildFromJSON(){
     const txt = $("jsonText").value.trim();
     if(!txt){
@@ -755,8 +822,10 @@
       return;
     }
 
-    // Explode arrays to rows (pre-flatten)
-    let shaped = records.filter(r => r != null);
+    // apply default columns
+    let shaped = injectDefaultsIntoRecords(records.filter(r => r != null));
+
+    // explode arrays to rows (pre-flatten)
     if(explodePaths.length){
       try{
         shaped = explodeObjects(shaped, explodePaths);
@@ -767,7 +836,7 @@
       }
     }
 
-    // Flatten rows
+    // flatten
     const flat = [];
     for(const rec of shaped){
       if(isPlainObject(rec)){
@@ -780,10 +849,14 @@
     // Collect columns
     const colSet = new Set();
     for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
+
+    // Ensure default columns exist even if empty (in case flatten keys got altered)
+    ["Mode","Tournament","Stage","Year"].forEach(k => colSet.add(k));
+
     const cols = Array.from(colSet);
 
     // Stable-ish ordering
-    const common = ["id","match_id","matchId","game_id","timestamp","created_at","updated_at","mode","map","stage","tournament","team","team_id","player","player_id","name","tag"];
+    const common = ["Mode","Tournament","Stage","Year","id","match_id","matchId","game_id","timestamp","created_at","updated_at","mode","map","team","team_id","player","player_id","name","tag"];
     cols.sort((a,b)=>{
       const ia = common.indexOf(a), ib = common.indexOf(b);
       if(ia !== -1 || ib !== -1){
@@ -829,14 +902,21 @@ Preview shows up to ${$("maxRows").value} rows.`
       ? ROWS.slice(0, parseInt($("maxRows").value,10))
       : ROWS;
 
+    const addTimestamps = $("autoTimestamps").checked;
+    const nowIso = new Date().toISOString();
+
     const out = sourceRows.map(r=>{
       const o = {};
       for(let i=0;i<keys.length;i++){
         const srcKey = keys[i];
         const dbKey = names[i];
-        const v = r[srcKey];
-        // Keep arrays/objects as JSON (best if your columns are jsonb). Otherwise rename those cols to text and stringify.
-        o[dbKey] = v;
+        o[dbKey] = r[srcKey];
+      }
+
+      if(addTimestamps){
+        // only set created_at if missing/empty; always set updated_at
+        if(!("created_at" in o) || o.created_at == null || o.created_at === "") o.created_at = nowIso;
+        o.updated_at = nowIso;
       }
       return o;
     });
@@ -916,6 +996,7 @@ Tips:
 - Check RLS policy allows insert/upsert
 - Ensure column types match (jsonb vs text)
 - Ensure onConflict columns exist + have unique constraint
+- If your table doesn’t have created_at/updated_at, uncheck Auto timestamps
 
 Uploaded: ${ok}/${total} • Failed: ${failed}`);
           setProgress(Math.round(((i+1)/chunks.length)*100));
@@ -946,9 +1027,16 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   $("btnClear").addEventListener("click", ()=>{
     $("jsonText").value = "";
     $("pathText").value = "";
-    $("explodePaths").value = "";
+    $("explodePaths").value = "player_stats";
     $("fetchUrl").value = "";
     $("arrMode").value = "keep";
+    $("maxRows").value = "2000";
+    $("defMode").value = "";
+    $("defTournament").value = "";
+    $("defStage").value = "";
+    $("defYear").value = "";
+    $("autoTimestamps").checked = true;
+
     RAW = null; ROWS = []; COLS = []; COLCFG = {};
     $("colList").innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
     $("theadRow").innerHTML = "";
@@ -961,19 +1049,16 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   });
 
   $("btnSample").addEventListener("click", ()=>{
-    // sample includes nested arrays (teams -> players)
     const sample = {
       data: {
         matches: [
           {
             match_id: "1725487677733611520",
-            mode: "br",
-            meta: { tournament: "FFWS", stage: "Finals" },
             map: "Bermuda",
-            started_at: "2026-01-19T08:00:00Z",
-            teams: [
-              { tag:"ABC", points: 67, players:[{name:"A1",k:3},{name:"A2",k:2}] },
-              { tag:"XYZ", points: 55, players:[{name:"X1",k:1},{name:"X2",k:0}] }
+            player_stats: [
+              { player_id: "p1", name: "A1", team: "ABC", kills: 3, dmg: 812 },
+              { player_id: "p2", name: "A2", team: "ABC", kills: 2, dmg: 540 },
+              { player_id: "p3", name: "X1", team: "XYZ", kills: 1, dmg: 220 }
             ]
           }
         ]
@@ -981,8 +1066,13 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     };
     $("jsonText").value = JSON.stringify(sample, null, 2);
     $("pathText").value = "data.matches";
-    $("explodePaths").value = "teams, teams.players"; // produces 4 rows (2 teams x 2 players)
+    $("explodePaths").value = "player_stats";
     $("arrMode").value = "keep";
+    $("maxRows").value = "2000";
+    $("defMode").value = "BR";
+    $("defTournament").value = "Sample Cup";
+    $("defStage").value = "Finals";
+    $("defYear").value = "2026";
     setPill("neutral","Sample loaded");
     setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
   });
