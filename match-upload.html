@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>JSON → Table → Supabase Uploader</title>
+  <title>Free Fire Match Data Uploader</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
@@ -40,10 +40,13 @@
     .wrap{max-width:1280px;margin:0 auto;padding:14px 16px}
     .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between}
     .brand{display:flex;align-items:center;gap:12px}
-    .badge{
-      width:40px;height:40px;border-radius:14px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,189,89,.9), rgba(255,119,51,.7));
-      box-shadow: 0 14px 40px rgba(255,189,89,.18);
+    .fflogo{
+      width:44px;height:44px;border-radius:14px;
+      object-fit:contain;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 14px 40px rgba(0,0,0,.30);
+      padding:6px;
     }
     h1{font-size:16px;margin:0;letter-spacing:.3px}
     .sub{font-size:12px;color:var(--muted);margin-top:2px}
@@ -98,6 +101,7 @@
 
     .field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
     label{font-size:12px;color:var(--muted)}
+
     input[type="text"], input[type="password"], input[type="url"], select, textarea{
       width:100%;
       border:1px solid rgba(255,255,255,.10);
@@ -107,6 +111,18 @@
       padding:10px 10px;
       outline:none;
     }
+
+    /* ✅ Prevent white-on-white dropdowns (options) */
+    select{
+      color-scheme: dark;
+      background: rgba(0,0,0,.25);
+      color: var(--ink);
+    }
+    select option, select optgroup{
+      background-color: #0b1020;
+      color: var(--ink);
+    }
+
     textarea{
       font-family: var(--mono);
       min-height: 260px;
@@ -233,9 +249,15 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="badge"></div>
+        <!-- ✅ Free Fire logo (replace URL if you want your own hosted version) -->
+        <img
+          class="fflogo"
+          src="https://upload.wikimedia.org/wikipedia/en/7/7d/Garena_Free_Fire_logo.png"
+          alt="Free Fire"
+          onerror="this.style.display='none'"
+        />
         <div>
-          <h1>JSON → Table → Supabase</h1>
+          <h1>Free Fire Match Data Uploader</h1>
           <div class="sub">Paste / upload JSON, flatten & explode arrays, preview table, then insert/upsert into Supabase.</div>
         </div>
       </div>
@@ -295,9 +317,10 @@
           </div>
 
           <div class="field" style="min-width:260px;flex:1.2">
-            <label>Explode paths (auto-detected & editable, comma-separated)</label>
-            <input id="explodePaths" type="text" value="player_stats" placeholder="e.g. player_stats, match_stats_extra.circle_info"/>
-            <div class="hint">We auto-detect arrays-of-objects and list them here. You can still edit it.</div>
+            <label>Explode paths (editable, comma-separated)</label>
+            <!-- ✅ default explode paths -->
+            <input id="explodePaths" type="text" value="team_stas, player_stats" placeholder="e.g. team_stas, player_stats"/>
+            <div class="hint">If Auto-detect is OFF, these are used as the dataset choices.</div>
           </div>
         </div>
 
@@ -310,17 +333,18 @@
             </select>
             <div class="hint">
               Pick one explode path to generate a clean table (player_stats, circle_info, spector_info, etc).
-              <br/>Sequential explode is available but can create a cartesian explosion if you pick multiple arrays.
+              <br/>Sequential explode can multiply rows if you select multiple arrays.
             </div>
           </div>
 
           <div class="field" style="min-width:220px;flex:1">
             <label>Auto-detect explode paths</label>
             <div class="checkrow">
-              <input id="autoExplode" type="checkbox" checked />
+              <!-- ✅ defaults unchecked -->
+              <input id="autoExplode" type="checkbox" />
               <div>
                 <div style="font-size:12px">Detect arrays-of-objects and auto-fill explode paths</div>
-                <div class="small">Also populates the dataset dropdown automatically.</div>
+                <div class="small">If unchecked, we use your explode paths input as the dropdown choices.</div>
               </div>
             </div>
           </div>
@@ -330,7 +354,6 @@
         <div class="row">
           <div class="field">
             <label>Default Mode column value</label>
-            <!-- ✅ CHANGED TO DROPDOWN -->
             <select id="defMode">
               <option value="" selected>(blank)</option>
               <option value="BR">BR</option>
@@ -349,11 +372,11 @@
           </div>
           <div class="field">
             <label>Default Year column value</label>
+            <!-- ✅ defaults to current year via JS on load -->
             <input id="defYear" type="text" placeholder="e.g. 2026"/>
           </div>
         </div>
 
-        <!-- Week/Day -->
         <div class="row">
           <div class="field">
             <label>Default Week column value</label>
@@ -365,7 +388,6 @@
           </div>
         </div>
 
-        <!-- match_id -->
         <div class="row">
           <div class="field">
             <label>Default match_id column value</label>
@@ -376,7 +398,7 @@
         <div class="hint">
           Default columns apply to every row: <span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>.
           <br/><br/>
-          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span> automatically for preview & upload.
+          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span>.
           <br/>
           <b>skill_ids breakdown is ON:</b> arrays named <span class="kbd">skill_ids</span> become separate columns (skill_ids[0], skill_ids[1], …).
         </div>
@@ -528,9 +550,6 @@
 </main>
 
 <script>
-  // -----------------------------
-  // Helpers
-  // -----------------------------
   const $ = (id) => document.getElementById(id);
 
   function setPill(state, text){
@@ -685,9 +704,7 @@
       }
     }
 
-    for(const rec of sample){
-      visit(rec, "", 0);
-    }
+    for(const rec of sample) visit(rec, "", 0);
 
     const out = Array.from(paths);
     out.sort((a,b)=>{
@@ -813,16 +830,20 @@
     if(rec.matchId) return String(rec.matchId);
     const a = getByPath(rec, "match.match_id"); if(a) return String(a);
     const b = getByPath(rec, "match.matchId");  if(b) return String(b);
-    const c = getByPath(rec, "data.match_id");  if(c) return String(c);
-    const d = getByPath(rec, "data.matchId");   if(d) return String(d);
     return null;
+  }
+
+  function explodePathsInputList(){
+    return ($("explodePaths").value || "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
   }
 
   // -----------------------------
   // App state
   // -----------------------------
   let RAW = null;
-
   let BASE_RECORDS = [];
   let DETECTED_PATHS = [];
 
@@ -923,7 +944,6 @@
   }
 
   function injectDefaultsIntoRecords(records){
-    // ✅ defMode is now a <select>
     const modeVal = ($("defMode").value ?? "").trim();
     const tVal = ($("defTournament").value ?? "").trim();
     const sVal = ($("defStage").value ?? "").trim();
@@ -973,8 +993,8 @@
       return;
     }
 
-    if(paths && paths.includes("player_stats")) sel.value = "player_stats";
-    else sel.value = "";
+    // default to base records
+    sel.value = "";
   }
 
   function rebuildDataset(){
@@ -991,8 +1011,7 @@
     let explodePaths = [];
 
     if(pick === "__input__"){
-      explodePaths = ($("explodePaths").value || "")
-        .split(",").map(s => s.trim()).filter(Boolean);
+      explodePaths = explodePathsInputList();
     } else if(pick){
       explodePaths = [pick];
     } else {
@@ -1000,7 +1019,6 @@
     }
 
     let shaped = BASE_RECORDS;
-
     if(explodePaths.length){
       try{
         shaped = explodeObjects(BASE_RECORDS, explodePaths);
@@ -1053,7 +1071,7 @@
 Base rows: ${BASE_RECORDS.length}
 Current rows: ${ROWS.length} ${label}
 Columns: ${COLS.length}
-Auto-detected explode paths: ${DETECTED_PATHS.length ? DETECTED_PATHS.join(", ") : "(none)"}
+Explode choices: ${DETECTED_PATHS.length ? DETECTED_PATHS.join(", ") : "(none)"}
 Preview shows up to ${$("maxRows").value} rows.`
     );
   }
@@ -1109,6 +1127,7 @@ Preview shows up to ${$("maxRows").value} rows.`
 
     BASE_RECORDS = injectDefaultsIntoRecords(records.filter(r => r != null && isPlainObject(r)));
 
+    // ✅ Auto-detect defaults OFF; when OFF, we use explodePaths input as choices
     if($("autoExplode").checked){
       DETECTED_PATHS = detectArrayObjectPaths(BASE_RECORDS, {maxDepth: 7, maxPaths: 80, sampleN: 10});
       if(DETECTED_PATHS.length){
@@ -1116,22 +1135,25 @@ Preview shows up to ${$("maxRows").value} rows.`
       }
       renderExplodePickOptions(DETECTED_PATHS);
     } else {
-      DETECTED_PATHS = [];
-      renderExplodePickOptions([]);
+      DETECTED_PATHS = explodePathsInputList();
+      renderExplodePickOptions(DETECTED_PATHS);
     }
 
     setPill("good", "Parsed base");
     setStatus("parseStatus",
-      `Base parsed OK.
+`Base parsed OK.
 Base rows: ${BASE_RECORDS.length}
 Records path: ${usedPath}
 
-Now choose "Explode dataset" to preview/upload player_stats, circle_info, etc.`
+Choose "Explode dataset" to preview/upload player_stats, team_stas, etc (or use sequential input).`
     );
 
     rebuildDataset();
   }
 
+  // -----------------------------
+  // Supabase upload
+  // -----------------------------
   function setProgress(pct){
     $("bar").style.width = `${Math.max(0, Math.min(100, pct))}%`;
   }
@@ -1200,7 +1222,6 @@ Now choose "Explode dataset" to preview/upload player_stats, circle_info, etc.`
     }
 
     const onConflict = resolveOnConflict(onConflictInput);
-
     if(mode === "upsert" && !onConflict){
       setStatus("upStatus", "Upsert requires an On conflict column(s).");
       setProgress(0);
@@ -1278,25 +1299,30 @@ Failed: ${failed}
 Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   }
 
+  // -----------------------------
   // Events
+  // -----------------------------
   $("btnParse").addEventListener("click", buildFromJSON);
 
   $("btnClear").addEventListener("click", ()=>{
     $("jsonText").value = "";
     $("pathText").value = "";
-    $("explodePaths").value = "player_stats";
+    $("explodePaths").value = "team_stas, player_stats";
     $("explodePick").value = "";
     $("fetchUrl").value = "";
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
-    $("autoExplode").checked = true;
 
-    // ✅ reset dropdown
+    // ✅ keep autoExplode unchecked by default
+    $("autoExplode").checked = false;
+
     $("defMode").value = "";
-
     $("defTournament").value = "";
     $("defStage").value = "";
-    $("defYear").value = "";
+
+    // ✅ default year to current year
+    $("defYear").value = String(new Date().getFullYear());
+
     $("defWeek").value = "";
     $("defDay").value = "";
     $("defMatchId").value = "";
@@ -1317,7 +1343,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     setStatus("upStatus","Ready.");
     setProgress(0);
 
-    renderExplodePickOptions([]);
+    renderExplodePickOptions(explodePathsInputList());
   });
 
   $("btnSample").addEventListener("click", ()=>{
@@ -1326,11 +1352,15 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
         matches: [
           {
             match_id: "1725487677733611520",
-            map: "Bermuda",
-            player_stats: [
-              { account_id: 111, nickname: "A1", team: "ABC", kills: 3, damage: 812, skill_ids:[101,202,303] },
-              { account_id: 222, nickname: "A2", team: "ABC", kills: 2, damage: 540, skill_ids:[404,505] },
-              { account_id: 333, nickname: "X1", team: "XYZ", kills: 1, damage: 220, skill_ids:[999] }
+            map_id: 4,
+            team_stas: [
+              {
+                team_name: "ABC",
+                player_stats: [
+                  { account_id: 111, nickname: "A1", kills: 3, damage: 812, skill_ids:[101,202,303] },
+                  { account_id: 222, nickname: "A2", kills: 2, damage: 540, skill_ids:[404,505] }
+                ]
+              }
             ]
           }
         ]
@@ -1340,17 +1370,19 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("pathText").value = "data.matches";
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
-    $("autoExplode").checked = true;
 
-    // ✅ set default dropdown value
+    $("autoExplode").checked = false; // default OFF
+
     $("defMode").value = "BR";
-
     $("defTournament").value = "Sample Cup";
     $("defStage").value = "Finals";
-    $("defYear").value = "2026";
+    $("defYear").value = String(new Date().getFullYear());
     $("defWeek").value = "W1";
     $("defDay").value = "D1";
     $("defMatchId").value = "1725487677733611520";
+
+    $("explodePaths").value = "team_stas, player_stats";
+    renderExplodePickOptions(explodePathsInputList());
 
     setPill("neutral","Sample loaded");
     setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
@@ -1422,11 +1454,16 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
   });
 
   $("autoExplode").addEventListener("change", ()=>{
-    if($("jsonText").value.trim()) buildFromJSON();
+    // rebuild explode choices immediately (without forcing parse)
+    if(!$("jsonText").value.trim()) return;
+    buildFromJSON();
   });
 
   $("explodePaths").addEventListener("change", ()=>{
-    if(BASE_RECORDS.length && $("explodePick").value === "__input__") rebuildDataset();
+    if(!$("autoExplode").checked){
+      renderExplodePickOptions(explodePathsInputList());
+      if(BASE_RECORDS.length) rebuildDataset();
+    }
   });
 
   $("btnUpload").addEventListener("click", uploadToSupabase);
@@ -1459,9 +1496,14 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
     downloadText("rows_export.json", JSON.stringify(rows, null, 2), "application/json");
   });
 
-  // init
-  updateMeta();
-  setPill("neutral","Waiting for JSON");
+  // init defaults
+  (function initDefaults(){
+    $("defYear").value = String(new Date().getFullYear()); // ✅ current year default
+    $("autoExplode").checked = false;                      // ✅ unchecked default
+    renderExplodePickOptions(explodePathsInputList());     // ✅ choices from input by default
+    updateMeta();
+    setPill("neutral","Waiting for JSON");
+  })();
 </script>
 </body>
 </html>
