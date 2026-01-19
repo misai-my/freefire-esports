@@ -1,1250 +1,1303 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>JSON → Table → Supabase Uploader</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Team Path Planner</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root{
-      --bg:#07090f; --bg2:#0b1020;
-      --panel: rgba(20, 26, 38, .72);
-      --panel2: rgba(14, 18, 28, .70);
+      --bg:#07090f;
+      --bg2:#0b1020;
       --line: rgba(255,255,255,.10);
-      --ink:#f4f6ff; --muted:#aab1c5;
-      --brand:#ffbd59; --brand2:#ff7733; --accent:#4dd3ff;
-      --radius:16px; --radius-lg:22px;
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+
+      --brand:#ffbd59;
+      --accent:#4dd3ff;
+
       --shadow: 0 22px 70px rgba(0,0,0,.55);
-      --good:#71d083; --bad:#ff6b6b;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      --sans: system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      --radius-lg: 18px;
+
+      /* Desktop fixed intent */
+      --main-w: 1112px;
+      --main-h: 800px;
+
+      --sidebar-w: 320px;
+      --map-w: 792px; /* 1112 - 320 */
+
+      /* Phone layout */
+      --phone-panel-h: 320px;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; color:var(--ink);
+
+    *{ box-sizing:border-box; }
+    html, body{
+      margin:0; padding:0;
+      width:100vw; height:100vh;
+      overflow:hidden;
+      font-family: Roboto, system-ui, -apple-system, Segoe UI, Arial;
+      color: var(--ink);
       background:
-        radial-gradient(1200px 700px at 15% -10%, rgba(77,211,255,.18), transparent 60%),
-        radial-gradient(900px 600px at 90% 0%, rgba(255,189,89,.20), transparent 55%),
-        radial-gradient(900px 600px at 80% 110%, rgba(255,119,51,.16), transparent 55%),
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
         linear-gradient(180deg, var(--bg), var(--bg2));
-      font-family:var(--sans);
-      overflow-x:hidden;
-    }
-    header{
-      position:sticky; top:0; z-index:50;
-      backdrop-filter: blur(12px);
-      background: linear-gradient(180deg, rgba(7,9,15,.80), rgba(7,9,15,.55));
-      border-bottom:1px solid var(--line);
-    }
-    .wrap{max-width:1280px;margin:0 auto;padding:14px 16px}
-    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .brand{display:flex;align-items:center;gap:12px}
-    .badge{
-      width:40px;height:40px;border-radius:14px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,189,89,.9), rgba(255,119,51,.7));
-      box-shadow: 0 14px 40px rgba(255,189,89,.18);
-    }
-    h1{font-size:16px;margin:0;letter-spacing:.3px}
-    .sub{font-size:12px;color:var(--muted);margin-top:2px}
-    .actions{display:flex;gap:10px;flex-wrap:wrap}
-    .btn, input, select, textarea{font-family:inherit}
-    .btn{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--ink);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      transition: transform .08s ease, border-color .2s ease, background .2s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
+      -webkit-tap-highlight-color: transparent;
       user-select:none;
     }
-    .btn:hover{border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.05)}
-    .btn:active{transform: translateY(1px)}
-    .btn.primary{
-      border-color: rgba(255,189,89,.35);
-      background: linear-gradient(180deg, rgba(255,189,89,.16), rgba(255,119,51,.10));
-    }
-    .btn.good{
-      border-color: rgba(113,208,131,.35);
-      background: linear-gradient(180deg, rgba(113,208,131,.16), rgba(113,208,131,.08));
-    }
-    .btn.bad{
-      border-color: rgba(255,107,107,.35);
-      background: linear-gradient(180deg, rgba(255,107,107,.16), rgba(255,107,107,.08));
-    }
 
-    main{max-width:1280px;margin:0 auto;padding:16px}
-    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:14px}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-
-    .card{
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      border:1px solid var(--line);
+    /* Desktop fixed canvas frame */
+    #main{
+      width: var(--main-w);
+      height: var(--main-h);
+      display:flex;
+      overflow:hidden;
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .card .hd{
-      padding:14px 14px 10px;
-      border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-    }
-    .card .hd h2{font-size:14px;margin:0;letter-spacing:.25px}
-    .card .bd{padding:14px}
-
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .row + .row{margin-top:10px}
-
-    .field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
-    label{font-size:12px;color:var(--muted)}
-    input[type="text"], input[type="password"], input[type="url"], select, textarea{
-      width:100%;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.25);
-      color: var(--ink);
-      border-radius: 12px;
-      padding:10px 10px;
-      outline:none;
-    }
-    textarea{
-      font-family: var(--mono);
-      min-height: 260px;
-      resize: vertical;
-      line-height:1.35;
-    }
-    input:focus, textarea:focus, select:focus{
-      border-color: rgba(77,211,255,.45);
-      box-shadow: 0 0 0 3px rgba(77,211,255,.12);
-    }
-    .hint{font-size:12px;color:var(--muted);line-height:1.3}
-    .pill{
-      font-size:12px; padding:6px 10px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color:var(--ink);
-      display:inline-flex;gap:8px;align-items:center;
-    }
-    .dot{width:8px;height:8px;border-radius:50%}
-    .dot.good{background:var(--good)}
-    .dot.bad{background:var(--bad)}
-    .dot.neutral{background:var(--accent)}
-
-    .split{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
-    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
-
-    .tablewrap{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      overflow:hidden;
+      border: 1px solid var(--line);
       background: rgba(0,0,0,.22);
-    }
-    table{width:100%;border-collapse:collapse;font-size:12px}
-    thead th{
-      position: sticky; top: 0;
-      background: rgba(7,9,15,.92);
-      border-bottom:1px solid rgba(255,255,255,.10);
-      padding:10px 10px;
-      text-align:left;
-      white-space:nowrap;
-      z-index:2;
-    }
-    tbody td{
-      border-top:1px solid rgba(255,255,255,.06);
-      padding:8px 10px;
-      vertical-align:top;
-      max-width: 380px;
-      word-break: break-word;
-      color: rgba(244,246,255,.92);
-    }
-    tbody tr:hover td{background: rgba(255,255,255,.03)}
-
-    .small{font-size:11px;color:var(--muted)}
-    .kbd{
-      font-family:var(--mono);
-      font-size:11px;
-      padding:3px 7px;border-radius:8px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.25);
-      color: rgba(244,246,255,.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      position: relative;
     }
 
-    .colbox{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      background: rgba(0,0,0,.18);
+    /* Map area */
+    #map-container{
+      width: var(--map-w);
+      height: 100%;
+      position: relative;
+      background: rgba(0,0,0,.35);
+      border-right: 1px solid rgba(255,255,255,.06);
       overflow:hidden;
     }
-    .colbox .colhd{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:10px 12px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-    }
-    .colbox .colbd{max-height: 260px;overflow:auto}
-    .colrow{
-      display:grid;
-      grid-template-columns: 26px 1fr 1fr;
-      gap:10px;
-      padding:8px 12px;
-      border-top:1px solid rgba(255,255,255,.06);
-      align-items:center;
-    }
-    .colrow:first-child{border-top:0}
-    .colrow input[type="text"]{padding:8px 9px;border-radius:10px}
-    .colrow .k{font-family:var(--mono);font-size:11px;color:rgba(244,246,255,.90)}
-    .status{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      font-size:12px;
-      color: rgba(244,246,255,.92);
-      line-height:1.35;
-      white-space:pre-wrap;
-    }
-    .progress{
-      height:10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      overflow:hidden;
-      margin-top:10px;
-    }
-    .bar{
+
+    #map{
+      width:100%;
       height:100%;
-      width:0%;
-      background: linear-gradient(90deg, rgba(77,211,255,.75), rgba(255,189,89,.72), rgba(255,119,51,.72));
-      transition: width .2s ease;
+      position: relative;
+
+      /* IMPORTANT: keep touch + pointer reliable on iOS */
+      touch-action: none;
+
+      /* IMPORTANT: linear mapping across devices */
+      background-size: 100% 100%;
+      background-position:center;
+      background-repeat:no-repeat;
     }
 
-    .checkrow{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      padding:10px 12px;
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      background: rgba(0,0,0,.18);
+    #maskCanvas, #pathCanvas{
+      position:absolute;
+      top:0; left:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
     }
-    .checkrow input{width:auto}
+    #maskCanvas{ z-index: 9; }
+    #pathCanvas{ z-index: 10; }
+
+    /* Sidebar */
+    #sidebar{
+      width: var(--sidebar-w);
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      padding: 12px;
+      background: rgba(14, 18, 28, .70);
+      border-left: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+    }
+
+    /* Team icons */
+    .icon-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      justify-items:center;
+      padding: 8px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      margin-bottom: 10px;
+      user-select:none;
+    }
+
+    .team-icon{
+      width: 50px;
+      height: 55px;
+      border-radius: 12px;
+      cursor:pointer;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      object-fit: cover;
+      touch-action:none;
+    }
+    .team-icon.selected{
+      outline: 2px solid rgba(255,189,89,.55);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 3px rgba(255,189,89,.12);
+    }
+
+    /* Controls */
+    #controls{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      overflow-y:auto;
+      padding-right: 6px;
+    }
+    #controls::-webkit-scrollbar{ width:10px; }
+    #controls::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.10); border-radius: 10px; }
+    #controls::-webkit-scrollbar-track{ background: transparent; }
+
+    #controls button{
+      width: 100%;
+      padding: 10px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: rgba(244,246,255,.90);
+      cursor:pointer;
+      transition: .18s ease;
+    }
+
+    .button-row{ display:flex; gap: 8px; }
+    .button-row button{ flex:1; white-space:nowrap; }
+
+    #realtime-toggle-btn{ border-color: rgba(77,211,255,.28); }
+    #realtime-toggle-btn.active{
+      background: rgba(77,211,255,.18);
+      border-color: rgba(77,211,255,.40);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.10);
+    }
+
+    #draw-circle.active{
+      background: rgba(0,255,255,.18);
+      border-color: rgba(0,255,255,.42);
+      box-shadow: 0 0 0 3px rgba(0,255,255,.10);
+    }
+
+    #note-mode.active{
+      background: rgba(255,189,89,.14);
+      border-color: rgba(255,189,89,.40);
+      box-shadow: 0 0 0 3px rgba(255,189,89,.10);
+    }
+
+    #import-file{ display:none; }
+
+    /* ✅ Custom visible map selector (fix selected text invisible on mobile) */
+    .select-wrap{
+      position:relative;
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: #0e111a;
+      padding: 10px 12px;
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(244,246,255,.92);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .select-wrap::after{
+      content:"▾";
+      color: rgba(244,246,255,.75);
+      font-weight: 900;
+      margin-left: 10px;
+      flex:0 0 auto;
+    }
+    #map-select-label{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      padding-right: 10px;
+    }
+    /* Native select stays functional but invisible */
+    #map-select{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      opacity:0;
+      appearance:none;
+      -webkit-appearance:none;
+      cursor:pointer;
+    }
+
+    /* Unit */
+    .unit{
+      position:absolute;
+      width:30px; height:30px;
+      background: rgba(255,255,255,.10);
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      z-index: 20;
+      touch-action:none;
+    }
+    .unit img{
+      width:100%; height:100%;
+      border-radius:999px;
+      box-shadow: 0 0 12px 2px rgba(255,255,255,0.35);
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(0,0,0,.35);
+      display:block;
+      pointer-events:none;
+    }
+    .unit-label{
+      position:absolute;
+      top:-18px; left:50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(0,0,0,.55);
+      color: rgba(244,246,255,.92);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      white-space:nowrap;
+      pointer-events:none;
+    }
+    .reset-btn{
+      position:absolute;
+      bottom:-20px; left:50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.92);
+      color:#000;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border: none;
+      border-radius: 8px;
+      cursor:pointer;
+      touch-action:none;
+    }
+
+    /* Notes */
+    .note{
+      position:absolute;
+      background: rgba(255,255,255,.92);
+      color: #000;
+      border: 1px solid rgba(0,0,0,.28);
+      border-radius: 10px;
+      max-width: 220px;
+      overflow:hidden;
+      box-shadow: 0 14px 40px rgba(0,0,0,.45);
+      user-select: text;
+      z-index: 30;
+    }
+    .drag-handle{
+      background: rgba(0,0,0,.12);
+      padding: 4px 8px;
+      font-weight: 1000;
+      cursor: grab;
+      user-select:none;
+      touch-action:none;
+    }
+    .note div[contenteditable]{
+      padding: 6px 8px;
+      min-height: 20px;
+      outline:none;
+      font-size: 12px;
+      line-height: 1.2rem;
+    }
+
+    #user-info{
+      font-size: .78rem;
+      text-align:center;
+      margin-top: 10px;
+      color: rgba(170,177,197,.85);
+      user-select:text;
+    }
+
+    /* ✅ PHONE ONLY: stack layout + horizontal team scroller */
+    @media (max-width: 700px){
+      body{ align-items:stretch; justify-content:stretch; }
+      #main{
+        width:100vw;
+        height:100vh;
+        border-radius:0;
+        flex-direction:column;
+      }
+      #map-container{
+        width:100%;
+        height: calc(100vh - var(--phone-panel-h));
+        border-right:none;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+      }
+      #sidebar{
+        width:100%;
+        height: var(--phone-panel-h);
+        border-left:none;
+      }
+
+      /* Force sideways scroll */
+      .icon-grid{
+        display:flex;
+        flex-wrap:nowrap;
+        gap:10px;
+        overflow-x:auto;
+        overflow-y:hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        touch-action: pan-x;
+      }
+      .icon-grid > div{
+        flex:0 0 auto;
+        scroll-snap-align: start;
+      }
+
+      .team-icon{
+        width: 44px;
+        height: 48px;
+      }
+      #controls button{
+        font-size: 13px;
+        padding: 12px 10px;
+      }
+
+      /* iOS blur sometimes kills select painting inside it */
+      #sidebar{
+        backdrop-filter:none;
+        -webkit-backdrop-filter:none;
+      }
+    }
+
+    @media (max-width: 700px) and (orientation: landscape){
+      :root{ --phone-panel-h: 240px; }
+    }
   </style>
 </head>
+
 <body>
-<header>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <div class="badge"></div>
-        <div>
-          <h1>JSON → Table → Supabase</h1>
-          <div class="sub">Paste / upload JSON, flatten & explode arrays, preview table, then insert/upsert into Supabase.</div>
-        </div>
+  <div id="main">
+    <div id="map-container">
+      <div id="map">
+        <canvas id="maskCanvas"></canvas>
+        <canvas id="pathCanvas"></canvas>
       </div>
-      <div class="actions">
-        <button class="btn" id="btnSample">Load sample</button>
-        <button class="btn bad" id="btnClear">Clear</button>
+    </div>
+
+    <div id="sidebar">
+      <div class="icon-grid" id="teamIcons"></div>
+
+      <div id="controls">
+        <!-- ✅ visible label + invisible native select -->
+        <div class="select-wrap" id="map-select-wrap">
+          <span id="map-select-label">Loading…</span>
+          <select id="map-select">
+            <option value="https://i.imgur.com/V6iUHaA.jpeg" data-mode="">Bermuda</option>
+            <option value="https://i.imgur.com/ieY0LHk.jpeg" data-mode="">Purgatory</option>
+            <option value="https://i.imgur.com/48O1Jf8.jpeg" data-mode="">Alpine</option>
+            <option value="https://i.imgur.com/4Yz12P9.jpeg" data-mode="">Kalahari</option>
+            <option value="https://i.imgur.com/x5he05R.jpeg" data-mode="">NeXTerra</option>
+            <option value="https://i.imgur.com/IX1oY9Z.jpeg" data-mode="">Solara</option>
+          </select>
+        </div>
+
+        <button id="realtime-toggle-btn" type="button">Real-time: ON</button>
+
+        <div class="button-row">
+          <button id="draw-circle" type="button">Draw Circle</button>
+          <button id="note-mode" type="button">Add Note</button>
+        </div>
+
+        <button id="undo-btn" type="button">Undo</button>
+        <button id="reset-all-btn" type="button">Reset All</button>
+
+        <div class="button-row">
+          <button id="export-btn" type="button">Export</button>
+          <button type="button" onclick="document.getElementById('import-file').click()">Import</button>
+        </div>
+
+        <input type="file" id="import-file" accept=".json" />
+
+        <div class="button-row">
+          <button type="button" onclick="location.href='home.html'">← Dashboard</button>
+          <button type="button" onclick="location.href='team_settings.html'">Team Settings</button>
+        </div>
+
+        <button id="logoutBtn" type="button">Logout</button>
+
+        <p id="user-info">Checking login...</p>
       </div>
     </div>
   </div>
-</header>
 
-<main>
-  <div class="grid">
-
-    <!-- LEFT -->
-    <section class="card">
-      <div class="hd">
-        <h2>1) JSON Input</h2>
-        <div class="pill" id="pillState"><span class="dot neutral"></span><span id="pillText">Waiting for JSON</span></div>
-      </div>
-      <div class="bd">
-        <div class="row">
-          <div class="field" style="min-width:280px">
-            <label>Paste JSON</label>
-            <textarea id="jsonText" placeholder='Paste JSON here (array or object)…'></textarea>
-            <div class="hint">
-              If your JSON is a big object, set <span class="kbd">Records array path</span> to where the rows live (example: <span class="kbd">data.matches</span>).
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field" style="min-width:260px;flex:1.2">
-            <label>Records array path (optional)</label>
-            <input id="pathText" type="text" placeholder="e.g. data.matches"/>
-            <div class="hint">Leave blank to auto-detect the first array of objects.</div>
-          </div>
-          <div class="field" style="min-width:160px;flex:.6">
-            <label>Max preview rows</label>
-            <select id="maxRows">
-              <option value="50">50</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
-              <option value="2000" selected>2000</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field" style="min-width:220px;flex:.8">
-            <label>Flatten arrays of objects</label>
-            <select id="arrMode">
-              <option value="keep" selected>Keep as JSON (default)</option>
-              <option value="index">Explode to columns with [index] (teams[0].tag)</option>
-            </select>
-            <div class="hint">Index mode is good for small fixed arrays. For stats tables, use “Explode paths”.</div>
-          </div>
-
-          <div class="field" style="min-width:260px;flex:1.2">
-            <label>Explode paths to rows (optional, comma-separated)</label>
-            <input id="explodePaths" type="text" value="player_stats" placeholder="e.g. player_stats, teams.players"/>
-            <div class="hint">Each path should point to an <b>array of objects</b>. We will turn each item into its own row.</div>
-          </div>
-        </div>
-
-        <!-- Default columns -->
-        <div class="row">
-          <div class="field">
-            <label>Default Mode column value</label>
-            <input id="defMode" type="text" placeholder="e.g. BR / CS / scrim"/>
-          </div>
-          <div class="field">
-            <label>Default Tournament column value</label>
-            <input id="defTournament" type="text" placeholder="e.g. FFWS Global Finals 2025"/>
-          </div>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label>Default Stage column value</label>
-            <input id="defStage" type="text" placeholder="e.g. Finals / Group Stage"/>
-          </div>
-          <div class="field">
-            <label>Default Year column value</label>
-            <input id="defYear" type="text" placeholder="e.g. 2026"/>
-          </div>
-        </div>
-
-        <!-- ✅ Week/Day -->
-        <div class="row">
-          <div class="field">
-            <label>Default Week column value</label>
-            <input id="defWeek" type="text" placeholder="e.g. W1 / Week 1 / 1"/>
-          </div>
-          <div class="field">
-            <label>Default Day column value</label>
-            <input id="defDay" type="text" placeholder="e.g. D1 / Day 1 / 1"/>
-          </div>
-        </div>
-
-        <!-- ✅ match_id -->
-        <div class="row">
-          <div class="field">
-            <label>Default match_id column value</label>
-            <input id="defMatchId" type="text" placeholder="e.g. 1725487677733611520"/>
-          </div>
-        </div>
-
-        <div class="hint">
-          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>)
-          and apply the values to every row (you can rename/exclude later).
-          <br/><br/>
-          If the JSON contains a <span class="kbd">match_id</span> at the root or in common paths, we auto-fill the input once you parse.
-        </div>
-
-        <div class="row">
-          <div class="field" style="min-width:260px">
-            <label>Load JSON file</label>
-            <input id="fileInput" type="file" accept=".json,application/json"/>
-          </div>
-          <div class="field" style="min-width:260px">
-            <label>Fetch JSON from URL</label>
-            <div class="row" style="gap:8px;flex-wrap:nowrap">
-              <input id="fetchUrl" type="url" placeholder="https://example.com/data.json"/>
-              <button class="btn" id="btnFetch">Fetch</button>
-            </div>
-            <div class="hint">CORS must allow the browser to fetch. If it fails, fetch server-side (proxy/Edge Function).</div>
-          </div>
-        </div>
-
-        <div class="row" style="justify-content:flex-end">
-          <button class="btn primary" id="btnParse">Parse & Build Table</button>
-        </div>
-
-        <div class="status" id="parseStatus">No data parsed yet.</div>
-      </div>
-    </section>
-
-    <!-- RIGHT -->
-    <section class="card">
-      <div class="hd">
-        <h2>2) Preview & Upload</h2>
-        <div class="pill"><span class="dot neutral"></span><span id="metaText">0 rows • 0 cols</span></div>
-      </div>
-      <div class="bd">
-
-        <div class="split">
-          <div class="colbox">
-            <div class="colhd">
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <div style="font-size:12px">Columns</div>
-                <div class="small">Include/rename before upload</div>
-              </div>
-              <div style="display:flex;gap:8px">
-                <button class="btn" id="btnAll">All</button>
-                <button class="btn" id="btnNone">None</button>
-              </div>
-            </div>
-            <div class="colbd" id="colList">
-              <div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>
-            </div>
-          </div>
-
-          <div>
-            <div class="row">
-              <div class="field">
-                <label>Supabase URL</label>
-                <input id="sbUrl" type="text" placeholder="https://xxxx.supabase.co"/>
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <label>Supabase anon key</label>
-                <input id="sbKey" type="password" placeholder="anon public key"/>
-                <div class="hint">Don’t put a Service Role key in frontend. Use an Edge Function if you need private writes.</div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="field" style="flex:1">
-                <label>Table name</label>
-                <input id="sbTable" type="text" placeholder='e.g. ff_player_stats_raw'/>
-              </div>
-              <div class="field" style="flex:.8">
-                <label>Mode</label>
-                <select id="sbMode">
-                  <option value="insert">Insert</option>
-                  <option value="upsert" selected>Upsert</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="field">
-                <label>On conflict (Upsert only)</label>
-                <input id="sbConflict" type="text" placeholder="e.g. match_id,player_stats.account_id"/>
-                <div class="hint">Comma-separated columns that form a unique key in your table.</div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="field" style="flex:.7">
-                <label>Chunk size</label>
-                <select id="sbChunk">
-                  <option value="100">100</option>
-                  <option value="250">250</option>
-                  <option value="500" selected>500</option>
-                  <option value="1000">1000</option>
-                </select>
-              </div>
-              <div class="field" style="flex:1.3">
-                <label>Upload rows</label>
-                <select id="sbRows">
-                  <option value="all" selected>All parsed rows</option>
-                  <option value="preview">Preview rows only</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="field" style="min-width:220px">
-                <label>Auto timestamps</label>
-                <div class="checkrow">
-                  <input id="autoTimestamps" type="checkbox" checked />
-                  <div>
-                    <div style="font-size:12px">Add <span class="kbd">created_at</span> & <span class="kbd">updated_at</span> on upload</div>
-                    <div class="small">If your table doesn’t have these columns, uncheck this.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row" style="justify-content:flex-end">
-              <button class="btn good" id="btnUpload">Upload to Supabase</button>
-            </div>
-
-            <div class="progress"><div class="bar" id="bar"></div></div>
-            <div class="status" id="upStatus">Ready.</div>
-          </div>
-        </div>
-
-        <div style="height:12px"></div>
-
-        <div class="tablewrap" style="max-height:360px; overflow:auto">
-          <table id="table">
-            <thead><tr id="theadRow"></tr></thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
-
-        <div class="row" style="justify-content:flex-end;margin-top:10px">
-          <button class="btn" id="btnCSV">Download CSV (selected cols)</button>
-          <button class="btn" id="btnJSON">Download JSON rows</button>
-        </div>
-
-      </div>
-    </section>
-
-  </div>
-</main>
-
-<script>
-  // -----------------------------
-  // Helpers
-  // -----------------------------
-  const $ = (id) => document.getElementById(id);
-
-  function setPill(state, text){
-    const pill = $("pillState");
-    const dot = pill.querySelector(".dot");
-    dot.classList.remove("good","bad","neutral");
-    dot.classList.add(state);
-    $("pillText").textContent = text;
-  }
-
-  function safeString(v){
-    if (v === null || v === undefined) return "";
-    if (typeof v === "string") return v;
-    if (typeof v === "number" || typeof v === "boolean") return String(v);
-    return JSON.stringify(v);
-  }
-
-  function isPlainObject(x){
-    return x && typeof x === "object" && !Array.isArray(x);
-  }
-
-  function parseYearMaybe(v){
-    const s = (v ?? "").toString().trim();
-    if(!s) return null;
-    return /^[0-9]{4}$/.test(s) ? parseInt(s, 10) : s;
-  }
-
-  // Dot path with optional [idx]
-  function getByPath(root, path){
-    if(!path) return root;
-    const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-    let cur = root;
-    for(const p of parts){
-      if(cur == null) return undefined;
-      cur = cur[p];
-    }
-    return cur;
-  }
-
-  function setByPath(root, path, value){
-    const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-    if(!parts.length) return;
-    let cur = root;
-    for(let i=0;i<parts.length-1;i++){
-      const p = parts[i];
-      if(cur[p] == null || typeof cur[p] !== "object") cur[p] = {};
-      cur = cur[p];
-    }
-    cur[parts[parts.length-1]] = value;
-  }
-
-  function deleteByPath(root, path){
-    const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-    if(!parts.length) return;
-    let cur = root;
-    for(let i=0;i<parts.length-1;i++){
-      const p = parts[i];
-      if(cur == null || typeof cur !== "object") return;
-      cur = cur[p];
-    }
-    if(cur && typeof cur === "object"){
-      delete cur[parts[parts.length-1]];
-    }
-  }
-
-  function deepCloneJSON(x){
-    return JSON.parse(JSON.stringify(x));
-  }
-
-  function findFirstArrayOfObjects(root){
-    const q = [{v: root, path: ""}];
-    const seen = new Set();
-    while(q.length){
-      const {v, path} = q.shift();
-      if(!v || typeof v !== "object") continue;
-      if(seen.has(v)) continue;
-      seen.add(v);
-
-      if(Array.isArray(v) && v.length && isPlainObject(v[0])){
-        return {arr: v, path: path || "(root)"};
-      }
-      if(Array.isArray(v)){
-        for(let i=0;i<Math.min(v.length, 6);i++){
-          q.push({v: v[i], path: path ? `${path}[${i}]` : `[${i}]`});
-        }
-      }else{
-        for(const k of Object.keys(v)){
-          q.push({v: v[k], path: path ? `${path}.${k}` : k});
-        }
-      }
-    }
-    return {arr: null, path: ""};
-  }
-
-  // Flatten nested objects into dot keys.
-  function flattenObject(obj, prefix="", out={}, arrMode="keep"){
-    for(const [k, v] of Object.entries(obj || {})){
-      const key = prefix ? `${prefix}.${k}` : k;
-
-      if (v === null || v === undefined){
-        out[key] = null;
-      } else if (Array.isArray(v)){
-        if (v.length === 0){
-          out[key] = [];
-        } else if (v.every(x => ["string","number","boolean"].includes(typeof x) || x==null)){
-          out[key] = v.map(x => x==null ? "" : String(x)).join(" | ");
-        } else if (v.every(isPlainObject) && arrMode === "index"){
-          v.forEach((item, idx)=>{
-            flattenObject(item, `${key}[${idx}]`, out, arrMode);
-          });
-        } else {
-          out[key] = v; // keep complex arrays as JSON
-        }
-      } else if (isPlainObject(v)){
-        flattenObject(v, key, out, arrMode);
-      } else {
-        out[key] = v;
-      }
-    }
-    return out;
-  }
-
-  // Explode paths sequentially into more objects (rows) BEFORE flattening.
-  function explodeObjects(records, explodePaths){
-    let current = records;
-    for(const rawP of explodePaths){
-      const p = rawP.trim();
-      if(!p) continue;
-
-      const next = [];
-      for(const rec of current){
-        if(!isPlainObject(rec)){
-          next.push(rec);
-          continue;
-        }
-        const arr = getByPath(rec, p);
-        if(!Array.isArray(arr) || !arr.length){
-          next.push(rec);
-          continue;
-        }
-
-        const canExplode = arr.every(isPlainObject);
-        if(!canExplode){
-          next.push(rec);
-          continue;
-        }
-
-        for(const item of arr){
-          const cloned = deepCloneJSON(rec);
-          deleteByPath(cloned, p);
-          setByPath(cloned, p, item);
-          next.push(cloned);
-        }
-      }
-      current = next;
-    }
-    return current;
-  }
-
-  function toCSV(rows, cols){
-    const esc = (s) => {
-      const str = s == null ? "" : String(s);
-      if(/[",\n\r]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
-      return str;
-    };
-    const header = cols.map(esc).join(",");
-    const lines = rows.map(r => cols.map(c => esc(r[c])).join(","));
-    return [header, ...lines].join("\n");
-  }
-
-  function downloadText(filename, content, mime="text/plain"){
-    const blob = new Blob([content], {type:mime});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 800);
-  }
-
-  // ✅ Try to infer match_id from common locations in the JSON
-  function inferMatchIdFromRaw(raw){
-    if(!raw) return null;
-
-    if(raw.match_id) return String(raw.match_id);
-    if(raw.matchId)  return String(raw.matchId);
-
-    const v1 = getByPath(raw, "data.match_id");
-    if(v1) return String(v1);
-
-    const v2 = getByPath(raw, "data.matchId");
-    if(v2) return String(v2);
-
-    // Sometimes: data.matches[0].match_id
-    const v3 = getByPath(raw, "data.matches[0].match_id");
-    if(v3) return String(v3);
-
-    const v4 = getByPath(raw, "data.matches[0].matchId");
-    if(v4) return String(v4);
-
-    return null;
-  }
-
-  // -----------------------------
-  // App state
-  // -----------------------------
-  let RAW = null;
-  let ROWS = [];
-  let COLS = [];
-  let COLCFG = {};  // colKey -> { include: bool, name: string }
-
-  function updateMeta(){
-    $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`;
-  }
-
-  // ✅ FIXED: append each column row to the column list (you were missing box.appendChild(row))
-  function renderColList(){
-    const box = $("colList");
-    box.innerHTML = "";
-
-    if(!COLS.length){
-      box.innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
-      return;
-    }
-
-    for(const c of COLS){
-      const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name:c });
-
-      const row = document.createElement("div");
-      row.className = "colrow";
-      row.innerHTML = `
-        <input type="checkbox" ${cfg.include ? "checked":""} aria-label="include"/>
-        <div class="k" title="${c}">${c}</div>
-        <input type="text" value="${cfg.name}" aria-label="rename"/>
-      `;
-
-      const cb = row.querySelector('input[type="checkbox"]');
-      const inp = row.querySelector('input[type="text"]');
-
-      cb.addEventListener("change", ()=>{
-        COLCFG[c].include = cb.checked;
-        renderTable();
-      });
-
-      inp.addEventListener("input", ()=>{
-        COLCFG[c].name = inp.value.trim() || c;
-        renderTable();
-      });
-
-      box.appendChild(row);
-    }
-  }
-
-  function getSelectedCols(){
-    const keys = [];
-    const names = [];
-    for(const c of COLS){
-      const cfg = COLCFG[c];
-      if(cfg && cfg.include){
-        keys.push(c);
-        names.push(cfg.name || c);
-      }
-    }
-    return {keys, names};
-  }
-
-  function renderTable(){
-    const {keys, names} = getSelectedCols();
-    const max = parseInt($("maxRows").value,10);
-    const previewRows = ROWS.slice(0, max);
-
-    const thRow = $("theadRow");
-    thRow.innerHTML = "";
-    if(!keys.length){
-      const th = document.createElement("th");
-      th.textContent = "(No columns selected)";
-      th.style.color = "rgba(244,246,255,.65)";
-      thRow.appendChild(th);
-      $("tbody").innerHTML = "";
-      return;
-    }
-
-    for(const n of names){
-      const th = document.createElement("th");
-      th.textContent = n;
-      thRow.appendChild(th);
-    }
-
-    const tb = $("tbody");
-    tb.innerHTML = "";
-    for(const r of previewRows){
-      const tr = document.createElement("tr");
-      for(const k of keys){
-        const td = document.createElement("td");
-        td.textContent = safeString(r[k]);
-        tr.appendChild(td);
-      }
-      tb.appendChild(tr);
-    }
-  }
-
-  function setStatus(el, msg){
-    $(el).textContent = msg;
-  }
-
-  function injectDefaultsIntoRecords(records){
-    const modeVal = ($("defMode").value ?? "").trim();
-    const tVal = ($("defTournament").value ?? "").trim();
-    const sVal = ($("defStage").value ?? "").trim();
-    const yVal = parseYearMaybe($("defYear").value);
-
-    const wVal = ($("defWeek").value ?? "").trim();
-    const dVal = ($("defDay").value ?? "").trim();
-
-    const midVal = ($("defMatchId").value ?? "").trim();
-
-    return records.map(r=>{
-      if(!isPlainObject(r)) return r;
-
-      if(!("Mode" in r)) r.Mode = modeVal || null;
-      if(!("Tournament" in r)) r.Tournament = tVal || null;
-      if(!("Stage" in r)) r.Stage = sVal || null;
-      if(!("Year" in r)) r.Year = yVal;
-
-      if(!("Week" in r)) r.Week = wVal || null;
-      if(!("Day" in r)) r.Day = dVal || null;
-
-      // ✅ guarantee match_id exists as a column (especially after explode)
-      if(!("match_id" in r)) r.match_id = midVal || null;
-
-      return r;
-    });
-  }
-
-  function buildFromJSON(){
-    const txt = $("jsonText").value.trim();
-    if(!txt){
-      setPill("bad", "No JSON");
-      setStatus("parseStatus", "Paste JSON first.");
-      return;
-    }
-
-    try{
-      RAW = JSON.parse(txt);
-    }catch(e){
-      setPill("bad", "Invalid JSON");
-      setStatus("parseStatus", "JSON parse error:\n" + e.message);
-      return;
-    }
-
-    // ✅ auto-fill match_id input if found (only if input is empty)
-    const inferred = inferMatchIdFromRaw(RAW);
-    if(inferred && !$("defMatchId").value.trim()){
-      $("defMatchId").value = inferred;
-    }
-
-    const arrMode = $("arrMode").value || "keep";
-    const explodePaths = ($("explodePaths").value || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    const path = $("pathText").value.trim();
-    let records = null;
-    let usedPath = "";
-
-    if(path){
-      const v = getByPath(RAW, path);
-      if(!Array.isArray(v)){
-        setPill("bad", "Path not array");
-        setStatus("parseStatus", `Path "${path}" did not resolve to an array.\nTip: use dot paths like data.matches`);
-        return;
-      }
-      records = v;
-      usedPath = path;
-    }else{
-      if(Array.isArray(RAW)) { records = RAW; usedPath = "(root array)"; }
-      else{
-        const found = findFirstArrayOfObjects(RAW);
-        records = found.arr;
-        usedPath = found.path || "(none)";
-      }
-    }
-
-    if(!records || !records.length){
-      setPill("bad", "No records");
-      setStatus("parseStatus", `Could not find rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`);
-      return;
-    }
-
-    // apply defaults (Mode/Tournament/Stage/Year/Week/Day/match_id)
-    let shaped = injectDefaultsIntoRecords(records.filter(r => r != null));
-
-    // explode arrays to rows (pre-flatten)
-    if(explodePaths.length){
-      try{
-        shaped = explodeObjects(shaped, explodePaths);
-      }catch(err){
-        setPill("bad", "Explode failed");
-        setStatus("parseStatus", `Explode error:\n${err.message}`);
-        return;
-      }
-    }
-
-    // flatten
-    const flat = [];
-    for(const rec of shaped){
-      if(isPlainObject(rec)){
-        flat.push(flattenObject(rec, "", {}, arrMode));
-      }else{
-        flat.push({value: rec});
-      }
-    }
-
-    // Collect columns
-    const colSet = new Set();
-    for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
-
-    // ✅ ensure default columns always exist
-    ["match_id","Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
-
-    const cols = Array.from(colSet);
-
-    // Stable-ish ordering
-    const common = [
-      "match_id","Mode","Tournament","Stage","Year","Week","Day",
-      "id","matchId","game_id","timestamp","created_at","updated_at",
-      "mode","map","team","team_id","player","player_id","name","tag"
-    ];
-    cols.sort((a,b)=>{
-      const ia = common.indexOf(a), ib = common.indexOf(b);
-      if(ia !== -1 || ib !== -1){
-        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      }
-      return a.localeCompare(b);
-    });
-
-    ROWS = flat;
-    COLS = cols;
-    COLCFG = {};
-    for(const c of COLS){
-      COLCFG[c] = {include:true, name:c};
-    }
-
-    setPill("good", "Parsed");
-    setStatus("parseStatus",
-      `Parsed OK.
-Raw rows: ${records.length}
-After explode: ${shaped.length}
-Columns: ${COLS.length}
-Records path: ${usedPath}
-Explode paths: ${explodePaths.length ? explodePaths.join(", ") : "(none)"}
-Array mode: ${arrMode}
-Preview shows up to ${$("maxRows").value} rows.`
+  <script>
+    /***********************
+     * Supabase
+     ***********************/
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
     );
 
-    updateMeta();
-    renderColList();
-    renderTable();
-  }
+    async function ensureSession(){
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) { window.location.href = "index.html"; return null; }
+      return session;
+    }
+    async function logout(){
+      await client.auth.signOut();
+      window.location.href = "index.html";
+    }
+    document.getElementById("logoutBtn").addEventListener("click", logout);
 
-  // -----------------------------
-  // Supabase upload
-  // -----------------------------
-  function setProgress(pct){
-    $("bar").style.width = `${Math.max(0, Math.min(100, pct))}%`;
-  }
+    /***********************
+     * Map selector label (fix selected text invisible)
+     ***********************/
+    const mapSelect = document.getElementById("map-select");
+    const mapSelectLabel = document.getElementById("map-select-label");
 
-  function buildUploadRows(limitMode){
-    const {keys, names} = getSelectedCols();
-    const sourceRows = (limitMode === "preview")
-      ? ROWS.slice(0, parseInt($("maxRows").value,10))
-      : ROWS;
+    function updateMapLabel(){
+      const opt = mapSelect.options[mapSelect.selectedIndex];
+      mapSelectLabel.textContent = opt ? opt.textContent : "Select map";
+    }
 
-    const addTimestamps = $("autoTimestamps").checked;
-    const nowIso = new Date().toISOString();
+    /***********************
+     * LOGICAL COORDINATES (perfect sync across devices)
+     ***********************/
+    const LOGICAL_W = 792;
+    const LOGICAL_H = 800;
 
-    return sourceRows.map(r=>{
-      const o = {};
-      for(let i=0;i<keys.length;i++){
-        const srcKey = keys[i];
-        const dbKey = names[i];
-        o[dbKey] = r[srcKey];
+    const map = document.getElementById("map");
+
+    const pathCanvas = document.getElementById("pathCanvas");
+    const ctx = pathCanvas.getContext("2d");
+
+    const maskCanvas = document.getElementById("maskCanvas");
+    const ctxMask = maskCanvas.getContext("2d");
+
+    function setMapBg(){ map.style.backgroundImage = `url('${mapSelect.value}')`; }
+
+    function clientToLogical(e){
+      const rect = map.getBoundingClientRect();
+      return {
+        x: ((e.clientX - rect.left) / rect.width) * LOGICAL_W,
+        y: ((e.clientY - rect.top) / rect.height) * LOGICAL_H
+      };
+    }
+
+    function logicalToPx(p){
+      return {
+        x: (p.x / LOGICAL_W) * map.clientWidth,
+        y: (p.y / LOGICAL_H) * map.clientHeight
+      };
+    }
+
+    function scaleFactors(){
+      return {
+        sx: map.clientWidth / LOGICAL_W,
+        sy: map.clientHeight / LOGICAL_H,
+        s: Math.min(map.clientWidth / LOGICAL_W, map.clientHeight / LOGICAL_H)
+      };
+    }
+
+    /***********************
+     * State
+     ***********************/
+    const teamPaths = {};     // logical points
+    const teamIcons = {};     // DOM
+    const circles = [];       // logical
+    const notesData = [];     // logical
+
+    const historyStack = [];
+    let selectedIcon = null;
+    let activeTeam = null;
+
+    let drawCircleMode = false;
+    let noteMode = false;
+
+    const DRAG_THRESHOLD_PX = 8;
+
+    const teamColors = [
+      "#FF0000", "#00FF00", "#00FFFF", "#FFFF00", "#FF00FF", "#FFA500",
+      "#00BFFF", "#FF69B4", "#7FFF00", "#FF4500", "#00FF7F", "#1E90FF",
+      "#FFD700", "#ADFF2F", "#FF1493", "#40E0D0", "#FF6347", "#87CEEB"
+    ];
+
+    function teamIndex(id){
+      const n = parseInt(String(id).replace("team",""), 10);
+      return Number.isFinite(n) ? (n-1) : 0;
+    }
+
+    /***********************
+     * Resize canvases
+     ***********************/
+    function repositionOverlays(){
+      for (const id in teamIcons){
+        const el = teamIcons[id];
+        const first = teamPaths[id]?.[0];
+        if (!el || !first) continue;
+        const p = logicalToPx(first);
+        el.style.left = `${p.x - 15}px`;
+        el.style.top  = `${p.y - 15}px`;
+      }
+      document.querySelectorAll(".note").forEach(noteEl => {
+        const id = noteEl.dataset.noteId;
+        const n = notesData.find(x => x.id === id);
+        if (!n) return;
+        const p = logicalToPx(n);
+        noteEl.style.left = `${p.x}px`;
+        noteEl.style.top  = `${p.y}px`;
+      });
+    }
+
+    function resizeCanvases(){
+      const dpr = window.devicePixelRatio || 1;
+
+      pathCanvas.width = Math.round(map.clientWidth * dpr);
+      pathCanvas.height = Math.round(map.clientHeight * dpr);
+      pathCanvas.style.width = map.clientWidth + "px";
+      pathCanvas.style.height = map.clientHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      maskCanvas.width = Math.round(map.clientWidth * dpr);
+      maskCanvas.height = Math.round(map.clientHeight * dpr);
+      maskCanvas.style.width = map.clientWidth + "px";
+      maskCanvas.style.height = map.clientHeight + "px";
+      ctxMask.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      repositionOverlays();
+      drawAll();
+
+      const opt = mapSelect.options[mapSelect.selectedIndex];
+      if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
+      else maskCanvas.style.display = "none";
+    }
+    window.addEventListener("resize", resizeCanvases);
+
+    /***********************
+     * Draw
+     ***********************/
+    function drawArrow(fromL, toL, color){
+      const { sx, sy } = scaleFactors();
+      const from = { x: fromL.x * sx, y: fromL.y * sy };
+      const to   = { x: toL.x * sx,   y: toL.y * sy };
+
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const angle = Math.atan2(dy, dx);
+
+      ctx.beginPath();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 6;
+
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+
+      ctx.lineTo(to.x - 10 * Math.cos(angle - Math.PI / 6), to.y - 10 * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(to.x, to.y);
+      ctx.lineTo(to.x - 10 * Math.cos(angle + Math.PI / 6), to.y - 10 * Math.sin(angle + Math.PI / 6));
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    function drawAll(){
+      ctx.clearRect(0, 0, map.clientWidth, map.clientHeight);
+
+      const { sx, sy, s } = scaleFactors();
+
+      for (const c of circles){
+        const cx = c.x * sx, cy = c.y * sy;
+        const r  = c.r * s;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+        ctx.strokeStyle = c.color || "#00ffff";
+        ctx.setLineDash([3,1]);
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(cx + r, cy, 4, 0, 2*Math.PI);
+        ctx.fillStyle = c.color || "#00ffff";
+        ctx.fill();
       }
 
-      if(addTimestamps){
-        if(!("created_at" in o) || o.created_at == null || o.created_at === "") o.created_at = nowIso;
-        o.updated_at = nowIso;
+      for (const id in teamPaths){
+        const path = teamPaths[id];
+        const color = teamColors[teamIndex(id)] || "#fff";
+        for (let i=0;i<path.length-1;i++){
+          drawArrow(path[i], path[i+1], color);
+        }
       }
-      return o;
-    });
-  }
-
-  async function uploadToSupabase(){
-    if(!ROWS.length){
-      setStatus("upStatus", "No rows to upload. Parse JSON first.");
-      setProgress(0);
-      return;
     }
 
-    const url = $("sbUrl").value.trim();
-    const key = $("sbKey").value.trim();
-    const table = $("sbTable").value.trim();
-    const mode = $("sbMode").value;
-    const onConflict = $("sbConflict").value.trim();
-    const chunkSize = parseInt($("sbChunk").value,10);
-    const rowMode = $("sbRows").value;
+    function drawOverlayMask(circlesToReveal){
+      maskCanvas.style.display = "block";
+      ctxMask.clearRect(0,0,map.clientWidth,map.clientHeight);
 
-    if(!url || !key || !table){
-      setStatus("upStatus", "Missing Supabase URL / anon key / table name.");
-      setProgress(0);
-      return;
-    }
-    if(mode === "upsert" && !onConflict){
-      setStatus("upStatus", "Upsert requires an On conflict column(s).");
-      setProgress(0);
-      return;
+      ctxMask.fillStyle = "rgba(0,0,0,0.75)";
+      ctxMask.fillRect(0,0,map.clientWidth,map.clientHeight);
+
+      const { sx, sy, s } = scaleFactors();
+      ctxMask.globalCompositeOperation = "destination-out";
+      circlesToReveal.forEach(c => {
+        ctxMask.beginPath();
+        ctxMask.arc(c.x*sx, c.y*sy, c.r*s, 0, 2*Math.PI);
+        ctxMask.fill();
+      });
+      ctxMask.globalCompositeOperation = "source-over";
     }
 
-    setStatus("upStatus", "Preparing rows…");
-    setProgress(0);
-
-    const sb = supabase.createClient(url, key);
-
-    const rows = buildUploadRows(rowMode);
-    const total = rows.length;
-    if(!total){
-      setStatus("upStatus", "Nothing to upload after column selection.");
-      setProgress(0);
-      return;
+    /***********************
+     * Circles hit tests (logical)
+     ***********************/
+    function findCircleResize(ptL){
+      for (let i = circles.length - 1; i >= 0; i--){
+        const c = circles[i];
+        const dist = Math.hypot(c.x - ptL.x, c.y - ptL.y);
+        if (Math.abs(dist - c.r) < 12) return c;
+      }
+      return null;
+    }
+    function findCircleDrag(ptL){
+      for (let i = circles.length - 1; i >= 0; i--){
+        const c = circles[i];
+        const dist = Math.hypot(c.x - ptL.x, c.y - ptL.y);
+        if (dist < c.r) return c;
+      }
+      return null;
     }
 
-    const chunks = [];
-    for(let i=0;i<rows.length;i+=chunkSize){
-      chunks.push(rows.slice(i, i+chunkSize));
+    /***********************
+     * Notes
+     ***********************/
+    function createNote(logicalX, logicalY, text, forcedId, pushHistory=true){
+      const id = forcedId || ("n_" + Math.random().toString(16).slice(2));
+
+      const noteDiv = document.createElement("div");
+      noteDiv.className = "note";
+      noteDiv.dataset.noteId = id;
+
+      const handle = document.createElement("div");
+      handle.className = "drag-handle";
+      handle.textContent = "☰";
+
+      const content = document.createElement("div");
+      content.contentEditable = true;
+      content.textContent = text || "";
+
+      noteDiv.appendChild(handle);
+      noteDiv.appendChild(content);
+      map.appendChild(noteDiv);
+
+      if (!notesData.find(n => n.id === id)){
+        notesData.push({ id, x: logicalX, y: logicalY, text: text || "" });
+        if (pushHistory) historyStack.push({ type:"note", id });
+      }
+
+      const p = logicalToPx({ x: logicalX, y: logicalY });
+      noteDiv.style.left = `${p.x}px`;
+      noteDiv.style.top  = `${p.y}px`;
+
+      content.addEventListener("input", () => {
+        const nd = notesData.find(n => n.id === id);
+        if (nd) nd.text = content.textContent || "";
+        saveMapState();
+      });
+
+      let dragging = false;
+      let offPxX = 0, offPxY = 0;
+
+      handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handle.setPointerCapture(e.pointerId);
+        dragging = true;
+
+        const rect = map.getBoundingClientRect();
+        const curLeft = parseFloat(noteDiv.style.left || "0");
+        const curTop  = parseFloat(noteDiv.style.top  || "0");
+
+        offPxX = (e.clientX - rect.left) - curLeft;
+        offPxY = (e.clientY - rect.top)  - curTop;
+      });
+
+      handle.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = map.getBoundingClientRect();
+        const newPxX = (e.clientX - rect.left) - offPxX;
+        const newPxY = (e.clientY - rect.top)  - offPxY;
+
+        noteDiv.style.left = `${newPxX}px`;
+        noteDiv.style.top  = `${newPxY}px`;
+
+        const lx = (newPxX / map.clientWidth) * LOGICAL_W;
+        const ly = (newPxY / map.clientHeight) * LOGICAL_H;
+
+        const nd = notesData.find(n => n.id === id);
+        if (nd){ nd.x = lx; nd.y = ly; }
+
+        drawAll();
+      });
+
+      handle.addEventListener("pointerup", (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+        dragging = false;
+        saveMapState();
+      });
+
+      handle.addEventListener("pointercancel", () => dragging = false);
+
+      return noteDiv;
     }
 
-    let ok = 0;
-    let failed = 0;
+    /***********************
+     * Units
+     ***********************/
+    function createUnit(iconEl, teamId, logicalX, logicalY, pushHistory=true){
+      const div = document.createElement("div");
+      div.className = "unit";
 
-    for(let i=0;i<chunks.length;i++){
-      const batch = chunks[i];
-      setStatus("upStatus", `Uploading ${i+1}/${chunks.length}…
-Batch size: ${batch.length}
-Uploaded: ${ok}/${total} • Failed: ${failed}`);
-      setProgress(Math.round((i / chunks.length) * 100));
+      const img = iconEl.cloneNode(true);
+      img.classList.remove("selected");
+      img.style.width = img.style.height = "30px";
 
-      try{
-        let res;
-        if(mode === "insert"){
-          res = await sb.from(table).insert(batch);
-        }else{
-          res = await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
-        }
+      const label = document.createElement("div");
+      label.className = "unit-label";
+      label.textContent = iconEl.dataset.teamTag || teamId;
 
-        if(res.error){
-          failed += batch.length;
-          setStatus("upStatus",
-`Batch ${i+1} error:
-${res.error.message}
+      const reset = document.createElement("button");
+      reset.className = "reset-btn";
+      reset.textContent = "Reset";
+      reset.addEventListener("pointerdown", (e) => e.stopPropagation());
+      reset.addEventListener("click", (e) => {
+        e.stopPropagation();
+        div.remove();
+        delete teamPaths[teamId];
+        delete teamIcons[teamId];
+        if (activeTeam === teamId) activeTeam = null;
+        drawAll();
+        saveMapState();
+      });
 
-Tips:
-- Check RLS policy allows insert/upsert
-- Ensure column types match (jsonb vs text)
-- Ensure onConflict columns exist + have UNIQUE constraint/index
-- If your table doesn’t have created_at/updated_at, uncheck Auto timestamps
+      div.append(img, label, reset);
+      map.appendChild(div);
 
-Uploaded: ${ok}/${total} • Failed: ${failed}`);
-          setProgress(Math.round(((i+1)/chunks.length)*100));
-          return;
-        }else{
-          ok += batch.length;
-        }
-      }catch(e){
-        failed += batch.length;
-        setStatus("upStatus", `Network/runtime error on batch ${i+1}:\n${e.message}`);
-        setProgress(Math.round(((i+1)/chunks.length)*100));
+      div.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        activeTeam = teamId;
+      });
+
+      const p = logicalToPx({ x: logicalX, y: logicalY });
+      div.style.left = `${p.x - 15}px`;
+      div.style.top  = `${p.y - 15}px`;
+
+      if (pushHistory) historyStack.push({ type:"line", team: teamId });
+
+      return div;
+    }
+
+    /***********************
+     * Team icons (Supabase)
+     ***********************/
+    async function loadTeamIcons(){
+      const grid = document.getElementById("teamIcons");
+      grid.innerHTML = "";
+
+      const { data, error } = await client
+        .from("teams_pathplanner")
+        .select("id, team_name, team_tag, logo_url")
+        .order("id", { ascending: true });
+
+      if (error){
+        console.error("❌ Failed to load teams:", error);
+        const msg = document.createElement("p");
+        msg.textContent = "Failed to load teams.";
+        msg.style.fontSize = "0.8rem";
+        msg.style.color = "#aaa";
+        msg.style.gridColumn = "1 / -1";
+        grid.appendChild(msg);
         return;
       }
+
+      if (!data || !data.length){
+        const msg = document.createElement("p");
+        msg.textContent = "No teams configured. Go to Team Settings to add some.";
+        msg.style.fontSize = "0.8rem";
+        msg.style.color = "#aaa";
+        msg.style.gridColumn = "1 / -1";
+        grid.appendChild(msg);
+        return;
+      }
+
+      data.slice(0, teamColors.length).forEach((team, i) => {
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = "center";
+
+        const img = document.createElement("img");
+        img.src = team.logo_url;
+        img.alt = team.team_name || team.team_tag || `Team ${i+1}`;
+        img.className = "team-icon";
+
+        const teamId = "team" + (i+1);
+        img.dataset.id = teamId;
+        img.dataset.teamTag = team.team_tag || "";
+        img.dataset.teamName = team.team_name || "";
+        img.dataset.teamDbId = team.id;
+
+        // ✅ pointerdown works better on iOS than click
+        img.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
+          img.classList.add("selected");
+          selectedIcon = img;
+        });
+
+        const colorBar = document.createElement("div");
+        colorBar.style.width = "60%";
+        colorBar.style.height = "6px";
+        colorBar.style.marginTop = "6px";
+        colorBar.style.borderRadius = "999px";
+        colorBar.style.backgroundColor = teamColors[i] || "#fff";
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(colorBar);
+        grid.appendChild(wrapper);
+      });
     }
 
-    setProgress(100);
-    setStatus("upStatus", `Done ✅
-Uploaded: ${ok}/${total}
-Failed: ${failed}
-Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
-  }
+    /***********************
+     * Mode toggles
+     ***********************/
+    const drawCircleBtn = document.getElementById("draw-circle");
+    const noteBtn = document.getElementById("note-mode");
 
-  // -----------------------------
-  // Events
-  // -----------------------------
-  $("btnParse").addEventListener("click", buildFromJSON);
-
-  $("btnClear").addEventListener("click", ()=>{
-    $("jsonText").value = "";
-    $("pathText").value = "";
-    $("explodePaths").value = "player_stats";
-    $("fetchUrl").value = "";
-    $("arrMode").value = "keep";
-    $("maxRows").value = "2000";
-
-    $("defMode").value = "";
-    $("defTournament").value = "";
-    $("defStage").value = "";
-    $("defYear").value = "";
-    $("defWeek").value = "";
-    $("defDay").value = "";
-    $("defMatchId").value = "";
-
-    $("autoTimestamps").checked = true;
-
-    RAW = null; ROWS = []; COLS = []; COLCFG = {};
-    $("colList").innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
-    $("theadRow").innerHTML = "";
-    $("tbody").innerHTML = "";
-    updateMeta();
-    setPill("neutral","Waiting for JSON");
-    setStatus("parseStatus","No data parsed yet.");
-    setStatus("upStatus","Ready.");
-    setProgress(0);
-  });
-
-  $("btnSample").addEventListener("click", ()=>{
-    const sample = {
-      data: {
-        matches: [
-          {
-            match_id: "1725487677733611520",
-            map: "Bermuda",
-            player_stats: [
-              { player_id: "p1", name: "A1", team: "ABC", kills: 3, dmg: 812 },
-              { player_id: "p2", name: "A2", team: "ABC", kills: 2, dmg: 540 },
-              { player_id: "p3", name: "X1", team: "XYZ", kills: 1, dmg: 220 }
-            ]
-          }
-        ]
-      }
+    drawCircleBtn.onclick = () => {
+      drawCircleMode = !drawCircleMode;
+      drawCircleBtn.textContent = drawCircleMode ? "Circle Mode: ON" : "Draw Circle";
+      drawCircleBtn.classList.toggle("active", drawCircleMode);
     };
-    $("jsonText").value = JSON.stringify(sample, null, 2);
-    $("pathText").value = "data.matches";
-    $("explodePaths").value = "player_stats";
-    $("arrMode").value = "keep";
-    $("maxRows").value = "2000";
 
-    $("defMode").value = "BR";
-    $("defTournament").value = "Sample Cup";
-    $("defStage").value = "Finals";
-    $("defYear").value = "2026";
-    $("defWeek").value = "W1";
-    $("defDay").value = "D1";
-    $("defMatchId").value = "1725487677733611520";
+    noteBtn.onclick = () => {
+      noteMode = !noteMode;
+      noteBtn.textContent = noteMode ? "Note Mode: ON" : "Add Note";
+      noteBtn.classList.toggle("active", noteMode);
+    };
 
-    setPill("neutral","Sample loaded");
-    setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
-  });
+    /***********************
+     * Map pointer interactions
+     ***********************/
+    let down = false;
+    let moved = false;
+    let downClient = { x:0, y:0 };
 
-  $("fileInput").addEventListener("change", async (e)=>{
-    const f = e.target.files?.[0];
-    if(!f) return;
-    try{
-      const txt = await f.text();
-      $("jsonText").value = txt;
-      setPill("neutral", "File loaded");
-      setStatus("parseStatus", `Loaded file: ${f.name}\nClick Parse & Build Table.`);
-    }catch(err){
-      setPill("bad","File read failed");
-      setStatus("parseStatus", "Could not read file:\n" + err.message);
-    }
-  });
+    let candResize = null, candDrag = null;
+    let resizingCircle = null, draggingCircle = null;
 
-  $("btnFetch").addEventListener("click", async ()=>{
-    const url = $("fetchUrl").value.trim();
-    if(!url){
-      setStatus("parseStatus","Enter a URL first.");
-      return;
-    }
-    setPill("neutral","Fetching…");
-    setStatus("parseStatus","Fetching JSON from URL…");
-    try{
-      const res = await fetch(url, {cache:"no-store"});
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const txt = await res.text();
-      $("jsonText").value = txt;
-      setPill("neutral","Fetched");
-      setStatus("parseStatus","Fetched OK. Click Parse & Build Table.");
-    }catch(e){
-      setPill("bad","Fetch failed");
-      setStatus("parseStatus",
-`Fetch failed:
-${e.message}
+    map.addEventListener("pointerdown", (e) => {
+      if (e.target?.closest && (e.target.closest(".note") || e.target.closest(".unit"))) return;
 
-This is often CORS.
-If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
-      );
-    }
-  });
+      e.preventDefault();
+      map.setPointerCapture(e.pointerId);
 
-  $("btnAll").addEventListener("click", ()=>{
-    for(const c of COLS){ COLCFG[c].include = true; }
-    renderColList(); renderTable();
-  });
+      down = true;
+      moved = false;
 
-  $("btnNone").addEventListener("click", ()=>{
-    for(const c of COLS){ COLCFG[c].include = false; }
-    renderColList(); renderTable();
-  });
+      downClient = { x: e.clientX, y: e.clientY };
+      const downLogical = clientToLogical(e);
 
-  $("maxRows").addEventListener("change", ()=>{
-    if(ROWS.length) renderTable();
-  });
+      candResize = findCircleResize(downLogical);
+      candDrag = candResize ? null : findCircleDrag(downLogical);
 
-  $("btnUpload").addEventListener("click", uploadToSupabase);
-
-  $("btnCSV").addEventListener("click", ()=>{
-    if(!ROWS.length){ alert("Parse JSON first."); return; }
-    const {keys, names} = getSelectedCols();
-    if(!keys.length){ alert("No columns selected."); return; }
-    const rowMode = $("sbRows").value;
-    const rows = buildUploadRows(rowMode);
-
-    const cols = names;
-    const normalized = rows.map(r=>{
-      const out = {};
-      for(const c of cols){
-        const v = r[c];
-        out[c] = (Array.isArray(v) || isPlainObject(v)) ? safeString(v) : v;
-      }
-      return out;
+      resizingCircle = null;
+      draggingCircle = null;
     });
 
-    const csv = toCSV(normalized, cols);
-    downloadText("table_export.csv", csv, "text/csv");
-  });
+    map.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      e.preventDefault();
 
-  $("btnJSON").addEventListener("click", ()=>{
-    if(!ROWS.length){ alert("Parse JSON first."); return; }
-    const rowMode = $("sbRows").value;
-    const rows = buildUploadRows(rowMode);
-    downloadText("rows_export.json", JSON.stringify(rows, null, 2), "application/json");
-  });
+      const distPx = Math.hypot(e.clientX - downClient.x, e.clientY - downClient.y);
 
-  // init
-  updateMeta();
-  setPill("neutral","Waiting for JSON");
-</script>
+      if (!moved && distPx > DRAG_THRESHOLD_PX){
+        moved = true;
+        resizingCircle = candResize;
+        draggingCircle = candDrag;
+      }
+
+      if (!moved) return;
+
+      const pL = clientToLogical(e);
+
+      if (resizingCircle){
+        resizingCircle.r = Math.max(10, Math.hypot(pL.x - resizingCircle.x, pL.y - resizingCircle.y));
+        drawAll();
+        return;
+      }
+      if (draggingCircle){
+        draggingCircle.x = pL.x;
+        draggingCircle.y = pL.y;
+        drawAll();
+      }
+    });
+
+    map.addEventListener("pointerup", (e) => {
+      if (!down) return;
+      e.preventDefault();
+      down = false;
+
+      if (moved && (resizingCircle || draggingCircle)){
+        candResize = candDrag = null;
+        resizingCircle = draggingCircle = null;
+        saveMapState();
+        return;
+      }
+
+      candResize = candDrag = null;
+      resizingCircle = draggingCircle = null;
+
+      if (e.target?.closest && (e.target.closest(".note") || e.target.closest(".unit"))) return;
+
+      const pL = clientToLogical(e);
+
+      if (noteMode){
+        const text = prompt("Enter note:");
+        if (!text) return;
+        createNote(pL.x, pL.y, text, null, true);
+        noteMode = false;
+        noteBtn.textContent = "Add Note";
+        noteBtn.classList.remove("active");
+        saveMapState();
+        return;
+      }
+
+      if (drawCircleMode){
+        circles.push({ x: pL.x, y: pL.y, r: 30, color: "#00ffff" });
+        historyStack.push({ type:"circle" });
+        drawAll();
+        saveMapState();
+        return;
+      }
+
+      if (selectedIcon){
+        const id = selectedIcon.dataset.id;
+
+        if (!teamIcons[id]){
+          teamPaths[id] = [{ x: pL.x, y: pL.y }];
+          teamIcons[id] = createUnit(selectedIcon, id, pL.x, pL.y, true);
+          activeTeam = id;
+        } else {
+          activeTeam = id;
+        }
+
+        selectedIcon.classList.remove("selected");
+        selectedIcon = null;
+
+        drawAll();
+        saveMapState();
+        return;
+      }
+
+      if (activeTeam && teamPaths[activeTeam]){
+        teamPaths[activeTeam].push({ x: pL.x, y: pL.y });
+        historyStack.push({ type:"line", team: activeTeam });
+        drawAll();
+        saveMapState();
+      }
+    });
+
+    map.addEventListener("pointercancel", () => {
+      down = false; moved = false;
+      candResize = candDrag = null;
+      resizingCircle = draggingCircle = null;
+    });
+
+    /***********************
+     * Buttons: undo/reset/export/import
+     ***********************/
+    document.getElementById("undo-btn").onclick = () => {
+      const last = historyStack.pop();
+      if (!last) return;
+
+      if (last.type === "circle"){
+        circles.pop();
+      } else if (last.type === "line"){
+        const path = teamPaths[last.team];
+        if (path){
+          path.pop();
+          if (path.length === 0){
+            delete teamPaths[last.team];
+            teamIcons[last.team]?.remove();
+            delete teamIcons[last.team];
+            if (activeTeam === last.team) activeTeam = null;
+          }
+        }
+      } else if (last.type === "note"){
+        const el = map.querySelector(`.note[data-note-id="${last.id}"]`);
+        if (el) el.remove();
+        const idx = notesData.findIndex(n => n.id === last.id);
+        if (idx !== -1) notesData.splice(idx, 1);
+      }
+
+      drawAll();
+      saveMapState();
+    };
+
+    document.getElementById("reset-all-btn").onclick = () => {
+      if (!confirm("Reset all?")) return;
+
+      Object.values(teamIcons).forEach(el => el?.remove());
+      Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+      Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+
+      circles.length = 0;
+
+      map.querySelectorAll(".note").forEach(n => n.remove());
+      notesData.length = 0;
+
+      historyStack.length = 0;
+      activeTeam = null;
+      selectedIcon = null;
+      document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
+
+      drawAll();
+      saveMapState();
+    };
+
+    document.getElementById("export-btn").onclick = () => {
+      const data = { map: mapSelect.value, paths: teamPaths, circles, notes: notesData };
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "team-paths.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById("import-file").onchange = function(){
+      const file = this.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = JSON.parse(e.target.result);
+
+        if (data.map){
+          mapSelect.value = data.map;
+          updateMapLabel();
+          setMapBg();
+        }
+
+        Object.values(teamIcons).forEach(el => el?.remove());
+        Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+        Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+        circles.length = 0;
+        map.querySelectorAll(".note").forEach(n => n.remove());
+        notesData.length = 0;
+        historyStack.length = 0;
+        activeTeam = null;
+        selectedIcon = null;
+        document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
+
+        Object.entries(data.paths || {}).forEach(([id, points]) => {
+          const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+          if (!icon || !points?.length) return;
+          teamPaths[id] = points.map(p => ({ x:p.x, y:p.y }));
+          teamIcons[id] = createUnit(icon, id, points[0].x, points[0].y, false);
+        });
+
+        (data.circles || []).forEach(c => circles.push({ x:c.x, y:c.y, r:c.r, color:c.color || "#00ffff" }));
+
+        (data.notes || []).forEach(n => {
+          const nid = n.id || ("n_" + Math.random().toString(16).slice(2));
+          notesData.push({ id:nid, x:n.x, y:n.y, text:n.text || "" });
+          createNote(n.x, n.y, n.text || "", nid, false);
+        });
+
+        resizeCanvases();
+        saveMapState();
+      };
+      reader.readAsText(file);
+      this.value = "";
+    };
+
+    /***********************
+     * Map change
+     ***********************/
+    mapSelect.addEventListener("change", () => {
+      updateMapLabel();
+      setMapBg();
+      const opt = mapSelect.options[mapSelect.selectedIndex];
+      if (opt?.dataset.mode === "CS") drawOverlayMask(circles);
+      else maskCanvas.style.display = "none";
+      saveMapState();
+    });
+
+    /***********************
+     * Realtime + DB state
+     ***********************/
+    let realtimeEnabled = true;      // receiving
+    let syncWritesEnabled = true;    // publishing
+    let realtimeChannel = null;
+
+    async function loadMapState(){
+      const { data, error } = await client
+        .from('map')
+        .select('state')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116'){
+        console.error('❌ Failed to load map state:', error);
+        return;
+      }
+      if (!data || !data.state){
+        await saveMapState(); // initial seed (only if syncWritesEnabled)
+        return;
+      }
+      applyMapState(data.state);
+    }
+
+    async function saveMapState(){
+      // ✅ When OFF: do not publish to DB (so others will NOT mirror your edits)
+      if (!syncWritesEnabled) return;
+
+      const state = { map: mapSelect.value, paths: teamPaths, circles, notes: notesData };
+      const { error } = await client
+        .from('map')
+        .upsert({ id: 1, state, updated_at: new Date().toISOString() });
+      if (error) console.error('❌ Failed to save map state:', error);
+    }
+
+    function applyMapState(state){
+      if (state?.map){
+        mapSelect.value = state.map;
+        updateMapLabel();
+        setMapBg();
+      }
+
+      Object.values(teamIcons).forEach(el => el?.remove());
+      Object.keys(teamIcons).forEach(k => delete teamIcons[k]);
+      Object.keys(teamPaths).forEach(k => delete teamPaths[k]);
+      circles.length = 0;
+      map.querySelectorAll(".note").forEach(n => n.remove());
+      notesData.length = 0;
+
+      activeTeam = null;
+      selectedIcon = null;
+      document.querySelectorAll(".team-icon").forEach(el => el.classList.remove("selected"));
+
+      Object.entries(state?.paths || {}).forEach(([id, points]) => {
+        const icon = document.querySelector(`.team-icon[data-id="${id}"]`);
+        if (!icon || !points?.length) return;
+        teamPaths[id] = points.map(p => ({ x:p.x, y:p.y }));
+        teamIcons[id] = createUnit(icon, id, points[0].x, points[0].y, false);
+      });
+
+      (state?.circles || []).forEach(c => circles.push({ x:c.x, y:c.y, r:c.r, color:c.color || "#00ffff" }));
+
+      (state?.notes || []).forEach(n => {
+        const nid = n.id || ("n_" + Math.random().toString(16).slice(2));
+        notesData.push({ id:nid, x:n.x, y:n.y, text:n.text || "" });
+        createNote(n.x, n.y, n.text || "", nid, false);
+      });
+
+      resizeCanvases();
+    }
+
+    function handleMapChange(payload){
+      // ✅ When OFF: ignore incoming updates
+      if (!realtimeEnabled) return;
+
+      const row = payload.new;
+      if (!row || row.id !== 1) return;
+      applyMapState(row.state || {});
+    }
+
+    async function enableRealtime(){
+      if (realtimeChannel) return;
+      realtimeChannel = client
+        .channel('public:map')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'map' }, handleMapChange)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'map' }, handleMapChange);
+
+      const { error } = await realtimeChannel.subscribe();
+      if (error) console.error("❌ realtime subscribe:", error.message);
+    }
+
+    async function disableRealtime(){
+      if (!realtimeChannel) return;
+      await client.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    const realtimeBtn = document.getElementById("realtime-toggle-btn");
+    realtimeBtn.onclick = async () => {
+      const turningOff = realtimeEnabled && syncWritesEnabled;
+
+      // toggle both receiving + publishing
+      realtimeEnabled = !realtimeEnabled;
+      syncWritesEnabled = realtimeEnabled;
+
+      realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+      realtimeBtn.classList.toggle("active", realtimeEnabled);
+
+      if (realtimeEnabled){
+        await enableRealtime();
+        // ✅ publish your current state once you turn ON again
+        await saveMapState();
+      } else {
+        await disableRealtime();
+      }
+    };
+
+    /***********************
+     * Init
+     ***********************/
+    window.addEventListener("DOMContentLoaded", async () => {
+      const session = await ensureSession();
+      if (!session) return;
+
+      document.getElementById("user-info").textContent =
+        "Logged in as: " + (session.user?.email || "unknown");
+
+      // initial label + map
+      updateMapLabel();
+      setMapBg();
+
+      await loadTeamIcons();
+      resizeCanvases();
+      await loadMapState();
+      await enableRealtime();
+
+      realtimeBtn.classList.toggle("active", realtimeEnabled);
+      realtimeBtn.textContent = realtimeEnabled ? "Real-time: ON" : "Real-time: OFF";
+    });
+  </script>
 </body>
 </html>
