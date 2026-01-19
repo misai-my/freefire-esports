@@ -1084,10 +1084,15 @@
     if(autoExplode){
       autoPaths = detectArrayObjectPaths(baseRecords, {maxDepth: 7, maxPaths: 60, sampleN: 12});
     }
-
-    // Merge + de-dupe
+    
+    // Merge + de-dupe (auto + manual)
     const explodePaths = Array.from(new Set([...(autoPaths || []), ...(manualPaths || [])]))
       .filter(Boolean);
+    
+    // ✅ Auto-fill the input so you don’t set paths one by one
+    if(autoExplode){
+      $("explodePaths").value = explodePaths.join(", ");
+    }
 
     // Build datasets:
     // - Base dataset (no explode)
