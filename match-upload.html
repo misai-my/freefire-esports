@@ -323,7 +323,7 @@
           </div>
         </div>
 
-        <!-- ✅ Week/Day -->
+        <!-- Week/Day -->
         <div class="row">
           <div class="field">
             <label>Default Week column value</label>
@@ -335,7 +335,7 @@
           </div>
         </div>
 
-        <!-- ✅ match_id -->
+        <!-- match_id -->
         <div class="row">
           <div class="field">
             <label>Default match_id column value</label>
@@ -345,9 +345,9 @@
 
         <div class="hint">
           These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>)
-          and apply the values to every row (you can rename/exclude later).
+          and apply the values to every row.
           <br/><br/>
-          If the JSON contains a <span class="kbd">match_id</span> at the root or in common paths, we auto-fill the input once you parse.
+          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span> automatically for upload & preview.
         </div>
 
         <div class="row">
@@ -431,7 +431,7 @@
               <div class="field">
                 <label>On conflict (Upsert only)</label>
                 <input id="sbConflict" type="text" placeholder="e.g. match_id,player_stats.account_id"/>
-                <div class="hint">Comma-separated columns that form a unique key in your table.</div>
+                <div class="hint">You can type original keys; we auto-map to DB-safe names (dots → underscores).</div>
               </div>
             </div>
 
@@ -525,6 +525,36 @@
     const s = (v ?? "").toString().trim();
     if(!s) return null;
     return /^[0-9]{4}$/.test(s) ? parseInt(s, 10) : s;
+  }
+
+  // Convert any JSON key into a safe Postgres identifier
+  // - dots -> underscores
+  // - [0] -> _0_
+  // - remove remaining unsafe chars
+  function toDbSafeKey(key){
+    let s = String(key ?? "").trim();
+    if(!s) return s;
+
+    // turn "a[0].b" into "a_0_b"
+    s = s.replace(/\[(\d+)\]/g, "_$1_");
+    s = s.replace(/\./g, "_");
+
+    // anything not letter/number/_ becomes _
+    s = s.replace(/[^a-zA-Z0-9_]/g, "_");
+
+    // collapse multiple underscores
+    s = s.replace(/_+/g, "_");
+
+    // trim underscores
+    s = s.replace(/^_+|_+$/g, "");
+
+    // postgres identifier cannot start with a digit
+    if(/^\d/.test(s)) s = "c_" + s;
+
+    // guard empty after cleanup
+    if(!s) s = "col";
+
+    return s;
   }
 
   // Dot path with optional [idx]
@@ -681,7 +711,7 @@
     setTimeout(()=>URL.revokeObjectURL(a.href), 800);
   }
 
-  // ✅ Try to infer match_id from common locations in the JSON
+  // Try to infer match_id from common locations in the JSON
   function inferMatchIdFromRaw(raw){
     if(!raw) return null;
 
@@ -694,7 +724,6 @@
     const v2 = getByPath(raw, "data.matchId");
     if(v2) return String(v2);
 
-    // Sometimes: data.matches[0].match_id
     const v3 = getByPath(raw, "data.matches[0].match_id");
     if(v3) return String(v3);
 
@@ -710,13 +739,25 @@
   let RAW = null;
   let ROWS = [];
   let COLS = [];
-  let COLCFG = {};  // colKey -> { include: bool, name: string }
+  let COLCFG = {};  // sourceKey -> { include: bool, name: dbKey }
 
   function updateMeta(){
     $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`;
   }
 
-  // ✅ FIXED: append each column row to the column list (you were missing box.appendChild(row))
+  function getSelectedCols(){
+    const keys = [];
+    const names = [];
+    for(const c of COLS){
+      const cfg = COLCFG[c];
+      if(cfg && cfg.include){
+        keys.push(c);
+        names.push(cfg.name || toDbSafeKey(c));
+      }
+    }
+    return {keys, names};
+  }
+
   function renderColList(){
     const box = $("colList");
     box.innerHTML = "";
@@ -727,7 +768,7 @@
     }
 
     for(const c of COLS){
-      const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name:c });
+      const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name: toDbSafeKey(c) });
 
       const row = document.createElement("div");
       row.className = "colrow";
@@ -746,25 +787,15 @@
       });
 
       inp.addEventListener("input", ()=>{
-        COLCFG[c].name = inp.value.trim() || c;
+        // keep DB-safe-ish, but allow custom
+        const val = (inp.value || "").trim();
+        COLCFG[c].name = val ? val : toDbSafeKey(c);
         renderTable();
       });
 
+      // ✅ append (was missing in your version)
       box.appendChild(row);
     }
-  }
-
-  function getSelectedCols(){
-    const keys = [];
-    const names = [];
-    for(const c of COLS){
-      const cfg = COLCFG[c];
-      if(cfg && cfg.include){
-        keys.push(c);
-        names.push(cfg.name || c);
-      }
-    }
-    return {keys, names};
   }
 
   function renderTable(){
@@ -773,23 +804,21 @@
     const previewRows = ROWS.slice(0, max);
 
     const thRow = $("theadRow");
-    thRow.innerHTML = "";
+    const tb = $("tbody");
+
     if(!keys.length){
-      const th = document.createElement("th");
-      th.textContent = "(No columns selected)";
-      th.style.color = "rgba(244,246,255,.65)";
-      thRow.appendChild(th);
-      $("tbody").innerHTML = "";
+      thRow.innerHTML = `<th style="color:rgba(244,246,255,.65)">(No columns selected)</th>`;
+      tb.innerHTML = "";
       return;
     }
 
+    thRow.innerHTML = "";
     for(const n of names){
       const th = document.createElement("th");
       th.textContent = n;
       thRow.appendChild(th);
     }
 
-    const tb = $("tbody");
     tb.innerHTML = "";
     for(const r of previewRows){
       const tr = document.createElement("tr");
@@ -828,7 +857,7 @@
       if(!("Week" in r)) r.Week = wVal || null;
       if(!("Day" in r)) r.Day = dVal || null;
 
-      // ✅ guarantee match_id exists as a column (especially after explode)
+      // guarantee match_id exists as a column (especially after explode)
       if(!("match_id" in r)) r.match_id = midVal || null;
 
       return r;
@@ -851,7 +880,7 @@
       return;
     }
 
-    // ✅ auto-fill match_id input if found (only if input is empty)
+    // auto-fill match_id input if found (only if empty)
     const inferred = inferMatchIdFromRaw(RAW);
     if(inferred && !$("defMatchId").value.trim()){
       $("defMatchId").value = inferred;
@@ -915,16 +944,16 @@
       }
     }
 
-    // Collect columns
+    // collect columns
     const colSet = new Set();
     for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
 
-    // ✅ ensure default columns always exist
+    // ensure default columns always exist
     ["match_id","Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
 
     const cols = Array.from(colSet);
 
-    // Stable-ish ordering
+    // stable-ish ordering
     const common = [
       "match_id","Mode","Tournament","Stage","Year","Week","Day",
       "id","matchId","game_id","timestamp","created_at","updated_at",
@@ -940,9 +969,11 @@
 
     ROWS = flat;
     COLS = cols;
+
+    // ✅ AUTO-RENAME APPLIED HERE (dots -> underscores etc.)
     COLCFG = {};
     for(const c of COLS){
-      COLCFG[c] = {include:true, name:c};
+      COLCFG[c] = { include:true, name: toDbSafeKey(c) };
     }
 
     setPill("good", "Parsed");
@@ -954,7 +985,10 @@ Columns: ${COLS.length}
 Records path: ${usedPath}
 Explode paths: ${explodePaths.length ? explodePaths.join(", ") : "(none)"}
 Array mode: ${arrMode}
-Preview shows up to ${$("maxRows").value} rows.`
+Preview shows up to ${$("maxRows").value} rows.
+
+Auto-rename is ON:
+Example: "player_stats.account_id" → "${toDbSafeKey("player_stats.account_id")}"`
     );
 
     updateMeta();
@@ -982,7 +1016,7 @@ Preview shows up to ${$("maxRows").value} rows.`
       const o = {};
       for(let i=0;i<keys.length;i++){
         const srcKey = keys[i];
-        const dbKey = names[i];
+        const dbKey = names[i]; // renamed key
         o[dbKey] = r[srcKey];
       }
 
@@ -992,6 +1026,33 @@ Preview shows up to ${$("maxRows").value} rows.`
       }
       return o;
     });
+  }
+
+  // Map user "on conflict" input to DB-safe column names.
+  // User can type:
+  // - original json keys: player_stats.account_id
+  // - already renamed keys: player_stats_account_id
+  function resolveOnConflict(raw){
+    const typed = (raw || "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if(!typed.length) return "";
+
+    // create reverse lookup from dbName -> dbName (to accept renamed)
+    const dbNames = new Set(Object.values(COLCFG).map(x => x?.name).filter(Boolean));
+
+    return typed.map(col=>{
+      // if user typed original source key
+      if(COLCFG[col]?.name) return COLCFG[col].name;
+
+      // if user typed a renamed db key that exists
+      if(dbNames.has(col)) return col;
+
+      // otherwise sanitize what they typed
+      return toDbSafeKey(col);
+    }).join(",");
   }
 
   async function uploadToSupabase(){
@@ -1005,7 +1066,7 @@ Preview shows up to ${$("maxRows").value} rows.`
     const key = $("sbKey").value.trim();
     const table = $("sbTable").value.trim();
     const mode = $("sbMode").value;
-    const onConflict = $("sbConflict").value.trim();
+    const onConflictInput = $("sbConflict").value.trim();
     const chunkSize = parseInt($("sbChunk").value,10);
     const rowMode = $("sbRows").value;
 
@@ -1014,6 +1075,9 @@ Preview shows up to ${$("maxRows").value} rows.`
       setProgress(0);
       return;
     }
+
+    const onConflict = resolveOnConflict(onConflictInput);
+
     if(mode === "upsert" && !onConflict){
       setStatus("upStatus", "Upsert requires an On conflict column(s).");
       setProgress(0);
@@ -1045,7 +1109,9 @@ Preview shows up to ${$("maxRows").value} rows.`
       const batch = chunks[i];
       setStatus("upStatus", `Uploading ${i+1}/${chunks.length}…
 Batch size: ${batch.length}
-Uploaded: ${ok}/${total} • Failed: ${failed}`);
+Uploaded: ${ok}/${total} • Failed: ${failed}
+
+${mode === "upsert" ? `onConflict: ${onConflict}` : ""}`);
       setProgress(Math.round((i / chunks.length) * 100));
 
       try{
@@ -1068,7 +1134,8 @@ Tips:
 - Ensure onConflict columns exist + have UNIQUE constraint/index
 - If your table doesn’t have created_at/updated_at, uncheck Auto timestamps
 
-Uploaded: ${ok}/${total} • Failed: ${failed}`);
+Uploaded: ${ok}/${total} • Failed: ${failed}`
+          );
           setProgress(Math.round(((i+1)/chunks.length)*100));
           return;
         }else{
@@ -1131,9 +1198,9 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
             match_id: "1725487677733611520",
             map: "Bermuda",
             player_stats: [
-              { player_id: "p1", name: "A1", team: "ABC", kills: 3, dmg: 812 },
-              { player_id: "p2", name: "A2", team: "ABC", kills: 2, dmg: 540 },
-              { player_id: "p3", name: "X1", team: "XYZ", kills: 1, dmg: 220 }
+              { account_id: 111, nickname: "A1", team: "ABC", kills: 3, damage: 812 },
+              { account_id: 222, nickname: "A2", team: "ABC", kills: 2, damage: 540 },
+              { account_id: 333, nickname: "X1", team: "XYZ", kills: 1, damage: 220 }
             ]
           }
         ]
@@ -1168,6 +1235,9 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     }catch(err){
       setPill("bad","File read failed");
       setStatus("parseStatus", "Could not read file:\n" + err.message);
+    } finally {
+      // allow selecting the same file again
+      e.target.value = "";
     }
   });
 
