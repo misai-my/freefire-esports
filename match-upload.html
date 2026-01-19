@@ -236,7 +236,7 @@
         <div class="badge"></div>
         <div>
           <h1>JSON → Table → Supabase</h1>
-          <div class="sub">Paste / upload JSON, flatten & explode arrays, preview table, then insert/upsert into Supabase.</div>
+          <div class="sub">Paste / upload JSON, auto-detect arrays-of-objects, preview datasets, then insert/upsert into Supabase.</div>
         </div>
       </div>
       <div class="actions">
@@ -262,7 +262,7 @@
             <label>Paste JSON</label>
             <textarea id="jsonText" placeholder='Paste JSON here (array or object)…'></textarea>
             <div class="hint">
-              If your JSON is a big object, set <span class="kbd">Records array path</span> to where the rows live (example: <span class="kbd">data.matches</span>).
+              If your JSON is a big object, set <span class="kbd">Records array path</span> to where the base records live (example: <span class="kbd">data.matches</span>).
             </div>
           </div>
         </div>
@@ -291,13 +291,37 @@
               <option value="keep" selected>Keep as JSON (default)</option>
               <option value="index">Explode to columns with [index] (teams[0].tag)</option>
             </select>
-            <div class="hint">Index mode is good for small fixed arrays. For stats tables, use “Explode paths”.</div>
+            <div class="hint">Index mode is good for small fixed arrays. For stats tables, use datasets (auto-detect) below.</div>
           </div>
 
           <div class="field" style="min-width:260px;flex:1.2">
-            <label>Explode paths to rows (optional, comma-separated)</label>
-            <input id="explodePaths" type="text" value="player_stats" placeholder="e.g. player_stats, teams.players"/>
-            <div class="hint">Each path should point to an <b>array of objects</b>. We will turn each item into its own row.</div>
+            <label>Additional explode paths (optional, comma-separated)</label>
+            <input id="explodePaths" type="text" value="" placeholder="e.g. player_stats, match.match_stats_extra.circle_info"/>
+            <div class="hint">Optional overrides/additions. If Auto-detect is ON, you don’t need to type these.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="min-width:220px">
+            <label>Auto-detect explode datasets</label>
+            <div class="checkrow">
+              <input id="autoExplode" type="checkbox" checked />
+              <div>
+                <div style="font-size:12px">Auto-detect every <span class="kbd">array of objects</span> and create separate datasets</div>
+                <div class="small">No more setting explode paths one by one. Switch datasets on the right.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field" style="min-width:220px">
+            <label>Carry match_id automatically</label>
+            <div class="checkrow">
+              <input id="autoMatchId" type="checkbox" checked />
+              <div>
+                <div style="font-size:12px">Try to infer <span class="kbd">match_id</span> from common paths</div>
+                <div class="small">Works for <span class="kbd">match.match_id</span>, <span class="kbd">data.matches[0].match_id</span>, etc.</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -344,10 +368,10 @@
         </div>
 
         <div class="hint">
-          These create extra columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>)
-          and apply the values to every row.
+          Default columns (<span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>)
+          are applied to every row in every dataset.
           <br/><br/>
-          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span> automatically for upload & preview.
+          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span> automatically for preview & upload.
         </div>
 
         <div class="row">
@@ -366,7 +390,7 @@
         </div>
 
         <div class="row" style="justify-content:flex-end">
-          <button class="btn primary" id="btnParse">Parse & Build Table</button>
+          <button class="btn primary" id="btnParse">Parse & Build Datasets</button>
         </div>
 
         <div class="status" id="parseStatus">No data parsed yet.</div>
@@ -380,6 +404,15 @@
         <div class="pill"><span class="dot neutral"></span><span id="metaText">0 rows • 0 cols</span></div>
       </div>
       <div class="bd">
+
+        <!-- Dataset selector -->
+        <div class="row">
+          <div class="field" style="min-width:260px">
+            <label>Dataset</label>
+            <select id="datasetSelect"></select>
+            <div class="hint">Switch between base rows and each auto-detected exploded dataset (arrays of objects).</div>
+          </div>
+        </div>
 
         <div class="split">
           <div class="colbox">
@@ -448,7 +481,7 @@
               <div class="field" style="flex:1.3">
                 <label>Upload rows</label>
                 <select id="sbRows">
-                  <option value="all" selected>All parsed rows</option>
+                  <option value="all" selected>All rows (this dataset)</option>
                   <option value="preview">Preview rows only</option>
                 </select>
               </div>
@@ -468,7 +501,7 @@
             </div>
 
             <div class="row" style="justify-content:flex-end">
-              <button class="btn good" id="btnUpload">Upload to Supabase</button>
+              <button class="btn good" id="btnUpload">Upload Selected Dataset</button>
             </div>
 
             <div class="progress"><div class="bar" id="bar"></div></div>
@@ -528,32 +561,17 @@
   }
 
   // Convert any JSON key into a safe Postgres identifier
-  // - dots -> underscores
-  // - [0] -> _0_
-  // - remove remaining unsafe chars
   function toDbSafeKey(key){
     let s = String(key ?? "").trim();
     if(!s) return s;
 
-    // turn "a[0].b" into "a_0_b"
     s = s.replace(/\[(\d+)\]/g, "_$1_");
     s = s.replace(/\./g, "_");
-
-    // anything not letter/number/_ becomes _
     s = s.replace(/[^a-zA-Z0-9_]/g, "_");
-
-    // collapse multiple underscores
     s = s.replace(/_+/g, "_");
-
-    // trim underscores
     s = s.replace(/^_+|_+$/g, "");
-
-    // postgres identifier cannot start with a digit
     if(/^\d/.test(s)) s = "c_" + s;
-
-    // guard empty after cleanup
     if(!s) s = "col";
-
     return s;
   }
 
@@ -652,41 +670,61 @@
     return out;
   }
 
-  // Explode paths sequentially into more objects (rows) BEFORE flattening.
-  function explodeObjects(records, explodePaths){
-    let current = records;
-    for(const rawP of explodePaths){
-      const p = rawP.trim();
-      if(!p) continue;
+  // Detect all paths that are arrays of objects
+  function detectArrayObjectPaths(records, {maxDepth=7, maxPaths=60, sampleN=12} = {}){
+    const out = new Set();
+    const samples = (records || []).slice(0, sampleN).filter(isPlainObject);
 
-      const next = [];
-      for(const rec of current){
-        if(!isPlainObject(rec)){
-          next.push(rec);
-          continue;
-        }
-        const arr = getByPath(rec, p);
-        if(!Array.isArray(arr) || !arr.length){
-          next.push(rec);
-          continue;
-        }
+    function walk(node, path, depth){
+      if(depth > maxDepth) return;
+      if(node == null) return;
 
-        const canExplode = arr.every(isPlainObject);
-        if(!canExplode){
-          next.push(rec);
-          continue;
+      if(Array.isArray(node)){
+        if(node.length && node.every(isPlainObject)){
+          if(path) out.add(path);
+          if(out.size >= maxPaths) return;
+          // also peek into first item for nested arrays-of-objects inside the array elements
+          walk(node[0], path ? path + "[0]" : "[0]", depth+1);
+          return;
         }
+        // non-object arrays: ignore
+        return;
+      }
 
-        for(const item of arr){
-          const cloned = deepCloneJSON(rec);
-          deleteByPath(cloned, p);
-          setByPath(cloned, p, item);
-          next.push(cloned);
+      if(!isPlainObject(node)) return;
+
+      for(const k of Object.keys(node)){
+        const child = node[k];
+        const p = path ? `${path}.${k}` : k;
+        if(Array.isArray(child)){
+          if(child.length && child.every(isPlainObject)){
+            out.add(p);
+            if(out.size >= maxPaths) return;
+            // continue into first element (nested)
+            walk(child[0], `${p}[0]`, depth+1);
+          }else{
+            // ignore primitive arrays
+          }
+        }else if(isPlainObject(child)){
+          walk(child, p, depth+1);
+          if(out.size >= maxPaths) return;
         }
       }
-      current = next;
     }
-    return current;
+
+    for(const rec of samples){
+      walk(rec, "", 0);
+      if(out.size >= maxPaths) break;
+    }
+
+    // normalize: remove [0] artifacts we only used for deeper scan
+    const cleaned = new Set();
+    for(const p of out){
+      cleaned.add(p.replace(/\[0\]/g, ""));
+    }
+
+    // remove empty + dedupe
+    return Array.from(cleaned).filter(Boolean);
   }
 
   function toCSV(rows, cols){
@@ -711,38 +749,43 @@
     setTimeout(()=>URL.revokeObjectURL(a.href), 800);
   }
 
-  // Try to infer match_id from common locations in the JSON
-  function inferMatchIdFromRaw(raw){
+  // Try to infer match_id from common locations in the JSON (and record)
+  function inferMatchIdAny(raw){
     if(!raw) return null;
 
-    if(raw.match_id) return String(raw.match_id);
-    if(raw.matchId)  return String(raw.matchId);
+    const candidates = [
+      "match_id","matchId",
+      "match.match_id","match.matchId",
+      "data.match_id","data.matchId",
+      "data.match.match_id","data.match.matchId",
+      "data.matches[0].match_id","data.matches[0].matchId",
+      "match.match_stats.match_id","match.match_stats.matchId"
+    ];
 
-    const v1 = getByPath(raw, "data.match_id");
-    if(v1) return String(v1);
-
-    const v2 = getByPath(raw, "data.matchId");
-    if(v2) return String(v2);
-
-    const v3 = getByPath(raw, "data.matches[0].match_id");
-    if(v3) return String(v3);
-
-    const v4 = getByPath(raw, "data.matches[0].matchId");
-    if(v4) return String(v4);
-
+    for(const p of candidates){
+      const v = getByPath(raw, p);
+      if(v !== undefined && v !== null && String(v).trim() !== "") return String(v);
+    }
     return null;
   }
 
   // -----------------------------
-  // App state
+  // App state (multi-dataset)
   // -----------------------------
   let RAW = null;
+
+  // DATASETS: [{key,label,rows,cols,colcfg}]
+  let DATASETS = [];
+  let ACTIVE = null; // reference to selected dataset object
+
+  // convenience pointers used by existing render code
   let ROWS = [];
   let COLS = [];
-  let COLCFG = {};  // sourceKey -> { include: bool, name: dbKey }
+  let COLCFG = {}; // sourceKey -> { include, name(dbKey) }
 
   function updateMeta(){
-    $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`;
+    const label = ACTIVE?.label ? ` • ${ACTIVE.label}` : "";
+    $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols${label}`;
   }
 
   function getSelectedCols(){
@@ -783,17 +826,17 @@
 
       cb.addEventListener("change", ()=>{
         COLCFG[c].include = cb.checked;
+        if(ACTIVE) ACTIVE.colcfg = COLCFG;
         renderTable();
       });
 
       inp.addEventListener("input", ()=>{
-        // keep DB-safe-ish, but allow custom
         const val = (inp.value || "").trim();
         COLCFG[c].name = val ? val : toDbSafeKey(c);
+        if(ACTIVE) ACTIVE.colcfg = COLCFG;
         renderTable();
       });
 
-      // ✅ append (was missing in your version)
       box.appendChild(row);
     }
   }
@@ -846,6 +889,8 @@
 
     const midVal = ($("defMatchId").value ?? "").trim();
 
+    const autoMatch = $("autoMatchId").checked;
+
     return records.map(r=>{
       if(!isPlainObject(r)) return r;
 
@@ -857,11 +902,120 @@
       if(!("Week" in r)) r.Week = wVal || null;
       if(!("Day" in r)) r.Day = dVal || null;
 
-      // guarantee match_id exists as a column (especially after explode)
-      if(!("match_id" in r)) r.match_id = midVal || null;
+      if(!("match_id" in r) || r.match_id == null || r.match_id === ""){
+        let inferred = null;
+        if(midVal) inferred = midVal;
+        else if(autoMatch) inferred = inferMatchIdAny(r);
+        r.match_id = inferred || null;
+      }
 
       return r;
     });
+  }
+
+  function makeDatasetLabel(path){
+    if(!path) return "Base (no explode)";
+    // keep it short but informative
+    const parts = path.split(".");
+    if(parts.length <= 2) return `Explode: ${path}`;
+    return `Explode: ${parts.slice(-2).join(".")}`;
+  }
+
+  // Build a dataset from base records (optionally explode one path)
+  function buildDatasetFromPath(baseRecords, path, arrMode){
+    let shaped = baseRecords;
+
+    if(path){
+      const next = [];
+      for(const rec of shaped){
+        if(!isPlainObject(rec)) continue;
+        const arr = getByPath(rec, path);
+        if(!Array.isArray(arr) || !arr.length) continue;
+        if(!arr.every(isPlainObject)) continue;
+
+        for(const item of arr){
+          const cloned = deepCloneJSON(rec);
+          deleteByPath(cloned, path);
+          setByPath(cloned, path, item);
+          next.push(cloned);
+        }
+      }
+      shaped = next;
+    }
+
+    const flat = [];
+    for(const rec of shaped){
+      if(isPlainObject(rec)){
+        flat.push(flattenObject(rec, "", {}, arrMode));
+      }else{
+        flat.push({value: rec});
+      }
+    }
+
+    const colSet = new Set();
+    for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
+    ["match_id","Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
+
+    const cols = Array.from(colSet);
+
+    const common = [
+      "match_id","Mode","Tournament","Stage","Year","Week","Day",
+      "match.match_id","match.matchId","data.match_id",
+      "id","matchId","game_id","timestamp","created_at","updated_at",
+      "mode","map","team","team_id","player","player_id","name","tag"
+    ];
+    cols.sort((a,b)=>{
+      const ia = common.indexOf(a), ib = common.indexOf(b);
+      if(ia !== -1 || ib !== -1){
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      }
+      return a.localeCompare(b);
+    });
+
+    const colcfg = {};
+    for(const c of cols){
+      colcfg[c] = { include:true, name: toDbSafeKey(c) };
+    }
+
+    return { rows: flat, cols, colcfg };
+  }
+
+  function populateDatasetSelect(){
+    const sel = $("datasetSelect");
+    sel.innerHTML = "";
+    if(!DATASETS.length){
+      const opt = document.createElement("option");
+      opt.value = "0";
+      opt.textContent = "No datasets";
+      sel.appendChild(opt);
+      return;
+    }
+
+    DATASETS.forEach((ds, idx)=>{
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = `${ds.label}  —  ${ds.rows.length} rows`;
+      sel.appendChild(opt);
+    });
+
+    sel.onchange = ()=>{
+      const idx = parseInt(sel.value, 10);
+      setActiveDataset(idx);
+    };
+  }
+
+  function setActiveDataset(idx){
+    const ds = DATASETS[idx];
+    if(!ds) return;
+
+    ACTIVE = ds;
+    ROWS = ds.rows;
+    COLS = ds.cols;
+    COLCFG = ds.colcfg;
+
+    updateMeta();
+    renderColList();
+    renderTable();
   }
 
   function buildFromJSON(){
@@ -881,18 +1035,14 @@
     }
 
     // auto-fill match_id input if found (only if empty)
-    const inferred = inferMatchIdFromRaw(RAW);
-    if(inferred && !$("defMatchId").value.trim()){
-      $("defMatchId").value = inferred;
+    const inferredGlobal = inferMatchIdAny(RAW);
+    if(inferredGlobal && !$("defMatchId").value.trim()){
+      $("defMatchId").value = inferredGlobal;
     }
 
     const arrMode = $("arrMode").value || "keep";
-    const explodePaths = ($("explodePaths").value || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-
     const path = $("pathText").value.trim();
+
     let records = null;
     let usedPath = "";
 
@@ -916,84 +1066,87 @@
 
     if(!records || !records.length){
       setPill("bad", "No records");
-      setStatus("parseStatus", `Could not find rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`);
+      setStatus("parseStatus", `Could not find base rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`);
       return;
     }
 
-    // apply defaults (Mode/Tournament/Stage/Year/Week/Day/match_id)
-    let shaped = injectDefaultsIntoRecords(records.filter(r => r != null));
+    // Apply defaults + match_id inference per record
+    const baseRecords = injectDefaultsIntoRecords(records.filter(r => r != null));
 
-    // explode arrays to rows (pre-flatten)
-    if(explodePaths.length){
-      try{
-        shaped = explodeObjects(shaped, explodePaths);
-      }catch(err){
-        setPill("bad", "Explode failed");
-        setStatus("parseStatus", `Explode error:\n${err.message}`);
-        return;
-      }
+    // Auto-detect explode datasets (arrays of objects) + allow manual additions
+    const autoExplode = $("autoExplode").checked;
+    const manualPaths = ($("explodePaths").value || "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    let autoPaths = [];
+    if(autoExplode){
+      autoPaths = detectArrayObjectPaths(baseRecords, {maxDepth: 7, maxPaths: 60, sampleN: 12});
     }
 
-    // flatten
-    const flat = [];
-    for(const rec of shaped){
-      if(isPlainObject(rec)){
-        flat.push(flattenObject(rec, "", {}, arrMode));
-      }else{
-        flat.push({value: rec});
-      }
+    // Merge + de-dupe
+    const explodePaths = Array.from(new Set([...(autoPaths || []), ...(manualPaths || [])]))
+      .filter(Boolean);
+
+    // Build datasets:
+    // - Base dataset (no explode)
+    // - One dataset per explode path (independent; avoids cartesian product)
+    const datasets = [];
+    {
+      const ds = buildDatasetFromPath(baseRecords, null, arrMode);
+      datasets.push({
+        key: "__base__",
+        label: "Base (no explode)",
+        rows: ds.rows,
+        cols: ds.cols,
+        colcfg: ds.colcfg
+      });
     }
 
-    // collect columns
-    const colSet = new Set();
-    for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
+    for(const p of explodePaths){
+      const ds = buildDatasetFromPath(baseRecords, p, arrMode);
+      // skip empty datasets (no rows)
+      if(!ds.rows.length) continue;
 
-    // ensure default columns always exist
-    ["match_id","Mode","Tournament","Stage","Year","Week","Day"].forEach(k => colSet.add(k));
-
-    const cols = Array.from(colSet);
-
-    // stable-ish ordering
-    const common = [
-      "match_id","Mode","Tournament","Stage","Year","Week","Day",
-      "id","matchId","game_id","timestamp","created_at","updated_at",
-      "mode","map","team","team_id","player","player_id","name","tag"
-    ];
-    cols.sort((a,b)=>{
-      const ia = common.indexOf(a), ib = common.indexOf(b);
-      if(ia !== -1 || ib !== -1){
-        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      }
-      return a.localeCompare(b);
-    });
-
-    ROWS = flat;
-    COLS = cols;
-
-    // ✅ AUTO-RENAME APPLIED HERE (dots -> underscores etc.)
-    COLCFG = {};
-    for(const c of COLS){
-      COLCFG[c] = { include:true, name: toDbSafeKey(c) };
+      datasets.push({
+        key: p,
+        label: makeDatasetLabel(p),
+        rows: ds.rows,
+        cols: ds.cols,
+        colcfg: ds.colcfg
+      });
     }
+
+    DATASETS = datasets;
+
+    // Choose default active dataset:
+    // Prefer player_stats if present, else first explode dataset, else base.
+    let activeIdx = 0;
+    const idxPlayer = DATASETS.findIndex(d => (d.key || "").toLowerCase() === "player_stats" || (d.key || "").toLowerCase().endsWith(".player_stats"));
+    if(idxPlayer >= 0) activeIdx = idxPlayer;
+    else if(DATASETS.length > 1) activeIdx = 1;
+
+    populateDatasetSelect();
+    $("datasetSelect").value = String(activeIdx);
+    setActiveDataset(activeIdx);
 
     setPill("good", "Parsed");
     setStatus("parseStatus",
-      `Parsed OK.
-Raw rows: ${records.length}
-After explode: ${shaped.length}
-Columns: ${COLS.length}
+`Parsed OK.
+Base records: ${records.length}
 Records path: ${usedPath}
-Explode paths: ${explodePaths.length ? explodePaths.join(", ") : "(none)"}
-Array mode: ${arrMode}
-Preview shows up to ${$("maxRows").value} rows.
+
+Auto-detect explode: ${autoExplode ? "ON" : "OFF"}
+Manual explode additions: ${manualPaths.length ? manualPaths.join(", ") : "(none)"}
+Detected explode datasets: ${explodePaths.length ? explodePaths.join(", ") : "(none)"}
+
+Datasets built: ${DATASETS.length}
+Preview shows up to ${$("maxRows").value} rows for the selected dataset.
 
 Auto-rename is ON:
 Example: "player_stats.account_id" → "${toDbSafeKey("player_stats.account_id")}"`
     );
-
-    updateMeta();
-    renderColList();
-    renderTable();
   }
 
   // -----------------------------
@@ -1029,9 +1182,6 @@ Example: "player_stats.account_id" → "${toDbSafeKey("player_stats.account_id")
   }
 
   // Map user "on conflict" input to DB-safe column names.
-  // User can type:
-  // - original json keys: player_stats.account_id
-  // - already renamed keys: player_stats_account_id
   function resolveOnConflict(raw){
     const typed = (raw || "")
       .split(",")
@@ -1040,17 +1190,11 @@ Example: "player_stats.account_id" → "${toDbSafeKey("player_stats.account_id")
 
     if(!typed.length) return "";
 
-    // create reverse lookup from dbName -> dbName (to accept renamed)
     const dbNames = new Set(Object.values(COLCFG).map(x => x?.name).filter(Boolean));
 
     return typed.map(col=>{
-      // if user typed original source key
       if(COLCFG[col]?.name) return COLCFG[col].name;
-
-      // if user typed a renamed db key that exists
       if(dbNames.has(col)) return col;
-
-      // otherwise sanitize what they typed
       return toDbSafeKey(col);
     }).join(",");
   }
@@ -1108,6 +1252,8 @@ Example: "player_stats.account_id" → "${toDbSafeKey("player_stats.account_id")
     for(let i=0;i<chunks.length;i++){
       const batch = chunks[i];
       setStatus("upStatus", `Uploading ${i+1}/${chunks.length}…
+Dataset: ${ACTIVE?.label || "(unknown)"}
+Table: ${table}
 Batch size: ${batch.length}
 Uploaded: ${ok}/${total} • Failed: ${failed}
 
@@ -1151,6 +1297,7 @@ Uploaded: ${ok}/${total} • Failed: ${failed}`
 
     setProgress(100);
     setStatus("upStatus", `Done ✅
+Dataset: ${ACTIVE?.label || "(unknown)"}
 Uploaded: ${ok}/${total}
 Failed: ${failed}
 Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
@@ -1164,10 +1311,13 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   $("btnClear").addEventListener("click", ()=>{
     $("jsonText").value = "";
     $("pathText").value = "";
-    $("explodePaths").value = "player_stats";
+    $("explodePaths").value = "";
     $("fetchUrl").value = "";
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
+
+    $("autoExplode").checked = true;
+    $("autoMatchId").checked = true;
 
     $("defMode").value = "";
     $("defTournament").value = "";
@@ -1179,7 +1329,12 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
 
     $("autoTimestamps").checked = true;
 
-    RAW = null; ROWS = []; COLS = []; COLCFG = {};
+    RAW = null;
+    DATASETS = [];
+    ACTIVE = null;
+    ROWS = []; COLS = []; COLCFG = {};
+
+    $("datasetSelect").innerHTML = "";
     $("colList").innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
     $("theadRow").innerHTML = "";
     $("tbody").innerHTML = "";
@@ -1192,23 +1347,36 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
 
   $("btnSample").addEventListener("click", ()=>{
     const sample = {
-      data: {
-        matches: [
-          {
-            match_id: "1725487677733611520",
-            map: "Bermuda",
-            player_stats: [
-              { account_id: 111, nickname: "A1", team: "ABC", kills: 3, damage: 812 },
-              { account_id: 222, nickname: "A2", team: "ABC", kills: 2, damage: 540 },
-              { account_id: 333, nickname: "X1", team: "XYZ", kills: 1, damage: 220 }
-            ]
-          }
+      match: {
+        match_id: "2009641319939340288",
+        create_time: 1767970803,
+        end_time: 1767972005,
+        map_id: 4,
+        group_mode: 3,
+        game_mode: 1,
+        match_mode: 3,
+        match_stats_extra: {
+          circle_info: [
+            { circle_name:"Circle 0", circle_continue_time:"03:10", circle_remain_time:"04:00", x_coordinate:-28, y_coordinate:-42, radius:1000 },
+            { circle_name:"Circle 1", circle_continue_time:"00:30", circle_remain_time:"02:30", x_coordinate:5, y_coordinate:-29, radius:550 }
+          ],
+          spector_info: [
+            { spector_id:"5361762793", observer_id:"0", observer_name:"", observer_team_name:"" },
+            { spector_id:"5361459022", observer_id:"322494863", observer_name:"AlokBananaㅤ", observer_team_name:"ACD" }
+          ],
+          round_stats: []
+        },
+        player_stats: [
+          { account_id: 111, nickname: "A1", team: "ABC", kills: 3, damage: 812 },
+          { account_id: 222, nickname: "A2", team: "ABC", kills: 2, damage: 540 }
         ]
       }
     };
+
     $("jsonText").value = JSON.stringify(sample, null, 2);
-    $("pathText").value = "data.matches";
-    $("explodePaths").value = "player_stats";
+    $("pathText").value = ""; // root object -> base record auto-detect will find match? (base dataset still works)
+    $("explodePaths").value = ""; // no manual needed
+    $("autoExplode").checked = true;
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
 
@@ -1218,10 +1386,10 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("defYear").value = "2026";
     $("defWeek").value = "W1";
     $("defDay").value = "D1";
-    $("defMatchId").value = "1725487677733611520";
+    $("defMatchId").value = ""; // will infer from match.match_id
 
     setPill("neutral","Sample loaded");
-    setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
+    setStatus("parseStatus","Sample loaded. Click Parse & Build Datasets.");
   });
 
   $("fileInput").addEventListener("change", async (e)=>{
@@ -1231,12 +1399,11 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
       const txt = await f.text();
       $("jsonText").value = txt;
       setPill("neutral", "File loaded");
-      setStatus("parseStatus", `Loaded file: ${f.name}\nClick Parse & Build Table.`);
+      setStatus("parseStatus", `Loaded file: ${f.name}\nClick Parse & Build Datasets.`);
     }catch(err){
       setPill("bad","File read failed");
       setStatus("parseStatus", "Could not read file:\n" + err.message);
     } finally {
-      // allow selecting the same file again
       e.target.value = "";
     }
   });
@@ -1255,7 +1422,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
       const txt = await res.text();
       $("jsonText").value = txt;
       setPill("neutral","Fetched");
-      setStatus("parseStatus","Fetched OK. Click Parse & Build Table.");
+      setStatus("parseStatus","Fetched OK. Click Parse & Build Datasets.");
     }catch(e){
       setPill("bad","Fetch failed");
       setStatus("parseStatus",
@@ -1270,11 +1437,13 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
 
   $("btnAll").addEventListener("click", ()=>{
     for(const c of COLS){ COLCFG[c].include = true; }
+    if(ACTIVE) ACTIVE.colcfg = COLCFG;
     renderColList(); renderTable();
   });
 
   $("btnNone").addEventListener("click", ()=>{
     for(const c of COLS){ COLCFG[c].include = false; }
+    if(ACTIVE) ACTIVE.colcfg = COLCFG;
     renderColList(); renderTable();
   });
 
@@ -1302,14 +1471,16 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`
     });
 
     const csv = toCSV(normalized, cols);
-    downloadText("table_export.csv", csv, "text/csv");
+    const dsName = (ACTIVE?.key && ACTIVE.key !== "__base__") ? toDbSafeKey(ACTIVE.key) : "base";
+    downloadText(`table_export_${dsName}.csv`, csv, "text/csv");
   });
 
   $("btnJSON").addEventListener("click", ()=>{
     if(!ROWS.length){ alert("Parse JSON first."); return; }
     const rowMode = $("sbRows").value;
     const rows = buildUploadRows(rowMode);
-    downloadText("rows_export.json", JSON.stringify(rows, null, 2), "application/json");
+    const dsName = (ACTIVE?.key && ACTIVE.key !== "__base__") ? toDbSafeKey(ACTIVE.key) : "base";
+    downloadText(`rows_export_${dsName}.json`, JSON.stringify(rows, null, 2), "application/json");
   });
 
   // init
