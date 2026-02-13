@@ -741,8 +741,10 @@ let KEYS = {
   skillIds: [] // list of 4 keys if present
 };
 
-let ID_TO_NAME = new Map();        // from match_api
+let ID_TO_NAME = new Map();          // all types (optional use)
+let SKILL_ID_TO_NAME = new Map();    // ONLY type=2 (Active/Passive)
 let MAP_READY = false;
+
 
 /* ============ Schema detection ============ */
 function detectSchema(sample){
@@ -800,11 +802,24 @@ function mapNameFromId(id, fallback=''){
   return fallback || `ID ${key}`;
 }
 
+}
+
+// ✅ use this ONLY for active/passive skills
+function mapSkillFromId(id, fallback=''){
+  const key = String(id ?? '').trim();
+  if(!key) return fallback || '—';
+  if(SKILL_ID_TO_NAME.has(key)) return SKILL_ID_TO_NAME.get(key);
+  return fallback || `ID ${key}`;
+}
+
+
 async function loadMatchApi(){
   MAP_READY = false;
   ID_TO_NAME.clear();
+  SKILL_ID_TO_NAME.clear();
 
   try{
+    // Try: fetch all rows (safe) then split by type
     const { data, error } = await client
       .from(MAP_TABLE)
       .select('*')
@@ -819,25 +834,39 @@ async function loadMatchApi(){
       return;
     }
 
-    // detect id + name keys
     const allKeys = [...new Set(rows.flatMap(r=>Object.keys(r||{})))];
+
+    // detect id + name keys
     const idKey = pickKey(allKeys, [/^id$/i, /_id$/i, /\bid\b/i]) || 'id';
     const nameKeyK = pickKey(allKeys, [/^name$/i, /title/i, /label/i]) || 'name';
 
+    // detect type key
+    const typeKey = pickKey(allKeys, [/^type$/i, /api_type/i, /kind/i]) || 'type';
+
     for(const r of rows){
-      const id = String(r[idKey] ?? '').trim();
-      const nm = String(r[nameKeyK] ?? '').trim();
-      if(id && nm) ID_TO_NAME.set(id, nm);
+      const id = String(r?.[idKey] ?? '').trim();
+      const nm = String(r?.[nameKeyK] ?? '').trim();
+      if(!id || !nm) continue;
+
+      // keep full map (optional)
+      ID_TO_NAME.set(id, nm);
+
+      // ✅ only type=2 goes to skill map
+      const t = Number(r?.[typeKey]);
+      if(t === 2) SKILL_ID_TO_NAME.set(id, nm);
     }
 
-    el('diagMap').textContent = `match_api mapping: ${ID_TO_NAME.size} ids`;
-    MAP_READY = ID_TO_NAME.size > 0;
+    el('diagMap').textContent =
+      `match_api mapping: all=${ID_TO_NAME.size} • skills(type=2)=${SKILL_ID_TO_NAME.size}`;
+
+    MAP_READY = SKILL_ID_TO_NAME.size > 0;
   }catch(e){
     el('diagMap').textContent = 'match_api mapping: unavailable';
     console.warn('match_api load failed:', e?.message || e);
     MAP_READY = false;
   }
 }
+
 
 /* ============ Fetching ============ */
 async function headCount(){
@@ -1257,8 +1286,8 @@ function summarizeTeamLoadout(rows){
     if(pl) pet.set(pl, (pet.get(pl)||0)+1);
   }
 
-  const topAct = listTopCounts(act, 3).map(o=>`${mapNameFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') || '—';
-  const topPas = listTopCounts(pas, 5).map(o=>`${mapNameFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') || '—';
+  const topAct = listTopCounts(act, 3).map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') || '—';
+  const topPas = listTopCounts(pas, 5).map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') || '—';
   const topPet = listTopCounts(pet, 3).map(o=>`${o.name} (${o.picks})`).join(' • ') || '—';
 
   return { topAct, topPas, topPet };
@@ -1351,6 +1380,7 @@ function renderPlayersTable(teamRows){
     const topActive = listTopCounts(activeCount, 1)[0];
     const topPet = listTopCounts(petCount, 1)[0];
     const topPassives = listTopCounts(passiveCount, 3);
+    
 
     out.push({
       player,
@@ -1361,8 +1391,8 @@ function renderPlayersTable(teamRows){
       damage,
       dmg_pm: matches ? damage/matches : 0,
       avg_place,
-      active: topActive ? `${mapNameFromId(topActive.name, `ID ${topActive.name}`)} (${topActive.picks})` : '—',
-      passive: topPassives.length ? topPassives.map(p=>`${mapNameFromId(p.name, `ID ${p.name}`)} (${p.picks})`).join(' • ') : '—',
+      active: topActive ? `${mapSkillFromId(topActive.name, `ID ${topActive.name}`)} (${topActive.picks})` : '—',
+      passive: topPassives.length ? topPassives.map(p=>`${mapSkillFromId(p.name, `ID ${p.name}`)} (${p.picks})`).join(' • ') : '—',
       pet: topPet ? `${topPet.name} (${topPet.picks})` : '—'
     });
   }
@@ -1409,8 +1439,8 @@ function renderTeamUsageTables(teamRows){
     if(pl) pet.set(pl, (pet.get(pl)||0)+1);
   }
 
-  const actList = listTopCounts(act, topA).map((o,i)=>({rank:i+1, skill: mapNameFromId(o.name, `ID ${o.name}`), picks:o.picks}));
-  const pasList = listTopCounts(pas, topP).map((o,i)=>({rank:i+1, skill: mapNameFromId(o.name, `ID ${o.name}`), picks:o.picks}));
+  const actList = listTopCounts(act, topA).map((o,i)=>({rank:i+1, skill: mapSkillFromId(o.name, `ID ${o.name}`), picks:o.picks}));
+  const pasList = listTopCounts(pas, topP).map((o,i)=>({rank:i+1, skill: mapSkillFromId(o.name, `ID ${o.name}`), picks:o.picks}));
   const petList = listTopCounts(pet, topPet).map((o,i)=>({rank:i+1, pet:o.name, picks:o.picks}));
 
   el('tblActive').innerHTML = renderSimpleTable(actList, [
