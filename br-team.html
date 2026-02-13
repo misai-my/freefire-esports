@@ -1,0 +1,1118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FF Stats Viewer — Teams & Players</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#07090f; --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.10);
+      --ink:#f4f6ff; --muted:#aab1c5;
+      --brand:#ffbd59; --brand2:#ff7733; --accent:#4dd3ff;
+      --radius:16px; --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+      --good:#71d083; --bad:#ff6b6b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 15% -10%, rgba(77,211,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 90% 0%, rgba(255,189,89,.20), transparent 55%),
+        radial-gradient(900px 600px at 80% 110%, rgba(255,119,51,.16), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      font-family:var(--sans);
+      overflow-x:hidden;
+    }
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, rgba(7,9,15,.80), rgba(7,9,15,.55));
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{max-width:1400px;margin:0 auto;padding:14px 16px}
+    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:12px}
+    .fflogo{
+      width:44px;height:44px;border-radius:14px;
+      object-fit:contain;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 14px 40px rgba(0,0,0,.30);
+      padding:6px;
+    }
+    h1{font-size:16px;margin:0;letter-spacing:.3px}
+    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn, input, select, textarea{font-family:inherit}
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--ink);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .08s ease, border-color .2s ease, background .2s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.05)}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{
+      border-color: rgba(255,189,89,.35);
+      background: linear-gradient(180deg, rgba(255,189,89,.16), rgba(255,119,51,.10));
+    }
+    .btn.good{
+      border-color: rgba(113,208,131,.35);
+      background: linear-gradient(180deg, rgba(113,208,131,.16), rgba(113,208,131,.08));
+    }
+    .btn.bad{
+      border-color: rgba(255,107,107,.35);
+      background: linear-gradient(180deg, rgba(255,107,107,.16), rgba(255,107,107,.08));
+    }
+
+    main{max-width:1400px;margin:0 auto;padding:16px}
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 1100px){ .grid{grid-template-columns:1fr} }
+
+    .card{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .card .hd h2{font-size:14px;margin:0;letter-spacing:.25px}
+    .card .bd{padding:14px}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .row + .row{margin-top:10px}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:180px;flex:1}
+    label{font-size:12px;color:var(--muted)}
+
+    input[type="text"], input[type="password"], input[type="number"], select, textarea{
+      width:100%;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      color: var(--ink);
+      border-radius: 12px;
+      padding:10px 10px;
+      outline:none;
+    }
+    select{
+      color-scheme: dark;
+      background: rgba(0,0,0,.25);
+      color: var(--ink);
+    }
+    select option, select optgroup{
+      background-color: #0b1020;
+      color: var(--ink);
+    }
+    input:focus, textarea:focus, select:focus{
+      border-color: rgba(77,211,255,.45);
+      box-shadow: 0 0 0 3px rgba(77,211,255,.12);
+    }
+    .hint{font-size:12px;color:var(--muted);line-height:1.3}
+
+    .pill{
+      font-size:12px; padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color:var(--ink);
+      display:inline-flex;gap:8px;align-items:center;
+      white-space:nowrap;
+    }
+    .dot{width:8px;height:8px;border-radius:50%}
+    .dot.good{background:var(--good)}
+    .dot.bad{background:var(--bad)}
+    .dot.neutral{background:var(--accent)}
+
+    .status{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      font-size:12px;
+      color: rgba(244,246,255,.92);
+      line-height:1.35;
+      white-space:pre-wrap;
+    }
+
+    .checkrow{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      background: rgba(0,0,0,.18);
+    }
+    .checkrow input{width:auto}
+
+    /* Results */
+    .metaBar{
+      display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .teamGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px;
+    }
+    @media (max-width: 900px){ .teamGrid{grid-template-columns:1fr} }
+
+    details.team{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+    }
+    details.team > summary{
+      list-style:none;
+      cursor:pointer;
+      padding:12px 12px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      user-select:none;
+    }
+    details.team > summary::-webkit-details-marker{display:none}
+    .tLeft{display:flex;align-items:center;gap:10px;min-width:0}
+    .tLogo{
+      width:40px;height:40px;border-radius:12px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      display:grid;place-items:center;
+      flex:0 0 auto;
+    }
+    .tLogo img{width:100%;height:100%;object-fit:cover}
+    .tName{display:flex;flex-direction:column;min-width:0}
+    .tName b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tName span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tRight{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+    .kpiRow{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:8px;
+      padding:12px;
+    }
+    @media (max-width: 520px){ .kpiRow{grid-template-columns: repeat(2, minmax(0,1fr));} }
+    .kpi{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      border-radius:14px;
+      padding:10px 10px;
+    }
+    .kpi .k{font-size:11px;color:var(--muted)}
+    .kpi .v{font-size:16px;margin-top:2px;letter-spacing:.2px}
+
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    thead th{
+      background: rgba(7,9,15,.92);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      padding:10px 10px;
+      text-align:left;
+      white-space:nowrap;
+      position:sticky; top:0; z-index:1;
+    }
+    tbody td{
+      border-top:1px solid rgba(255,255,255,.06);
+      padding:8px 10px;
+      vertical-align:top;
+      max-width: 420px;
+      word-break: break-word;
+      color: rgba(244,246,255,.92);
+    }
+    tbody tr:hover td{background: rgba(255,255,255,.03)}
+    .tableWrap{
+      max-height:360px;
+      overflow:auto;
+      border-top:1px solid rgba(255,255,255,.06);
+    }
+
+    .chips{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: rgba(244,246,255,.92);
+      max-width: 100%;
+    }
+
+    .mono{font-family:var(--mono)}
+    .small{font-size:11px;color:var(--muted)}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <img class="fflogo"
+             src="https://upload.wikimedia.org/wikipedia/en/7/7d/Garena_Free_Fire_logo.png"
+             alt="Free Fire"
+             onerror="this.style.display='none'"/>
+        <div>
+          <h1>FF Stats Viewer — Teams & Players</h1>
+          <div class="sub">Reads from <span class="mono">ff_stats_raw</span> and summarizes team/player skills + stats.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="pill" id="pillConn"><span class="dot neutral"></span><span id="pillConnText">Not connected</span></span>
+        <button class="btn" id="btnLoadSchema">Load columns</button>
+        <button class="btn primary" id="btnRun">Refresh</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+
+    <!-- LEFT: Controls -->
+    <section class="card">
+      <div class="hd">
+        <h2>Connection, Filters, Mapping</h2>
+        <span class="pill"><span class="dot neutral"></span><span id="metaText">0 teams • 0 players</span></span>
+      </div>
+      <div class="bd">
+
+        <div class="row">
+          <div class="field" style="min-width:240px">
+            <label>Supabase URL</label>
+            <input id="sbUrl" type="text" placeholder="https://xxxx.supabase.co">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="min-width:240px">
+            <label>Supabase anon key</label>
+            <input id="sbKey" type="password" placeholder="anon public key">
+            <div class="hint">This page uses anon; make sure SELECT policy allows anon if you want it public.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Table</label>
+            <input id="sbTable" type="text" value="ff_stats_raw">
+          </div>
+          <div class="field">
+            <label>Max rows to scan</label>
+            <input id="maxScan" type="number" min="100" step="100" value="5000">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label>Auto-refresh on filter change</label>
+            <div class="checkrow">
+              <input id="autoRefresh" type="checkbox" checked>
+              <div>
+                <div style="font-size:12px">Apply filters automatically (debounced)</div>
+                <div class="small">Turn off if your table is huge.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Mode</label>
+            <select id="fMode">
+              <option value="">(All)</option>
+              <option value="BR" selected>BR</option>
+              <option value="CS">CS</option>
+            </select>
+          </div>
+          <div class="field"><label>Year</label><input id="fYear" type="text" placeholder="e.g. 2025"></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Tournament</label><input id="fTournament" type="text" placeholder="e.g. FFWS Global Finals 2025"></div>
+          <div class="field"><label>Stage</label><input id="fStage" type="text" placeholder="e.g. Finals"></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Week</label><input id="fWeek" type="text" placeholder="e.g. W1 / 1"></div>
+          <div class="field"><label>Day</label><input id="fDay" type="text" placeholder="e.g. D1 / 1"></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Match Number</label><input id="fMatchNo" type="text" placeholder="e.g. 1"></div>
+          <div class="field"><label>Match ID</label><input id="fMatchId" type="text" placeholder="e.g. 1725487677..."></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Team search</label><input id="fTeamQ" type="text" placeholder="team name/code contains..."></div>
+          <div class="field"><label>Player search</label><input id="fPlayerQ" type="text" placeholder="nickname contains..."></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row" style="align-items:flex-end">
+          <div class="field">
+            <label>Column mapping (auto-detect after “Load columns”)</label>
+            <div class="hint">If your column names differ, pick the correct ones here.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Team ID</label><select id="mTeamId"></select></div>
+          <div class="field"><label>Team Name</label><select id="mTeamName"></select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Player ID</label><select id="mPlayerId"></select></div>
+          <div class="field"><label>Player Name</label><select id="mPlayerName"></select></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Active Skill</label><select id="mActive"></select></div>
+          <div class="field"><label>Passive Skills (comma cols)</label><input id="mPassives" type="text" placeholder="e.g. passive1,passive2 or player_stats_skill_ids_0_..."></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Pet</label><select id="mPet"></select></div>
+          <div class="field"><label>Team Logo URL (optional)</label><select id="mLogo"></select></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Elims / Kills</label><select id="mElims"></select></div>
+          <div class="field"><label>Damage</label><select id="mDamage"></select></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Placement Points</label><select id="mPlacePts"></select></div>
+          <div class="field"><label>Ranking Score (treated as Placement)</label><select id="mRankScore"></select></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Rank / Placement (1=Booyah)</label><select id="mRank"></select></div>
+          <div class="field"><label>Booyah flag (optional)</label><select id="mBooyah"></select></div>
+        </div>
+
+        <div class="row">
+          <div class="field"><label>Match Number column</label><select id="mMatchNo"></select></div>
+          <div class="field"><label>Match ID column</label><select id="mMatchId"></select></div>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="btnAutoMap">Auto-map</button>
+          <button class="btn bad" id="btnReset">Reset page</button>
+        </div>
+
+        <div class="status" id="status">Tip: Click “Load columns” first, then “Auto-map”, then “Refresh”.</div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Results -->
+    <section class="card">
+      <div class="hd">
+        <h2>Teams</h2>
+        <span class="pill"><span class="dot neutral"></span><span id="scanText">0 rows loaded</span></span>
+      </div>
+      <div class="bd">
+        <div class="metaBar">
+          <div class="small" id="subtitle">—</div>
+          <div class="actions">
+            <button class="btn" id="btnCollapse">Collapse all</button>
+            <button class="btn" id="btnExpand">Expand all</button>
+          </div>
+        </div>
+        <div class="teamGrid" id="teamGrid">
+          <div class="small" style="color:var(--muted)">No data yet.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+
+  // ---------- UI helpers ----------
+  function setConn(state, text){
+    const dot = $("pillConn").querySelector(".dot");
+    dot.classList.remove("good","bad","neutral");
+    dot.classList.add(state);
+    $("pillConnText").textContent = text;
+  }
+  function setStatus(msg, isErr=false){
+    const el = $("status");
+    el.textContent = msg ?? "";
+    el.style.borderColor = isErr ? "rgba(255,107,107,.35)" : "rgba(255,255,255,.10)";
+    el.style.background  = isErr ? "rgba(255,107,107,.08)" : "rgba(0,0,0,.18)";
+  }
+  function safeNum(v){
+    const n = typeof v === "number" ? v : parseFloat((v ?? "").toString().replace(/,/g,""));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function safeStr(v){
+    if(v === null || v === undefined) return "";
+    return (typeof v === "string") ? v : String(v);
+  }
+  function uniq(arr){ return Array.from(new Set(arr.filter(x=>x!=null && x!==""))); }
+
+  function debounce(fn, ms){
+    let t=null;
+    return (...args)=>{
+      clearTimeout(t);
+      t=setTimeout(()=>fn(...args), ms);
+    };
+  }
+
+  // ---------- Supabase ----------
+  function makeClient(){
+    const url = $("sbUrl").value.trim();
+    const key = $("sbKey").value.trim();
+    if(!url || !key) return null;
+    return supabase.createClient(url, key, {
+      auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false }
+    });
+  }
+
+  // ---------- Column mapping ----------
+  let ALL_COLS = [];
+  function fillSelect(selId, cols){
+    const sel = $(selId);
+    sel.innerHTML = "";
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "(none)";
+    sel.appendChild(opt0);
+    for(const c of cols){
+      const o = document.createElement("option");
+      o.value = c;
+      o.textContent = c;
+      sel.appendChild(o);
+    }
+  }
+
+  function bestCol(regexList){
+    const cols = ALL_COLS;
+    for(const rx of regexList){
+      const found = cols.find(c => rx.test(c));
+      if(found) return found;
+    }
+    return "";
+  }
+
+  function autoMap(){
+    // Heuristics for your uploader defaults:
+    // match_id, team_id, player_stats_account_id are common.
+    $("mTeamId").value    = bestCol([/^team_id$/i, /team.*_id$/i, /team_stats.*team_id/i]);
+    $("mTeamName").value  = bestCol([/^team_name$/i, /team.*name/i, /team_tag/i, /team_code/i]);
+    $("mPlayerId").value  = bestCol([/^player_stats_account_id$/i, /account_id$/i, /player.*_id$/i, /player_stats.*account_id/i]);
+    $("mPlayerName").value= bestCol([/^player_stats_nickname$/i, /nickname$/i, /player.*name/i, /ign/i]);
+
+    $("mActive").value    = bestCol([/active.*skill/i, /skill_active/i, /character_active/i]);
+    $("mPet").value       = bestCol([/^pet_id$/i, /pet.*id/i, /pet_name/i]);
+
+    $("mElims").value     = bestCol([/^kills$/i, /^elims$/i, /elim/i, /frag/i]);
+    $("mDamage").value    = bestCol([/^damage$/i, /dmg/i]);
+
+    $("mPlacePts").value  = bestCol([/placement.*points/i, /^placement_points$/i, /place_pts/i]);
+    $("mRankScore").value = bestCol([/ranking_score/i, /rank_score/i, /score_rank/i]);
+    $("mRank").value      = bestCol([/^rank$/i, /placement$/i, /place$/i, /team_rank/i]);
+    $("mBooyah").value    = bestCol([/booyah/i, /is_booyah/i]);
+
+    $("mMatchNo").value   = bestCol([/match_number/i, /match_no/i, /^game$/i, /round/i]);
+    $("mMatchId").value   = bestCol([/^match_id$/i, /matchid/i]);
+
+    $("mLogo").value      = bestCol([/logo_url/i, /team_logo/i, /logo/i]);
+
+    // Passives: leave as text; try best guess and prefill if obvious
+    const passiveGuess = ALL_COLS.filter(c => /passive/i.test(c)).slice(0,4);
+    if(passiveGuess.length) $("mPassives").value = passiveGuess.join(",");
+  }
+
+  // ---------- Load columns ----------
+  async function loadColumns(){
+    const sb = makeClient();
+    const table = $("sbTable").value.trim();
+    if(!sb || !table){
+      setConn("bad","Missing URL/key/table");
+      setStatus("Enter Supabase URL + anon key + table name.", true);
+      return;
+    }
+    setConn("neutral","Checking…");
+    setStatus("Loading a sample row to infer columns…");
+
+    // Save connection
+    localStorage.setItem("ffv_sbUrl", $("sbUrl").value.trim());
+    localStorage.setItem("ffv_sbKey", $("sbKey").value.trim());
+    localStorage.setItem("ffv_sbTable", table);
+
+    try{
+      const { data, error } = await sb.from(table).select("*").limit(1);
+      if(error){
+        console.error(error);
+        setConn("bad","RLS/perm error");
+        setStatus("Supabase error:\n"+JSON.stringify(error,null,2)+"\n\nIf this is a SELECT permission/RLS issue, add an anon SELECT policy (see SQL snippet below).", true);
+        return;
+      }
+      const row = (data && data[0]) ? data[0] : {};
+      ALL_COLS = Object.keys(row || {});
+      ALL_COLS.sort((a,b)=>a.localeCompare(b));
+
+      // Populate mapping selects
+      const sels = ["mTeamId","mTeamName","mPlayerId","mPlayerName","mActive","mPet","mElims","mDamage","mPlacePts","mRankScore","mRank","mBooyah","mMatchNo","mMatchId","mLogo"];
+      for(const s of sels) fillSelect(s, ALL_COLS);
+
+      autoMap();
+      setConn("good","Connected");
+      setStatus(`Loaded ${ALL_COLS.length} columns from ${table}.\nNow click “Refresh” to load & summarize.`);
+    }catch(e){
+      setConn("bad","Network error");
+      setStatus("Network/runtime error:\n"+e.message, true);
+    }
+  }
+
+  // ---------- Fetch rows with pagination ----------
+  async function fetchRows(){
+    const sb = makeClient();
+    const table = $("sbTable").value.trim();
+    if(!sb || !table){
+      setStatus("Missing Supabase URL / anon key / table.", true);
+      return [];
+    }
+    const maxScan = Math.max(100, parseInt($("maxScan").value||"5000",10));
+
+    // Columns used for filtering
+    // (We use common column names if present; otherwise ignore silently)
+    const where = [];
+
+    const fMode = $("fMode").value.trim();
+    const fYear = $("fYear").value.trim();
+    const fTournament = $("fTournament").value.trim();
+    const fStage = $("fStage").value.trim();
+    const fWeek = $("fWeek").value.trim();
+    const fDay = $("fDay").value.trim();
+    const fMatchNo = $("fMatchNo").value.trim();
+    const fMatchId = $("fMatchId").value.trim();
+
+    // We will attempt filters on these exact column names if they exist.
+    // If your table uses different names, map them in your uploader OR add columns accordingly.
+    const tryEq = (q, col, val)=>{
+      if(!val) return q;
+      if(!ALL_COLS.includes(col)) return q;
+      return q.eq(col, val);
+    };
+    const tryIlike = (q, col, val)=>{
+      if(!val) return q;
+      if(!ALL_COLS.includes(col)) return q;
+      return q.ilike(col, `%${val}%`);
+    };
+
+    let all = [];
+    const pageSize = 1000;
+    for(let offset=0; offset<maxScan; offset += pageSize){
+      let q = sb.from(table).select("*").range(offset, offset + pageSize - 1);
+
+      // Basic ordering if possible
+      if(ALL_COLS.includes("match_id")) q = q.order("match_id", {ascending:false});
+      else if(ALL_COLS.includes("created_at")) q = q.order("created_at", {ascending:false});
+
+      q = tryEq(q, "Mode", fMode);
+      q = tryEq(q, "Year", fYear);
+      q = tryEq(q, "Tournament", fTournament);
+      q = tryEq(q, "Stage", fStage);
+      q = tryEq(q, "Week", fWeek);
+      q = tryEq(q, "Day", fDay);
+
+      // Match Number / Match ID: if you mapped different columns, we also try mapped ones below in-memory
+      q = tryEq(q, "match_number", fMatchNo);
+      q = tryEq(q, "match_id", fMatchId);
+
+      const { data, error } = await q;
+      if(error){
+        console.error(error);
+        setStatus("Supabase error:\n"+JSON.stringify(error,null,2), true);
+        break;
+      }
+      if(!data || !data.length) break;
+
+      all = all.concat(data);
+      $("scanText").textContent = `${all.length} rows loaded`;
+      if(all.length >= maxScan) break;
+      if(data.length < pageSize) break;
+    }
+
+    return all;
+  }
+
+  // ---------- Aggregation logic ----------
+  function getMapped(row, selId){
+    const col = $(selId).value;
+    if(!col) return null;
+    return row[col];
+  }
+  function parsePassiveCols(){
+    return ($("mPassives").value || "").split(",").map(s=>s.trim()).filter(Boolean);
+  }
+
+  function inferBooyahFromRow(row){
+    const booyahCol = $("mBooyah").value;
+    if(booyahCol){
+      const v = row[booyahCol];
+      if(typeof v === "boolean") return v;
+      const s = safeStr(v).toLowerCase();
+      if(["1","true","yes","y"].includes(s)) return true;
+      if(["0","false","no","n"].includes(s)) return false;
+    }
+    const rankCol = $("mRank").value;
+    if(rankCol){
+      const r = safeNum(row[rankCol]);
+      if(r === 1) return true;
+    }
+    return false;
+  }
+
+  function keyTeam(row){
+    const id = safeStr(getMapped(row,"mTeamId") ?? "").trim();
+    const nm = safeStr(getMapped(row,"mTeamName") ?? "").trim();
+    return id || nm || "UNKNOWN_TEAM";
+  }
+  function teamLabel(row){
+    const nm = safeStr(getMapped(row,"mTeamName") ?? "").trim();
+    const id = safeStr(getMapped(row,"mTeamId") ?? "").trim();
+    return nm || (id ? `Team ${id}` : "Unknown Team");
+  }
+  function teamLogo(row){
+    const v = getMapped(row,"mLogo");
+    const s = safeStr(v).trim();
+    return s || "";
+  }
+  function keyPlayer(row){
+    const id = safeStr(getMapped(row,"mPlayerId") ?? "").trim();
+    const nm = safeStr(getMapped(row,"mPlayerName") ?? "").trim();
+    return id || nm || "UNKNOWN_PLAYER";
+  }
+  function playerLabel(row){
+    const nm = safeStr(getMapped(row,"mPlayerName") ?? "").trim();
+    const id = safeStr(getMapped(row,"mPlayerId") ?? "").trim();
+    return nm || (id ? `Player ${id}` : "Unknown Player");
+  }
+
+  function applyTextFilters(rows){
+    const tq = $("fTeamQ").value.trim().toLowerCase();
+    const pq = $("fPlayerQ").value.trim().toLowerCase();
+    const fMatchNo = $("fMatchNo").value.trim();
+    const fMatchId = $("fMatchId").value.trim();
+
+    const matchNoCol = $("mMatchNo").value || "match_number";
+    const matchIdCol = $("mMatchId").value || "match_id";
+
+    return rows.filter(r=>{
+      if(tq){
+        const t = (safeStr(getMapped(r,"mTeamName")) + " " + safeStr(getMapped(r,"mTeamId"))).toLowerCase();
+        if(!t.includes(tq)) return false;
+      }
+      if(pq){
+        const p = (safeStr(getMapped(r,"mPlayerName")) + " " + safeStr(getMapped(r,"mPlayerId"))).toLowerCase();
+        if(!p.includes(pq)) return false;
+      }
+      // If your DB uses different match columns, this uses mapped match column first.
+      if(fMatchNo){
+        const v = safeStr(r[matchNoCol] ?? "");
+        if(v !== safeStr(fMatchNo)) return false;
+      }
+      if(fMatchId){
+        const v = safeStr(r[matchIdCol] ?? "");
+        if(v !== safeStr(fMatchId)) return false;
+      }
+      return true;
+    });
+  }
+
+  function summarize(rows){
+    // Team bucket -> match bucket to dedup placement/rank per match
+    const teams = new Map();
+
+    const passiveCols = parsePassiveCols();
+
+    for(const r of rows){
+      const tKey = keyTeam(r);
+      if(!teams.has(tKey)){
+        teams.set(tKey, {
+          teamKey: tKey,
+          name: teamLabel(r),
+          logo: teamLogo(r),
+          matches: new Map(), // matchKey -> {booyah, placePts, rankScore, rank, elimsTeam, dmgTeam}
+          players: new Map(), // playerKey -> stats
+        });
+      }
+      const T = teams.get(tKey);
+
+      // Match key dedup
+      const matchIdCol = $("mMatchId").value || "match_id";
+      const matchKey = safeStr(r[matchIdCol] ?? "") || "__no_match__";
+
+      if(!T.matches.has(matchKey)){
+        T.matches.set(matchKey, {
+          booyah: false,
+          placePts: 0,
+          rankScore: 0,
+          rank: null,
+          // team totals (optional) - left as 0; we’ll compute from players unless your table has team_* columns
+          elimsTeam: 0,
+          dmgTeam: 0,
+        });
+      }
+      const M = T.matches.get(matchKey);
+
+      // Placement-related (dedup per match): take max (safer if repeated per player)
+      const placePts = safeNum(getMapped(r,"mPlacePts"));
+      const rankScore = safeNum(getMapped(r,"mRankScore"));
+      const rank = ( $("mRank").value ? getMapped(r,"mRank") : null );
+      if(placePts > M.placePts) M.placePts = placePts;
+      if(rankScore > M.rankScore) M.rankScore = rankScore;
+
+      // rank: keep best numeric if possible
+      if(rank != null && rank !== ""){
+        const rn = safeNum(rank);
+        if(rn > 0){
+          if(M.rank == null || rn < safeNum(M.rank)) M.rank = rn;
+        } else if(M.rank == null){
+          M.rank = rank;
+        }
+      }
+
+      // booyah: any row indicates booyah for the match
+      if(inferBooyahFromRow(r)) M.booyah = true;
+
+      // Player stats
+      const pKey = keyPlayer(r);
+      if(!T.players.has(pKey)){
+        T.players.set(pKey, {
+          key: pKey,
+          name: playerLabel(r),
+          activeCounts: new Map(),
+          passiveCounts: new Map(),
+          petCounts: new Map(),
+          elims: 0,
+          damage: 0,
+          matches: new Set(),
+        });
+      }
+      const P = T.players.get(pKey);
+
+      P.elims += safeNum(getMapped(r,"mElims"));
+      P.damage += safeNum(getMapped(r,"mDamage"));
+      P.matches.add(matchKey);
+
+      // active skill
+      const a = safeStr(getMapped(r,"mActive")).trim();
+      if(a){
+        P.activeCounts.set(a, (P.activeCounts.get(a)||0)+1);
+      }
+      // pet
+      const pet = safeStr(getMapped(r,"mPet")).trim();
+      if(pet){
+        P.petCounts.set(pet, (P.petCounts.get(pet)||0)+1);
+      }
+      // passives: we accept comma columns (each cell value)
+      const passiveVals = passiveCols
+        .map(c => safeStr(r[c]).trim())
+        .filter(Boolean);
+
+      if(passiveVals.length){
+        const combo = passiveVals.join(" • ");
+        P.passiveCounts.set(combo, (P.passiveCounts.get(combo)||0)+1);
+      }
+    }
+
+    // Produce final summaries
+    const outTeams = [];
+    let totalPlayers = 0;
+
+    for(const [k, T] of teams.entries()){
+      // Team totals (dedup placement by match):
+      const matchList = Array.from(T.matches.values());
+      const matchCount = T.matches.size;
+
+      const booyahs = matchList.reduce((acc,m)=>acc + (m.booyah?1:0), 0);
+      const placementPts = matchList.reduce((acc,m)=>acc + safeNum(m.placePts), 0);
+
+      // "ranking_score as placement" (your request)
+      const placementFromRankScore = matchList.reduce((acc,m)=>acc + safeNum(m.rankScore), 0);
+
+      // Team elims/dmg: sum players (assumes player rows)
+      let teamElims = 0, teamDmg = 0;
+      for(const P of T.players.values()){
+        teamElims += P.elims;
+        teamDmg += P.damage;
+      }
+
+      // Player rows
+      const players = Array.from(T.players.values()).map(P=>{
+        totalPlayers++;
+
+        const best = (map)=>{
+          let top = "", topN = -1;
+          for(const [val, n] of map.entries()){
+            if(n > topN){ topN = n; top = val; }
+          }
+          return top || "";
+        };
+        const top3 = (map)=>{
+          const arr = Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,3);
+          return arr.map(([v,n])=>({v,n}));
+        };
+
+        return {
+          key: P.key,
+          name: P.name,
+          matches: P.matches.size,
+          elims: P.elims,
+          damage: P.damage,
+          activeTop: best(P.activeCounts),
+          passiveTop: best(P.passiveCounts),
+          petTop: best(P.petCounts),
+          activeTop3: top3(P.activeCounts),
+          passiveTop3: top3(P.passiveCounts),
+          petTop3: top3(P.petCounts),
+        };
+      });
+
+      players.sort((a,b)=> (b.elims - a.elims) || (b.damage - a.damage) || a.name.localeCompare(b.name));
+
+      outTeams.push({
+        teamKey: T.teamKey,
+        name: T.name,
+        logo: T.logo,
+        matches: matchCount,
+        booyahs,
+        elims: teamElims,
+        damage: teamDmg,
+        placementPts,
+        placementFromRankScore,
+        players,
+      });
+    }
+
+    // Sort teams by total points-ish: booyah -> placement -> elims
+    outTeams.sort((a,b)=>{
+      const aScore = (a.booyahs*1000) + a.placementPts + a.placementFromRankScore + a.elims*0.01;
+      const bScore = (b.booyahs*1000) + b.placementPts + b.placementFromRankScore + b.elims*0.01;
+      return (bScore - aScore) || a.name.localeCompare(b.name);
+    });
+
+    $("metaText").textContent = `${outTeams.length} teams • ${totalPlayers} players`;
+    return outTeams;
+  }
+
+  // ---------- Render ----------
+  function fmt(n){
+    if(!Number.isFinite(n)) return "0";
+    if(Math.abs(n) >= 1000) return Math.round(n).toLocaleString();
+    return (Math.round(n*10)/10).toString();
+  }
+
+  function chipsFromTop3(list){
+    if(!list || !list.length) return `<span class="small">—</span>`;
+    return `<div class="chips">` + list.map(x=>`<span class="chip" title="count: ${x.n}">${escapeHtml(x.v)}</span>`).join("") + `</div>`;
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+  }
+
+  function renderTeams(teamSummaries){
+    const grid = $("teamGrid");
+    if(!teamSummaries.length){
+      grid.innerHTML = `<div class="small" style="color:var(--muted)">No rows matched your filters.</div>`;
+      return;
+    }
+
+    grid.innerHTML = "";
+    for(const T of teamSummaries){
+      const det = document.createElement("details");
+      det.className = "team";
+      det.open = true;
+
+      const logoHtml = T.logo
+        ? `<img src="${escapeHtml(T.logo)}" onerror="this.closest('.tLogo').textContent='🏷️'">`
+        : `🏷️`;
+
+      det.innerHTML = `
+        <summary>
+          <div class="tLeft">
+            <div class="tLogo">${logoHtml}</div>
+            <div class="tName">
+              <b title="${escapeHtml(T.name)}">${escapeHtml(T.name)}</b>
+              <span class="mono">${escapeHtml(T.teamKey)}</span>
+            </div>
+          </div>
+          <div class="tRight">
+            <span class="pill" title="Matches"><span class="dot neutral"></span>${T.matches} M</span>
+            <span class="pill" title="Booyah"><span class="dot good"></span>${T.booyahs} B</span>
+            <span class="pill" title="Eliminations"><span class="dot neutral"></span>${fmt(T.elims)} E</span>
+          </div>
+        </summary>
+
+        <div class="kpiRow">
+          <div class="kpi"><div class="k">Booyah</div><div class="v">${T.booyahs}</div></div>
+          <div class="kpi"><div class="k">Elims</div><div class="v">${fmt(T.elims)}</div></div>
+          <div class="kpi"><div class="k">Placement Pts</div><div class="v">${fmt(T.placementPts)}</div></div>
+          <div class="kpi"><div class="k">Placement (Ranking Score)</div><div class="v">${fmt(T.placementFromRankScore)}</div></div>
+          <div class="kpi"><div class="k">Damage</div><div class="v">${fmt(T.damage)}</div></div>
+          <div class="kpi"><div class="k">Avg Elims / Match</div><div class="v">${fmt(T.matches ? T.elims/T.matches : 0)}</div></div>
+          <div class="kpi"><div class="k">Avg Placement Pts / Match</div><div class="v">${fmt(T.matches ? T.placementPts/T.matches : 0)}</div></div>
+          <div class="kpi"><div class="k">Players</div><div class="v">${T.players.length}</div></div>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Active</th>
+                <th>Passives</th>
+                <th>Pet</th>
+                <th>Matches</th>
+                <th>Elims</th>
+                <th>Damage</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${T.players.map(p=>`
+                <tr>
+                  <td><b>${escapeHtml(p.name)}</b><div class="small mono">${escapeHtml(p.key)}</div></td>
+                  <td>${p.activeTop ? `<span class="chip">${escapeHtml(p.activeTop)}</span>` : `<span class="small">—</span>`}</td>
+                  <td>${p.passiveTop ? `<span class="chip">${escapeHtml(p.passiveTop)}</span>` : `<span class="small">—</span>`}</td>
+                  <td>${p.petTop ? `<span class="chip">${escapeHtml(p.petTop)}</span>` : `<span class="small">—</span>`}</td>
+                  <td>${p.matches}</td>
+                  <td>${fmt(p.elims)}</td>
+                  <td>${fmt(p.damage)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="padding:12px">
+          <div class="small" style="margin-bottom:6px">Top Skills/Pets (first 3 per player are counted by frequency). If your table stores IDs, these will be IDs unless you join a reference table.</div>
+        </div>
+      `;
+
+      grid.appendChild(det);
+    }
+  }
+
+  // ---------- Run pipeline ----------
+  const run = async ()=>{
+    if(!ALL_COLS.length){
+      setStatus("Load columns first (click “Load columns”).", true);
+      return;
+    }
+    setStatus("Loading rows…");
+    $("teamGrid").innerHTML = `<div class="small" style="color:var(--muted)">Loading…</div>`;
+    $("scanText").textContent = "0 rows loaded";
+
+    const raw = await fetchRows();
+    const filtered = applyTextFilters(raw);
+
+    // subtitle
+    $("subtitle").textContent =
+      `Rows: ${filtered.length} (scanned ${raw.length}) • ` +
+      `Filters: Mode=${$("fMode").value||"All"}, Year=${$("fYear").value||"All"}, ` +
+      `Tournament=${$("fTournament").value||"All"}, Stage=${$("fStage").value||"All"}`;
+
+    const teams = summarize(filtered);
+    renderTeams(teams);
+
+    setStatus(`Done.\nTeams: ${teams.length}\nRows used: ${filtered.length}`);
+  };
+
+  const debouncedRun = debounce(()=>{ if($("autoRefresh").checked) run(); }, 450);
+
+  // ---------- Events ----------
+  $("btnLoadSchema").addEventListener("click", loadColumns);
+  $("btnAutoMap").addEventListener("click", ()=>{
+    if(!ALL_COLS.length){ setStatus("Load columns first.", true); return; }
+    autoMap();
+    setStatus("Auto-map applied. Click Refresh to re-run.");
+  });
+  $("btnRun").addEventListener("click", run);
+
+  $("btnCollapse").addEventListener("click", ()=>{
+    document.querySelectorAll("details.team").forEach(d=>d.open=false);
+  });
+  $("btnExpand").addEventListener("click", ()=>{
+    document.querySelectorAll("details.team").forEach(d=>d.open=true);
+  });
+
+  // auto refresh hooks
+  ["fMode","fYear","fTournament","fStage","fWeek","fDay","fMatchNo","fMatchId","fTeamQ","fPlayerQ"].forEach(id=>{
+    $(id).addEventListener("input", debouncedRun);
+    $(id).addEventListener("change", debouncedRun);
+  });
+
+  // persist connection
+  ["sbUrl","sbKey","sbTable"].forEach(id=>{
+    $(id).addEventListener("change", ()=>{
+      localStorage.setItem("ffv_"+id, $(id).value.trim());
+    });
+  });
+
+  $("btnReset").addEventListener("click", ()=>{
+    localStorage.removeItem("ffv_sbUrl");
+    localStorage.removeItem("ffv_sbKey");
+    localStorage.removeItem("ffv_sbTable");
+    location.reload();
+  });
+
+  // init from storage
+  (function init(){
+    $("sbUrl").value = localStorage.getItem("ffv_sbUrl") || "";
+    $("sbKey").value = localStorage.getItem("ffv_sbKey") || "";
+    $("sbTable").value = localStorage.getItem("ffv_sbTable") || "ff_stats_raw";
+
+    setConn("neutral","Not connected");
+    setStatus("1) Enter URL + anon key\n2) Click “Load columns”\n3) Click “Auto-map” (optional)\n4) Click “Refresh”");
+  })();
+</script>
+
+<!--
+SQL (if you want anon to read the table publicly):
+
+grant usage on schema public to anon;
+grant select on table public.ff_stats_raw to anon;
+
+alter table public.ff_stats_raw enable row level security;
+
+drop policy if exists anon_select_ff_stats_raw on public.ff_stats_raw;
+create policy anon_select_ff_stats_raw
+on public.ff_stats_raw
+for select
+to anon
+using (true);
+
+(If you ONLY want authenticated users to read, create a policy to authenticated instead.)
+-->
+
+</body>
+</html>
