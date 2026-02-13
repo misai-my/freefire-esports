@@ -111,8 +111,6 @@
       padding:10px 10px;
       outline:none;
     }
-
-    /* ✅ Prevent white-on-white dropdowns (options) */
     select{
       color-scheme: dark;
       background: rgba(0,0,0,.25);
@@ -309,16 +307,16 @@
           <div class="field" style="min-width:220px;flex:.8">
             <label>Flatten arrays of objects</label>
             <select id="arrMode">
-              <option value="keep">Keep as JSON</option>
-              <option value="index" selected>Explode to columns with [index] (teams[0].tag)</option>
+              <option value="keep" selected>Keep as JSON</option>
+              <option value="index">Explode to columns with [index] (teams[0].tag)</option>
             </select>
-            <div class="hint">Index mode is good for small fixed arrays. For stats tables, use “Explode dataset”.</div>
+            <div class="hint">Keep as JSON is safest for big/nested data.</div>
           </div>
 
           <div class="field" style="min-width:260px;flex:1.2">
             <label>Explode paths (editable, comma-separated)</label>
-            <input id="explodePaths" type="text" value="team_stats" placeholder="e.g. team_stats"/>
-            <div class="hint">If Auto-detect is OFF, these are used as the dataset choices.</div>
+            <input id="explodePaths" type="text" value="team_stats, player_stats" placeholder="e.g. team_stats, player_stats"/>
+            <div class="hint">Default: team_stats, player_stats</div>
           </div>
         </div>
 
@@ -330,8 +328,7 @@
                 <option value="__input__" selected>Use explode paths input (sequential; may multiply rows)</option>
               </select>
             <div class="hint">
-              Pick one explode path to generate a clean table (player_stats, circle_info, spector_info, etc).
-              <br/>Sequential explode can multiply rows if you select multiple arrays.
+              Default uses sequential explode: <span class="kbd">team_stats</span> then <span class="kbd">player_stats</span>.
             </div>
           </div>
 
@@ -341,7 +338,7 @@
               <input id="autoExplode" type="checkbox" />
               <div>
                 <div style="font-size:12px">Detect arrays-of-objects and auto-fill explode paths</div>
-                <div class="small">If unchecked, we use your explode paths input as the dropdown choices.</div>
+                <div class="small">Leave OFF to keep your defaults.</div>
               </div>
             </div>
           </div>
@@ -375,11 +372,11 @@
         <div class="row">
           <div class="field">
             <label>Default Week column value</label>
-            <input id="defWeek" type="text" placeholder="e.g. W1 / Week 1 / 1"/>
+            <input id="defWeek" type="text" placeholder="e.g. W1 / 1"/>
           </div>
           <div class="field">
             <label>Default Day column value</label>
-            <input id="defDay" type="text" placeholder="e.g. D1 / Day 1 / 1"/>
+            <input id="defDay" type="text" placeholder="e.g. D1 / 1"/>
           </div>
         </div>
 
@@ -392,10 +389,6 @@
 
         <div class="hint">
           Default columns apply to every row: <span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">match_id</span>.
-          <br/><br/>
-          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span>.
-          <br/>
-          <b>skill_ids breakdown is ON:</b> arrays named <span class="kbd">skill_ids</span> become separate columns (skill_ids[0], skill_ids[1], …).
         </div>
 
         <div class="row">
@@ -409,7 +402,7 @@
               <input id="fetchUrl" type="url" placeholder="https://example.com/data.json"/>
               <button class="btn" id="btnFetch">Fetch</button>
             </div>
-            <div class="hint">CORS must allow the browser to fetch. If it fails, fetch server-side (proxy/Edge Function).</div>
+            <div class="hint">CORS must allow the browser to fetch.</div>
           </div>
         </div>
 
@@ -457,14 +450,14 @@
               <div class="field">
                 <label>Supabase anon key</label>
                 <input id="sbKey" type="password" placeholder="anon public key"/>
-                <div class="hint">Don’t put a Service Role key in frontend. Use an Edge Function if you need private writes.</div>
+                <div class="hint">Anon uploads require proper GRANT + RLS policies.</div>
               </div>
             </div>
 
             <div class="row">
               <div class="field" style="flex:1">
                 <label>Table name</label>
-                <input id="sbTable" type="text" placeholder='e.g. ff_player_stats_raw'/>
+                <input id="sbTable" type="text" value="ff_stats_raw"/>
               </div>
               <div class="field" style="flex:.8">
                 <label>Mode</label>
@@ -478,8 +471,8 @@
             <div class="row">
               <div class="field">
                 <label>On conflict (Upsert only)</label>
-                <input id="sbConflict" type="text" placeholder="e.g. match_id,player_stats.account_id"/>
-                <div class="hint">You can type original keys; we auto-map to DB-safe names (dots → underscores).</div>
+                <input id="sbConflict" type="text" value="match_id,team_id,player_stats_account_id"/>
+                <div class="hint">Default: match_id,team_id,player_stats_account_id</div>
               </div>
             </div>
 
@@ -509,7 +502,7 @@
                   <input id="autoTimestamps" type="checkbox" checked />
                   <div>
                     <div style="font-size:12px">Add <span class="kbd">created_at</span> & <span class="kbd">updated_at</span> on upload</div>
-                    <div class="small">If your table doesn’t have these columns, uncheck this.</div>
+                    <div class="small">Uncheck if your table doesn’t have these columns.</div>
                   </div>
                 </div>
               </div>
@@ -737,7 +730,7 @@
             flattenObject(item, `${key}[${idx}]`, out, arrMode);
           });
         } else {
-          out[key] = v;
+          out[key] = v; // keep JSON
         }
       } else if (isPlainObject(v)){
         flattenObject(v, key, out, arrMode);
@@ -934,9 +927,7 @@
     }
   }
 
-  // ✅ UPDATED: setStatus now supports BOTH call styles:
-  // 1) setStatus("upStatus","message")  (old)
-  // 2) setStatus("message", true)       (your requested error snippet; writes to upStatus by default)
+  // supports both call styles
   function setStatus(a, b, c){
     let elId, msg, isError;
 
@@ -965,7 +956,6 @@
 
     const wVal = ($("defWeek").value ?? "").trim();
     const dVal = ($("defDay").value ?? "").trim();
-
     const midVal = ($("defMatchId").value ?? "").trim();
 
     return records.map(r=>{
@@ -1006,7 +996,7 @@
       sel.value = current;
       return;
     }
-    sel.value = "";
+    sel.value = "__input__"; // keep your default
   }
 
   function rebuildDataset(){
@@ -1083,7 +1073,6 @@
 Base rows: ${BASE_RECORDS.length}
 Current rows: ${ROWS.length} ${label}
 Columns: ${COLS.length}
-Explode choices: ${DETECTED_PATHS.length ? DETECTED_PATHS.join(", ") : "(none)"}
 Preview shows up to ${$("maxRows").value} rows.`
     );
   }
@@ -1117,7 +1106,7 @@ Preview shows up to ${$("maxRows").value} rows.`
       const v = getByPath(RAW, path);
       if(!Array.isArray(v)){
         setPill("bad", "Path not array");
-        setStatus("parseStatus", `Path "${path}" did not resolve to an array.\nTip: use dot paths like data.matches`, true);
+        setStatus("parseStatus", `Path "${path}" did not resolve to an array.`, true);
         return;
       }
       records = v;
@@ -1133,7 +1122,7 @@ Preview shows up to ${$("maxRows").value} rows.`
 
     if(!records || !records.length){
       setPill("bad", "No records");
-      setStatus("parseStatus", `Could not find rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`, true);
+      setStatus("parseStatus", `Could not find rows to tabulate.\nAuto-detected: ${usedPath}`, true);
       return;
     }
 
@@ -1156,7 +1145,7 @@ Preview shows up to ${$("maxRows").value} rows.`
 Base rows: ${BASE_RECORDS.length}
 Records path: ${usedPath}
 
-Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use sequential input).`
+Default explode: team_stats, player_stats`
     );
 
     rebuildDataset();
@@ -1242,7 +1231,10 @@ Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use
     setStatus("upStatus", "Preparing rows…");
     setProgress(0);
 
-    const sb = supabase.createClient(url, key);
+    // ✅ anon-friendly client: no session reuse
+    const sb = supabase.createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
 
     const rows = buildUploadRows(rowMode);
     const total = rows.length;
@@ -1258,29 +1250,27 @@ Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use
     }
 
     let ok = 0;
-    let failed = 0;
 
     for(let i=0;i<chunks.length;i++){
       const batch = chunks[i];
       setStatus("upStatus", `Uploading ${i+1}/${chunks.length}…
 Batch size: ${batch.length}
-Uploaded: ${ok}/${total} • Failed: ${failed}
+Uploaded: ${ok}/${total}
 
 ${mode === "upsert" ? `onConflict: ${onConflict}` : ""}`);
       setProgress(Math.round((i / chunks.length) * 100));
 
       try{
-        // ✅ Use destructuring so we have `error` directly
+        const opts = { returning: "minimal" }; // reduces "RETURNING *" needs
         const { error } = (mode === "insert")
-          ? await sb.from(table).insert(batch)
-          : await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
+          ? await sb.from(table).insert(batch, opts)
+          : await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,""), ...opts });
 
-        // ✅ ADDED: your requested detailed error block
         if (error) {
           console.error(error);
           setStatus(
             "Supabase error:\n" + JSON.stringify(error, null, 2) +
-            "\n\nTips:\n- Check RLS policy allows insert/upsert\n- Ensure column types match\n- Ensure onConflict columns exist + have UNIQUE constraint/index\n- If your table doesn’t have created_at/updated_at, uncheck Auto timestamps",
+            "\n\nTips:\n- Ensure GRANT INSERT for anon\n- Ensure RLS allows anon inserts OR use authenticated user\n- Ensure column types match\n- Ensure onConflict columns exist + have UNIQUE constraint/index\n- If your table doesn’t have created_at/updated_at, uncheck Auto timestamps",
             true
           );
           setProgress(Math.round(((i+1)/chunks.length)*100));
@@ -1289,7 +1279,6 @@ ${mode === "upsert" ? `onConflict: ${onConflict}` : ""}`);
 
         ok += batch.length;
       }catch(e){
-        failed += batch.length;
         setStatus("upStatus", `Network/runtime error on batch ${i+1}:\n${e.message}`, true);
         setProgress(Math.round(((i+1)/chunks.length)*100));
         return;
@@ -1299,7 +1288,6 @@ ${mode === "upsert" ? `onConflict: ${onConflict}` : ""}`);
     setProgress(100);
     setStatus("upStatus", `Done ✅
 Uploaded: ${ok}/${total}
-Failed: ${failed}
 Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   }
 
@@ -1311,23 +1299,25 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
   $("btnClear").addEventListener("click", ()=>{
     $("jsonText").value = "";
     $("pathText").value = "";
-    $("explodePaths").value = "team_stats";
-    $("explodePick").value = "";
+    $("explodePaths").value = "team_stats, player_stats";
+    $("explodePick").value = "__input__";
     $("fetchUrl").value = "";
     $("arrMode").value = "keep";
     $("maxRows").value = "2000";
 
     $("autoExplode").checked = false;
 
-    $("defMode").value = "";
+    $("defMode").value = "BR";
     $("defTournament").value = "";
     $("defStage").value = "";
-
     $("defYear").value = String(new Date().getFullYear());
-
     $("defWeek").value = "";
     $("defDay").value = "";
     $("defMatchId").value = "";
+
+    $("sbTable").value = "ff_stats_raw";
+    $("sbMode").value = "upsert";
+    $("sbConflict").value = "match_id,team_id,player_stats_account_id";
 
     $("autoTimestamps").checked = true;
 
@@ -1357,6 +1347,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
             map_id: 4,
             team_stats: [
               {
+                team_id: 1,
                 team_name: "ABC",
                 player_stats: [
                   { account_id: 111, nickname: "A1", kills: 3, damage: 812, skill_ids:[101,202,303] },
@@ -1383,8 +1374,12 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
     $("defDay").value = "D1";
     $("defMatchId").value = "1725487677733611520";
 
-    $("explodePaths").value = "team_stats";
+    $("explodePaths").value = "team_stats, player_stats";
+    $("explodePick").value = "__input__";
     renderExplodePickOptions(explodePathsInputList());
+
+    $("sbTable").value = "ff_stats_raw";
+    $("sbConflict").value = "match_id,team_id,player_stats_account_id";
 
     setPill("neutral","Sample loaded");
     setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
@@ -1427,8 +1422,7 @@ Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}`);
 `Fetch failed:
 ${e.message}
 
-This is often CORS.
-If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`,
+This is often CORS.`,
         true
       );
     }
@@ -1501,6 +1495,16 @@ If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`,
   // init defaults
   (function initDefaults(){
     $("defYear").value = String(new Date().getFullYear());
+
+    // ✅ your defaults
+    $("arrMode").value = "keep";
+    $("explodePaths").value = "team_stats, player_stats";
+    $("explodePick").value = "__input__";
+
+    $("sbTable").value = "ff_stats_raw";
+    $("sbMode").value = "upsert";
+    $("sbConflict").value = "match_id,team_id,player_stats_account_id";
+
     $("autoExplode").checked = false;
     renderExplodePickOptions(explodePathsInputList());
     updateMeta();
