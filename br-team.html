@@ -69,10 +69,6 @@
       border-color: rgba(255,189,89,.35);
       background: linear-gradient(180deg, rgba(255,189,89,.16), rgba(255,119,51,.10));
     }
-    .btn.good{
-      border-color: rgba(113,208,131,.35);
-      background: linear-gradient(180deg, rgba(113,208,131,.16), rgba(113,208,131,.08));
-    }
     .btn.bad{
       border-color: rgba(255,107,107,.35);
       background: linear-gradient(180deg, rgba(255,107,107,.16), rgba(255,107,107,.08));
@@ -107,7 +103,7 @@
     .field{display:flex;flex-direction:column;gap:6px;min-width:180px;flex:1}
     label{font-size:12px;color:var(--muted)}
 
-    input[type="text"], input[type="password"], input[type="number"], select, textarea{
+    input[type="text"], input[type="number"], select{
       width:100%;
       border:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.25);
@@ -116,16 +112,9 @@
       padding:10px 10px;
       outline:none;
     }
-    select{
-      color-scheme: dark;
-      background: rgba(0,0,0,.25);
-      color: var(--ink);
-    }
-    select option, select optgroup{
-      background-color: #0b1020;
-      color: var(--ink);
-    }
-    input:focus, textarea:focus, select:focus{
+    select{color-scheme: dark}
+    select option{background:#0b1020;color:var(--ink)}
+    input:focus, select:focus{
       border-color: rgba(77,211,255,.45);
       box-shadow: 0 0 0 3px rgba(77,211,255,.12);
     }
@@ -165,7 +154,6 @@
     }
     .checkrow input{width:auto}
 
-    /* Results */
     .metaBar{
       display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;
       margin-bottom:10px;
@@ -274,11 +262,11 @@
              onerror="this.style.display='none'"/>
         <div>
           <h1>FF Stats Viewer — Teams & Players</h1>
-          <div class="sub">Reads from <span class="mono">ff_stats_raw</span> and summarizes team/player skills + stats.</div>
+          <div class="sub">Reads from <span class="mono">public.ff_stats_raw</span> (anon client, fixed).</div>
         </div>
       </div>
       <div class="actions">
-        <span class="pill" id="pillConn"><span class="dot neutral"></span><span id="pillConnText">Not connected</span></span>
+        <span class="pill" id="pillConn"><span class="dot neutral"></span><span id="pillConnText">Ready</span></span>
         <button class="btn" id="btnLoadSchema">Load columns</button>
         <button class="btn primary" id="btnRun">Refresh</button>
       </div>
@@ -292,38 +280,24 @@
     <!-- LEFT: Controls -->
     <section class="card">
       <div class="hd">
-        <h2>Connection, Filters, Mapping</h2>
+        <h2>Filters & Mapping</h2>
         <span class="pill"><span class="dot neutral"></span><span id="metaText">0 teams • 0 players</span></span>
       </div>
       <div class="bd">
 
-        <div class="row">
-          <div class="field" style="min-width:240px">
-            <label>Supabase URL</label>
-            <input id="sbUrl" type="text" placeholder="https://xxxx.supabase.co">
-          </div>
+        <div class="status" id="fixedConn">
+          <b>Fixed Supabase client</b>
+          <div class="small mono">Project: ooutjrewmwsixghbouxi</div>
+          <div class="small mono">Table: public.ff_stats_raw</div>
         </div>
 
         <div class="row">
-          <div class="field" style="min-width:240px">
-            <label>Supabase anon key</label>
-            <input id="sbKey" type="password" placeholder="anon public key">
-            <div class="hint">This page uses anon; make sure SELECT policy allows anon if you want it public.</div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label>Table</label>
-            <input id="sbTable" type="text" value="ff_stats_raw">
-          </div>
           <div class="field">
             <label>Max rows to scan</label>
             <input id="maxScan" type="number" min="100" step="100" value="5000">
+            <div class="hint">If table is big, keep this lower.</div>
           </div>
         </div>
-
-        <div class="divider"></div>
 
         <div class="row">
           <div class="field">
@@ -371,10 +345,10 @@
 
         <div class="divider"></div>
 
-        <div class="row" style="align-items:flex-end">
+        <div class="row">
           <div class="field">
-            <label>Column mapping (auto-detect after “Load columns”)</label>
-            <div class="hint">If your column names differ, pick the correct ones here.</div>
+            <label>Column mapping</label>
+            <div class="hint">Click “Load columns” → “Auto-map”. Adjust if needed.</div>
           </div>
         </div>
 
@@ -419,10 +393,10 @@
 
         <div class="row">
           <button class="btn" id="btnAutoMap">Auto-map</button>
-          <button class="btn bad" id="btnReset">Reset page</button>
+          <button class="btn bad" id="btnReset">Reset</button>
         </div>
 
-        <div class="status" id="status">Tip: Click “Load columns” first, then “Auto-map”, then “Refresh”.</div>
+        <div class="status" id="status">Tip: Load columns → Auto-map → Refresh.</div>
       </div>
     </section>
 
@@ -452,6 +426,14 @@
 <script>
   const $ = (id)=>document.getElementById(id);
 
+  /* ============ Supabase init ============ */
+  const client = supabase.createClient(
+    'https://ooutjrewmwsixghbouxi.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
+    { auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } }
+  );
+  const TABLE = "ff_stats_raw";
+
   // ---------- UI helpers ----------
   function setConn(state, text){
     const dot = $("pillConn").querySelector(".dot");
@@ -473,24 +455,12 @@
     if(v === null || v === undefined) return "";
     return (typeof v === "string") ? v : String(v);
   }
-  function uniq(arr){ return Array.from(new Set(arr.filter(x=>x!=null && x!==""))); }
-
   function debounce(fn, ms){
     let t=null;
     return (...args)=>{
       clearTimeout(t);
       t=setTimeout(()=>fn(...args), ms);
     };
-  }
-
-  // ---------- Supabase ----------
-  function makeClient(){
-    const url = $("sbUrl").value.trim();
-    const key = $("sbKey").value.trim();
-    if(!url || !key) return null;
-    return supabase.createClient(url, key, {
-      auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false }
-    });
   }
 
   // ---------- Column mapping ----------
@@ -509,7 +479,6 @@
       sel.appendChild(o);
     }
   }
-
   function bestCol(regexList){
     const cols = ALL_COLS;
     for(const rx of regexList){
@@ -518,17 +487,14 @@
     }
     return "";
   }
-
   function autoMap(){
-    // Heuristics for your uploader defaults:
-    // match_id, team_id, player_stats_account_id are common.
     $("mTeamId").value    = bestCol([/^team_id$/i, /team.*_id$/i, /team_stats.*team_id/i]);
     $("mTeamName").value  = bestCol([/^team_name$/i, /team.*name/i, /team_tag/i, /team_code/i]);
     $("mPlayerId").value  = bestCol([/^player_stats_account_id$/i, /account_id$/i, /player.*_id$/i, /player_stats.*account_id/i]);
     $("mPlayerName").value= bestCol([/^player_stats_nickname$/i, /nickname$/i, /player.*name/i, /ign/i]);
 
-    $("mActive").value    = bestCol([/active.*skill/i, /skill_active/i, /character_active/i]);
-    $("mPet").value       = bestCol([/^pet_id$/i, /pet.*id/i, /pet_name/i]);
+    $("mActive").value    = bestCol([/active.*skill/i, /skill_active/i, /character_active/i, /active_skill/i]);
+    $("mPet").value       = bestCol([/^pet_id$/i, /pet.*id/i, /pet_name/i, /pet$/i]);
 
     $("mElims").value     = bestCol([/^kills$/i, /^elims$/i, /elim/i, /frag/i]);
     $("mDamage").value    = bestCol([/^damage$/i, /dmg/i]);
@@ -543,47 +509,32 @@
 
     $("mLogo").value      = bestCol([/logo_url/i, /team_logo/i, /logo/i]);
 
-    // Passives: leave as text; try best guess and prefill if obvious
     const passiveGuess = ALL_COLS.filter(c => /passive/i.test(c)).slice(0,4);
     if(passiveGuess.length) $("mPassives").value = passiveGuess.join(",");
   }
 
   // ---------- Load columns ----------
   async function loadColumns(){
-    const sb = makeClient();
-    const table = $("sbTable").value.trim();
-    if(!sb || !table){
-      setConn("bad","Missing URL/key/table");
-      setStatus("Enter Supabase URL + anon key + table name.", true);
-      return;
-    }
     setConn("neutral","Checking…");
     setStatus("Loading a sample row to infer columns…");
 
-    // Save connection
-    localStorage.setItem("ffv_sbUrl", $("sbUrl").value.trim());
-    localStorage.setItem("ffv_sbKey", $("sbKey").value.trim());
-    localStorage.setItem("ffv_sbTable", table);
-
     try{
-      const { data, error } = await sb.from(table).select("*").limit(1);
+      const { data, error } = await client.from(TABLE).select("*").limit(1);
       if(error){
         console.error(error);
         setConn("bad","RLS/perm error");
-        setStatus("Supabase error:\n"+JSON.stringify(error,null,2)+"\n\nIf this is a SELECT permission/RLS issue, add an anon SELECT policy (see SQL snippet below).", true);
+        setStatus("Supabase error:\n"+JSON.stringify(error,null,2)+"\n\nIf this is SELECT blocked by RLS, enable anon SELECT policy (SQL snippet at bottom).", true);
         return;
       }
       const row = (data && data[0]) ? data[0] : {};
-      ALL_COLS = Object.keys(row || {});
-      ALL_COLS.sort((a,b)=>a.localeCompare(b));
+      ALL_COLS = Object.keys(row || {}).sort((a,b)=>a.localeCompare(b));
 
-      // Populate mapping selects
       const sels = ["mTeamId","mTeamName","mPlayerId","mPlayerName","mActive","mPet","mElims","mDamage","mPlacePts","mRankScore","mRank","mBooyah","mMatchNo","mMatchId","mLogo"];
       for(const s of sels) fillSelect(s, ALL_COLS);
 
       autoMap();
       setConn("good","Connected");
-      setStatus(`Loaded ${ALL_COLS.length} columns from ${table}.\nNow click “Refresh” to load & summarize.`);
+      setStatus(`Loaded ${ALL_COLS.length} columns from public.${TABLE}.\nNow click “Refresh” to load & summarize.`);
     }catch(e){
       setConn("bad","Network error");
       setStatus("Network/runtime error:\n"+e.message, true);
@@ -592,17 +543,7 @@
 
   // ---------- Fetch rows with pagination ----------
   async function fetchRows(){
-    const sb = makeClient();
-    const table = $("sbTable").value.trim();
-    if(!sb || !table){
-      setStatus("Missing Supabase URL / anon key / table.", true);
-      return [];
-    }
     const maxScan = Math.max(100, parseInt($("maxScan").value||"5000",10));
-
-    // Columns used for filtering
-    // (We use common column names if present; otherwise ignore silently)
-    const where = [];
 
     const fMode = $("fMode").value.trim();
     const fYear = $("fYear").value.trim();
@@ -613,25 +554,18 @@
     const fMatchNo = $("fMatchNo").value.trim();
     const fMatchId = $("fMatchId").value.trim();
 
-    // We will attempt filters on these exact column names if they exist.
-    // If your table uses different names, map them in your uploader OR add columns accordingly.
     const tryEq = (q, col, val)=>{
       if(!val) return q;
       if(!ALL_COLS.includes(col)) return q;
       return q.eq(col, val);
     };
-    const tryIlike = (q, col, val)=>{
-      if(!val) return q;
-      if(!ALL_COLS.includes(col)) return q;
-      return q.ilike(col, `%${val}%`);
-    };
 
     let all = [];
     const pageSize = 1000;
-    for(let offset=0; offset<maxScan; offset += pageSize){
-      let q = sb.from(table).select("*").range(offset, offset + pageSize - 1);
 
-      // Basic ordering if possible
+    for(let offset=0; offset<maxScan; offset += pageSize){
+      let q = client.from(TABLE).select("*").range(offset, offset + pageSize - 1);
+
       if(ALL_COLS.includes("match_id")) q = q.order("match_id", {ascending:false});
       else if(ALL_COLS.includes("created_at")) q = q.order("created_at", {ascending:false});
 
@@ -642,7 +576,6 @@
       q = tryEq(q, "Week", fWeek);
       q = tryEq(q, "Day", fDay);
 
-      // Match Number / Match ID: if you mapped different columns, we also try mapped ones below in-memory
       q = tryEq(q, "match_number", fMatchNo);
       q = tryEq(q, "match_id", fMatchId);
 
@@ -672,7 +605,6 @@
   function parsePassiveCols(){
     return ($("mPassives").value || "").split(",").map(s=>s.trim()).filter(Boolean);
   }
-
   function inferBooyahFromRow(row){
     const booyahCol = $("mBooyah").value;
     if(booyahCol){
@@ -689,7 +621,6 @@
     }
     return false;
   }
-
   function keyTeam(row){
     const id = safeStr(getMapped(row,"mTeamId") ?? "").trim();
     const nm = safeStr(getMapped(row,"mTeamName") ?? "").trim();
@@ -734,7 +665,6 @@
         const p = (safeStr(getMapped(r,"mPlayerName")) + " " + safeStr(getMapped(r,"mPlayerId"))).toLowerCase();
         if(!p.includes(pq)) return false;
       }
-      // If your DB uses different match columns, this uses mapped match column first.
       if(fMatchNo){
         const v = safeStr(r[matchNoCol] ?? "");
         if(v !== safeStr(fMatchNo)) return false;
@@ -748,9 +678,7 @@
   }
 
   function summarize(rows){
-    // Team bucket -> match bucket to dedup placement/rank per match
     const teams = new Map();
-
     const passiveCols = parsePassiveCols();
 
     for(const r of rows){
@@ -760,13 +688,12 @@
           teamKey: tKey,
           name: teamLabel(r),
           logo: teamLogo(r),
-          matches: new Map(), // matchKey -> {booyah, placePts, rankScore, rank, elimsTeam, dmgTeam}
-          players: new Map(), // playerKey -> stats
+          matches: new Map(),
+          players: new Map(),
         });
       }
       const T = teams.get(tKey);
 
-      // Match key dedup
       const matchIdCol = $("mMatchId").value || "match_id";
       const matchKey = safeStr(r[matchIdCol] ?? "") || "__no_match__";
 
@@ -776,21 +703,17 @@
           placePts: 0,
           rankScore: 0,
           rank: null,
-          // team totals (optional) - left as 0; we’ll compute from players unless your table has team_* columns
-          elimsTeam: 0,
-          dmgTeam: 0,
         });
       }
       const M = T.matches.get(matchKey);
 
-      // Placement-related (dedup per match): take max (safer if repeated per player)
       const placePts = safeNum(getMapped(r,"mPlacePts"));
       const rankScore = safeNum(getMapped(r,"mRankScore"));
       const rank = ( $("mRank").value ? getMapped(r,"mRank") : null );
+
       if(placePts > M.placePts) M.placePts = placePts;
       if(rankScore > M.rankScore) M.rankScore = rankScore;
 
-      // rank: keep best numeric if possible
       if(rank != null && rank !== ""){
         const rn = safeNum(rank);
         if(rn > 0){
@@ -800,10 +723,8 @@
         }
       }
 
-      // booyah: any row indicates booyah for the match
       if(inferBooyahFromRow(r)) M.booyah = true;
 
-      // Player stats
       const pKey = keyPlayer(r);
       if(!T.players.has(pKey)){
         T.players.set(pKey, {
@@ -823,97 +744,72 @@
       P.damage += safeNum(getMapped(r,"mDamage"));
       P.matches.add(matchKey);
 
-      // active skill
       const a = safeStr(getMapped(r,"mActive")).trim();
-      if(a){
-        P.activeCounts.set(a, (P.activeCounts.get(a)||0)+1);
-      }
-      // pet
-      const pet = safeStr(getMapped(r,"mPet")).trim();
-      if(pet){
-        P.petCounts.set(pet, (P.petCounts.get(pet)||0)+1);
-      }
-      // passives: we accept comma columns (each cell value)
-      const passiveVals = passiveCols
-        .map(c => safeStr(r[c]).trim())
-        .filter(Boolean);
+      if(a) P.activeCounts.set(a, (P.activeCounts.get(a)||0)+1);
 
+      const pet = safeStr(getMapped(r,"mPet")).trim();
+      if(pet) P.petCounts.set(pet, (P.petCounts.get(pet)||0)+1);
+
+      const passiveVals = passiveCols.map(c => safeStr(r[c]).trim()).filter(Boolean);
       if(passiveVals.length){
         const combo = passiveVals.join(" • ");
         P.passiveCounts.set(combo, (P.passiveCounts.get(combo)||0)+1);
       }
     }
 
-    // Produce final summaries
     const outTeams = [];
     let totalPlayers = 0;
 
-    for(const [k, T] of teams.entries()){
-      // Team totals (dedup placement by match):
+    for(const T of teams.values()){
       const matchList = Array.from(T.matches.values());
       const matchCount = T.matches.size;
 
       const booyahs = matchList.reduce((acc,m)=>acc + (m.booyah?1:0), 0);
       const placementPts = matchList.reduce((acc,m)=>acc + safeNum(m.placePts), 0);
-
-      // "ranking_score as placement" (your request)
       const placementFromRankScore = matchList.reduce((acc,m)=>acc + safeNum(m.rankScore), 0);
 
-      // Team elims/dmg: sum players (assumes player rows)
       let teamElims = 0, teamDmg = 0;
-      for(const P of T.players.values()){
-        teamElims += P.elims;
-        teamDmg += P.damage;
-      }
-
-      // Player rows
       const players = Array.from(T.players.values()).map(P=>{
         totalPlayers++;
+        teamElims += P.elims;
+        teamDmg += P.damage;
 
         const best = (map)=>{
-          let top = "", topN = -1;
-          for(const [val, n] of map.entries()){
-            if(n > topN){ topN = n; top = val; }
+          let top="", topN=-1;
+          for(const [val,n] of map.entries()){
+            if(n>topN){ topN=n; top=val; }
           }
           return top || "";
         };
-        const top3 = (map)=>{
-          const arr = Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,3);
-          return arr.map(([v,n])=>({v,n}));
-        };
 
         return {
-          key: P.key,
-          name: P.name,
-          matches: P.matches.size,
-          elims: P.elims,
-          damage: P.damage,
+          key:P.key,
+          name:P.name,
+          matches:P.matches.size,
+          elims:P.elims,
+          damage:P.damage,
           activeTop: best(P.activeCounts),
           passiveTop: best(P.passiveCounts),
           petTop: best(P.petCounts),
-          activeTop3: top3(P.activeCounts),
-          passiveTop3: top3(P.passiveCounts),
-          petTop3: top3(P.petCounts),
         };
       });
 
-      players.sort((a,b)=> (b.elims - a.elims) || (b.damage - a.damage) || a.name.localeCompare(b.name));
+      players.sort((a,b)=> (b.elims-a.elims) || (b.damage-a.damage) || a.name.localeCompare(b.name));
 
       outTeams.push({
-        teamKey: T.teamKey,
-        name: T.name,
-        logo: T.logo,
-        matches: matchCount,
+        teamKey:T.teamKey,
+        name:T.name,
+        logo:T.logo,
+        matches:matchCount,
         booyahs,
-        elims: teamElims,
-        damage: teamDmg,
+        elims:teamElims,
+        damage:teamDmg,
         placementPts,
         placementFromRankScore,
-        players,
+        players
       });
     }
 
-    // Sort teams by total points-ish: booyah -> placement -> elims
     outTeams.sort((a,b)=>{
       const aScore = (a.booyahs*1000) + a.placementPts + a.placementFromRankScore + a.elims*0.01;
       const bScore = (b.booyahs*1000) + b.placementPts + b.placementFromRankScore + b.elims*0.01;
@@ -930,12 +826,6 @@
     if(Math.abs(n) >= 1000) return Math.round(n).toLocaleString();
     return (Math.round(n*10)/10).toString();
   }
-
-  function chipsFromTop3(list){
-    if(!list || !list.length) return `<span class="small">—</span>`;
-    return `<div class="chips">` + list.map(x=>`<span class="chip" title="count: ${x.n}">${escapeHtml(x.v)}</span>`).join("") + `</div>`;
-  }
-
   function escapeHtml(s){
     return String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
   }
@@ -1012,12 +902,7 @@
             </tbody>
           </table>
         </div>
-
-        <div style="padding:12px">
-          <div class="small" style="margin-bottom:6px">Top Skills/Pets (first 3 per player are counted by frequency). If your table stores IDs, these will be IDs unless you join a reference table.</div>
-        </div>
       `;
-
       grid.appendChild(det);
     }
   }
@@ -1035,7 +920,6 @@
     const raw = await fetchRows();
     const filtered = applyTextFilters(raw);
 
-    // subtitle
     $("subtitle").textContent =
       `Rows: ${filtered.length} (scanned ${raw.length}) • ` +
       `Filters: Mode=${$("fMode").value||"All"}, Year=${$("fYear").value||"All"}, ` +
@@ -1065,39 +949,24 @@
     document.querySelectorAll("details.team").forEach(d=>d.open=true);
   });
 
-  // auto refresh hooks
   ["fMode","fYear","fTournament","fStage","fWeek","fDay","fMatchNo","fMatchId","fTeamQ","fPlayerQ"].forEach(id=>{
     $(id).addEventListener("input", debouncedRun);
     $(id).addEventListener("change", debouncedRun);
   });
 
-  // persist connection
-  ["sbUrl","sbKey","sbTable"].forEach(id=>{
-    $(id).addEventListener("change", ()=>{
-      localStorage.setItem("ffv_"+id, $(id).value.trim());
-    });
-  });
-
   $("btnReset").addEventListener("click", ()=>{
-    localStorage.removeItem("ffv_sbUrl");
-    localStorage.removeItem("ffv_sbKey");
-    localStorage.removeItem("ffv_sbTable");
     location.reload();
   });
 
-  // init from storage
+  // init
   (function init(){
-    $("sbUrl").value = localStorage.getItem("ffv_sbUrl") || "";
-    $("sbKey").value = localStorage.getItem("ffv_sbKey") || "";
-    $("sbTable").value = localStorage.getItem("ffv_sbTable") || "ff_stats_raw";
-
-    setConn("neutral","Not connected");
-    setStatus("1) Enter URL + anon key\n2) Click “Load columns”\n3) Click “Auto-map” (optional)\n4) Click “Refresh”");
+    setConn("neutral","Ready");
+    setStatus("1) Click “Load columns”\n2) Click “Auto-map” (optional)\n3) Click “Refresh”");
   })();
 </script>
 
 <!--
-SQL (if you want anon to read the table publicly):
+If SELECT fails due to RLS, run this in Supabase SQL editor:
 
 grant usage on schema public to anon;
 grant select on table public.ff_stats_raw to anon;
@@ -1110,8 +979,6 @@ on public.ff_stats_raw
 for select
 to anon
 using (true);
-
-(If you ONLY want authenticated users to read, create a policy to authenticated instead.)
 -->
 
 </body>
