@@ -450,10 +450,11 @@
       <span class="chip" id="diagCount">ff_stats_raw rows: —</span>
       <span class="chip" id="diagSchema">Detected schema: —</span>
       <span class="chip" id="diagMap">match_api mapping: —</span>
+      <span class="chip" id="diagChar">character.json skills: —</span>
       <button class="btn secondary" id="reloadBtn">Reload</button>
     </div>
     <div class="muted" id="diagNote">
-      If this shows 0 rows but you expect data, it’s usually RLS (no SELECT policy) or you inserted into a different table/schema.
+      Skill type (Active/Passive) is now determined by comparing skill info with character.json (fallback to skill_ids position if unknown).
     </div>
   </div>
 
@@ -490,7 +491,6 @@
     <div class="muted" id="filterHint">—</div>
   </div>
 
-  <!-- ✅ collapsed on load (no "open") -->
   <details class="accordion" id="accOverall">
     <summary>Overall — Team Summary</summary>
     <div class="accordion-body">
@@ -538,7 +538,6 @@
     </div>
   </div>
 
-  <!-- ✅ collapsed on load (no "open") -->
   <details class="accordion" id="accPlayers">
     <summary>Players — Stats + Active/Passive/Pet Breakdown</summary>
     <div class="accordion-body">
@@ -586,13 +585,12 @@
     </div>
   </details>
 
-  <!-- ✅ NEW: All Teams Skill Summary at the bottom (collapsed on load) -->
   <details class="accordion" id="accAllTeamsSkills">
     <summary>All Teams — Skill Summary (Top Active/Passives/Pet)</summary>
     <div class="accordion-body">
       <div class="card" style="margin:0">
         <div class="muted" style="margin-bottom:8px">
-          Uses current scope filters. Assumes skill_ids_0 = Active and skill_ids_1..3 = Passive.
+          Uses current scope filters. Active/Passive is identified via character.json (fallback to position if not found).
         </div>
         <div id="tblAllTeamsSkills">—</div>
       </div>
@@ -610,6 +608,9 @@ const client = supabase.createClient(
 
 const TABLE = 'ff_stats_raw';
 const MAP_TABLE = 'match_api';
+
+/* ✅ Put character.json next to this page (same folder) */
+const CHARACTER_JSON_URL = 'character.json';
 
 /* ============ Small utils ============ */
 const el = id => document.getElementById(id);
@@ -751,9 +752,14 @@ let KEYS = {
   skillIds: []
 };
 
-let ID_TO_NAME = new Map();          // all types
+let ID_TO_NAME = new Map();          // all types (match_api)
 let SKILL_ID_TO_NAME = new Map();    // ONLY type=2 (skills)
 let MAP_READY = false;
+
+/* ✅ From character.json */
+let SKILL_ID_TO_KIND = new Map();    // id -> 'active' | 'passive'
+let SKILL_NAME_TO_KIND = new Map();  // name(lower) -> 'active' | 'passive'
+let CHAR_READY = false;
 
 /* ============ Schema detection ============ */
 function detectSchema(sample){
@@ -785,7 +791,7 @@ function detectSchema(sample){
       const bi = Number((b.match(/(\d+)$/)||[])[1]||0);
       return ai-bi;
     });
-  KEYS.skillIds = skillKeys.slice(0,4);
+  KEYS.skillIds = skillKeys.slice(0,6); // safe: if your raw has more, we can read it
 
   const summary = [
     KEYS.team ? `team=${KEYS.team}` : 'team=—',
@@ -865,6 +871,163 @@ async function loadMatchApi(){
     console.warn('match_api load failed:', e?.message || e);
     MAP_READY = false;
   }
+}
+
+/* ============ character.json mapping (Active vs Passive) ============ */
+function normalizeSkillKind(v){
+  const s = String(v ?? '').trim().toLowerCase();
+  if(!s) return null;
+  if(s.includes('active') || s === 'a') return 'active';
+  if(s.includes('passive') || s === 'p') return 'passive';
+  return null;
+}
+
+function coerceId(v){
+  if(v == null) return '';
+  const s = String(v).trim();
+  if(!s) return '';
+  // handle "123.0"
+  const m = s.match(/^\d+(\.0+)?$/);
+  if(m) return String(parseInt(s,10));
+  return s;
+}
+
+async function loadCharacterJson(){
+  CHAR_READY = false;
+  SKILL_ID_TO_KIND.clear();
+  SKILL_NAME_TO_KIND.clear();
+
+  try{
+    const res = await fetch(CHARACTER_JSON_URL, { cache: 'no-store' });
+    if(!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+
+    const json = await res.json();
+
+    // character.json can be:
+    // - array of characters
+    // - object with array inside (characters / data / rows)
+    const list =
+      Array.isArray(json) ? json :
+      Array.isArray(json?.characters) ? json.characters :
+      Array.isArray(json?.data) ? json.data :
+      Array.isArray(json?.rows) ? json.rows :
+      [];
+
+    if(!list.length){
+      el('diagChar').textContent = 'character.json skills: 0 (format not recognized)';
+      CHAR_READY = false;
+      return;
+    }
+
+    let mapped = 0;
+
+    // Try to infer where "skill id/name/type" lives.
+    // Common patterns:
+    // - character.skill_id / character.skill_name / character.skill_type
+    // - character.skill (object): { id, name, type }
+    // - character.skill_info / ability / activeSkill, etc.
+    // We'll scan each character and extract whatever looks like skill metadata.
+    for(const c of list){
+      const keys = Object.keys(c || {});
+      const directIdKey = pickKey(keys, [/skill.*_?id$/i, /^skill_id$/i, /^ability_id$/i, /active.*id$/i, /passive.*id$/i]);
+      const directNameKey = pickKey(keys, [/skill.*_?name$/i, /^skill_name$/i, /^ability_name$/i, /active.*name$/i, /passive.*name$/i]);
+      const directTypeKey = pickKey(keys, [/skill.*_?type$/i, /^skill_type$/i, /^type$/i, /ability_type/i]);
+
+      // 1) direct fields on character
+      if(directIdKey || directNameKey || directTypeKey){
+        const sid = coerceId(c?.[directIdKey]);
+        const sname = norm(c?.[directNameKey]);
+        const kind = normalizeSkillKind(c?.[directTypeKey]);
+
+        if(kind && (sid || sname)){
+          if(sid) SKILL_ID_TO_KIND.set(sid, kind);
+          if(sname) SKILL_NAME_TO_KIND.set(sname.toLowerCase(), kind);
+          mapped++;
+        }
+      }
+
+      // 2) nested skill object candidates
+      const nestedCandidates = [
+        c?.skill, c?.skill_info, c?.skillInfo, c?.ability, c?.ability_info, c?.abilityInfo,
+        c?.active_skill, c?.activeSkill, c?.passive_skill, c?.passiveSkill
+      ].filter(Boolean);
+
+      for(const obj of nestedCandidates){
+        if(!obj || typeof obj !== 'object') continue;
+
+        // If nested object is actually arrays, scan each.
+        const arr = Array.isArray(obj) ? obj : [obj];
+
+        for(const s of arr){
+          if(!s || typeof s !== 'object') continue;
+          const sk = Object.keys(s);
+
+          const idKey = pickKey(sk, [/^id$/i, /skill.*id$/i, /ability.*id$/i]);
+          const nmKey = pickKey(sk, [/^name$/i, /skill.*name$/i, /ability.*name$/i, /title/i]);
+          const tyKey = pickKey(sk, [/^type$/i, /skill.*type$/i, /kind/i, /skill_type/i]);
+
+          const sid = coerceId(s?.[idKey]);
+          const sname = norm(s?.[nmKey]);
+          let kind = normalizeSkillKind(s?.[tyKey]);
+
+          // If this nested object is under activeSkill / passiveSkill keys, force kind.
+          if(!kind){
+            const tag = (String(sk.join(' ')) + ' ' + String(JSON.stringify(s))).toLowerCase();
+            // don't overfit; prefer parent key name by checking known container names:
+            // (We can't access parent key reliably here, so we infer from object content as a last resort.)
+            if(tag.includes('passive')) kind = 'passive';
+            else if(tag.includes('active')) kind = 'active';
+          }
+
+          if(kind && (sid || sname)){
+            if(sid) SKILL_ID_TO_KIND.set(sid, kind);
+            if(sname) SKILL_NAME_TO_KIND.set(sname.toLowerCase(), kind);
+            mapped++;
+          }
+        }
+      }
+    }
+
+    // If match_api has the name, also map by name to increase hit rate
+    // (Example: stats row id is string, character.json only has name)
+    for(const [sid, nm] of SKILL_ID_TO_NAME.entries()){
+      const k = SKILL_ID_TO_KIND.get(sid);
+      if(k && nm) SKILL_NAME_TO_KIND.set(nm.toLowerCase(), k);
+    }
+
+    el('diagChar').textContent =
+      `character.json skills: id=${SKILL_ID_TO_KIND.size} • name=${SKILL_NAME_TO_KIND.size} • mapped=${mapped}`;
+
+    CHAR_READY = SKILL_ID_TO_KIND.size > 0 || SKILL_NAME_TO_KIND.size > 0;
+  }catch(e){
+    el('diagChar').textContent = 'character.json skills: unavailable';
+    console.warn('character.json load failed:', e?.message || e);
+    CHAR_READY = false;
+  }
+}
+
+/* ✅ Determine kind: character.json → (match_api name) → fallback to position */
+function kindForSkillId(id, fallbackIdx=null){
+  const sid = coerceId(id);
+  if(!sid){
+    // no skill id
+    if(fallbackIdx == null) return null;
+    return fallbackIdx === 0 ? 'active' : 'passive';
+  }
+
+  // 1) direct id mapping
+  if(SKILL_ID_TO_KIND.has(sid)) return SKILL_ID_TO_KIND.get(sid);
+
+  // 2) map by name (if we can resolve name from match_api)
+  const nm = mapSkillFromId(sid, '');
+  if(nm){
+    const k = SKILL_NAME_TO_KIND.get(nm.toLowerCase());
+    if(k) return k;
+  }
+
+  // 3) fallback to position rule (old assumption)
+  if(fallbackIdx != null) return fallbackIdx === 0 ? 'active' : 'passive';
+  return null;
 }
 
 /* ============ Fetching ============ */
@@ -1094,7 +1257,7 @@ function applyFilters(){
 
   renderOverall();
   renderTeamGrid(el('teamSearch').value || '');
-  renderAllTeamsSkillSummary(); // ✅ new bottom table
+  renderAllTeamsSkillSummary();
 
   if(CURRENT_TEAM){
     const teamsInScope = new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean));
@@ -1210,19 +1373,37 @@ function listTopCounts(map, topN){
     .map(([name, cnt]) => ({ name, picks: cnt }));
 }
 
-function skillIdFromRow(r, idx){
-  const k = KEYS.skillIds[idx];
-  if(!k) return '';
-  const v = r?.[k];
+/* ✅ Read any skill_ids_* columns; classify via character.json before counting */
+function skillIdFromRowByKey(r, key){
+  if(!key) return '';
+  const v = r?.[key];
   if(v == null || String(v).trim()==='') return '';
-  const s = String(v).trim();
-  const m = s.match(/^\d+(\.0+)?$/);
-  if(m) return String(parseInt(s,10));
-  return s;
+  return coerceId(v);
 }
-function getActiveSkillId(r){ return skillIdFromRow(r, 0); }
-function getPassiveSkillIds(r){
-  return [skillIdFromRow(r,1), skillIdFromRow(r,2), skillIdFromRow(r,3)].filter(Boolean);
+
+function getSkillIdsFromRow(r){
+  // returns [{id, idx}] in the same order as KEYS.skillIds
+  const out = [];
+  for(let i=0; i<KEYS.skillIds.length; i++){
+    const id = skillIdFromRowByKey(r, KEYS.skillIds[i]);
+    if(id) out.push({ id, idx:i });
+  }
+  return out;
+}
+
+function getSkillsByKindFromRow(r){
+  const act = [];
+  const pas = [];
+  for(const s of getSkillIdsFromRow(r)){
+    const k = kindForSkillId(s.id, s.idx);
+    if(k === 'active') act.push(s.id);
+    else if(k === 'passive') pas.push(s.id);
+    else {
+      // ultimate fallback
+      (s.idx === 0 ? act : pas).push(s.id);
+    }
+  }
+  return { act, pas };
 }
 
 function getPetLabel(r){
@@ -1334,13 +1515,10 @@ function summarizeTeamLoadout(rows){
   const pet = new Map();
 
   for(const r of rows){
-    const a = getActiveSkillId(r);
-    if(a) act.set(a, (act.get(a)||0)+1);
+    const { act: aIds, pas: pIds } = getSkillsByKindFromRow(r);
 
-    const ps = getPassiveSkillIds(r);
-    for(const pid of ps){
-      pas.set(pid, (pas.get(pid)||0)+1);
-    }
+    for(const id of aIds) act.set(id, (act.get(id)||0)+1);
+    for(const id of pIds) pas.set(id, (pas.get(id)||0)+1);
 
     const pl = getPetLabel(r);
     if(pl) pet.set(pl, (pet.get(pl)||0)+1);
@@ -1382,7 +1560,7 @@ function renderTeamKpis(teamRows){
       <div class="kpi">Top Pet <strong>${snap.topPet}</strong></div>
     </div>
     <div class="muted" style="margin-top:6px">
-      Assumes skill_ids_0 = Active and skill_ids_1..3 = Passive. Skill names map ONLY from match_api.type=2.
+      Active/Passive is detected from character.json. If a skill isn’t found there, it falls back to skill_ids position.
     </div>
   `;
 }
@@ -1411,12 +1589,9 @@ function renderPlayersTable(teamRows){
     const petCount = new Map();
 
     for(const r of list){
-      const a = getActiveSkillId(r);
-      if(a) activeCount.set(a, (activeCount.get(a)||0)+1);
-
-      for(const pid of getPassiveSkillIds(r)){
-        passiveCount.set(pid, (passiveCount.get(pid)||0)+1);
-      }
+      const { act: aIds, pas: pIds } = getSkillsByKindFromRow(r);
+      for(const id of aIds) activeCount.set(id, (activeCount.get(id)||0)+1);
+      for(const id of pIds) passiveCount.set(id, (passiveCount.get(id)||0)+1);
 
       const pl = getPetLabel(r);
       if(pl) petCount.set(pl, (petCount.get(pl)||0)+1);
@@ -1442,7 +1617,6 @@ function renderPlayersTable(teamRows){
 
   out.sort((a,b)=> (b.dmg_pm - a.dmg_pm) || (b.kills - a.kills) || a.player.localeCompare(b.player));
 
-  // ✅ removed Avg Place from player stats
   el('tblPlayers').innerHTML = renderSimpleTable(out.map((r,i)=>({...r,rank:i+1})), [
     {label:'#', key:'rank', right:true, html:(_,i)=>i+1},
     {label:'Player', key:'player'},
@@ -1470,12 +1644,9 @@ function renderTeamUsageTables(teamRows){
   const pet = new Map();
 
   for(const r of teamRows){
-    const a = getActiveSkillId(r);
-    if(a) act.set(a, (act.get(a)||0)+1);
-
-    for(const pid of getPassiveSkillIds(r)){
-      pas.set(pid, (pas.get(pid)||0)+1);
-    }
+    const { act: aIds, pas: pIds } = getSkillsByKindFromRow(r);
+    for(const id of aIds) act.set(id, (act.get(id)||0)+1);
+    for(const id of pIds) pas.set(id, (pas.get(id)||0)+1);
 
     const pl = getPetLabel(r);
     if(pl) pet.set(pl, (pet.get(pl)||0)+1);
@@ -1507,7 +1678,6 @@ function renderTeamUsageTables(teamRows){
   applyColumnHeatmap('tblPet', ['picks']);
 }
 
-/* ✅ NEW: All teams skill summary */
 function renderAllTeamsSkillSummary(){
   const teams = [...new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean))]
     .sort((a,b)=>a.localeCompare(b));
@@ -1531,12 +1701,9 @@ function renderAllTeamsSkillSummary(){
     const pet = new Map();
 
     for(const r of teamRows){
-      const a = getActiveSkillId(r);
-      if(a) act.set(a, (act.get(a)||0)+1);
-
-      for(const pid of getPassiveSkillIds(r)){
-        pas.set(pid, (pas.get(pid)||0)+1);
-      }
+      const { act: aIds, pas: pIds } = getSkillsByKindFromRow(r);
+      for(const id of aIds) act.set(id, (act.get(id)||0)+1);
+      for(const id of pIds) pas.set(id, (pas.get(id)||0)+1);
 
       const pl = getPetLabel(r);
       if(pl) pet.set(pl, (pet.get(pl)||0)+1);
@@ -1555,7 +1722,6 @@ function renderAllTeamsSkillSummary(){
     };
   });
 
-  // default sort: matches desc then team
   rows.sort((a,b)=> (b.matches - a.matches) || a.team.localeCompare(b.team));
 
   el('tblAllTeamsSkills').innerHTML = renderSimpleTable(rows, [
@@ -1638,7 +1804,7 @@ async function init(){
     clearErr();
     el('veil').classList.remove('hide');
 
-    // ✅ collapse everything on load
+    // collapse everything on load
     document.querySelectorAll('details.accordion').forEach(d=> d.open = false);
 
     await headCount();
@@ -1663,7 +1829,10 @@ async function init(){
     }
 
     detectSchema(RAW[0]);
+
+    // Order matters: match_api → character.json → render
     await loadMatchApi();
+    await loadCharacterJson();
 
     populateTournamentDropdown();
     resetToLatest();
