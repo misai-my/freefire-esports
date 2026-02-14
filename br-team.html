@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FF Stats — Teams & Players (Skills + Pets)</title>
+  <title>FF Stats — Teams & Players</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Fonts -->
@@ -201,11 +201,6 @@
       box-shadow: 0 0 0 3px rgba(255,189,89,.12);
       border-color: rgba(255,189,89,.28);
     }
-    .btn.ghost{
-      background: transparent;
-      border-color: rgba(255,255,255,.12);
-      color: rgba(244,246,255,.84);
-    }
 
     .input{
       background: rgba(0,0,0,.22);
@@ -242,7 +237,6 @@
     }
     .muted{color:var(--muted)}
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:12px}
-    .grid3{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}
 
     .card{
       background: rgba(14, 18, 28, .55);
@@ -417,7 +411,6 @@
 
     @media (max-width: 980px){
       body::before, body::after{display:none;}
-      .grid3{grid-template-columns:1fr}
       .shell{padding: 0 10px 16px}
       .hdr-inner{padding: 10px 10px}
     }
@@ -497,7 +490,8 @@
     <div class="muted" id="filterHint">—</div>
   </div>
 
-  <details class="accordion" open>
+  <!-- ✅ collapsed on load (no "open") -->
+  <details class="accordion" id="accOverall">
     <summary>Overall — Team Summary</summary>
     <div class="accordion-body">
       <div class="bar">
@@ -544,7 +538,8 @@
     </div>
   </div>
 
-  <details class="accordion" open>
+  <!-- ✅ collapsed on load (no "open") -->
+  <details class="accordion" id="accPlayers">
     <summary>Players — Stats + Active/Passive/Pet Breakdown</summary>
     <div class="accordion-body">
       <div class="card" style="margin:0">
@@ -591,6 +586,19 @@
     </div>
   </details>
 
+  <!-- ✅ NEW: All Teams Skill Summary at the bottom (collapsed on load) -->
+  <details class="accordion" id="accAllTeamsSkills">
+    <summary>All Teams — Skill Summary (Top Active/Passives/Pet)</summary>
+    <div class="accordion-body">
+      <div class="card" style="margin:0">
+        <div class="muted" style="margin-bottom:8px">
+          Uses current scope filters. Assumes skill_ids_0 = Active and skill_ids_1..3 = Passive.
+        </div>
+        <div id="tblAllTeamsSkills">—</div>
+      </div>
+    </div>
+  </details>
+
 </div>
 
 <script>
@@ -616,8 +624,6 @@ function gerr(msg){
   console.error('[FF_STATS]', msg);
 }
 function clearErr(){ el('globalErr').classList.remove('show'); el('globalErr').textContent=''; }
-
-function safeDiv(a,b){ a=n(a); b=n(b); return b? (a/b) : 0; }
 
 function pickKey(keys, patterns){
   for(const rx of patterns){
@@ -807,7 +813,6 @@ function mapNameFromId(id, fallback=''){
   if(ID_TO_NAME.has(key)) return ID_TO_NAME.get(key);
   return fallback || `ID ${key}`;
 }
-// ✅ use this ONLY for active/passive skills
 function mapSkillFromId(id, fallback=''){
   const key = String(id ?? '').trim();
   if(!key) return fallback || '—';
@@ -970,9 +975,8 @@ function countMatchesIn(rows){
 /* ---- dropdown helpers (cascading) ---- */
 function uniqSorted(values){
   const arr = [...new Set(values.map(v=>norm(v)).filter(Boolean))];
-  // numeric-ish sort desc if possible
   arr.sort((a,b)=>{
-    const na = Number(String(a).replace(/[^\d.-]/g,'')); // tolerate "W2"
+    const na = Number(String(a).replace(/[^\d.-]/g,''));
     const nb = Number(String(b).replace(/[^\d.-]/g,''));
     const ia = Number.isFinite(na) ? na : null;
     const ib = Number.isFinite(nb) ? nb : null;
@@ -991,7 +995,6 @@ function setSelectOptions(selectEl, values, keepCurrent=true){
     })).join('');
   selectEl.innerHTML = html;
 
-  // restore selection if possible
   if(cur && [...selectEl.options].some(o=>o.value===cur)) selectEl.value = cur;
   else selectEl.value = '__all__';
 }
@@ -1012,10 +1015,8 @@ function rowsForCascades(){
 }
 
 function refreshCascadeOptions(changed){
-  // changed: 'tournament'|'year'|'week'|'day'|'match'
   const { rT, rY, rW, rD } = rowsForCascades();
 
-  // When tournament changes, rebuild Year options from tournament-scope
   if(changed === 'tournament'){
     if(KEYS.year) setSelectOptions(el('fYear'), uniqSorted(rT.map(r=>getVal(r,KEYS.year))), false);
     if(KEYS.week) setSelectOptions(el('fWeek'), uniqSorted(rY.map(r=>getVal(r,KEYS.week))), false);
@@ -1023,20 +1024,17 @@ function refreshCascadeOptions(changed){
     if(KEYS.matchNo) setSelectOptions(el('fMatchNo'), uniqSorted(rD.map(r=>getVal(r,KEYS.matchNo))), false);
     return;
   }
-
   if(changed === 'year'){
     if(KEYS.week) setSelectOptions(el('fWeek'), uniqSorted(rY.map(r=>getVal(r,KEYS.week))), false);
     if(KEYS.day)  setSelectOptions(el('fDay'),  uniqSorted(rW.map(r=>getVal(r,KEYS.day))), false);
     if(KEYS.matchNo) setSelectOptions(el('fMatchNo'), uniqSorted(rD.map(r=>getVal(r,KEYS.matchNo))), false);
     return;
   }
-
   if(changed === 'week'){
     if(KEYS.day)  setSelectOptions(el('fDay'),  uniqSorted(rW.map(r=>getVal(r,KEYS.day))), false);
     if(KEYS.matchNo) setSelectOptions(el('fMatchNo'), uniqSorted(rD.map(r=>getVal(r,KEYS.matchNo))), false);
     return;
   }
-
   if(changed === 'day'){
     if(KEYS.matchNo) setSelectOptions(el('fMatchNo'), uniqSorted(rD.map(r=>getVal(r,KEYS.matchNo))), false);
     return;
@@ -1096,6 +1094,7 @@ function applyFilters(){
 
   renderOverall();
   renderTeamGrid(el('teamSearch').value || '');
+  renderAllTeamsSkillSummary(); // ✅ new bottom table
 
   if(CURRENT_TEAM){
     const teamsInScope = new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean));
@@ -1120,7 +1119,7 @@ function applyFilters(){
 }
 
 function populateTournamentDropdown(){
-  const tset = new Map(); // lower-> {name, maxKey}
+  const tset = new Map();
   for(const r of RAW){
     const t = norm(getVal(r, KEYS.tournament));
     if(!t) continue;
@@ -1148,21 +1147,17 @@ function populateTournamentDropdown(){
 }
 
 function resetToLatest(){
-  // tournament already set to latest by populateTournamentDropdown()
   const t = el('fTournament').value;
   const rT = (t==='__all__' || !KEYS.tournament) ? RAW : RAW.filter(r=>norm(getVal(r,KEYS.tournament))===t);
 
-  // rebuild Year options based on tournament, then pick latest year/week/day (and keep match = All)
   if(KEYS.year) setSelectOptions(el('fYear'), uniqSorted(rT.map(r=>getVal(r,KEYS.year))), false);
   const latest = latestKeyFrom(rT);
 
   if(latest?.y && [...el('fYear').options].some(o=>o.value===latest.y)) el('fYear').value = latest.y;
   else el('fYear').value = '__all__';
 
-  // rebuild week/day/match options within current tournament+year
   refreshCascadeOptions('year');
 
-  // Default to latest week/day (optional), but keep match as All for usability
   if(latest?.w && [...el('fWeek').options].some(o=>o.value===latest.w)) el('fWeek').value = latest.w;
   refreshCascadeOptions('week');
 
@@ -1170,7 +1165,6 @@ function resetToLatest(){
   refreshCascadeOptions('day');
 
   el('fMatchNo').value = '__all__';
-
   applyFilters();
 }
 
@@ -1412,11 +1406,6 @@ function renderPlayersTable(teamRows){
     let booyahs = 0;
     for(const mk of matchSet){ if(booyahByMatch.get(mk)) booyahs++; }
 
-    const placements = [...matchSet]
-      .map(mk => tm.find(x=>x.mk===mk)?.placement)
-      .filter(v=>v!=null && isFinite(v));
-    const avg_place = placements.length ? placements.reduce((a,b)=>a+b,0)/placements.length : null;
-
     const activeCount = new Map();
     const passiveCount = new Map();
     const petCount = new Map();
@@ -1445,7 +1434,6 @@ function renderPlayersTable(teamRows){
       elims_pm: matches ? kills/matches : 0,
       damage,
       dmg_pm: matches ? damage/matches : 0,
-      avg_place,
       active: topActive ? `${mapSkillFromId(topActive.name, `ID ${topActive.name}`)} (${topActive.picks})` : '—',
       passive: topPassives.length ? topPassives.map(p=>`${mapSkillFromId(p.name, `ID ${p.name}`)} (${p.picks})`).join(' • ') : '—',
       pet: topPet ? `${topPet.name} (${topPet.picks})` : '—'
@@ -1454,6 +1442,7 @@ function renderPlayersTable(teamRows){
 
   out.sort((a,b)=> (b.dmg_pm - a.dmg_pm) || (b.kills - a.kills) || a.player.localeCompare(b.player));
 
+  // ✅ removed Avg Place from player stats
   el('tblPlayers').innerHTML = renderSimpleTable(out.map((r,i)=>({...r,rank:i+1})), [
     {label:'#', key:'rank', right:true, html:(_,i)=>i+1},
     {label:'Player', key:'player'},
@@ -1463,7 +1452,6 @@ function renderPlayersTable(teamRows){
     {label:'Elims/m', key:'elims_pm', right:true, format:'1d'},
     {label:'Damage', key:'damage', right:true},
     {label:'Dmg/m', key:'dmg_pm', right:true, format:'0d'},
-    {label:'Avg Place', key:'avg_place', right:true, html:r=> (r.avg_place==null ? '—' : r.avg_place.toFixed(1))},
     {label:'Top Active', key:'active'},
     {label:'Top Passives', key:'passive'},
     {label:'Top Pet', key:'pet'}
@@ -1519,6 +1507,68 @@ function renderTeamUsageTables(teamRows){
   applyColumnHeatmap('tblPet', ['picks']);
 }
 
+/* ✅ NEW: All teams skill summary */
+function renderAllTeamsSkillSummary(){
+  const teams = [...new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b));
+
+  if(!teams.length){
+    el('tblAllTeamsSkills').innerHTML = '<div class="muted">No teams in this scope.</div>';
+    return;
+  }
+
+  const tmAll = teamMatchAgg(FILTERED);
+  const matchesByTeam = new Map();
+  for(const r of tmAll){
+    matchesByTeam.set(r.team, (matchesByTeam.get(r.team)||0) + 1);
+  }
+
+  const rows = teams.map(team=>{
+    const teamRows = FILTERED.filter(r => norm(getVal(r, KEYS.team)).toUpperCase() === team);
+
+    const act = new Map();
+    const pas = new Map();
+    const pet = new Map();
+
+    for(const r of teamRows){
+      const a = getActiveSkillId(r);
+      if(a) act.set(a, (act.get(a)||0)+1);
+
+      for(const pid of getPassiveSkillIds(r)){
+        pas.set(pid, (pas.get(pid)||0)+1);
+      }
+
+      const pl = getPetLabel(r);
+      if(pl) pet.set(pl, (pet.get(pl)||0)+1);
+    }
+
+    const topA = listTopCounts(act, 1)[0];
+    const topP = listTopCounts(pas, 3);
+    const topPet = listTopCounts(pet, 1)[0];
+
+    return {
+      team,
+      matches: matchesByTeam.get(team) || 0,
+      top_active: topA ? `${mapSkillFromId(topA.name, `ID ${topA.name}`)} (${topA.picks})` : '—',
+      top_passive: topP.length ? topP.map(p=>`${mapSkillFromId(p.name, `ID ${p.name}`)} (${p.picks})`).join(' • ') : '—',
+      top_pet: topPet ? `${topPet.name} (${topPet.picks})` : '—'
+    };
+  });
+
+  // default sort: matches desc then team
+  rows.sort((a,b)=> (b.matches - a.matches) || a.team.localeCompare(b.team));
+
+  el('tblAllTeamsSkills').innerHTML = renderSimpleTable(rows, [
+    {label:'Team', key:'team'},
+    {label:'Matches', key:'matches', right:true},
+    {label:'Top Active', key:'top_active'},
+    {label:'Top Passives', key:'top_passive'},
+    {label:'Top Pet', key:'top_pet'}
+  ]);
+
+  applyColumnHeatmap('tblAllTeamsSkills', ['matches']);
+}
+
 function selectTeam(teamCode, silent=false){
   CURRENT_TEAM = teamCode;
   el('selectedTeamChip').textContent = teamCode;
@@ -1558,7 +1608,6 @@ function wire(){
   el('topPassive').addEventListener('change', ()=>{ if(CURRENT_TEAM) selectTeam(CURRENT_TEAM, true); });
   el('topPet').addEventListener('change', ()=>{ if(CURRENT_TEAM) selectTeam(CURRENT_TEAM, true); });
 
-  // Cascading filter logic
   el('fTournament').addEventListener('change', ()=>{
     refreshCascadeOptions('tournament');
     applyFilters();
@@ -1589,6 +1638,9 @@ async function init(){
     clearErr();
     el('veil').classList.remove('hide');
 
+    // ✅ collapse everything on load
+    document.querySelectorAll('details.accordion').forEach(d=> d.open = false);
+
     await headCount();
 
     RAW = await fetchAllRows();
@@ -1596,6 +1648,7 @@ async function init(){
     if(!RAW.length){
       el('tblOverall').innerHTML = '<div class="muted">No rows loaded.</div>';
       el('teamGrid').innerHTML = '<div class="muted">No teams.</div>';
+      el('tblAllTeamsSkills').innerHTML = '<div class="muted">No teams.</div>';
       el('veil').classList.add('hide');
       gerr(
         `No rows returned from ${TABLE}.\n\n` +
@@ -1610,11 +1663,8 @@ async function init(){
     }
 
     detectSchema(RAW[0]);
-
-    // load mapping (optional)
     await loadMatchApi();
 
-    // Tournament dropdown + latest defaults
     populateTournamentDropdown();
     resetToLatest();
 
