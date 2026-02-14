@@ -389,28 +389,27 @@
     details.accordion > summary::-webkit-details-marker{display:none}
     details.accordion > .accordion-body{padding: 12px 14px}
 
-    .mini{
-      display:inline-flex;
-      gap:6px;
-      flex-wrap:wrap;
-      align-items:flex-start;
+    .small{
+      font-size:.86rem;
+      line-height:1.35;
+      color: rgba(244,246,255,.86);
+      white-space: normal;
     }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      font-size: .78rem;
-      color: rgba(244,246,255,.88);
-      white-space:nowrap;
-    }
-    .pill b{font-weight:1000}
-    .pill .tag{
-      font-weight:1000;
-      color: rgba(244,246,255,.95);
+    .small .muted{color: rgba(170,177,197,.82)}
+    .small .line{margin:2px 0}
+    .small code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:.82rem;
+      color: rgba(244,246,255,.85);
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 2px 6px;
+      border-radius: 10px;
+      display:inline-block;
+      max-width: 680px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      vertical-align:middle;
     }
 
     #veil{
@@ -563,7 +562,7 @@
   </div>
 
   <details class="accordion" id="accPlayers">
-    <summary>Players — Stats + Loadouts (Active/Passive/Pet)</summary>
+    <summary>Players — Stats + Loadout (Active/Passive/Pet)</summary>
     <div class="accordion-body">
       <div class="card" style="margin:0">
         <div id="tblPlayers">Select a team…</div>
@@ -571,18 +570,39 @@
 
       <div class="grid2" style="margin-top:12px">
         <div class="card">
-          <h3>Team Active Skill Usage (Top 3)</h3>
+          <h3>Team Active Skill Usage</h3>
+          <div class="bar">
+            <label>Top
+              <select id="topActive" class="input">
+                <option>10</option><option>20</option><option>50</option><option>100</option>
+              </select>
+            </label>
+          </div>
           <div id="tblActive">—</div>
         </div>
 
         <div class="card">
-          <h3>Team Passive Skill Usage (Top 6)</h3>
+          <h3>Team Passive Skill Usage</h3>
+          <div class="bar">
+            <label>Top
+              <select id="topPassive" class="input">
+                <option>10</option><option>20</option><option>50</option><option>100</option>
+              </select>
+            </label>
+          </div>
           <div id="tblPassive">—</div>
         </div>
       </div>
 
       <div class="card" style="margin-top:12px">
-        <h3>Team Pet Usage (Top 10)</h3>
+        <h3>Team Pet Usage</h3>
+        <div class="bar">
+          <label>Top
+            <select id="topPet" class="input">
+              <option>10</option><option>20</option><option>50</option><option>100</option>
+            </select>
+          </label>
+        </div>
         <div id="tblPet">—</div>
       </div>
     </div>
@@ -593,8 +613,9 @@
     <div class="accordion-body">
       <div class="card" style="margin:0">
         <div class="muted" style="margin-bottom:8px">
-          Uses current scope filters. Loadout comes from <b>player_stats_loadouts</b> / <b>player_stats_loadout</b> when present (with fallback to skill_ids_*).
-          Active/Passive is identified using character.json api_id matching vs match_api skill IDs (with last-digit variation attempts).
+          Uses current scope filters. Active/Passive is derived by comparing match_api skill names with character.json skill list,
+          with <strong>fallback validation</strong> from <code>ff_stats_raw.player_stats_skill_info</code>.
+          Loadout display uses <code>ff_stats_raw.player_stats_loadouts</code> only.
         </div>
         <div id="tblAllTeamsSkills">—</div>
       </div>
@@ -613,7 +634,7 @@ const client = supabase.createClient(
 const TABLE = 'ff_stats_raw';
 const MAP_TABLE = 'match_api';
 
-/* ✅ set to your hosted JSON if needed (e.g. https://.../character.json) */
+/* ✅ Set this to your hosted character.json URL */
 const CHARACTER_JSON_URL = 'character.json';
 
 /* ============ Small utils ============ */
@@ -654,7 +675,7 @@ function escHtml(s){
     .replaceAll('<','&lt;')
     .replaceAll('>','&gt;')
     .replaceAll('"','&quot;')
-    .replaceAll("'","&#039;");
+    .replaceAll("'","&#39;");
 }
 
 function renderSimpleTable(list, cols){
@@ -762,7 +783,8 @@ let KEYS = {
   booyah: null,
   petName: null,
   petId: null,
-  loadout: null,          // ✅ player_stats_loadouts or player_stats_loadout
+  loadouts: null,          // ✅ ff_stats_raw.player_stats_loadouts
+  skillInfo: null,         // ✅ ff_stats_raw.player_stats_skill_info
   skillIds: []
 };
 
@@ -770,8 +792,9 @@ let ID_TO_NAME = new Map();          // all types
 let SKILL_ID_TO_NAME = new Map();    // ONLY type=2 (skills)
 let MAP_READY = false;
 
-/* ===== character.json api_id matching ===== */
-let CHAR_ID_TO_KIND = new Map();     // api_id -> active|passive
+/* ===== character.json skill name map (NAME COMPARISON ONLY) ===== */
+let CHAR_SKILLKEY_TO_KIND = new Map();    // normalized key -> active|passive
+let CHAR_SKILLKEY_LIST = [];              // [{key,kind}] for fuzzy fallback
 let CHAR_READY = false;
 
 /* ============ Schema detection ============ */
@@ -797,8 +820,9 @@ function detectSchema(sample){
   KEYS.petName = pickKey(keys, [/pet_skill_name/i, /pet.*name/i]);
   KEYS.petId = pickKey(keys, [/pet_skill_id/i, /pet.*id/i]);
 
-  // ✅ loadout column (your note: player_stats_loadouts is its own column)
-  KEYS.loadout = pickKey(keys, [/^player_stats_loadouts$/i, /^player_stats_loadout$/i, /loadouts?/i]);
+  // ✅ Loadout + skill_info are from ff_stats_raw ONLY (no match_api mapping)
+  KEYS.loadouts = pickKey(keys, [/^player_stats_loadouts$/i, /player_stats_loadout/i, /\bloadouts\b/i, /\bloadout\b/i]);
+  KEYS.skillInfo = pickKey(keys, [/^player_stats_skill_info$/i, /player.*skill.*info/i, /\bskill_info\b/i]);
 
   const skillKeys = keys
     .filter(k => /skill_ids_/i.test(k))
@@ -807,7 +831,7 @@ function detectSchema(sample){
       const bi = Number((b.match(/(\d+)$/)||[])[1]||0);
       return ai-bi;
     });
-  KEYS.skillIds = skillKeys.slice(0,6); // allow more if present
+  KEYS.skillIds = skillKeys.slice(0,4);
 
   const summary = [
     KEYS.team ? `team=${KEYS.team}` : 'team=—',
@@ -817,9 +841,10 @@ function detectSchema(sample){
     KEYS.week ? `week=${KEYS.week}` : 'week=—',
     KEYS.day ? `day=${KEYS.day}` : 'day=—',
     KEYS.matchNo ? `matchNo=${KEYS.matchNo}` : 'matchNo=—',
-    KEYS.loadout ? `loadout=${KEYS.loadout}` : 'loadout=—',
-    KEYS.skillIds.length ? `skill_ids=${KEYS.skillIds.join(',')}` : 'skill_ids=—',
+    KEYS.skillIds.length ? `skills=${KEYS.skillIds.join(',')}` : 'skills=—',
     KEYS.petName ? `pet=${KEYS.petName}` : (KEYS.petId ? `petId=${KEYS.petId}` : 'pet=—'),
+    KEYS.loadouts ? `loadouts=${KEYS.loadouts}` : 'loadouts=—',
+    KEYS.skillInfo ? `skill_info=${KEYS.skillInfo}` : 'skill_info=—',
     KEYS.kills ? `kills=${KEYS.kills}` : 'kills=—',
     KEYS.damage ? `dmg=${KEYS.damage}` : 'dmg=—',
     KEYS.rank ? `rank=${KEYS.rank}` : 'rank=—',
@@ -890,7 +915,7 @@ async function loadMatchApi(){
   }
 }
 
-/* ============ character.json load (api_id -> active/passive) ============ */
+/* ============ character.json load (name comparison only) ============ */
 function normKind(v){
   const s = String(v ?? '').trim().toLowerCase();
   if(!s) return '';
@@ -898,35 +923,62 @@ function normKind(v){
   if(s.includes('passive')) return 'passive';
   return '';
 }
-function normId(x){
-  if(x == null) return '';
-  const s = String(x).trim();
-  if(!s) return '';
-  // strip decimals from numeric strings "123.0"
-  if(/^\d+(\.0+)?$/.test(s)) return String(parseInt(s,10));
-  return s;
+
+function skillKey(s){
+  let x = String(s ?? '').toUpperCase();
+  x = x.replace(/\(.*?\)/g, ' ');
+  x = x.replace(/\bAWAKEN(ED)?\b/g, ' ');
+  x = x.replace(/\bMAX(ED)?\b/g, ' ');
+  x = x.replace(/\bLV(L)?\s*\d+\b/g, ' ');
+  x = x.replace(/[-–—_:|•]/g, ' ');
+  x = x.replace(/[^A-Z0-9 ]+/g, ' ');
+  x = x.replace(/\s+/g, ' ').trim();
+  return x;
 }
 
-// if some ids doesn't match try difference variation of the last digit to find a match
-function tryCharKindById(id){
-  const s = normId(id);
-  if(!s) return '';
-  if(CHAR_ID_TO_KIND.has(s)) return CHAR_ID_TO_KIND.get(s);
+function skillKeyVariants(original){
+  const raw = String(original ?? '').trim();
+  if(!raw) return [];
+  const parts = raw
+    .split(/[:\-–—|•]/g)
+    .map(s => s.trim())
+    .filter(Boolean);
 
-  // last-digit variation attempts (0-9) if numeric
-  if(/^\d+$/.test(s) && s.length >= 2){
-    const base = s.slice(0, -1);
-    for(let d=0; d<=9; d++){
-      const cand = base + String(d);
-      if(CHAR_ID_TO_KIND.has(cand)) return CHAR_ID_TO_KIND.get(cand);
+  const variants = new Set();
+  variants.add(skillKey(raw));
+
+  for(const p of parts){
+    const k = skillKey(p);
+    if(k && k.length >= 3) variants.add(k);
+  }
+
+  if(parts.length >= 2){
+    const last = skillKey(parts[parts.length-1]);
+    if(last && last.length >= 3) variants.add(last);
+  }
+
+  return [...variants].filter(Boolean);
+}
+
+function fuzzyKindLookup(key){
+  if(!key || !CHAR_SKILLKEY_LIST.length) return '';
+  let best = null;
+  for(const item of CHAR_SKILLKEY_LIST){
+    const ck = item.key;
+    if(key.includes(ck) || ck.includes(key)){
+      const score = Math.min(key.length, ck.length);
+      if(!best || score > best.score){
+        best = { kind: item.kind, score };
+      }
     }
   }
-  return '';
+  return best?.kind || '';
 }
 
 async function loadCharacterJson(){
   CHAR_READY = false;
-  CHAR_ID_TO_KIND.clear();
+  CHAR_SKILLKEY_TO_KIND.clear();
+  CHAR_SKILLKEY_LIST = [];
 
   try{
     const res = await fetch(`${CHARACTER_JSON_URL}?v=${Date.now()}`, { cache:'no-store' });
@@ -943,13 +995,21 @@ async function loadCharacterJson(){
     for(const ch of arr){
       const kind = normKind(ch?.skill_type);
       if(!kind) continue;
-      const apiId = normId(ch?.api_id);
-      if(!apiId) continue;
-      if(!CHAR_ID_TO_KIND.has(apiId)) CHAR_ID_TO_KIND.set(apiId, kind);
+
+      const name = ch?.skill;
+      const keys = skillKeyVariants(name);
+      for(const k of keys){
+        if(!k) continue;
+        if(!CHAR_SKILLKEY_TO_KIND.has(k)){
+          CHAR_SKILLKEY_TO_KIND.set(k, kind);
+        }
+      }
     }
 
-    CHAR_READY = CHAR_ID_TO_KIND.size > 0;
-    el('diagChar').textContent = `character.json mapping: api_id=${CHAR_ID_TO_KIND.size}`;
+    CHAR_SKILLKEY_LIST = [...CHAR_SKILLKEY_TO_KIND.entries()].map(([key,kind])=>({key,kind}));
+
+    CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
+    el('diagChar').textContent = `character.json mapping: skills=${CHAR_SKILLKEY_TO_KIND.size}`;
   }catch(e){
     CHAR_READY = false;
     el('diagChar').textContent = 'character.json mapping: unavailable';
@@ -1062,7 +1122,6 @@ function countMatchesIn(rows){
   return s.size;
 }
 
-/* ---- dropdown helpers (cascading) ---- */
 function uniqSorted(values){
   const arr = [...new Set(values.map(v=>norm(v)).filter(Boolean))];
   arr.sort((a,b)=>{
@@ -1305,162 +1364,117 @@ function skillIdFromRow(r, idx){
   if(!k) return '';
   const v = r?.[k];
   if(v == null || String(v).trim()==='') return '';
-  return normId(v);
-}
-
-/* ============ Loadout parsing (player_stats_loadouts column) ============ */
-function parseLoadoutRaw(v){
-  if(v == null) return null;
-  if(typeof v === 'object') return v;
   const s = String(v).trim();
-  if(!s) return null;
-  try{
-    return JSON.parse(s);
-  }catch{
-    // sometimes stored like "[object Object]" or plain text -> ignore
-    return null;
-  }
+  const m = s.match(/^\d+(\.0+)?$/);
+  if(m) return String(parseInt(s,10));
+  return s;
 }
 
-function pickFirst(obj, keys){
-  for(const k of keys){
-    if(obj && Object.prototype.hasOwnProperty.call(obj, k) && obj[k] != null && String(obj[k]).trim() !== ''){
-      return obj[k];
-    }
-  }
-  return null;
+/* ====== Loadout: ONLY from ff_stats_raw.player_stats_loadouts ====== */
+function getLoadoutRaw(r){
+  if(!KEYS.loadouts) return '';
+  const v = r?.[KEYS.loadouts];
+  if(v == null) return '';
+  if(typeof v === 'string') return v.trim();
+  try{ return JSON.stringify(v); }catch{ return String(v); }
 }
 
-function pickDeep(obj, paths){
-  for(const p of paths){
-    const parts = p.split('.');
-    let cur = obj;
-    let ok = true;
-    for(const part of parts){
-      if(cur && Object.prototype.hasOwnProperty.call(cur, part)) cur = cur[part];
-      else { ok = false; break; }
-    }
-    if(ok && cur != null && String(cur).trim() !== '') return cur;
-  }
-  return null;
-}
+/* ============ skill_info fallback (ff_stats_raw.player_stats_skill_info) ============ */
+function parseSkillInfoIds(raw){
+  if(raw == null) return [];
+  let v = raw;
 
-function normalizeIdList(x){
-  if(x == null) return [];
-  if(Array.isArray(x)) return x.map(normId).filter(Boolean);
-  if(typeof x === 'object') return Object.values(x).map(normId).filter(Boolean);
-  const s = String(x).trim();
-  if(!s) return [];
-  if(s.includes(',')) return s.split(',').map(t=>normId(t)).filter(Boolean);
-  return [normId(s)].filter(Boolean);
-}
-
-function getLoadoutFromRow(r){
-  if(!KEYS.loadout) return null;
-  const raw = parseLoadoutRaw(r?.[KEYS.loadout]);
-  if(!raw) return null;
-
-  const activeRaw =
-    pickFirst(raw, [
-      'active_skill_id','activeSkillId','active_skill','activeSkill',
-      'skill_active_id','skillActiveId','active'
-    ]) ??
-    pickDeep(raw, [
-      'skills.active', 'skill.active', 'loadout.active', 'ability.active'
-    ]);
-
-  const active = normId(activeRaw);
-
-  const passivesRaw =
-    pickFirst(raw, [
-      'passive_skill_ids','passiveSkillIds','passive_skills','passives','passive'
-    ]) ??
-    pickDeep(raw, [
-      'skills.passives','skills.passive','skill.passives','skill.passive',
-      'loadout.passives','ability.passives'
-    ]);
-
-  let passives = normalizeIdList(passivesRaw);
-
-  for(const k of Object.keys(raw)){
-    if(/^passive\d+$/i.test(k) || /^passive_skill_id_\d+$/i.test(k) || /^skill_passive_\d+$/i.test(k)){
-      passives.push(normId(raw[k]));
+  if(typeof v === 'string'){
+    const s = v.trim();
+    if(!s) return [];
+    try{
+      v = JSON.parse(s);
+    }catch{
+      const ids = s.match(/\d+/g) || [];
+      return ids.map(x=>String(parseInt(x,10))).filter(Boolean);
     }
   }
 
-  const petIdRaw =
-    pickFirst(raw, ['pet_skill_id','petSkillId','pet_id','petId','pet']) ??
-    pickDeep(raw, ['pet.id','pet.skill_id','skills.pet','loadout.pet_id']);
+  const out = [];
 
-  const petNameRaw =
-    pickFirst(raw, ['pet_skill_name','petName','pet_name']) ??
-    pickDeep(raw, ['pet.name','pet.skill_name','loadout.pet_name']);
-
-  const petId = normId(petIdRaw);
-  const petName = String(petNameRaw ?? '').trim();
-
-  const seen = new Set();
-  const uniqPass = [];
-  for(const id of passives){
-    if(!id || seen.has(id)) continue;
-    seen.add(id);
-    uniqPass.push(id);
-  }
-
-  return { active: active || '', passives: uniqPass, petId: petId || '', petName: petName || '' };
-}
-
-/* ============ Active/Passive classification using character.json api_id (with last-digit variation) ============ */
-function kindOfSkillId(id){
-  if(!CHAR_READY) return '';
-  return tryCharKindById(id) || '';
-}
-
-/* ✅ FIX: If loadout exists but passives missing, recover from skill_ids_* so passives never "disappear" */
-function classifySkillsFromRow(r){
-  const lo = getLoadoutFromRow(r);
-
-  const fallbackIds = (KEYS.skillIds||[])
-    .map((_,i)=>skillIdFromRow(r,i))
-    .filter(Boolean);
-
-  const seenF = new Set();
-  const uniqFallback = [];
-  for(const id of fallbackIds){
-    if(seenF.has(id)) continue;
-    seenF.add(id);
-    uniqFallback.push(id);
-  }
-
-  if(lo){
-    let active = lo.active || '';
-    let passives = (lo.passives || []).slice();
-
-    if(!active){
-      const pick = uniqFallback.find(x => kindOfSkillId(x) !== 'passive') || uniqFallback[0] || '';
-      active = pick;
-    }
-
-    if(!passives.length && uniqFallback.length){
-      if(CHAR_READY){
-        passives = uniqFallback.filter(id => id !== active && kindOfSkillId(id) === 'passive');
-        if(!passives.length) passives = uniqFallback.filter(id => id !== active);
-      }else{
-        passives = uniqFallback.filter(id => id !== active);
+  if(Array.isArray(v)){
+    for(const item of v){
+      if(item == null) continue;
+      if(typeof item === 'number' || /^\d+(\.0+)?$/.test(String(item).trim())){
+        out.push(String(parseInt(String(item),10)));
+        continue;
+      }
+      if(typeof item === 'object'){
+        const maybe = item.id ?? item.skill_id ?? item.skillId ?? item.active_skill_id ?? item.activeSkillId;
+        if(maybe != null && String(maybe).match(/^\d+(\.0+)?$/)){
+          out.push(String(parseInt(String(maybe),10)));
+        }
+      }
+      if(typeof item === 'string'){
+        const ids = item.match(/\d+/g) || [];
+        for(const x of ids) out.push(String(parseInt(x,10)));
       }
     }
-
-    const pSeen = new Set();
-    passives = passives.filter(id => id && !pSeen.has(id) && (pSeen.add(id), true));
-
-    return { active, passives };
+    return [...new Set(out)].filter(Boolean);
   }
 
-  // No loadout at all
-  const uniq = uniqFallback;
+  if(typeof v === 'object'){
+    const stack = [v];
+    while(stack.length){
+      const cur = stack.pop();
+      if(cur == null) continue;
+      if(Array.isArray(cur)){ stack.push(...cur); continue; }
+      if(typeof cur === 'object'){
+        for(const k of Object.keys(cur)) stack.push(cur[k]);
+        continue;
+      }
+      const ids = String(cur).match(/\d+/g) || [];
+      for(const x of ids) out.push(String(parseInt(x,10)));
+    }
+    return [...new Set(out)].filter(Boolean);
+  }
 
-  if(!CHAR_READY){
-    const active = uniq[0] || '';
+  const ids = String(v).match(/\d+/g) || [];
+  return [...new Set(ids.map(x=>String(parseInt(x,10))))].filter(Boolean);
+}
+
+function getSkillInfoIdsForRow(r){
+  if(!KEYS.skillInfo) return [];
+  return parseSkillInfoIds(r?.[KEYS.skillInfo]);
+}
+
+/* ====== ACTIVE/PASSIVE via NAME COMPARISON + skill_info validation ====== */
+function kindOfSkillId(id){
+  if(!CHAR_READY || !MAP_READY) return '';
+  const nm = mapSkillFromId(id, '');
+  if(!nm) return '';
+  const k = skillKey(nm);
+  if(!k) return '';
+
+  const exact = CHAR_SKILLKEY_TO_KIND.get(k);
+  if(exact) return exact;
+
+  return fuzzyKindLookup(k) || '';
+}
+
+function classifySkillsFromRow(r){
+  const ids = (KEYS.skillIds || []).map((_, idx)=>skillIdFromRow(r, idx)).filter(Boolean);
+
+  const seen = new Set();
+  const uniq = [];
+  for(const id of ids){
+    if(seen.has(id)) continue;
+    seen.add(id);
+    uniq.push(id);
+  }
+
+  if(!uniq.length) return { active:'', passives:[] };
+
+  // If we can't classify (no maps loaded), old behavior but still validate with skill_info if possible
+  if(!CHAR_READY || !MAP_READY){
+    const infoIds = getSkillInfoIdsForRow(r);
+    const activeFromInfo = uniq.find(x => infoIds.includes(x)) || '';
+    const active = activeFromInfo || uniq[0] || '';
     return { active, passives: uniq.filter(x=>x!==active) };
   }
 
@@ -1475,8 +1489,28 @@ function classifySkillsFromRow(r){
     else unknown.push(id);
   }
 
+  // 1) Prefer known active
   let active = actives[0] || '';
-  if(!active) active = unknown[0] || '';
+
+  // 2) If none, validate via player_stats_skill_info (this fixes "Moco as active" cases)
+  if(!active){
+    const infoIds = getSkillInfoIdsForRow(r);
+    const candidate = uniq.find(x => infoIds.includes(x)) || '';
+    if(candidate) active = candidate;
+  }
+
+  // 3) If still none, allow unknown as active only if it's not known-passive
+  if(!active){
+    const safeUnknown = unknown.find(x => kindOfSkillId(x) !== 'passive');
+    active = safeUnknown || '';
+  }
+
+  // 4) HARD safety — never allow known passive to be active
+  if(active && kindOfSkillId(active) === 'passive'){
+    const infoIds = getSkillInfoIdsForRow(r);
+    const candidate = uniq.find(x => infoIds.includes(x) && kindOfSkillId(x) !== 'passive') || '';
+    active = candidate || '';
+  }
 
   const passOut = uniq.filter(x => x !== active);
   return { active, passives: passOut };
@@ -1486,12 +1520,6 @@ function getActiveSkillId(r){ return classifySkillsFromRow(r).active; }
 function getPassiveSkillIds(r){ return classifySkillsFromRow(r).passives; }
 
 function getPetLabel(r){
-  // prefer loadout pet info
-  const lo = getLoadoutFromRow(r);
-  if(lo?.petName) return lo.petName;
-  if(lo?.petId) return mapNameFromId(lo.petId, `ID ${lo.petId}`);
-
-  // fallback legacy columns
   if(KEYS.petName){
     const nm = norm(getVal(r, KEYS.petName));
     if(nm) return nm;
@@ -1598,6 +1626,7 @@ function summarizeTeamLoadout(rows){
   const act = new Map();
   const pas = new Map();
   const pet = new Map();
+  const lo = new Map();
 
   for(const r of rows){
     const a = getActiveSkillId(r);
@@ -1610,13 +1639,19 @@ function summarizeTeamLoadout(rows){
 
     const pl = getPetLabel(r);
     if(pl) pet.set(pl, (pet.get(pl)||0)+1);
+
+    const lraw = getLoadoutRaw(r);
+    if(lraw) lo.set(lraw, (lo.get(lraw)||0)+1);
   }
 
   const topAct = listTopCounts(act, 3).map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') || '—';
   const topPas = listTopCounts(pas, 6).map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') || '—';
   const topPet = listTopCounts(pet, 3).map(o=>`${o.name} (${o.picks})`).join(' • ') || '—';
 
-  return { topAct, topPas, topPet };
+  const topLoad = [...lo.entries()].sort((a,b)=>b[1]-a[1])[0];
+  const topLoadout = topLoad ? `${topLoad[0]} (${topLoad[1]})` : '—';
+
+  return { topAct, topPas, topPet, topLoadout };
 }
 
 function renderTeamKpis(teamRows){
@@ -1643,27 +1678,14 @@ function renderTeamKpis(teamRows){
   const snap = summarizeTeamLoadout(teamRows);
   el('teamLoadoutSnap').innerHTML = `
     <div class="kpis">
-      <div class="kpi">Top Actives (3) <strong>${snap.topAct}</strong></div>
-      <div class="kpi">Top Passives (6) <strong>${snap.topPas}</strong></div>
-      <div class="kpi">Top Pets (3) <strong>${snap.topPet}</strong></div>
+      <div class="kpi">Top Active <strong>${snap.topAct}</strong></div>
+      <div class="kpi">Top Passive <strong>${snap.topPas}</strong></div>
+      <div class="kpi">Top Pet <strong>${snap.topPet}</strong></div>
+      <div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div>
     </div>
-  `;
-}
-
-function loadoutMiniHTML(r){
-  const a = getActiveSkillId(r);
-  const ps = getPassiveSkillIds(r);
-  const pet = getPetLabel(r);
-
-  const aName = a ? mapSkillFromId(a, `ID ${a}`) : '—';
-  const pNames = ps.slice(0,6).map(id => mapSkillFromId(id, `ID ${id}`));
-  const pStr = pNames.length ? pNames.join(' • ') : '—';
-
-  return `
-    <div class="mini">
-      <span class="pill"><span class="tag">A</span> ${escHtml(aName)}</span>
-      <span class="pill"><span class="tag">P</span> ${escHtml(pStr)}</span>
-      <span class="pill"><span class="tag">Pet</span> ${escHtml(pet || '—')}</span>
+    <div class="muted" style="margin-top:6px">
+      Active/Passive uses character.json + match_api, validated by player_stats_skill_info (fallback).
+      Loadout display is from player_stats_loadouts only.
     </div>
   `;
 }
@@ -1690,6 +1712,7 @@ function renderPlayersTable(teamRows){
     const activeCount = new Map();
     const passiveCount = new Map();
     const petCount = new Map();
+    const loadoutCount = new Map();
 
     for(const r of list){
       const a = getActiveSkillId(r);
@@ -1701,11 +1724,17 @@ function renderPlayersTable(teamRows){
 
       const pl = getPetLabel(r);
       if(pl) petCount.set(pl, (petCount.get(pl)||0)+1);
+
+      const lraw = getLoadoutRaw(r);
+      if(lraw) loadoutCount.set(lraw, (loadoutCount.get(lraw)||0)+1);
     }
 
     const topActive = listTopCounts(activeCount, 1)[0];
     const topPet = listTopCounts(petCount, 1)[0];
-    const topPassives = listTopCounts(passiveCount, 6);
+    const topPassives = listTopCounts(passiveCount, 3);
+
+    const topLoad = [...loadoutCount.entries()].sort((a,b)=>b[1]-a[1])[0];
+    const topLoadout = topLoad ? topLoad[0] : '';
 
     out.push({
       player,
@@ -1715,10 +1744,10 @@ function renderPlayersTable(teamRows){
       elims_pm: matches ? kills/matches : 0,
       damage,
       dmg_pm: matches ? damage/matches : 0,
-      top_active: topActive ? `${mapSkillFromId(topActive.name, `ID ${topActive.name}`)} (${topActive.picks})` : '—',
-      top_passive: topPassives.length ? topPassives.map(p=>`${mapSkillFromId(p.name, `ID ${p.name}`)} (${p.picks})`).join(' • ') : '—',
-      top_pet: topPet ? `${topPet.name} (${topPet.picks})` : '—',
-      loadout_html: loadoutMiniHTML(list[0]) // sample row loadout (structure display)
+      active: topActive ? `${mapSkillFromId(topActive.name, `ID ${topActive.name}`)} (${topActive.picks})` : '—',
+      passive: topPassives.length ? topPassives.map(p=>`${mapSkillFromId(p.name, `ID ${p.name}`)} (${p.picks})`).join(' • ') : '—',
+      pet: topPet ? `${topPet.name} (${topPet.picks})` : '—',
+      loadout: topLoadout ? `<span class="small"><code title="${escHtml(topLoadout)}">${escHtml(topLoadout)}</code></span>` : '—'
     });
   }
 
@@ -1733,16 +1762,20 @@ function renderPlayersTable(teamRows){
     {label:'Elims/m', key:'elims_pm', right:true, format:'1d'},
     {label:'Damage', key:'damage', right:true},
     {label:'Dmg/m', key:'dmg_pm', right:true, format:'0d'},
-    {label:'Top Active', key:'top_active'},
-    {label:'Top Passives', key:'top_passive'},
-    {label:'Top Pet', key:'top_pet'},
-    {label:'Loadout (sample)', key:'loadout_html', html:r=>r.loadout_html}
+    {label:'Top Active', key:'active'},
+    {label:'Top Passives', key:'passive'},
+    {label:'Top Pet', key:'pet'},
+    {label:'Loadout (raw)', key:'loadout'}
   ]);
 
   applyColumnHeatmap('tblPlayers', ['dmg_pm','elims_pm','damage','kills','matches','booyahs']);
 }
 
 function renderTeamUsageTables(teamRows){
+  const topA = Number(el('topActive').value) || 10;
+  const topP = Number(el('topPassive').value) || 10;
+  const topPet = Number(el('topPet').value) || 10;
+
   const act = new Map();
   const pas = new Map();
   const pet = new Map();
@@ -1759,9 +1792,9 @@ function renderTeamUsageTables(teamRows){
     if(pl) pet.set(pl, (pet.get(pl)||0)+1);
   }
 
-  const actList = listTopCounts(act, 3).map((o,i)=>({rank:i+1, skill: mapSkillFromId(o.name, `ID ${o.name}`), picks:o.picks}));
-  const pasList = listTopCounts(pas, 6).map((o,i)=>({rank:i+1, skill: mapSkillFromId(o.name, `ID ${o.name}`), picks:o.picks}));
-  const petList = listTopCounts(pet, 10).map((o,i)=>({rank:i+1, pet:o.name, picks:o.picks}));
+  const actList = listTopCounts(act, topA).map((o,i)=>({rank:i+1, skill: mapSkillFromId(o.name, `ID ${o.name}`), picks:o.picks}));
+  const pasList = listTopCounts(pas, topP).map((o,i)=>({rank:i+1, skill: mapSkillFromId(o.name, `ID ${o.name}`), picks:o.picks}));
+  const petList = listTopCounts(pet, topPet).map((o,i)=>({rank:i+1, pet:o.name, picks:o.picks}));
 
   el('tblActive').innerHTML = renderSimpleTable(actList, [
     {label:'#', key:'rank', right:true},
@@ -1785,7 +1818,7 @@ function renderTeamUsageTables(teamRows){
   applyColumnHeatmap('tblPet', ['picks']);
 }
 
-/* ✅ All teams skill summary: Top 3 active, Top 6 passive, and player loadouts */
+/* ✅ All teams skill summary: Top 3 actives, Top 6 passives + player list (skills/pet/loadout) */
 function renderAllTeamsSkillSummary(){
   const teams = [...new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean))]
     .sort((a,b)=>a.localeCompare(b));
@@ -1806,6 +1839,7 @@ function renderAllTeamsSkillSummary(){
 
     const act = new Map();
     const pas = new Map();
+    const pet = new Map();
 
     for(const r of teamRows){
       const a = getActiveSkillId(r);
@@ -1814,37 +1848,72 @@ function renderAllTeamsSkillSummary(){
       for(const pid of getPassiveSkillIds(r)){
         pas.set(pid, (pas.get(pid)||0)+1);
       }
+
+      const pl = getPetLabel(r);
+      if(pl) pet.set(pl, (pet.get(pl)||0)+1);
     }
 
     const topA = listTopCounts(act, 3);
     const topP = listTopCounts(pas, 6);
+    const topPet = listTopCounts(pet, 2);
 
-    // Players list with loadouts
-    const g = groupBy(teamRows, r => (norm(getVal(r, KEYS.player)) || '—'));
-    const players = [...g.entries()]
-      .sort((a,b)=> String(a[0]).localeCompare(String(b[0])))
-      .slice(0, 50) // safety
-      .map(([pname, plist])=>{
-        // use most recent row for display (or first)
-        const r0 = plist[0];
-        const a = getActiveSkillId(r0);
-        const ps = getPassiveSkillIds(r0);
-        const pet = getPetLabel(r0);
+    // Players list (compact)
+    const gP = groupBy(teamRows, r => norm(getVal(r, KEYS.player)) || '—');
+    const playerLines = [];
+    for(const [pname, plist] of gP.entries()){
+      const aC = new Map(), pC = new Map(), petC = new Map(), loC = new Map();
+      for(const r of plist){
+        const a = getActiveSkillId(r);
+        if(a) aC.set(a,(aC.get(a)||0)+1);
+        for(const pid of getPassiveSkillIds(r)) pC.set(pid,(pC.get(pid)||0)+1);
+        const pt = getPetLabel(r); if(pt) petC.set(pt,(petC.get(pt)||0)+1);
+        const lr = getLoadoutRaw(r); if(lr) loC.set(lr,(loC.get(lr)||0)+1);
+      }
+      const topA1 = listTopCounts(aC,1)[0];
+      const topP2 = listTopCounts(pC,2);
+      const topPet1 = listTopCounts(petC,1)[0];
+      const topLo = [...loC.entries()].sort((a,b)=>b[1]-a[1])[0];
 
-        const aName = a ? mapSkillFromId(a, `ID ${a}`) : '—';
-        const pNames = ps.slice(0,6).map(id => mapSkillFromId(id, `ID ${id}`));
-        const pStr = pNames.length ? pNames.join(' • ') : '—';
+      const aTxt = topA1 ? mapSkillFromId(topA1.name, `ID ${topA1.name}`) : '—';
+      const pTxt = topP2.length ? topP2.map(x=>mapSkillFromId(x.name, `ID ${x.name}`)).join(', ') : '—';
+      const petTxt = topPet1 ? topPet1.name : '—';
+      const loTxt = topLo ? topLo[0] : '';
 
-        return `<div class="pill"><b>${escHtml(pname)}</b> — A: ${escHtml(aName)} • P: ${escHtml(pStr)} • Pet: ${escHtml(pet||'—')}</div>`;
-      })
-      .join('');
+      playerLines.push({
+        pname,
+        html:
+          `<div class="line"><strong>${escHtml(pname)}</strong></div>` +
+          `<div class="line"><span class="muted">A:</span> ${escHtml(aTxt)}</div>` +
+          `<div class="line"><span class="muted">P:</span> ${escHtml(pTxt)}</div>` +
+          `<div class="line"><span class="muted">Pet:</span> ${escHtml(petTxt)}</div>` +
+          (loTxt ? `<div class="line"><span class="muted">Loadout:</span> <code title="${escHtml(loTxt)}">${escHtml(loTxt)}</code></div>` : '')
+      });
+    }
+
+    playerLines.sort((a,b)=>a.pname.localeCompare(b.pname));
+    const playersHtml = playerLines.length
+      ? `<div class="small">${playerLines.map(x=>`<div style="margin:8px 0">${x.html}</div>`).join('')}</div>`
+      : '<span class="muted">—</span>';
+
+    const topActiveTxt = topA.length
+      ? topA.map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ')
+      : '—';
+
+    const topPassiveTxt = topP.length
+      ? topP.map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ')
+      : '—';
+
+    const topPetTxt = topPet.length
+      ? topPet.map(o=>`${o.name} (${o.picks})`).join(' • ')
+      : '—';
 
     return {
       team,
       matches: matchesByTeam.get(team) || 0,
-      top_active: topA.length ? topA.map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') : '—',
-      top_passive: topP.length ? topP.map(o=>`${mapSkillFromId(o.name, `ID ${o.name}`)} (${o.picks})`).join(' • ') : '—',
-      players_html: players ? `<div class="mini">${players}</div>` : '—'
+      top_active: topActiveTxt,
+      top_passive: topPassiveTxt,
+      top_pet: topPetTxt,
+      players: playersHtml
     };
   });
 
@@ -1855,7 +1924,8 @@ function renderAllTeamsSkillSummary(){
     {label:'Matches', key:'matches', right:true},
     {label:'Top 3 Actives', key:'top_active'},
     {label:'Top 6 Passives', key:'top_passive'},
-    {label:'Players (A/P/Pet)', key:'players_html', html:r=>r.players_html}
+    {label:'Top Pets', key:'top_pet'},
+    {label:'Players (A/P/Pet/Loadout)', key:'players', html:r=>r.players}
   ]);
 
   applyColumnHeatmap('tblAllTeamsSkills', ['matches']);
@@ -1895,6 +1965,10 @@ function wire(){
   el('overallSortKey').addEventListener('change', renderOverall);
 
   el('teamSearch').addEventListener('input', e=> renderTeamGrid(e.target.value||''));
+
+  el('topActive').addEventListener('change', ()=>{ if(CURRENT_TEAM) selectTeam(CURRENT_TEAM, true); });
+  el('topPassive').addEventListener('change', ()=>{ if(CURRENT_TEAM) selectTeam(CURRENT_TEAM, true); });
+  el('topPet').addEventListener('change', ()=>{ if(CURRENT_TEAM) selectTeam(CURRENT_TEAM, true); });
 
   el('fTournament').addEventListener('change', ()=>{
     refreshCascadeOptions('tournament');
@@ -1951,6 +2025,7 @@ async function init(){
 
     detectSchema(RAW[0]);
 
+    // load match_api + character.json (for skill classification)
     await loadMatchApi();
     await loadCharacterJson();
 
