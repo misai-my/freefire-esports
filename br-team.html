@@ -590,7 +590,7 @@
     <div class="accordion-body">
       <div class="card" style="margin:0">
         <div class="muted" style="margin-bottom:8px">
-          Uses current scope filters. Active/Passive is derived by comparing match_api skill names with character.json skill list.
+          Uses current scope filters. Active/Passive is derived by character.json api_id → match_api id, with last-digit ID variations as fallback.
         </div>
         <div id="tblAllTeamsSkills">—</div>
       </div>
@@ -756,9 +756,13 @@ let ID_TO_NAME = new Map();          // all types
 let SKILL_ID_TO_NAME = new Map();    // ONLY type=2 (skills)
 let MAP_READY = false;
 
-/* ===== character.json skill name map (NAME COMPARISON ONLY) ===== */
-let CHAR_SKILLKEY_TO_KIND = new Map();    // normalized key -> active|passive
-let CHAR_SKILLKEY_LIST = [];              // [{key,kind}] for fuzzy fallback
+/* ===== character.json maps =====
+   PRIMARY: api_id => kind (active/passive)
+   FALLBACK: name-compare mapping (still kept as safety net)
+*/
+let CHAR_ID_TO_KIND = new Map();         // id(string) -> active|passive
+let CHAR_SKILLKEY_TO_KIND = new Map();   // normalized name -> active|passive
+let CHAR_SKILLKEY_LIST = [];             // for fuzzy fallback
 let CHAR_READY = false;
 
 /* ============ Schema detection ============ */
@@ -873,7 +877,7 @@ async function loadMatchApi(){
   }
 }
 
-/* ============ character.json load (name comparison only) ============ */
+/* ============ character.json load (PRIMARY: api_id mapping) ============ */
 function normKind(v){
   const s = String(v ?? '').trim().toLowerCase();
   if(!s) return '';
@@ -882,80 +886,77 @@ function normKind(v){
   return '';
 }
 
-// aggressive normalizer so match_api skill name can match character.json skill
+/* aggressive normalizer (fallback by NAME) */
 function skillKey(s){
   let x = String(s ?? '').toUpperCase();
-
-  // remove parenthetical stuff: "(Awakened)", "(MAX)", etc.
   x = x.replace(/\(.*?\)/g, ' ');
-
-  // remove some common noise words if present
   x = x.replace(/\bAWAKEN(ED)?\b/g, ' ');
   x = x.replace(/\bMAX(ED)?\b/g, ' ');
   x = x.replace(/\bLV(L)?\s*\d+\b/g, ' ');
-
-  // normalize separators
   x = x.replace(/[-–—_:|•]/g, ' ');
-
-  // drop punctuation
   x = x.replace(/[^A-Z0-9 ]+/g, ' ');
-
-  // collapse spaces
   x = x.replace(/\s+/g, ' ').trim();
-
   return x;
 }
-
-// NEW: generate multiple variants from a single skill name
 function skillKeyVariants(original){
   const raw = String(original ?? '').trim();
   if(!raw) return [];
   const parts = raw
-    .split(/[:\-–—|•]/g)     // split by common separators
+    .split(/[:\-–—|•]/g)
     .map(s => s.trim())
     .filter(Boolean);
 
-  // include full string + each meaningful segment
   const variants = new Set();
   variants.add(skillKey(raw));
-
   for(const p of parts){
     const k = skillKey(p);
     if(k && k.length >= 3) variants.add(k);
   }
-
-  // also include "last segment" (often the real skill name)
   if(parts.length >= 2){
     const last = skillKey(parts[parts.length-1]);
     if(last && last.length >= 3) variants.add(last);
   }
-
   return [...variants].filter(Boolean);
 }
-
-// NEW: fuzzy match by "contains", prefer the longest overlap
 function fuzzyKindLookup(key){
   if(!key || !CHAR_SKILLKEY_LIST.length) return '';
-  const k = key;
-
-  // exact already handled outside; this is fallback
   let best = null;
-
   for(const item of CHAR_SKILLKEY_LIST){
     const ck = item.key;
-    // containment either direction
-    if(k.includes(ck) || ck.includes(k)){
-      const score = Math.min(k.length, ck.length); // overlap-ish
-      if(!best || score > best.score){
-        best = { kind: item.kind, score };
-      }
+    if(key.includes(ck) || ck.includes(key)){
+      const score = Math.min(key.length, ck.length);
+      if(!best || score > best.score) best = { kind: item.kind, score };
     }
   }
   return best?.kind || '';
 }
 
+function pickApiId(obj){
+  // try common fields that might exist in your character.json
+  const candidates = [
+    obj?.api_id,
+    obj?.apiId,
+    obj?.skill_api_id,
+    obj?.skillApiId,
+    obj?.match_api,
+    obj?.matchApi,
+    obj?.match_api_id,
+    obj?.matchApiId,
+    obj?.id
+  ].filter(v => v !== undefined && v !== null);
+
+  if(!candidates.length) return '';
+
+  // normalize to string integer when possible
+  const raw = String(candidates[0]).trim();
+  if(!raw) return '';
+  if(/^\d+(\.0+)?$/.test(raw)) return String(parseInt(raw, 10));
+  return raw;
+}
+
 async function loadCharacterJson(){
   CHAR_READY = false;
+  CHAR_ID_TO_KIND.clear();
   CHAR_SKILLKEY_TO_KIND.clear();
   CHAR_SKILLKEY_LIST = [];
 
@@ -971,27 +972,38 @@ async function loadCharacterJson(){
 
     if(!arr.length) throw new Error('character.json parsed but no array found');
 
+    let idCount = 0;
+    let nameCount = 0;
+
     for(const ch of arr){
       const kind = normKind(ch?.skill_type);
       if(!kind) continue;
 
-      const name = ch?.skill;
-      const keys = skillKeyVariants(name);
+      // PRIMARY: api_id -> kind
+      const apiId = pickApiId(ch);
+      if(apiId){
+        if(!CHAR_ID_TO_KIND.has(apiId)) CHAR_ID_TO_KIND.set(apiId, kind);
+        idCount++;
+      }
+
+      // FALLBACK: skill name -> kind (kept)
+      const nm = ch?.skill || ch?.skill_name || ch?.name;
+      const keys = skillKeyVariants(nm);
       for(const k of keys){
         if(!k) continue;
-
-        // keep first mapping; if conflicts exist, prefer "active" only if it was active already
         if(!CHAR_SKILLKEY_TO_KIND.has(k)){
           CHAR_SKILLKEY_TO_KIND.set(k, kind);
+          nameCount++;
         }
       }
     }
 
-    // build list for fuzzy fallback (unique)
     CHAR_SKILLKEY_LIST = [...CHAR_SKILLKEY_TO_KIND.entries()].map(([key,kind])=>({key,kind}));
 
-    CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
-    el('diagChar').textContent = `character.json mapping: skills=${CHAR_SKILLKEY_TO_KIND.size}`;
+    CHAR_READY = (CHAR_ID_TO_KIND.size > 0) || (CHAR_SKILLKEY_TO_KIND.size > 0);
+
+    el('diagChar').textContent =
+      `character.json mapping: ids=${CHAR_ID_TO_KIND.size} • names=${CHAR_SKILLKEY_TO_KIND.size}`;
   }catch(e){
     CHAR_READY = false;
     el('diagChar').textContent = 'character.json mapping: unavailable';
@@ -1353,20 +1365,85 @@ function skillIdFromRow(r, idx){
   return s;
 }
 
-/* ====== ACTIVE/PASSIVE via NAME COMPARISON (fixed) ====== */
-function kindOfSkillId(id){
-  if(!CHAR_READY || !MAP_READY) return '';
+/* ========= ACTIVE/PASSIVE (PRIMARY: api_id match, with last-digit variations) ========= */
+function idKindLookupExact(id){
+  const key = String(id ?? '').trim();
+  if(!key) return '';
+  return CHAR_ID_TO_KIND.get(key) || '';
+}
+
+/* Try variations of the LAST DIGIT only (as requested).
+   - If numeric: replace last digit 0..9 (same length)
+   - Also try +1 and -1 quick (still last digit changes often)
+*/
+function idKindLookupWithLastDigitVariants(id){
+  const raw = String(id ?? '').trim();
+  if(!raw) return '';
+
+  // exact first
+  const exact = idKindLookupExact(raw);
+  if(exact) return exact;
+
+  // numeric-only strategy
+  if(/^\d+$/.test(raw)){
+    const base = raw.slice(0, -1);
+    const last = raw.slice(-1);
+
+    // +/- 1
+    const num = parseInt(raw, 10);
+    const m1 = idKindLookupExact(String(num - 1));
+    if(m1) return m1;
+    const p1 = idKindLookupExact(String(num + 1));
+    if(p1) return p1;
+
+    // replace last digit
+    for(let d=0; d<=9; d++){
+      const cand = base + String(d);
+      if(cand === raw) continue;
+      const k = idKindLookupExact(cand);
+      if(k) return k;
+    }
+
+    // (rare) try swapping last digit of a zero-padded style id
+    // e.g. if raw has leading zeros, keep length:
+    if(raw.length > 1 && raw[0] === '0'){
+      const len = raw.length;
+      for(let d=0; d<=9; d++){
+        const cand = (base + String(d)).padStart(len, '0');
+        if(cand === raw) continue;
+        const k = idKindLookupExact(cand);
+        if(k) return k;
+      }
+    }
+  }
+
+  return '';
+}
+
+/* Final fallback: map id -> match_api name -> compare to character.json names */
+function kindFromNameFallback(id){
+  if(!MAP_READY || !CHAR_SKILLKEY_TO_KIND.size) return '';
   const nm = mapSkillFromId(id, '');
   if(!nm) return '';
+
   const k = skillKey(nm);
   if(!k) return '';
 
-  // exact hit
   const exact = CHAR_SKILLKEY_TO_KIND.get(k);
   if(exact) return exact;
 
-  // fuzzy fallback (contains match)
   return fuzzyKindLookup(k) || '';
+}
+
+function kindOfSkillId(id){
+  if(!CHAR_READY) return '';
+
+  // 1) PRIMARY: api_id direct (and last-digit variations)
+  const k1 = idKindLookupWithLastDigitVariants(id);
+  if(k1) return k1;
+
+  // 2) fallback by name matching (uses match_api)
+  return kindFromNameFallback(id);
 }
 
 function classifySkillsFromRow(r){
@@ -1381,8 +1458,8 @@ function classifySkillsFromRow(r){
     uniq.push(id);
   }
 
-  // If we can't classify (no maps loaded), fallback to old behavior
-  if(!CHAR_READY || !MAP_READY){
+  // If we can't classify at all, keep your old behavior (first is active)
+  if(!CHAR_READY){
     const active = uniq[0] || '';
     return { active, passives: uniq.filter(x=>x!==active) };
   }
@@ -1398,23 +1475,21 @@ function classifySkillsFromRow(r){
     else unknown.push(id);
   }
 
-  // 1) Prefer known active
+  // prefer known active
   let active = actives[0] || '';
 
-  // 2) If no known active, only allow unknown as active IF it's not known-passive (extra safety)
+  // if no known active, allow unknown as active (but never known-passive)
   if(!active){
     const safeUnknown = unknown.find(x => kindOfSkillId(x) !== 'passive');
     active = safeUnknown || '';
   }
 
-  // 3) Final safety: never let a known passive be active
+  // final safety: never let a known passive be active
   if(active && kindOfSkillId(active) === 'passive'){
-    active = ''; // better blank than wrong
+    active = '';
   }
 
-  // passives = everything except active
   const passOut = uniq.filter(x => x !== active);
-
   return { active, passives: passOut };
 }
 
@@ -1578,7 +1653,7 @@ function renderTeamKpis(teamRows){
       <div class="kpi">Top Pet <strong>${snap.topPet}</strong></div>
     </div>
     <div class="muted" style="margin-top:6px">
-      Active/Passive is derived by comparing match_api skill names with character.json skill list (normalized + fuzzy).
+      Active/Passive is derived by character.json api_id → match_api id (plus last-digit ID variations). Name matching is used as fallback.
     </div>
   `;
 }
@@ -1857,7 +1932,7 @@ async function init(){
 
     detectSchema(RAW[0]);
 
-    // load match_api + character.json (for name comparison)
+    // load match_api + character.json
     await loadMatchApi();
     await loadCharacterJson();
 
