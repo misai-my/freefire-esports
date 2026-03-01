@@ -634,6 +634,56 @@
       word-break:break-word;
     }
 
+    /* collapsible rows */
+    .collapsible-section{
+      border-radius:16px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.025);
+      overflow:hidden;
+      min-width:0;
+    }
+
+    .collapsible-section summary{
+      list-style:none;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--muted);
+      font-weight:900;
+      line-height:1.25;
+      user-select:none;
+      background:rgba(255,255,255,.02);
+    }
+
+    .collapsible-section summary::-webkit-details-marker{
+      display:none;
+    }
+
+    .collapsible-section summary::after{
+      content:"▸";
+      font-size:12px;
+      color:#cfe0ff;
+      flex:0 0 auto;
+      transition:transform .18s ease;
+    }
+
+    .collapsible-section[open] summary::after{
+      transform:rotate(90deg);
+    }
+
+    .collapsible-body{
+      padding:8px;
+      display:grid;
+      gap:8px;
+      border-top:1px solid rgba(124,172,255,.08);
+    }
+
     @media (max-width: 1500px){
       .player-lanes{
         grid-template-columns:repeat(2, minmax(0,1fr));
@@ -701,14 +751,18 @@
       <div id="status" class="status">Loading lookup and image catalogs…</div>
 
       <div class="note">
-        This version keeps Team A left and Team B right on desktop, then stacks only on smaller screens.
-        <br>It separates each player card into sections: Passive Skills, Pet, Loadout, Current Items, Purchased Items, Weapon Usages, and Latest Round Stats.
+        Team A stays left and Team B stays right on desktop.
+        <br>These sections are now collapsible:
+        <br>• Current Items Latest Round Inventory
+        <br>• Purchased Items Latest Round Type 0 to Type 1 Fallback
+        <br>• Weapon Usages Latest Round
+        <br>• Latest Round Stats Broken Down by Section
       </div>
     </div>
 
     <div class="panel match-head">
       <div id="teamAName" class="match-team-name">—</div>
-      <div id="matchRound" class="match-round">ROUND —</div>
+      <div id="matchRound" class="match-round">Round —</div>
       <div id="teamBName" class="match-team-name right">—</div>
     </div>
 
@@ -1360,29 +1414,31 @@
       const items = getLatestItems(player);
 
       return `
-        <div class="section-box">
-          <div class="section-title">Current Items (Latest Round Inventory)</div>
-          <div class="slot-stack">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="slot-box">
-                      <div class="slot-thumb">
-                        ${item.image_url
-                          ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
-                          : `<span class="icon-fallback">N/A</span>`
-                        }
+        <details class="collapsible-section">
+          <summary>Current Items Latest Round Inventory</summary>
+          <div class="collapsible-body">
+            <div class="slot-stack">
+              ${
+                items.length
+                  ? items.map(item => `
+                      <div class="slot-box">
+                        <div class="slot-thumb">
+                          ${item.image_url
+                            ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
+                            : `<span class="icon-fallback">N/A</span>`
+                          }
+                        </div>
+                        <div class="slot-copy">
+                          <div class="slot-title">${escapeHtml(item.name)}</div>
+                          <div class="slot-sub">Count: ${item.count}</div>
+                        </div>
                       </div>
-                      <div class="slot-copy">
-                        <div class="slot-title">${escapeHtml(item.name)}</div>
-                        <div class="slot-sub">Count: ${item.count}</div>
-                      </div>
-                    </div>
-                  `).join("")
-                : `<div class="empty-lite">No current item snapshot found.</div>`
-            }
+                    `).join("")
+                  : `<div class="empty-lite">No current item snapshot found.</div>`
+              }
+            </div>
           </div>
-        </div>
+        </details>
       `;
     }
 
@@ -1390,29 +1446,31 @@
       const items = getLatestPurchasedItems(player);
 
       return `
-        <div class="section-box">
-          <div class="section-title">Purchased Items (Latest Round, Type 0 → Type 1 Fallback)</div>
-          <div class="purchase-list">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="purchase-item">
-                      <div class="purchase-thumb">
-                        ${item.image_url
-                          ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
-                          : `<span class="icon-fallback">N/A</span>`
-                        }
+        <details class="collapsible-section">
+          <summary>Purchased Items Latest Round Type 0 To Type 1 Fallback</summary>
+          <div class="collapsible-body">
+            <div class="purchase-list">
+              ${
+                items.length
+                  ? items.map(item => `
+                      <div class="purchase-item">
+                        <div class="purchase-thumb">
+                          ${item.image_url
+                            ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
+                            : `<span class="icon-fallback">N/A</span>`
+                          }
+                        </div>
+                        <div class="purchase-copy">
+                          <div class="purchase-title">${escapeHtml(item.name)}</div>
+                          <div class="purchase-sub">Purchased x${item.count}</div>
+                        </div>
                       </div>
-                      <div class="purchase-copy">
-                        <div class="purchase-title">${escapeHtml(item.name)}</div>
-                        <div class="purchase-sub">Purchased x${item.count}</div>
-                      </div>
-                    </div>
-                  `).join("")
-                : `<div class="empty-lite">No purchased items found in latest round.</div>`
-            }
+                    `).join("")
+                  : `<div class="empty-lite">No purchased items found in latest round.</div>`
+              }
+            </div>
           </div>
-        </div>
+        </details>
       `;
     }
 
@@ -1420,53 +1478,55 @@
       const usages = getLatestWeaponUsages(player);
 
       return `
-        <div class="section-box">
-          <div class="section-title">Weapon Usages (Latest Round)</div>
-          <div class="stats-sections">
-            ${
-              usages.length
-                ? usages.map(weapon => {
-                    const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
+        <details class="collapsible-section">
+          <summary>Weapon Usages Latest Round</summary>
+          <div class="collapsible-body">
+            <div class="stats-sections">
+              ${
+                usages.length
+                  ? usages.map(weapon => {
+                      const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
 
-                    return `
-                      <div class="stats-category">
-                        <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
-                        <div class="single-card" style="border:0;border-radius:0;background:transparent;box-shadow:none;padding:8px;">
-                          <div class="card-thumb">
-                            ${weapon.image_url
-                              ? `<img src="${escapeHtml(weapon.image_url)}" alt="${escapeHtml(weapon.name)}" loading="lazy">`
-                              : `<span class="icon-fallback">N/A</span>`
+                      return `
+                        <div class="stats-category">
+                          <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
+                          <div class="single-card" style="border:0;border-radius:0;background:transparent;box-shadow:none;padding:8px;">
+                            <div class="card-thumb">
+                              ${weapon.image_url
+                                ? `<img src="${escapeHtml(weapon.image_url)}" alt="${escapeHtml(weapon.name)}" loading="lazy">`
+                                : `<span class="icon-fallback">N/A</span>`
+                              }
+                            </div>
+                            <div class="card-copy">
+                              <div class="card-title">${escapeHtml(weapon.name)}</div>
+                              <div class="card-sub">${Number.isFinite(weapon.id) ? `Weapon ID: ${weapon.id}` : "No weapon ID"}</div>
+                            </div>
+                          </div>
+                          <div class="stats-table">
+                            ${
+                              rows.length
+                                ? rows.map(([key, value]) => `
+                                    <div class="stats-row">
+                                      <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
+                                      <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                                    </div>
+                                  `).join("")
+                                : `
+                                    <div class="stats-row">
+                                      <div class="stats-key">Stats</div>
+                                      <div class="stats-val">No weapon usage fields found.</div>
+                                    </div>
+                                  `
                             }
                           </div>
-                          <div class="card-copy">
-                            <div class="card-title">${escapeHtml(weapon.name)}</div>
-                            <div class="card-sub">${Number.isFinite(weapon.id) ? `Weapon ID: ${weapon.id}` : "No weapon ID"}</div>
-                          </div>
                         </div>
-                        <div class="stats-table">
-                          ${
-                            rows.length
-                              ? rows.map(([key, value]) => `
-                                  <div class="stats-row">
-                                    <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                                    <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                                  </div>
-                                `).join("")
-                              : `
-                                  <div class="stats-row">
-                                    <div class="stats-key">Stats</div>
-                                    <div class="stats-val">No weapon usage fields found.</div>
-                                  </div>
-                                `
-                          }
-                        </div>
-                      </div>
-                    `;
-                  }).join("")
-                : `<div class="empty-lite">No weapon usage data found in latest round.</div>`
-            }
+                      `;
+                    }).join("")
+                  : `<div class="empty-lite">No weapon usage data found in latest round.</div>`
+              }
+            </div>
           </div>
-        </div>
+        </details>
       `;
     }
 
@@ -1532,36 +1592,40 @@
 
       if (!round) {
         return `
-          <div class="section-box">
-            <div class="section-title">Latest Round Stats</div>
-            <div class="empty-lite">No round_stats found for this player.</div>
-          </div>
+          <details class="collapsible-section">
+            <summary>Latest Round Stats Broken Down By Section</summary>
+            <div class="collapsible-body">
+              <div class="empty-lite">No round_stats found for this player.</div>
+            </div>
+          </details>
         `;
       }
 
       const sections = categorizeRoundStats(round);
 
       return `
-        <div class="section-box">
-          <div class="section-title">Latest Round Stats (Broken Down by Section)</div>
-          <div class="stats-sections">
-            ${Object.entries(sections)
-              .filter(([, rows]) => rows.length)
-              .map(([title, rows]) => `
-                <div class="stats-category">
-                  <div class="stats-category-title">${escapeHtml(title)}</div>
-                  <div class="stats-table">
-                    ${rows.map(([key, value]) => `
-                      <div class="stats-row">
-                        <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                        <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                      </div>
-                    `).join("")}
+        <details class="collapsible-section">
+          <summary>Latest Round Stats Broken Down By Section</summary>
+          <div class="collapsible-body">
+            <div class="stats-sections">
+              ${Object.entries(sections)
+                .filter(([, rows]) => rows.length)
+                .map(([title, rows]) => `
+                  <div class="stats-category">
+                    <div class="stats-category-title">${escapeHtml(title)}</div>
+                    <div class="stats-table">
+                      ${rows.map(([key, value]) => `
+                        <div class="stats-row">
+                          <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
+                          <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                        </div>
+                      `).join("")}
+                    </div>
                   </div>
-                </div>
-              `).join("")}
+                `).join("")}
+            </div>
           </div>
-        </div>
+        </details>
       `;
     }
 
