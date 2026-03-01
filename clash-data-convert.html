@@ -607,6 +607,11 @@
       background:rgba(255,255,255,.02);
       overflow:hidden;
       min-width:0;
+      margin-top:10px;
+    }
+
+    .row-fold:first-child{
+      margin-top:0;
     }
 
     .row-fold summary{
@@ -616,7 +621,7 @@
       align-items:center;
       justify-content:space-between;
       gap:8px;
-      padding:8px 10px;
+      padding:10px 12px;
       background:rgba(255,255,255,.02);
       color:#cfe0ff;
       font-size:10px;
@@ -794,7 +799,7 @@
       <div class="note">
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
-        <br>In Player Stat Details, each category collapses across the whole row, and the expanded content keeps the player columns aligned.
+        <br>In Player Stat Details, each category now collapses across both teams, and the expanded content keeps player columns aligned inside each team.
       </div>
     </div>
 
@@ -1604,13 +1609,30 @@
       `;
     }
 
-    function renderCategoryRow(players, title, builderFn) {
+    function renderCategoryContentForTeam(team, fallbackName, builderFn) {
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+      const teamName = team?.team_name || fallbackName;
+
+      return `
+        <div class="details-team-block">
+          <div class="details-team-title">${escapeHtml(teamName)}</div>
+          ${
+            players.length
+              ? `<div class="detail-grid">${players.map(player => renderPlayerCategoryColumn(player, builderFn(player))).join("")}</div>`
+              : `<div class="empty-lite">No players found.</div>`
+          }
+        </div>
+      `;
+    }
+
+    function renderGlobalCategoryRow(teams, title, builderFn) {
       return `
         <details class="row-fold">
           <summary>${escapeHtml(title)}</summary>
           <div class="row-fold-body">
-            <div class="detail-grid">
-              ${players.map(player => renderPlayerCategoryColumn(player, builderFn(player))).join("")}
+            <div class="details-wrap">
+              ${renderCategoryContentForTeam(teams[0], "Team A", builderFn)}
+              ${renderCategoryContentForTeam(teams[1], "Team B", builderFn)}
             </div>
           </div>
         </details>
@@ -1631,36 +1653,12 @@
       `;
     }
 
-    function renderDetailsTeamBlock(team, fallbackName) {
-      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-      const teamName = team?.team_name || fallbackName;
-
-      if (!players.length) {
-        return `
-          <div class="details-team-block">
-            <div class="details-team-title">${escapeHtml(teamName)}</div>
-            <div class="empty-lite">No players found.</div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="details-team-block">
-          <div class="details-team-title">${escapeHtml(teamName)}</div>
-          ${renderCategoryRow(players, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
-          ${renderCategoryRow(players, "Purchased Items Latest Round Type 0 To Type 1 Fallback", buildPurchasedItemsContent)}
-          ${renderCategoryRow(players, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
-          ${renderCategoryRow(players, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
-        </div>
-      `;
-    }
-
     function renderGlobalPlayerDetails(teams) {
       return `
-        <div class="details-wrap">
-          ${renderDetailsTeamBlock(teams[0], "Team A")}
-          ${renderDetailsTeamBlock(teams[1], "Team B")}
-        </div>
+        ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
+        ${renderGlobalCategoryRow(teams, "Purchased Items Latest Round Type 0 To Type 1 Fallback", buildPurchasedItemsContent)}
+        ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
+        ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
       `;
     }
 
