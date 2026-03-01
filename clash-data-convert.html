@@ -799,7 +799,8 @@
       <div class="note">
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
-        <br>In Player Stat Details, each category now collapses across both teams, and the expanded content keeps player columns aligned inside each team.
+        <br>Purchased items now ignore loadout-style IDs (such as <code>500000007</code>) and only show valid type 0 / type 1 item matches.
+        <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
       </div>
     </div>
 
@@ -1253,14 +1254,23 @@
       for (const rawId of purchased) {
         const id = Number(rawId);
         if (!Number.isFinite(id)) continue;
+
+        // Ignore loadout-style / non-store IDs
+        if (id >= 500000000) continue;
+
+        // Only keep IDs that resolve to an actual type 0 / type 1 item
+        const resolvedName = resolveItemName(id, true);
+        if (!resolvedName) continue;
+
         counts.set(id, (counts.get(id) || 0) + 1);
       }
 
       return [...counts.entries()]
-        .map(([id, count]) => {
-          const name = resolveItemName(id, true) || `Item ID ${id}`;
-          return { id, name, count };
-        })
+        .map(([id, count]) => ({
+          id,
+          name: resolveItemName(id, true),
+          count
+        }))
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     }
 
