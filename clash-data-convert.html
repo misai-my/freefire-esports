@@ -285,7 +285,7 @@
 
     .hero-card-inner{
       position:relative;
-      height:164px; /* slightly smaller */
+      height:164px;
       border-radius:15px;
       overflow:hidden;
       background:
@@ -542,77 +542,55 @@
       color:var(--muted);
     }
 
-    .details-panel{
-      padding:16px;
-      overflow:hidden;
+    .round-data{
+      display:grid;
+      gap:8px;
+      margin-top:2px;
     }
 
-    .details-title{
-      margin:0 0 12px;
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:.02em;
-    }
-
-    .details-sub{
-      margin:0 0 12px;
-      color:var(--muted);
-      font-size:12px;
-    }
-
-    .table-wrap{
-      overflow:auto;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.02);
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:860px;
-    }
-
-    thead th{
-      position:sticky;
-      top:0;
-      z-index:1;
-      background:rgba(8,18,38,.98);
-      color:#cfe0ff;
-      font-size:12px;
+    .round-data-title{
+      font-size:11px;
       text-transform:uppercase;
-      letter-spacing:.08em;
-      text-align:left;
-      padding:12px 10px;
-      border-bottom:1px solid var(--line);
-    }
-
-    tbody td{
-      padding:10px;
-      font-size:12px;
-      color:#e9f1ff;
-      border-top:1px solid rgba(124,172,255,.10);
-      vertical-align:top;
-    }
-
-    tbody tr:nth-child(even){
-      background:rgba(255,255,255,.02);
-    }
-
-    .td-muted{
-      color:var(--muted);
-    }
-
-    .desc-cell{
-      line-height:1.45;
-      color:#d7e4ff;
-      white-space:normal;
-    }
-
-    .empty-row{
+      letter-spacing:.12em;
       color:var(--muted);
       text-align:center;
-      padding:18px !important;
+      font-weight:800;
+    }
+
+    .round-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:6px;
+    }
+
+    .round-stat{
+      min-width:0;
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.03);
+      padding:7px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+    }
+
+    .round-stat-key{
+      font-size:10px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .round-stat-val{
+      font-size:12px;
+      font-weight:800;
+      color:#eef4ff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     @media (max-width:1100px){
@@ -661,10 +639,7 @@
       <div id="status" class="status">Loading lookup and image catalogs…</div>
 
       <div class="note">
-        Uses:
-        <br>• <code>type = 1</code> → items
-        <br>• <code>type = 2</code> → skills
-        <br>• <code>type = 3</code> → pets
+        Bottom stats use the <strong>latest round snapshot</strong> per player, since those values come from <code>round_stats[]</code>.
       </div>
     </div>
 
@@ -699,38 +674,14 @@
         <div id="teamBPlayers" class="player-lanes"></div>
       </section>
     </div>
-
-    <section class="panel details-panel">
-      <h3 class="details-title">Skill Details</h3>
-      <p class="details-sub">Active, passive, and pet skill details for all displayed players.</p>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Team</th>
-              <th>Player</th>
-              <th>Type</th>
-              <th>Name</th>
-              <th>Skill</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody id="skillDetailsBody">
-            <tr><td colspan="6" class="empty-row">Render a match to view skill details.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
   </div>
 
   <script>
-    /* ============ Supabase init ============ */
     const client = supabase.createClient(
       'https://gkugecflfddkpitlrmws.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWdlY2ZsZmRka3BpdGxybXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwODMwNzQsImV4cCI6MjA2MTY1OTA3NH0.OgQOx9k71DDdK1yOa7VNKGSgoFD9kNGo8j-bR91zGKE'
     );
 
-    /* ============ Remote catalogs ============ */
     const CHARACTER_JSON_URL = 'https://misai-my.github.io/freefire-esports/character.json';
     const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     const WEAPON_JSON_URL = 'https://misai-my.github.io/freefire-esports/weapon.json';
@@ -777,6 +728,17 @@
         .trim()
         .toUpperCase()
         .replace(/[^A-Z0-9]+/g, "");
+    }
+
+    function toNum(value, fallback = 0) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function yesNo(value, yes = "Yes", no = "No") {
+      if (value === true) return yes;
+      if (value === false) return no;
+      return "—";
     }
 
     async function fetchJson(url) {
@@ -848,9 +810,7 @@
           name: row?.name || "",
           image_url: imageUrl,
           skill: row?.skill || "",
-          description: row?.description || "",
-          skill_type: row?.skill_type || "",
-          role: row?.role || ""
+          description: row?.description || ""
         };
 
         if (imageUrl && Number.isFinite(apiId)) {
@@ -867,16 +827,13 @@
       }
 
       for (const row of (pets || [])) {
-        const imageUrl = row?.image_url || "";
         if (!row?.name) continue;
 
         ASSETS.petsByName.set(normalizeKey(row.name), {
           name: row.name,
-          image_url: imageUrl,
+          image_url: row?.image_url || "",
           skill: row?.skill || "",
-          description: row?.description || "",
-          skill_type: row?.skill_type || "",
-          role: row?.role || ""
+          description: row?.description || ""
         });
       }
 
@@ -1062,9 +1019,9 @@
           }
 
           const row = weaponMap.get(key);
-          row.kills += Number(weapon?.kills || 0);
-          row.damage += Number(weapon?.damage || 0);
-          row.hits += Number(weapon?.hits || 0);
+          row.kills += toNum(weapon?.kills);
+          row.damage += toNum(weapon?.damage);
+          row.hits += toNum(weapon?.hits);
         }
       }
 
@@ -1086,20 +1043,18 @@
       const rounds = Array.isArray(player?.round_stats) ? [...player.round_stats] : [];
       if (!rounds.length) return [];
 
-      rounds.sort((a, b) => Number(b?.round_index ?? -1) - Number(a?.round_index ?? -1));
+      rounds.sort((a, b) => toNum(b?.round_index, -1) - toNum(a?.round_index, -1));
 
       let chosenRound = rounds.find(round =>
-        Array.isArray(round?.item_nums) && round.item_nums.some(item => Number(item?.item_num || 0) > 0)
+        Array.isArray(round?.item_nums) && round.item_nums.some(item => toNum(item?.item_num) > 0)
       );
 
-      if (!chosenRound) {
-        chosenRound = rounds[0];
-      }
+      if (!chosenRound) chosenRound = rounds[0];
 
       const items = Array.isArray(chosenRound?.item_nums) ? chosenRound.item_nums : [];
 
       return items
-        .filter(item => Number(item?.item_num || 0) > 0)
+        .filter(item => toNum(item?.item_num) > 0)
         .map(item => {
           const id = Number(item?.item_id);
           const name = getLookupName(1, id) || item?.item_name || `Item ID ${id}`;
@@ -1108,10 +1063,17 @@
           return {
             id,
             name,
-            count: Number(item?.item_num || 0),
+            count: toNum(item?.item_num),
             image_url: asset?.image_url || ""
           };
         });
+    }
+
+    function getLatestRoundStat(player) {
+      const rounds = Array.isArray(player?.round_stats) ? [...player.round_stats] : [];
+      if (!rounds.length) return null;
+      rounds.sort((a, b) => toNum(b?.round_index, -1) - toNum(a?.round_index, -1));
+      return rounds[0];
     }
 
     function getTeamScore(team) {
@@ -1128,13 +1090,6 @@
     function renderHeroImage(imageUrl, alt) {
       if (!imageUrl) {
         return `<div class="hero-fallback">No Image</div>`;
-      }
-      return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
-    }
-
-    function renderMiniIcon(imageUrl, alt, label = "N/A") {
-      if (!imageUrl) {
-        return `<span class="icon-fallback">${escapeHtml(label)}</span>`;
       }
       return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
     }
@@ -1248,6 +1203,62 @@
       `;
     }
 
+    function renderRoundStat(label, value) {
+      return `
+        <div class="round-stat">
+          <div class="round-stat-key">${escapeHtml(label)}</div>
+          <div class="round-stat-val">${escapeHtml(value)}</div>
+        </div>
+      `;
+    }
+
+    function buildRoundData(player) {
+      const r = getLatestRoundStat(player);
+
+      if (!r) {
+        return `
+          <div class="round-data">
+            <div class="round-data-title">Latest Round Data</div>
+            <div class="round-grid">
+              ${renderRoundStat("Status", "No round data")}
+            </div>
+          </div>
+        `;
+      }
+
+      const roundLabel = `R${toNum(r.round_index) + 1}`;
+      const stats = [
+        ["Round", roundLabel],
+        ["Result", yesNo(r.is_win, "Win", "Loss")],
+        ["Status", yesNo(r.is_dead, "Dead", "Alive")],
+        ["K / A / KD", `${toNum(r.kill)} / ${toNum(r.assists)} / ${toNum(r.knock_down)}`],
+        ["Damage", toNum(r.damage)],
+        ["Real Dmg", toNum(r.real_damage)],
+        ["Taken", toNum(r.real_damage_taken)],
+        ["Hits / HS", `${toNum(r.hits)} / ${toNum(r.headshots)}`],
+        ["Body Hits", `T ${toNum(r.torso_hits)} • L ${toNum(r.leg_hits)}`],
+        ["Utility", `M ${toNum(r.medkit_use)} • G ${toNum(r.grenade_use)} • W ${toNum(r.icewall_use)}`],
+        ["Healing", `S ${toNum(r.healing_to_self)} • T ${toNum(r.healing_to_teammates)}`],
+        ["Rescue", toNum(r.rescue_count)],
+        ["Economy", toNum(r.economy_spent_self)],
+        ["Team Econ", toNum(r.economy_spent_on_teammates)],
+        ["Start Value", toNum(r.initial_item_value)],
+        ["Airdrop", toNum(r.airdrop_points)],
+        ["First Down", yesNo(r.is_first_down)],
+        ["First Taken", yesNo(r.is_first_taken_down)],
+        ["Skill Uses", Array.isArray(r.nb_skill_usages) ? r.nb_skill_usages.length : 0]
+      ];
+
+      return `
+        <div class="round-data">
+          <div class="round-data-title">Latest Round Data</div>
+          <div class="round-grid">
+            ${stats.map(([label, value]) => renderRoundStat(label, value)).join("")}
+          </div>
+        </div>
+      `;
+    }
+
     function renderPlayerLane(player) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
       const activeSkill = getActiveSkillEntry(player);
@@ -1284,6 +1295,7 @@
           </div>
 
           ${buildLoadoutSlots(player)}
+          ${buildRoundData(player)}
         </div>
       `;
     }
@@ -1313,72 +1325,6 @@
       playerWrapEl.innerHTML = players.map(renderPlayerLane).join("");
     }
 
-    function renderSkillDetailsTable(teams) {
-      const body = $("skillDetailsBody");
-      const rows = [];
-
-      (teams || []).slice(0, 2).forEach(team => {
-        const teamName = team?.team_name || "—";
-        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-
-        players.forEach(player => {
-          const playerName = player?.nickname || player?.account_id || "Unknown";
-          const active = getActiveSkillEntry(player);
-          const passives = getPassiveSkillEntries(player).slice(0, 3);
-          const pet = getPetEntry(player);
-
-          if (active?.id || active?.label !== "—") {
-            rows.push({
-              team: teamName,
-              player: playerName,
-              type: "Active",
-              name: active.label || "—",
-              skill: active.skill || "—",
-              description: active.description || "—"
-            });
-          }
-
-          passives.forEach(entry => {
-            rows.push({
-              team: teamName,
-              player: playerName,
-              type: "Passive",
-              name: entry.label || "—",
-              skill: entry.skill || "—",
-              description: entry.description || "—"
-            });
-          });
-
-          if (pet?.id) {
-            rows.push({
-              team: teamName,
-              player: playerName,
-              type: "Pet",
-              name: pet.label || "—",
-              skill: pet.skill || "—",
-              description: pet.description || "—"
-            });
-          }
-        });
-      });
-
-      if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="6" class="empty-row">No skill details found.</td></tr>`;
-        return;
-      }
-
-      body.innerHTML = rows.map(row => `
-        <tr>
-          <td>${escapeHtml(row.team)}</td>
-          <td>${escapeHtml(row.player)}</td>
-          <td class="td-muted">${escapeHtml(row.type)}</td>
-          <td>${escapeHtml(row.name)}</td>
-          <td>${escapeHtml(row.skill)}</td>
-          <td class="desc-cell">${escapeHtmlWithBreaks(row.description)}</td>
-        </tr>
-      `).join("");
-    }
-
     function clearRender() {
       $("teamAName").textContent = "—";
       $("teamBName").textContent = "—";
@@ -1386,7 +1332,6 @@
       $("teamBScore").textContent = "—";
       $("teamAPlayers").innerHTML = "";
       $("teamBPlayers").innerHTML = "";
-      $("skillDetailsBody").innerHTML = `<tr><td colspan="6" class="empty-row">Render a match to view skill details.</td></tr>`;
     }
 
     function getTeamsFromPayload(data) {
@@ -1443,7 +1388,6 @@
 
         renderTeam(teams[0], "teamAName", "teamAScore", "teamAPlayers");
         renderTeam(teams[1], "teamBName", "teamBScore", "teamBPlayers");
-        renderSkillDetailsTable(teams);
 
         let message = `Rendered Team A (${teams[0]?.team_name || "—"}) and Team B (${teams[1]?.team_name || "—"}).`;
         if (teams.length > 2) {
