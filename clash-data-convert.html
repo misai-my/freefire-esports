@@ -833,7 +833,7 @@
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
         <br>Purchased items are aligned by <code>round</code> across player columns.
-        <br>Contaminated lookup text (like extra resupply / chest descriptions) is filtered more aggressively.
+        <br>Cleanup is reverted to the lighter version.
         <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
         <br>An AI-ready analysis prompt is generated at the bottom after render.
       </div>
@@ -981,15 +981,14 @@
       if (!/\b500000\d+\b/.test(s)) score += 100;
 
       const wordCount = s.split(/\s+/).filter(Boolean).length;
-      if (wordCount <= 3) score += 50;
-      else if (wordCount <= 5) score += 25;
-      else if (wordCount <= 7) score += 10;
-      else score -= 25;
+      if (wordCount <= 4) score += 40;
+      else if (wordCount <= 7) score += 15;
+      else score -= 20;
 
-      if (/[.!?]/.test(s)) score -= 35;
-      if (/(will|obtain|marked on the map|once you open|head there|resupply|chest)/i.test(s)) score -= 60;
+      if (/[.!?]/.test(s)) score -= 25;
+      if (/(will|obtain|marked on the map|once you open|head there)/i.test(s)) score -= 40;
 
-      score -= Math.min(s.length, 140) * 0.2;
+      score -= Math.min(s.length, 120) * 0.15;
 
       return score;
     }
@@ -1013,34 +1012,14 @@
       let s = String(name || "").replace(/\s+/g, " ").trim();
       if (!s) return null;
 
-      const cutPatterns = [
-        /\s*\b500000\d+\b[\s\S]*$/i,
-        /\s*\bResupply\b[\s\S]*$/i,
-        /\s*\bMap A chest\b[\s\S]*$/i,
-        /\s*\bchest will be marked\b[\s\S]*$/i,
-        /\s*\bwill be marked\b[\s\S]*$/i,
-        /\s*\bonce you open\b[\s\S]*$/i,
-        /\s*\bhead there\b[\s\S]*$/i,
-        /\s*\bobtain ff coins\b[\s\S]*$/i
-      ];
-
-      for (const rx of cutPatterns) {
-        s = s.replace(rx, "").trim();
-      }
-
-      if (!s) return null;
-
-      if (/(resupply|map a chest|marked on the map|once you open|head there|obtain ff coins|ff coins)/i.test(s)) {
-        return null;
-      }
+      s = s.replace(/\s*\b500000\d+\b[\s\S]*$/, "").trim();
 
       const words = s.split(/\s+/).filter(Boolean);
       if (words.length > 5) {
         s = words.slice(0, 3).join(" ");
       }
 
-      if (!s || !/[A-Za-z]/.test(s)) return null;
-
+      if (!s) return null;
       return s;
     }
 
