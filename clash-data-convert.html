@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clash Squad Data Viewer</title>
+  <title>Clash Squad JSON Viewer</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -832,7 +832,7 @@
       <div class="note">
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
-        <br>Purchased items now ignore loadout-style IDs (such as <code>500000007</code>) and only show valid type 0 / type 1 item matches.
+        <br>Purchased items now ignore loadout-style IDs and sanitize bad lookup text from <code>match_api</code>.
         <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
         <br>An AI-ready analysis prompt is generated at the bottom after render.
       </div>
@@ -971,6 +971,57 @@
       return String(value);
     }
 
+    function scoreLookupName(name) {
+      const s = String(name || "").trim();
+      if (!s) return -999;
+
+      let score = 0;
+
+      if (!/\b500000\d+\b/.test(s)) score += 100;
+
+      const wordCount = s.split(/\s+/).filter(Boolean).length;
+      if (wordCount <= 4) score += 40;
+      else if (wordCount <= 7) score += 15;
+      else score -= 20;
+
+      if (/[.!?]/.test(s)) score -= 25;
+      if (/(will|obtain|marked on the map|once you open|head there)/i.test(s)) score -= 40;
+
+      score -= Math.min(s.length, 120) * 0.15;
+
+      return score;
+    }
+
+    function setBestLookupEntry(map, id, name) {
+      const cleanName = String(name || "").trim();
+      if (!cleanName) return;
+
+      const current = map.get(id);
+      if (!current) {
+        map.set(id, cleanName);
+        return;
+      }
+
+      if (scoreLookupName(cleanName) > scoreLookupName(current)) {
+        map.set(id, cleanName);
+      }
+    }
+
+    function sanitizeResolvedItemName(name) {
+      let s = String(name || "").replace(/\s+/g, " ").trim();
+      if (!s) return null;
+
+      s = s.replace(/\s*\b500000\d+\b[\s\S]*$/, "").trim();
+
+      const words = s.split(/\s+/).filter(Boolean);
+      if (words.length > 6) {
+        s = words.slice(0, 4).join(" ");
+      }
+
+      if (!s) return null;
+      return s;
+    }
+
     async function fetchJson(url) {
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed to fetch ${url} (${res.status})`);
@@ -981,10 +1032,15 @@
       const numId = Number(id);
       if (!Number.isFinite(numId)) return null;
 
+      let raw = null;
+
       if (preferStore) {
-        return LOOKUPS.storeItems.get(numId) || LOOKUPS.items.get(numId) || null;
+        raw = LOOKUPS.storeItems.get(numId) || LOOKUPS.items.get(numId) || null;
+      } else {
+        raw = LOOKUPS.items.get(numId) || LOOKUPS.storeItems.get(numId) || null;
       }
-      return LOOKUPS.items.get(numId) || LOOKUPS.storeItems.get(numId) || null;
+
+      return sanitizeResolvedItemName(raw);
     }
 
     function getLookupName(type, id) {
@@ -1018,10 +1074,10 @@
 
         if (!Number.isFinite(id) || !name) continue;
 
-        if (type === 0) LOOKUPS.storeItems.set(id, name);
-        if (type === 1) LOOKUPS.items.set(id, name);
-        if (type === 2) LOOKUPS.skills.set(id, name);
-        if (type === 3) LOOKUPS.pets.set(id, name);
+        if (type === 0) setBestLookupEntry(LOOKUPS.storeItems, id, name);
+        if (type === 1) setBestLookupEntry(LOOKUPS.items, id, name);
+        if (type === 2) setBestLookupEntry(LOOKUPS.skills, id, name);
+        if (type === 3) setBestLookupEntry(LOOKUPS.pets, id, name);
       }
 
       matchApiLoaded = true;
