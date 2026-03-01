@@ -832,7 +832,8 @@
       <div class="note">
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
-        <br>Purchased items now ignore loadout-style IDs and sanitize bad lookup text from <code>match_api</code>.
+        <br>Purchased items now show a full <code>round_stats[].purchased_items</code> timeline per player.
+        <br>Purchased items ignore loadout-style IDs and sanitize bad lookup text from <code>match_api</code>.
         <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
         <br>An AI-ready analysis prompt is generated at the bottom after render.
       </div>
@@ -1349,30 +1350,39 @@
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     }
 
-    function getLatestPurchasedItems(player) {
-      const round = getLatestRoundStat(player);
-      const purchased = Array.isArray(round?.purchased_items) ? round.purchased_items : [];
-      const counts = new Map();
+    function getPurchasedItemsByRound(player) {
+      const rounds = Array.isArray(player?.round_stats) ? [...player.round_stats] : [];
+      rounds.sort((a, b) => toNum(a?.round_index, 999) - toNum(b?.round_index, 999));
 
-      for (const rawId of purchased) {
-        const id = Number(rawId);
-        if (!Number.isFinite(id)) continue;
+      return rounds.map(round => {
+        const purchased = Array.isArray(round?.purchased_items) ? round.purchased_items : [];
+        const counts = new Map();
 
-        if (id >= 500000000) continue;
+        for (const rawId of purchased) {
+          const id = Number(rawId);
+          if (!Number.isFinite(id)) continue;
 
-        const resolvedName = resolveItemName(id, true);
-        if (!resolvedName) continue;
+          if (id >= 500000000) continue;
 
-        counts.set(id, (counts.get(id) || 0) + 1);
-      }
+          const resolvedName = resolveItemName(id, true);
+          if (!resolvedName) continue;
 
-      return [...counts.entries()]
-        .map(([id, count]) => ({
-          id,
-          name: resolveItemName(id, true),
-          count
-        }))
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+          counts.set(id, (counts.get(id) || 0) + 1);
+        }
+
+        const items = [...counts.entries()]
+          .map(([id, count]) => ({
+            id,
+            name: resolveItemName(id, true),
+            count
+          }))
+          .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+        return {
+          roundIndex: toNum(round?.round_index, -1),
+          items
+        };
+      });
     }
 
     function getLatestWeaponUsages(player) {
@@ -1551,27 +1561,45 @@
     }
 
     function buildPurchasedItemsContent(player) {
-      const items = getLatestPurchasedItems(player);
+      const rounds = getPurchasedItemsByRound(player);
 
       return `
-        <div class="stats-category">
-          <div class="stats-table">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(item.name)}</div>
-                      <div class="stats-val">Purchased x${item.count}</div>
+        <div class="stats-sections">
+          ${
+            rounds.length
+              ? rounds.map(round => `
+                  <div class="stats-category">
+                    <div class="stats-category-title">Round ${round.roundIndex >= 0 ? round.roundIndex + 1 : "?"}</div>
+                    <div class="stats-table">
+                      ${
+                        round.items.length
+                          ? round.items.map(item => `
+                              <div class="stats-row">
+                                <div class="stats-key">${escapeHtml(item.name)}</div>
+                                <div class="stats-val">Purchased x${item.count}</div>
+                              </div>
+                            `).join("")
+                          : `
+                              <div class="stats-row">
+                                <div class="stats-key">Purchased Items</div>
+                                <div class="stats-val">No valid purchased items found.</div>
+                              </div>
+                            `
+                      }
                     </div>
-                  `).join("")
-                : `
-                    <div class="stats-row">
-                      <div class="stats-key">Purchased Items</div>
-                      <div class="stats-val">No purchased items found in latest round.</div>
+                  </div>
+                `).join("")
+              : `
+                  <div class="stats-category">
+                    <div class="stats-table">
+                      <div class="stats-row">
+                        <div class="stats-key">Purchased Items</div>
+                        <div class="stats-val">No purchased item data found.</div>
+                      </div>
                     </div>
-                  `
-            }
-          </div>
+                  </div>
+                `
+          }
         </div>
       `;
     }
@@ -1767,7 +1795,7 @@
     function renderGlobalPlayerDetails(teams) {
       return `
         ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
-        ${renderGlobalCategoryRow(teams, "Purchased Items Latest Round Type 0 To Type 1 Fallback", buildPurchasedItemsContent)}
+        ${renderGlobalCategoryRow(teams, "Purchased Items By Round Type 0 To Type 1 Fallback", buildPurchasedItemsContent)}
         ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
         ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
       `;
@@ -1785,6 +1813,17 @@
       return (items && items.length)
         ? items.map(item => `${item.name} x${item.count}`).join(", ")
         : "None";
+    }
+
+    function summarizePurchasedRoundsForPrompt(player) {
+      const rounds = getPurchasedItemsByRound(player);
+      const useful = rounds.filter(r => r.items.length);
+
+      if (!useful.length) return "None";
+
+      return useful
+        .map(r => `Round ${r.roundIndex >= 0 ? r.roundIndex + 1 : "?"}: ${r.items.map(item => `${item.name} x${item.count}`).join(", ")}`)
+        .join("\n      - ");
     }
 
     function summarizeWeaponsForPrompt(usages) {
@@ -1821,7 +1860,6 @@
       const pet = getPetEntry(player);
       const loadout = getPlayerLoadoutEntry(player);
       const currentItems = getLatestItems(player);
-      const purchasedItems = getLatestPurchasedItems(player);
       const weaponUsages = getLatestWeaponUsages(player);
 
       const playerName = player?.nickname || player?.account_id || `Player ${idx + 1}`;
@@ -1835,7 +1873,8 @@
         `   - Pet: ${pet.label || "None"}`,
         `   - Loadout: ${loadout.name || "None"}`,
         `   - Current Items (Latest Round Inventory): ${summarizeItemsForPrompt(currentItems)}`,
-        `   - Purchased Items (Latest Round): ${summarizeItemsForPrompt(purchasedItems)}`,
+        `   - Purchased Items By Round:`,
+        `      - ${summarizePurchasedRoundsForPrompt(player)}`,
         `   - Weapon Usages (Latest Round):`,
         `      - ${summarizeWeaponsForPrompt(weaponUsages)}`,
         `   - Latest Round Stats By Section:`,
