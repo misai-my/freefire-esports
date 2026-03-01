@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clash Squad JSON Viewer (Supabase Lookup)</title>
+  <title>Clash Squad JSON Viewer</title>
 
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -66,13 +66,6 @@
       margin-bottom:18px;
     }
 
-    .config-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-      margin-bottom:12px;
-    }
-
     .field{
       display:flex;
       flex-direction:column;
@@ -86,27 +79,20 @@
       color:var(--muted);
     }
 
-    input, textarea{
+    textarea{
       width:100%;
+      min-height:260px;
+      resize:vertical;
       border-radius:12px;
       border:1px solid var(--line);
       background:#0a1222;
       color:var(--ink);
       padding:12px;
       outline:none;
-    }
-
-    input{
-      font-size:14px;
-    }
-
-    textarea{
-      min-height:260px;
-      resize:vertical;
       font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     }
 
-    input:focus, textarea:focus{
+    textarea:focus{
       border-color:rgba(108,184,255,.55);
       box-shadow:0 0 0 3px rgba(108,184,255,.12);
     }
@@ -279,7 +265,6 @@
     }
 
     @media (max-width: 980px){
-      .config-grid,
       .teams{
         grid-template-columns:1fr;
       }
@@ -290,22 +275,12 @@
   <div class="app">
     <h1 class="title">Clash Squad JSON → Team Viewer</h1>
     <p class="sub">
-      Paste your match JSON, then render. This version resolves <strong>skills</strong>, <strong>items</strong>, and <strong>pets</strong>
-      from <code>public.match_api</code> in Supabase using <code>type + id</code>.
+      Paste your match JSON, then render. This version resolves
+      <strong>skills</strong>, <strong>items</strong>, and <strong>pets</strong>
+      from <code>public.match_api</code>.
     </p>
 
     <div class="panel input-panel">
-      <div class="config-grid">
-        <div class="field">
-          <label for="supabaseUrl">Supabase URL</label>
-          <input id="supabaseUrl" type="text" placeholder="https://YOUR-PROJECT.supabase.co" />
-        </div>
-        <div class="field">
-          <label for="supabaseKey">Supabase Anon Key</label>
-          <input id="supabaseKey" type="text" placeholder="your-anon-key" />
-        </div>
-      </div>
-
       <div class="field">
         <label for="jsonInput">Paste Match JSON</label>
         <textarea id="jsonInput" placeholder='Paste the full JSON here...'></textarea>
@@ -313,20 +288,19 @@
 
       <div class="actions">
         <button id="renderBtn">Render</button>
-        <button id="loadLookupBtn" class="ghost" type="button">Load Lookup Only</button>
+        <button id="reloadLookupBtn" class="ghost" type="button">Reload Lookup</button>
         <button id="clearBtn" class="ghost" type="button">Clear</button>
       </div>
 
-      <div id="status" class="status">Waiting for Supabase config and pasted JSON…</div>
+      <div id="status" class="status">Loading match_api lookup…</div>
 
       <div class="note">
-        Notes:
-        <br>• <code>public.match_api</code> is expected to use columns <code>id</code>, <code>type</code>, <code>name</code>.
-        <br>• If your actual column is <code>api_id</code> instead of <code>id</code>, change the query in <code>loadMatchApiLookups()</code>.
-        <br>• The page uses:
-        <br>&nbsp;&nbsp;— <code>type = 1</code> for items
-        <br>&nbsp;&nbsp;— <code>type = 2</code> for skills
-        <br>&nbsp;&nbsp;— <code>type = 3</code> for pets
+        Uses:
+        <br>• <code>type = 1</code> → items
+        <br>• <code>type = 2</code> → skills
+        <br>• <code>type = 3</code> → pets
+        <br><br>
+        Make sure your RLS policy allows <code>select</code> on <code>public.match_api</code>.
       </div>
     </div>
 
@@ -356,16 +330,20 @@
   </div>
 
   <script>
+    /* ============ Supabase init ============ */
+    const client = supabase.createClient(
+      'https://gkugecflfddkpitlrmws.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWdlY2ZsZmRka3BpdGxybXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwODMwNzQsImV4cCI6MjA2MTY1OTA3NH0.OgQOx9k71DDdK1yOa7VNKGSgoFD9kNGo8j-bR91zGKE'
+    );
+
     const $ = (id) => document.getElementById(id);
 
-    let supabaseClient = null;
     let lookupLoaded = false;
 
-    // Key format is "type:id"
     const LOOKUPS = {
-      items: new Map(), // type 1
+      items: new Map(),  // type 1
       skills: new Map(), // type 2
-      pets: new Map() // type 3
+      pets: new Map()    // type 3
     };
 
     function setStatus(message, isError = false) {
@@ -387,22 +365,6 @@
       return `${count} ${label}${count === 1 ? "" : "s"}`;
     }
 
-    function makeClient() {
-      const url = $("supabaseUrl").value.trim();
-      const key = $("supabaseKey").value.trim();
-
-      if (!url || !key) {
-        throw new Error("Please enter your Supabase URL and anon key.");
-      }
-
-      if (!window.supabase || !window.supabase.createClient) {
-        throw new Error("Supabase library failed to load.");
-      }
-
-      supabaseClient = window.supabase.createClient(url, key);
-      return supabaseClient;
-    }
-
     function getLookupName(type, id) {
       if (id === null || id === undefined || id === "") return null;
       const numId = Number(id);
@@ -416,18 +378,14 @@
 
     async function loadMatchApiLookups() {
       try {
-        if (!supabaseClient) makeClient();
+        setStatus("Loading match_api lookup...");
 
-        setStatus("Loading match_api lookups from Supabase...");
-
-        const { data, error } = await supabaseClient
+        const { data, error } = await client
           .from("match_api")
           .select("id, type, name")
           .in("type", [1, 2, 3]);
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         LOOKUPS.items.clear();
         LOOKUPS.skills.clear();
@@ -449,12 +407,11 @@
         lookupLoaded = true;
 
         setStatus(
-          `Lookup loaded.\nItems: ${LOOKUPS.items.size}\nSkills: ${LOOKUPS.skills.size}\nPets: ${LOOKUPS.pets.size}`
+          `Lookup ready.\nItems: ${LOOKUPS.items.size}\nSkills: ${LOOKUPS.skills.size}\nPets: ${LOOKUPS.pets.size}`
         );
       } catch (err) {
         lookupLoaded = false;
         setStatus(`Failed to load match_api lookup:\n${err.message || err}`, true);
-        throw err;
       }
     }
 
@@ -463,21 +420,22 @@
       return info.find(s => s && s.skill_active === true) || info[0] || null;
     }
 
-    function getActiveSkillLabel(player) {
-      const activeInfo = getActiveSkillInfo(player);
-      const activeId = activeInfo?.skill_id ?? (Array.isArray(player?.skill_ids) ? player.skill_ids[0] : null);
-
-      if (!activeId) return "—";
-
-      const fromLookup = getLookupName(2, activeId);
-      const fromJson = activeInfo?.skill_name;
-
-      return fromLookup || fromJson || `Skill ID ${activeId}`;
-    }
-
     function getActiveSkillId(player) {
       const activeInfo = getActiveSkillInfo(player);
       return activeInfo?.skill_id ?? (Array.isArray(player?.skill_ids) ? player.skill_ids[0] : null);
+    }
+
+    function getActiveSkillLabel(player) {
+      const activeInfo = getActiveSkillInfo(player);
+      const activeId = getActiveSkillId(player);
+
+      if (!activeId) return "—";
+
+      return (
+        getLookupName(2, activeId) ||
+        activeInfo?.skill_name ||
+        `Skill ID ${activeId}`
+      );
     }
 
     function getPassiveSkillLabels(player) {
@@ -552,11 +510,9 @@
         .filter(item => Number(item?.item_num || 0) > 0)
         .map(item => {
           const id = Number(item?.item_id);
-          const resolvedName = getLookupName(1, id) || item?.item_name || `Item ID ${id}`;
-
           return {
             id,
-            name: resolvedName,
+            name: getLookupName(1, id) || item?.item_name || `Item ID ${id}`,
             count: Number(item?.item_num || 0)
           };
         });
@@ -676,6 +632,7 @@
 
         if (!lookupLoaded) {
           await loadMatchApiLookups();
+          if (!lookupLoaded) return;
         }
 
         let data;
@@ -712,10 +669,8 @@
 
     $("renderBtn").addEventListener("click", renderJson);
 
-    $("loadLookupBtn").addEventListener("click", async () => {
-      try {
-        await loadMatchApiLookups();
-      } catch (e) {}
+    $("reloadLookupBtn").addEventListener("click", async () => {
+      await loadMatchApiLookups();
     });
 
     $("clearBtn").addEventListener("click", () => {
@@ -723,6 +678,9 @@
       clearRender();
       setStatus("Cleared. Paste new JSON to render.");
     });
+
+    // Auto-load lookup on page load
+    loadMatchApiLookups();
   </script>
 </body>
 </html>
