@@ -832,8 +832,8 @@
       <div class="note">
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
-        <br>Purchased items now show a full <code>round_stats[].purchased_items</code> timeline per player.
-        <br>Purchased items ignore loadout-style IDs and sanitize bad lookup text from <code>match_api</code>.
+        <br>Purchased items are aligned by <code>round</code> across player columns.
+        <br>Contaminated lookup text (like extra resupply / chest descriptions) is filtered more aggressively.
         <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
         <br>An AI-ready analysis prompt is generated at the bottom after render.
       </div>
@@ -981,14 +981,15 @@
       if (!/\b500000\d+\b/.test(s)) score += 100;
 
       const wordCount = s.split(/\s+/).filter(Boolean).length;
-      if (wordCount <= 4) score += 40;
-      else if (wordCount <= 7) score += 15;
-      else score -= 20;
+      if (wordCount <= 3) score += 50;
+      else if (wordCount <= 5) score += 25;
+      else if (wordCount <= 7) score += 10;
+      else score -= 25;
 
-      if (/[.!?]/.test(s)) score -= 25;
-      if (/(will|obtain|marked on the map|once you open|head there)/i.test(s)) score -= 40;
+      if (/[.!?]/.test(s)) score -= 35;
+      if (/(will|obtain|marked on the map|once you open|head there|resupply|chest)/i.test(s)) score -= 60;
 
-      score -= Math.min(s.length, 120) * 0.15;
+      score -= Math.min(s.length, 140) * 0.2;
 
       return score;
     }
@@ -1012,14 +1013,34 @@
       let s = String(name || "").replace(/\s+/g, " ").trim();
       if (!s) return null;
 
-      s = s.replace(/\s*\b500000\d+\b[\s\S]*$/, "").trim();
+      const cutPatterns = [
+        /\s*\b500000\d+\b[\s\S]*$/i,
+        /\s*\bResupply\b[\s\S]*$/i,
+        /\s*\bMap A chest\b[\s\S]*$/i,
+        /\s*\bchest will be marked\b[\s\S]*$/i,
+        /\s*\bwill be marked\b[\s\S]*$/i,
+        /\s*\bonce you open\b[\s\S]*$/i,
+        /\s*\bhead there\b[\s\S]*$/i,
+        /\s*\bobtain ff coins\b[\s\S]*$/i
+      ];
 
-      const words = s.split(/\s+/).filter(Boolean);
-      if (words.length > 6) {
-        s = words.slice(0, 4).join(" ");
+      for (const rx of cutPatterns) {
+        s = s.replace(rx, "").trim();
       }
 
       if (!s) return null;
+
+      if (/(resupply|map a chest|marked on the map|once you open|head there|obtain ff coins|ff coins)/i.test(s)) {
+        return null;
+      }
+
+      const words = s.split(/\s+/).filter(Boolean);
+      if (words.length > 5) {
+        s = words.slice(0, 3).join(" ");
+      }
+
+      if (!s || !/[A-Za-z]/.test(s)) return null;
+
       return s;
     }
 
@@ -1350,39 +1371,69 @@
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     }
 
-    function getPurchasedItemsByRound(player) {
-      const rounds = Array.isArray(player?.round_stats) ? [...player.round_stats] : [];
-      rounds.sort((a, b) => toNum(a?.round_index, 999) - toNum(b?.round_index, 999));
+    function getPurchasedItemsForRound(player, targetRoundIndex) {
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+      const round = rounds.find(r => toNum(r?.round_index, -999) === targetRoundIndex);
 
-      return rounds.map(round => {
-        const purchased = Array.isArray(round?.purchased_items) ? round.purchased_items : [];
-        const counts = new Map();
+      if (!round) return [];
 
-        for (const rawId of purchased) {
-          const id = Number(rawId);
-          if (!Number.isFinite(id)) continue;
+      const purchased = Array.isArray(round?.purchased_items) ? round.purchased_items : [];
+      const counts = new Map();
 
-          if (id >= 500000000) continue;
+      for (const rawId of purchased) {
+        const id = Number(rawId);
+        if (!Number.isFinite(id)) continue;
 
-          const resolvedName = resolveItemName(id, true);
-          if (!resolvedName) continue;
+        if (id >= 500000000) continue;
 
-          counts.set(id, (counts.get(id) || 0) + 1);
+        const resolvedName = resolveItemName(id, true);
+        if (!resolvedName) continue;
+
+        counts.set(id, (counts.get(id) || 0) + 1);
+      }
+
+      return [...counts.entries()]
+        .map(([id, count]) => ({
+          id,
+          name: resolveItemName(id, true),
+          count
+        }))
+        .filter(item => item.name)
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    }
+
+    function getPurchasedRoundIndicesForTeams(teams) {
+      const set = new Set();
+
+      for (const team of teams || []) {
+        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+        for (const player of players) {
+          const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+          for (const round of rounds) {
+            const idx = toNum(round?.round_index, -1);
+            if (idx >= 0) set.add(idx);
+          }
         }
+      }
 
-        const items = [...counts.entries()]
-          .map(([id, count]) => ({
-            id,
-            name: resolveItemName(id, true),
-            count
-          }))
-          .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+      return [...set].sort((a, b) => a - b);
+    }
 
-        return {
-          roundIndex: toNum(round?.round_index, -1),
-          items
-        };
-      });
+    function getPurchasedItemsByRound(player) {
+      const roundIndices = [];
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+
+      for (const round of rounds) {
+        const idx = toNum(round?.round_index, -1);
+        if (idx >= 0) roundIndices.push(idx);
+      }
+
+      const uniqueSorted = [...new Set(roundIndices)].sort((a, b) => a - b);
+
+      return uniqueSorted.map(roundIndex => ({
+        roundIndex,
+        items: getPurchasedItemsForRound(player, roundIndex)
+      }));
     }
 
     function getLatestWeaponUsages(player) {
@@ -1560,46 +1611,28 @@
       `;
     }
 
-    function buildPurchasedItemsContent(player) {
-      const rounds = getPurchasedItemsByRound(player);
+    function buildPurchasedItemsContentForRound(player, roundIndex) {
+      const items = getPurchasedItemsForRound(player, roundIndex);
 
       return `
-        <div class="stats-sections">
-          ${
-            rounds.length
-              ? rounds.map(round => `
-                  <div class="stats-category">
-                    <div class="stats-category-title">Round ${round.roundIndex >= 0 ? round.roundIndex + 1 : "?"}</div>
-                    <div class="stats-table">
-                      ${
-                        round.items.length
-                          ? round.items.map(item => `
-                              <div class="stats-row">
-                                <div class="stats-key">${escapeHtml(item.name)}</div>
-                                <div class="stats-val">Purchased x${item.count}</div>
-                              </div>
-                            `).join("")
-                          : `
-                              <div class="stats-row">
-                                <div class="stats-key">Purchased Items</div>
-                                <div class="stats-val">No valid purchased items found.</div>
-                              </div>
-                            `
-                      }
+        <div class="stats-category">
+          <div class="stats-table">
+            ${
+              items.length
+                ? items.map(item => `
+                    <div class="stats-row">
+                      <div class="stats-key">${escapeHtml(item.name)}</div>
+                      <div class="stats-val">Purchased x${item.count}</div>
                     </div>
-                  </div>
-                `).join("")
-              : `
-                  <div class="stats-category">
-                    <div class="stats-table">
-                      <div class="stats-row">
-                        <div class="stats-key">Purchased Items</div>
-                        <div class="stats-val">No purchased item data found.</div>
-                      </div>
+                  `).join("")
+                : `
+                    <div class="stats-row">
+                      <div class="stats-key">Purchased Items</div>
+                      <div class="stats-val">No valid purchased items found.</div>
                     </div>
-                  </div>
-                `
-          }
+                  `
+            }
+          </div>
         </div>
       `;
     }
@@ -1764,6 +1797,22 @@
       `;
     }
 
+    function renderCategoryContentForTeamWithArgs(team, fallbackName, builderFn, ...args) {
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+      const teamName = team?.team_name || fallbackName;
+
+      return `
+        <div class="details-team-block">
+          <div class="details-team-title">${escapeHtml(teamName)}</div>
+          ${
+            players.length
+              ? `<div class="detail-grid">${players.map(player => renderPlayerCategoryColumn(player, builderFn(player, ...args))).join("")}</div>`
+              : `<div class="empty-lite">No players found.</div>`
+          }
+        </div>
+      `;
+    }
+
     function renderGlobalCategoryRow(teams, title, builderFn) {
       return `
         <details class="row-fold">
@@ -1772,6 +1821,44 @@
             <div class="details-wrap">
               ${renderCategoryContentForTeam(teams[0], "Team A", builderFn)}
               ${renderCategoryContentForTeam(teams[1], "Team B", builderFn)}
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    function renderGlobalPurchasedItemsRow(teams) {
+      const roundIndices = getPurchasedRoundIndicesForTeams(teams);
+
+      return `
+        <details class="row-fold">
+          <summary>Purchased Items By Round Type 0 To Type 1 Fallback</summary>
+          <div class="row-fold-body">
+            <div class="stats-sections">
+              ${
+                roundIndices.length
+                  ? roundIndices.map(roundIndex => `
+                      <div class="stats-category">
+                        <div class="stats-category-title">Round ${roundIndex + 1}</div>
+                        <div style="padding:10px;">
+                          <div class="details-wrap">
+                            ${renderCategoryContentForTeamWithArgs(teams[0], "Team A", buildPurchasedItemsContentForRound, roundIndex)}
+                            ${renderCategoryContentForTeamWithArgs(teams[1], "Team B", buildPurchasedItemsContentForRound, roundIndex)}
+                          </div>
+                        </div>
+                      </div>
+                    `).join("")
+                  : `
+                      <div class="stats-category">
+                        <div class="stats-table">
+                          <div class="stats-row">
+                            <div class="stats-key">Purchased Items</div>
+                            <div class="stats-val">No purchased item data found.</div>
+                          </div>
+                        </div>
+                      </div>
+                    `
+              }
             </div>
           </div>
         </details>
@@ -1795,7 +1882,7 @@
     function renderGlobalPlayerDetails(teams) {
       return `
         ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
-        ${renderGlobalCategoryRow(teams, "Purchased Items By Round Type 0 To Type 1 Fallback", buildPurchasedItemsContent)}
+        ${renderGlobalPurchasedItemsRow(teams)}
         ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
         ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
       `;
