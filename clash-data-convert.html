@@ -17,8 +17,6 @@
       --muted:#9fb0d1;
       --orange:#ff7f32;
       --cyan:#2dafff;
-      --cyanSoft:rgba(45,175,255,.18);
-      --redSoft:rgba(255,90,90,.12);
       --danger:#ff7b7b;
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:24px;
@@ -159,11 +157,12 @@
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:26px;
+      margin-bottom:22px;
     }
 
     .team-panel{
       position:relative;
-      overflow:hidden;
+      overflow:visible;
       border-radius:28px;
       padding:22px 18px 18px;
       border:1px solid rgba(124,172,255,.12);
@@ -286,7 +285,7 @@
 
     .hero-card-inner{
       position:relative;
-      height:188px;
+      height:164px; /* slightly smaller */
       border-radius:15px;
       overflow:hidden;
       background:
@@ -302,7 +301,7 @@
       height:100%;
       object-fit:contain;
       display:block;
-      padding:6px;
+      padding:12px;
     }
 
     .hero-fallback{
@@ -315,37 +314,7 @@
       font-size:12px;
     }
 
-    .hero-badge{
-      position:absolute;
-      left:50%;
-      bottom:-18px;
-      transform:translateX(-50%);
-      width:48px;
-      height:48px;
-      border-radius:14px;
-      border:2px solid rgba(58,180,255,.35);
-      background:rgba(5,10,20,.92);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-      box-shadow:0 8px 16px rgba(0,0,0,.35);
-    }
-
-    .hero-badge img{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      padding:4px;
-    }
-
-    .hero-badge-fallback{
-      font-size:10px;
-      color:var(--muted);
-    }
-
     .char-name{
-      margin-top:16px;
       text-align:center;
       font-size:14px;
       font-weight:800;
@@ -373,20 +342,30 @@
       text-overflow:ellipsis;
     }
 
-    .passive-row{
+    .skill-chip-row{
       display:flex;
+      flex-wrap:wrap;
       justify-content:center;
-      gap:6px;
-      min-height:44px;
+      gap:10px;
+      min-height:72px;
     }
 
-    .passive-icon,
-    .pet-icon{
-      width:38px;
-      height:38px;
-      border-radius:10px;
-      border:1px solid rgba(124,172,255,.16);
-      background:rgba(255,255,255,.03);
+    .skill-chip{
+      position:relative;
+      width:74px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+    }
+
+    .skill-chip-icon{
+      width:52px;
+      height:52px;
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(255,255,255,.04);
       overflow:hidden;
       display:flex;
       align-items:center;
@@ -394,22 +373,96 @@
       flex:0 0 auto;
     }
 
-    .passive-icon img,
-    .pet-icon img{
+    .skill-chip-icon img{
       width:100%;
       height:100%;
       object-fit:contain;
-      padding:3px;
+      padding:4px;
+    }
+
+    .skill-chip-label{
+      width:100%;
+      font-size:11px;
+      line-height:1.15;
+      text-align:center;
+      font-weight:700;
+      color:#dfe9ff;
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:2;
+      overflow:hidden;
+      min-height:24px;
     }
 
     .icon-fallback{
       font-size:10px;
       color:var(--muted);
+      padding:4px;
+      text-align:center;
     }
 
-    .pet-row{
-      display:flex;
-      justify-content:center;
+    .hover-wrap{
+      position:relative;
+      outline:none;
+    }
+
+    .hover-popup{
+      position:absolute;
+      left:50%;
+      bottom:calc(100% + 10px);
+      transform:translateX(-50%) translateY(6px);
+      width:min(280px, calc(100vw - 32px));
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(5,12,24,.98);
+      box-shadow:0 18px 36px rgba(0,0,0,.45);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .16s ease, transform .16s ease;
+      z-index:50;
+      text-align:left;
+    }
+
+    .hover-popup::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      bottom:-7px;
+      width:12px;
+      height:12px;
+      transform:translateX(-50%) rotate(45deg);
+      background:rgba(5,12,24,.98);
+      border-right:1px solid rgba(124,172,255,.18);
+      border-bottom:1px solid rgba(124,172,255,.18);
+    }
+
+    .hover-wrap:hover .hover-popup,
+    .hover-wrap:focus-within .hover-popup{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+
+    .hover-title{
+      font-size:12px;
+      font-weight:800;
+      color:#fff;
+      margin-bottom:4px;
+      line-height:1.3;
+    }
+
+    .hover-meta{
+      font-size:11px;
+      color:#7fe0ff;
+      font-weight:700;
+      margin-bottom:6px;
+      line-height:1.3;
+    }
+
+    .hover-body{
+      font-size:11px;
+      color:#d3dffc;
+      line-height:1.45;
     }
 
     .slot-stack{
@@ -489,6 +542,79 @@
       color:var(--muted);
     }
 
+    .details-panel{
+      padding:16px;
+      overflow:hidden;
+    }
+
+    .details-title{
+      margin:0 0 12px;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .details-sub{
+      margin:0 0 12px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:860px;
+    }
+
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:1;
+      background:rgba(8,18,38,.98);
+      color:#cfe0ff;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      text-align:left;
+      padding:12px 10px;
+      border-bottom:1px solid var(--line);
+    }
+
+    tbody td{
+      padding:10px;
+      font-size:12px;
+      color:#e9f1ff;
+      border-top:1px solid rgba(124,172,255,.10);
+      vertical-align:top;
+    }
+
+    tbody tr:nth-child(even){
+      background:rgba(255,255,255,.02);
+    }
+
+    .td-muted{
+      color:var(--muted);
+    }
+
+    .desc-cell{
+      line-height:1.45;
+      color:#d7e4ff;
+      white-space:normal;
+    }
+
+    .empty-row{
+      color:var(--muted);
+      text-align:center;
+      padding:18px !important;
+    }
+
     @media (max-width:1100px){
       .arena-wrap{
         grid-template-columns:1fr;
@@ -510,7 +636,7 @@
       }
 
       .hero-card-inner{
-        height:170px;
+        height:150px;
       }
     }
   </style>
@@ -518,9 +644,7 @@
 <body>
   <div class="app">
     <h1 class="title">Clash Squad JSON → Team Viewer</h1>
-    <p class="sub">
-      Paste your match JSON, then render.
-    </p>
+    <p class="sub">Paste your match JSON, then render.</p>
 
     <div class="panel input-panel">
       <div class="field">
@@ -544,8 +668,8 @@
       </div>
     </div>
 
-    <div class="teams arena-wrap">
-      <section class="team-panel team-left-panel">
+    <div class="arena-wrap">
+      <section class="team-panel">
         <div class="team-glow team-glow-left"></div>
         <div class="team-header">
           <div class="team-title-block">
@@ -560,7 +684,7 @@
         <div id="teamAPlayers" class="player-lanes"></div>
       </section>
 
-      <section class="team-panel team-right-panel">
+      <section class="team-panel">
         <div class="team-glow team-glow-right"></div>
         <div class="team-header">
           <div class="team-title-block">
@@ -575,6 +699,28 @@
         <div id="teamBPlayers" class="player-lanes"></div>
       </section>
     </div>
+
+    <section class="panel details-panel">
+      <h3 class="details-title">Skill Details</h3>
+      <p class="details-sub">Active, passive, and pet skill details for all displayed players.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Player</th>
+              <th>Type</th>
+              <th>Name</th>
+              <th>Skill</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="skillDetailsBody">
+            <tr><td colspan="6" class="empty-row">Render a match to view skill details.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
   <script>
@@ -595,9 +741,9 @@
     let assetsLoaded = false;
 
     const LOOKUPS = {
-      items: new Map(),   // type 1
-      skills: new Map(),  // type 2
-      pets: new Map()     // type 3
+      items: new Map(),
+      skills: new Map(),
+      pets: new Map()
     };
 
     const ASSETS = {
@@ -620,6 +766,10 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    function escapeHtmlWithBreaks(value) {
+      return escapeHtml(value ?? "").replace(/\n/g, "<br>");
     }
 
     function normalizeKey(value) {
@@ -695,40 +845,48 @@
         const imageUrl = row?.image_url || "";
         const apiId = Number(row?.api_id);
         const asset = {
-          name: row?.name || row?.skill || "",
-          image_url: imageUrl
+          name: row?.name || "",
+          image_url: imageUrl,
+          skill: row?.skill || "",
+          description: row?.description || "",
+          skill_type: row?.skill_type || "",
+          role: row?.role || ""
         };
 
         if (imageUrl && Number.isFinite(apiId)) {
           ASSETS.charactersById.set(apiId, asset);
         }
 
-        if (imageUrl && row?.name) {
+        if (row?.name) {
           ASSETS.charactersByName.set(normalizeKey(row.name), asset);
         }
 
-        if (imageUrl && row?.skill) {
+        if (row?.skill) {
           ASSETS.charactersByName.set(normalizeKey(row.skill), asset);
         }
       }
 
       for (const row of (pets || [])) {
         const imageUrl = row?.image_url || "";
-        if (!imageUrl || !row?.name) continue;
+        if (!row?.name) continue;
 
         ASSETS.petsByName.set(normalizeKey(row.name), {
           name: row.name,
-          image_url: imageUrl
+          image_url: imageUrl,
+          skill: row?.skill || "",
+          description: row?.description || "",
+          skill_type: row?.skill_type || "",
+          role: row?.role || ""
         });
       }
 
       for (const row of (weapons || [])) {
-        const imageUrl = row?.image_url || "";
-        if (!imageUrl || !row?.name) continue;
+        if (!row?.name) continue;
 
         ASSETS.weaponsByName.set(normalizeKey(row.name), {
           name: row.name,
-          image_url: imageUrl
+          image_url: row?.image_url || "",
+          description: row?.description || ""
         });
       }
 
@@ -810,20 +968,26 @@
       const activeId = getActiveSkillId(player);
 
       if (!activeId) {
-        return { id: null, name: "—", image_url: "" };
+        return {
+          id: null,
+          label: "—",
+          skill: "",
+          description: "",
+          image_url: "",
+          slotType: "Active"
+        };
       }
 
-      const name =
-        getLookupName(2, activeId) ||
-        activeInfo?.skill_name ||
-        `Skill ID ${activeId}`;
-
-      const asset = getCharacterAsset(activeId, name);
+      const lookupName = getLookupName(2, activeId) || activeInfo?.skill_name || `Skill ID ${activeId}`;
+      const asset = getCharacterAsset(activeId, lookupName);
 
       return {
         id: Number(activeId),
-        name,
-        image_url: asset?.image_url || ""
+        label: asset?.name || lookupName,
+        skill: asset?.skill || activeInfo?.skill_name || lookupName,
+        description: asset?.description || "",
+        image_url: asset?.image_url || "",
+        slotType: "Active"
       };
     }
 
@@ -836,13 +1000,16 @@
       )];
 
       return uniquePassiveIds.map(id => {
-        const name = getLookupName(2, id) || `Skill ID ${id}`;
-        const asset = getCharacterAsset(id, name);
+        const lookupName = getLookupName(2, id) || `Skill ID ${id}`;
+        const asset = getCharacterAsset(id, lookupName);
 
         return {
           id: Number(id),
-          name,
-          image_url: asset?.image_url || ""
+          label: asset?.name || lookupName,
+          skill: asset?.skill || lookupName,
+          description: asset?.description || "",
+          image_url: asset?.image_url || "",
+          slotType: "Passive"
         };
       });
     }
@@ -850,16 +1017,26 @@
     function getPetEntry(player) {
       const petId = player?.pet_skill_id;
       if (!petId) {
-        return { id: null, name: "—", image_url: "" };
+        return {
+          id: null,
+          label: "—",
+          skill: "",
+          description: "",
+          image_url: "",
+          slotType: "Pet"
+        };
       }
 
-      const name = getLookupName(3, petId) || `Pet ID ${petId}`;
-      const asset = getPetAsset(name);
+      const lookupName = getLookupName(3, petId) || `Pet ID ${petId}`;
+      const asset = getPetAsset(lookupName);
 
       return {
         id: Number(petId),
-        name,
-        image_url: asset?.image_url || ""
+        label: asset?.name || lookupName,
+        skill: asset?.skill || lookupName,
+        description: asset?.description || "",
+        image_url: asset?.image_url || "",
+        slotType: "Pet"
       };
     }
 
@@ -880,7 +1057,6 @@
               kills: 0,
               damage: 0,
               hits: 0,
-              rounds: 0,
               image_url: ""
             });
           }
@@ -889,7 +1065,6 @@
           row.kills += Number(weapon?.kills || 0);
           row.damage += Number(weapon?.damage || 0);
           row.hits += Number(weapon?.hits || 0);
-          row.rounds += 1;
         }
       }
 
@@ -928,7 +1103,7 @@
         .map(item => {
           const id = Number(item?.item_id);
           const name = getLookupName(1, id) || item?.item_name || `Item ID ${id}`;
-          const asset = getWeaponAsset(name); // best-effort image match for throwable items
+          const asset = getWeaponAsset(name);
 
           return {
             id,
@@ -962,6 +1137,36 @@
         return `<span class="icon-fallback">${escapeHtml(label)}</span>`;
       }
       return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+    }
+
+    function renderTooltip(entry) {
+      if (!entry || (!entry.skill && !entry.description)) return "";
+
+      const meta = entry.slotType ? `${entry.slotType}${entry.label ? " • " + entry.label : ""}` : (entry.label || "");
+      return `
+        <div class="hover-popup">
+          <div class="hover-title">${escapeHtml(entry.skill || entry.label || "Skill")}</div>
+          <div class="hover-meta">${escapeHtml(meta)}</div>
+          <div class="hover-body">${escapeHtmlWithBreaks(entry.description || "No description available.")}</div>
+        </div>
+      `;
+    }
+
+    function renderSkillChip(entry) {
+      if (!entry) return "";
+
+      return `
+        <div class="skill-chip hover-wrap" tabindex="0">
+          <div class="skill-chip-icon">
+            ${entry.image_url
+              ? `<img src="${escapeHtml(entry.image_url)}" alt="${escapeHtml(entry.label)}" loading="lazy">`
+              : `<span class="icon-fallback">N/A</span>`
+            }
+          </div>
+          <div class="skill-chip-label">${escapeHtml(entry.label || "—")}</div>
+          ${renderTooltip(entry)}
+        </div>
+      `;
     }
 
     function renderSlot(entry, isPrimary = false) {
@@ -1051,47 +1256,31 @@
 
       return `
         <div class="player-lane">
-          <div class="hero-card">
-            <div class="hero-card-inner">
-              ${renderHeroImage(activeSkill.image_url, activeSkill.name)}
+          <div class="hover-wrap" tabindex="0">
+            <div class="hero-card">
+              <div class="hero-card-inner">
+                ${renderHeroImage(activeSkill.image_url, activeSkill.label)}
+              </div>
             </div>
-            <div class="hero-badge">
-              ${
-                activeSkill.image_url
-                  ? `<img src="${escapeHtml(activeSkill.image_url)}" alt="${escapeHtml(activeSkill.name)}" loading="lazy">`
-                  : `<span class="hero-badge-fallback">N/A</span>`
-              }
-            </div>
+            ${renderTooltip(activeSkill)}
           </div>
 
-          <div class="char-name">${escapeHtml(activeSkill.name || "—")}</div>
+          <div class="char-name">${escapeHtml(activeSkill.label || "—")}</div>
 
           <div class="player-tag">${escapeHtml(playerName)}</div>
 
-          <div class="passive-row">
-            ${
-              passiveSkills.length
-                ? passiveSkills.map(skill => `
-                    <div class="passive-icon" title="${escapeHtml(skill.name)}">
-                      ${renderMiniIcon(skill.image_url, skill.name)}
-                    </div>
-                  `).join("")
-                : `
-                    <div class="passive-icon"><span class="icon-fallback">—</span></div>
-                    <div class="passive-icon"><span class="icon-fallback">—</span></div>
-                    <div class="passive-icon"><span class="icon-fallback">—</span></div>
-                  `
+          <div class="skill-chip-row">
+            ${passiveSkills.length
+              ? passiveSkills.map(renderSkillChip).join("")
+              : `<div class="skill-chip"><div class="skill-chip-icon"><span class="icon-fallback">—</span></div><div class="skill-chip-label">Empty</div></div>`
             }
           </div>
 
-          <div class="pet-row">
-            <div class="pet-icon" title="${escapeHtml(pet?.name || "No Pet")}">
-              ${
-                pet?.id
-                  ? renderMiniIcon(pet.image_url, pet.name)
-                  : `<span class="icon-fallback">—</span>`
-              }
-            </div>
+          <div class="skill-chip-row">
+            ${pet?.id
+              ? renderSkillChip(pet)
+              : `<div class="skill-chip"><div class="skill-chip-icon"><span class="icon-fallback">—</span></div><div class="skill-chip-label">No Pet</div></div>`
+            }
           </div>
 
           ${buildLoadoutSlots(player)}
@@ -1124,6 +1313,72 @@
       playerWrapEl.innerHTML = players.map(renderPlayerLane).join("");
     }
 
+    function renderSkillDetailsTable(teams) {
+      const body = $("skillDetailsBody");
+      const rows = [];
+
+      (teams || []).slice(0, 2).forEach(team => {
+        const teamName = team?.team_name || "—";
+        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+
+        players.forEach(player => {
+          const playerName = player?.nickname || player?.account_id || "Unknown";
+          const active = getActiveSkillEntry(player);
+          const passives = getPassiveSkillEntries(player).slice(0, 3);
+          const pet = getPetEntry(player);
+
+          if (active?.id || active?.label !== "—") {
+            rows.push({
+              team: teamName,
+              player: playerName,
+              type: "Active",
+              name: active.label || "—",
+              skill: active.skill || "—",
+              description: active.description || "—"
+            });
+          }
+
+          passives.forEach(entry => {
+            rows.push({
+              team: teamName,
+              player: playerName,
+              type: "Passive",
+              name: entry.label || "—",
+              skill: entry.skill || "—",
+              description: entry.description || "—"
+            });
+          });
+
+          if (pet?.id) {
+            rows.push({
+              team: teamName,
+              player: playerName,
+              type: "Pet",
+              name: pet.label || "—",
+              skill: pet.skill || "—",
+              description: pet.description || "—"
+            });
+          }
+        });
+      });
+
+      if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="6" class="empty-row">No skill details found.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = rows.map(row => `
+        <tr>
+          <td>${escapeHtml(row.team)}</td>
+          <td>${escapeHtml(row.player)}</td>
+          <td class="td-muted">${escapeHtml(row.type)}</td>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${escapeHtml(row.skill)}</td>
+          <td class="desc-cell">${escapeHtmlWithBreaks(row.description)}</td>
+        </tr>
+      `).join("");
+    }
+
     function clearRender() {
       $("teamAName").textContent = "—";
       $("teamBName").textContent = "—";
@@ -1131,16 +1386,12 @@
       $("teamBScore").textContent = "—";
       $("teamAPlayers").innerHTML = "";
       $("teamBPlayers").innerHTML = "";
+      $("skillDetailsBody").innerHTML = `<tr><td colspan="6" class="empty-row">Render a match to view skill details.</td></tr>`;
     }
 
     function getTeamsFromPayload(data) {
       const payload = Array.isArray(data) ? data[0] : data;
-
-      if (Array.isArray(payload?.team_stats)) {
-        return payload.team_stats;
-      }
-
-      return [];
+      return Array.isArray(payload?.team_stats) ? payload.team_stats : [];
     }
 
     async function ensureResourcesLoaded() {
@@ -1192,9 +1443,9 @@
 
         renderTeam(teams[0], "teamAName", "teamAScore", "teamAPlayers");
         renderTeam(teams[1], "teamBName", "teamBScore", "teamBPlayers");
+        renderSkillDetailsTable(teams);
 
         let message = `Rendered Team A (${teams[0]?.team_name || "—"}) and Team B (${teams[1]?.team_name || "—"}).`;
-
         if (teams.length > 2) {
           message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
         }
