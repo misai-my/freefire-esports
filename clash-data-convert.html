@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Clash Squad JSON Viewer</title>
 
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -36,7 +35,7 @@
     }
 
     .app{
-      max-width:1450px;
+      max-width:1500px;
       margin:0 auto;
       padding:20px;
     }
@@ -200,15 +199,58 @@
       padding:14px;
     }
 
+    .player-top{
+      display:grid;
+      grid-template-columns:92px 1fr;
+      gap:12px;
+      align-items:center;
+      margin-bottom:14px;
+      padding-bottom:12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .hero-frame{
+      width:92px;
+      height:92px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+
+    .hero-frame img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+
+    .hero-placeholder{
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+      padding:8px;
+      line-height:1.3;
+    }
+
     .player-name{
-      margin:0 0 12px;
+      margin:0 0 6px;
       font-size:18px;
       font-weight:800;
       color:#fff;
     }
 
+    .player-sub{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
     .row{
-      margin-bottom:10px;
+      margin-bottom:12px;
     }
 
     .label{
@@ -228,20 +270,118 @@
     .chips{
       display:flex;
       flex-wrap:wrap;
-      gap:6px;
+      gap:8px;
     }
 
     .chip{
       display:inline-flex;
       align-items:center;
-      gap:6px;
+      gap:8px;
       background:var(--chip);
       border:1px solid var(--line);
       border-radius:999px;
-      padding:6px 10px;
+      padding:6px 10px 6px 6px;
       font-size:12px;
       line-height:1.2;
       color:var(--ink);
+      min-height:40px;
+    }
+
+    .chip img{
+      display:block;
+      border-radius:999px;
+      object-fit:cover;
+      background:rgba(255,255,255,.05);
+      flex:0 0 auto;
+    }
+
+    .chip-lg img{
+      width:46px;
+      height:46px;
+    }
+
+    .chip-md img{
+      width:34px;
+      height:34px;
+    }
+
+    .chip-sm img{
+      width:26px;
+      height:26px;
+    }
+
+    .thumb-fallback{
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      color:var(--muted);
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      flex:0 0 auto;
+    }
+
+    .weapon-list, .item-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .media-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:8px 10px;
+    }
+
+    .media-row img{
+      width:42px;
+      height:42px;
+      border-radius:10px;
+      object-fit:contain;
+      background:rgba(255,255,255,.04);
+      flex:0 0 auto;
+    }
+
+    .media-fallback{
+      width:42px;
+      height:42px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      font-size:10px;
+      flex:0 0 auto;
+    }
+
+    .media-copy{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .media-title{
+      font-size:13px;
+      font-weight:700;
+      color:#fff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .media-sub{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
     }
 
     .empty{
@@ -269,15 +409,25 @@
         grid-template-columns:1fr;
       }
     }
+
+    @media (max-width: 560px){
+      .player-top{
+        grid-template-columns:1fr;
+      }
+
+      .hero-frame{
+        width:84px;
+        height:84px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="app">
     <h1 class="title">Clash Squad JSON → Team Viewer</h1>
     <p class="sub">
-      Paste your match JSON, then render. This version resolves
-      <strong>skills</strong>, <strong>items</strong>, and <strong>pets</strong>
-      from <code>public.match_api</code>.
+      Paste your match JSON, then render. This version pulls text lookups from
+      <code>public.match_api</code> and images from your character, pet, and weapon catalogs.
     </p>
 
     <div class="panel input-panel">
@@ -288,11 +438,11 @@
 
       <div class="actions">
         <button id="renderBtn">Render</button>
-        <button id="reloadLookupBtn" class="ghost" type="button">Reload Lookup</button>
+        <button id="reloadLookupBtn" class="ghost" type="button">Reload Lookup + Images</button>
         <button id="clearBtn" class="ghost" type="button">Clear</button>
       </div>
 
-      <div id="status" class="status">Loading match_api lookup…</div>
+      <div id="status" class="status">Loading lookup and image catalogs…</div>
 
       <div class="note">
         Uses:
@@ -300,7 +450,11 @@
         <br>• <code>type = 2</code> → skills
         <br>• <code>type = 3</code> → pets
         <br><br>
-        Make sure your RLS policy allows <code>select</code> on <code>public.match_api</code>.
+        Images:
+        <br>• skills use character portraits
+        <br>• pets use pet portraits
+        <br>• weapons use weapon images
+        <br>• items use a best-effort image only if the item name also exists in the weapon catalog (example: Grenade)
       </div>
     </div>
 
@@ -336,14 +490,27 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrdWdlY2ZsZmRka3BpdGxybXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwODMwNzQsImV4cCI6MjA2MTY1OTA3NH0.OgQOx9k71DDdK1yOa7VNKGSgoFD9kNGo8j-bR91zGKE'
     );
 
+    /* ============ Remote catalogs ============ */
+    const CHARACTER_JSON_URL = 'https://misai-my.github.io/freefire-esports/character.json';
+    const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
+    const WEAPON_JSON_URL = 'https://misai-my.github.io/freefire-esports/weapon.json';
+
     const $ = (id) => document.getElementById(id);
 
-    let lookupLoaded = false;
+    let matchApiLoaded = false;
+    let assetsLoaded = false;
 
     const LOOKUPS = {
-      items: new Map(),  // type 1
-      skills: new Map(), // type 2
-      pets: new Map()    // type 3
+      items: new Map(),   // type 1
+      skills: new Map(),  // type 2
+      pets: new Map()     // type 3
+    };
+
+    const ASSETS = {
+      charactersById: new Map(),
+      charactersByName: new Map(),
+      petsByName: new Map(),
+      weaponsByName: new Map()
     };
 
     function setStatus(message, isError = false) {
@@ -361,6 +528,13 @@
         .replace(/'/g, "&#039;");
     }
 
+    function normalizeKey(value) {
+      return String(value ?? "")
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "");
+    }
+
     function formatCount(count, label) {
       return `${count} ${label}${count === 1 ? "" : "s"}`;
     }
@@ -376,43 +550,157 @@
       return null;
     }
 
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to fetch ${url} (${res.status})`);
+      return res.json();
+    }
+
     async function loadMatchApiLookups() {
-      try {
-        setStatus("Loading match_api lookup...");
+      const { data, error } = await client
+        .from("match_api")
+        .select("id, type, name")
+        .in("type", [1, 2, 3]);
 
-        const { data, error } = await client
-          .from("match_api")
-          .select("id, type, name")
-          .in("type", [1, 2, 3]);
+      if (error) throw error;
 
-        if (error) throw error;
+      LOOKUPS.items.clear();
+      LOOKUPS.skills.clear();
+      LOOKUPS.pets.clear();
 
-        LOOKUPS.items.clear();
-        LOOKUPS.skills.clear();
-        LOOKUPS.pets.clear();
+      for (const row of (data || [])) {
+        const id = Number(row.id);
+        const type = Number(row.type);
+        const name = String(row.name || "").trim();
 
-        for (const row of (data || [])) {
-          const id = Number(row.id);
-          const type = Number(row.type);
-          const name = String(row.name || "").trim();
+        if (!Number.isFinite(id) || !name) continue;
 
-          if (!Number.isFinite(id)) continue;
-          if (!name) continue;
+        if (type === 1) LOOKUPS.items.set(id, name);
+        if (type === 2) LOOKUPS.skills.set(id, name);
+        if (type === 3) LOOKUPS.pets.set(id, name);
+      }
 
-          if (type === 1) LOOKUPS.items.set(id, name);
-          if (type === 2) LOOKUPS.skills.set(id, name);
-          if (type === 3) LOOKUPS.pets.set(id, name);
+      matchApiLoaded = true;
+      return {
+        items: LOOKUPS.items.size,
+        skills: LOOKUPS.skills.size,
+        pets: LOOKUPS.pets.size
+      };
+    }
+
+    async function loadAssetCatalogs() {
+      const [characters, pets, weapons] = await Promise.all([
+        fetchJson(CHARACTER_JSON_URL),
+        fetchJson(PET_JSON_URL),
+        fetchJson(WEAPON_JSON_URL)
+      ]);
+
+      ASSETS.charactersById.clear();
+      ASSETS.charactersByName.clear();
+      ASSETS.petsByName.clear();
+      ASSETS.weaponsByName.clear();
+
+      for (const row of (characters || [])) {
+        const imageUrl = row?.image_url || "";
+        const apiId = Number(row?.api_id);
+        const asset = {
+          name: row?.name || row?.skill || "",
+          image_url: imageUrl
+        };
+
+        if (imageUrl && Number.isFinite(apiId)) {
+          ASSETS.charactersById.set(apiId, asset);
         }
 
-        lookupLoaded = true;
+        if (imageUrl && row?.name) {
+          ASSETS.charactersByName.set(normalizeKey(row.name), asset);
+        }
 
-        setStatus(
-          `Lookup ready.\nItems: ${LOOKUPS.items.size}\nSkills: ${LOOKUPS.skills.size}\nPets: ${LOOKUPS.pets.size}`
-        );
-      } catch (err) {
-        lookupLoaded = false;
-        setStatus(`Failed to load match_api lookup:\n${err.message || err}`, true);
+        if (imageUrl && row?.skill) {
+          ASSETS.charactersByName.set(normalizeKey(row.skill), asset);
+        }
       }
+
+      for (const row of (pets || [])) {
+        const imageUrl = row?.image_url || "";
+        if (!imageUrl || !row?.name) continue;
+
+        ASSETS.petsByName.set(normalizeKey(row.name), {
+          name: row.name,
+          image_url: imageUrl
+        });
+      }
+
+      for (const row of (weapons || [])) {
+        const imageUrl = row?.image_url || "";
+        if (!imageUrl || !row?.name) continue;
+
+        ASSETS.weaponsByName.set(normalizeKey(row.name), {
+          name: row.name,
+          image_url: imageUrl
+        });
+      }
+
+      assetsLoaded = true;
+      return {
+        characters: ASSETS.charactersById.size,
+        pets: ASSETS.petsByName.size,
+        weapons: ASSETS.weaponsByName.size
+      };
+    }
+
+    async function warmUp() {
+      setStatus("Loading lookup and image catalogs...");
+
+      const [lookupResult, assetResult] = await Promise.allSettled([
+        loadMatchApiLookups(),
+        loadAssetCatalogs()
+      ]);
+
+      const errors = [];
+
+      if (lookupResult.status === "rejected") {
+        matchApiLoaded = false;
+        errors.push(`match_api: ${lookupResult.reason?.message || lookupResult.reason}`);
+      }
+
+      if (assetResult.status === "rejected") {
+        assetsLoaded = false;
+        errors.push(`image catalogs: ${assetResult.reason?.message || assetResult.reason}`);
+      }
+
+      if (errors.length) {
+        setStatus(`Some data failed to load:\n${errors.join("\n")}`, true);
+        return;
+      }
+
+      setStatus(
+        `Ready.\n` +
+        `match_api → Items ${lookupResult.value.items}, Skills ${lookupResult.value.skills}, Pets ${lookupResult.value.pets}\n` +
+        `Images → Characters ${assetResult.value.characters}, Pets ${assetResult.value.pets}, Weapons ${assetResult.value.weapons}`
+      );
+    }
+
+    function getCharacterAsset(skillId, fallbackName = "") {
+      const byId = ASSETS.charactersById.get(Number(skillId));
+      if (byId) return byId;
+
+      if (fallbackName) {
+        const byName = ASSETS.charactersByName.get(normalizeKey(fallbackName));
+        if (byName) return byName;
+      }
+
+      return null;
+    }
+
+    function getPetAsset(name = "") {
+      if (!name) return null;
+      return ASSETS.petsByName.get(normalizeKey(name)) || null;
+    }
+
+    function getWeaponAsset(name = "") {
+      if (!name) return null;
+      return ASSETS.weaponsByName.get(normalizeKey(name)) || null;
     }
 
     function getActiveSkillInfo(player) {
@@ -425,20 +713,29 @@
       return activeInfo?.skill_id ?? (Array.isArray(player?.skill_ids) ? player.skill_ids[0] : null);
     }
 
-    function getActiveSkillLabel(player) {
+    function getActiveSkillEntry(player) {
       const activeInfo = getActiveSkillInfo(player);
       const activeId = getActiveSkillId(player);
 
-      if (!activeId) return "—";
+      if (!activeId) {
+        return { id: null, name: "—", image_url: "" };
+      }
 
-      return (
+      const name =
         getLookupName(2, activeId) ||
         activeInfo?.skill_name ||
-        `Skill ID ${activeId}`
-      );
+        `Skill ID ${activeId}`;
+
+      const asset = getCharacterAsset(activeId, name);
+
+      return {
+        id: Number(activeId),
+        name,
+        image_url: asset?.image_url || ""
+      };
     }
 
-    function getPassiveSkillLabels(player) {
+    function getPassiveSkillEntries(player) {
       const ids = Array.isArray(player?.skill_ids) ? player.skill_ids : [];
       const activeId = getActiveSkillId(player);
 
@@ -446,13 +743,32 @@
         ids.filter(id => Number(id) !== Number(activeId))
       )];
 
-      return uniquePassiveIds.map(id => getLookupName(2, id) || `Skill ID ${id}`);
+      return uniquePassiveIds.map(id => {
+        const name = getLookupName(2, id) || `Skill ID ${id}`;
+        const asset = getCharacterAsset(id, name);
+
+        return {
+          id: Number(id),
+          name,
+          image_url: asset?.image_url || ""
+        };
+      });
     }
 
-    function getPetLabel(player) {
+    function getPetEntry(player) {
       const petId = player?.pet_skill_id;
-      if (!petId) return "—";
-      return getLookupName(3, petId) || `Pet ID ${petId}`;
+      if (!petId) {
+        return { id: null, name: "—", image_url: "" };
+      }
+
+      const name = getLookupName(3, petId) || `Pet ID ${petId}`;
+      const asset = getPetAsset(name);
+
+      return {
+        id: Number(petId),
+        name,
+        image_url: asset?.image_url || ""
+      };
     }
 
     function getWeapons(player) {
@@ -467,11 +783,13 @@
 
           if (!weaponMap.has(key)) {
             weaponMap.set(key, {
+              id: weapon?.weapon_id ?? null,
               name: key,
               kills: 0,
               damage: 0,
               hits: 0,
-              rounds: 0
+              rounds: 0,
+              image_url: ""
             });
           }
 
@@ -483,11 +801,18 @@
         }
       }
 
-      return [...weaponMap.values()].sort((a, b) =>
+      const list = [...weaponMap.values()].sort((a, b) =>
         (b.kills - a.kills) ||
         (b.damage - a.damage) ||
         a.name.localeCompare(b.name)
       );
+
+      for (const weapon of list) {
+        const asset = getWeaponAsset(weapon.name);
+        weapon.image_url = asset?.image_url || "";
+      }
+
+      return list;
     }
 
     function getLatestItems(player) {
@@ -510,73 +835,149 @@
         .filter(item => Number(item?.item_num || 0) > 0)
         .map(item => {
           const id = Number(item?.item_id);
+          const name = getLookupName(1, id) || item?.item_name || `Item ID ${id}`;
+          const asset = getWeaponAsset(name); // best effort for Grenade, etc.
+
           return {
             id,
-            name: getLookupName(1, id) || item?.item_name || `Item ID ${id}`,
-            count: Number(item?.item_num || 0)
+            name,
+            count: Number(item?.item_num || 0),
+            image_url: asset?.image_url || ""
           };
         });
     }
 
-    function chipsFromArray(items, formatter, emptyLabel = "—") {
-      if (!items || !items.length) {
-        return `<div class="empty">${escapeHtml(emptyLabel)}</div>`;
+    function renderCircleThumb(imageUrl, alt, sizeClass = "chip-md") {
+      if (!imageUrl) {
+        return `<span class="thumb-fallback">N/A</span>`;
       }
 
-      return `
-        <div class="chips">
-          ${items.map(item => `<span class="chip">${formatter(item)}</span>`).join("")}
-        </div>
-      `;
+      return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+    }
+
+    function renderRectThumb(imageUrl, alt) {
+      if (!imageUrl) {
+        return `<div class="media-fallback">N/A</div>`;
+      }
+
+      return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+    }
+
+    function renderHeroFrame(imageUrl, alt) {
+      if (!imageUrl) {
+        return `<div class="hero-placeholder">No image</div>`;
+      }
+
+      return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
     }
 
     function renderPlayerCard(player) {
-      const name = player?.nickname || player?.account_id || "Unknown Player";
-      const activeSkill = getActiveSkillLabel(player);
-      const passiveSkills = getPassiveSkillLabels(player);
+      const playerName = player?.nickname || player?.account_id || "Unknown Player";
+      const activeSkill = getActiveSkillEntry(player);
+      const passiveSkills = getPassiveSkillEntries(player);
+      const pet = getPetEntry(player);
       const weapons = getWeapons(player);
       const items = getLatestItems(player);
-      const pet = getPetLabel(player);
 
       return `
         <div class="player-card">
-          <h3 class="player-name">${escapeHtml(name)}</h3>
+          <div class="player-top">
+            <div class="hero-frame">
+              ${renderHeroFrame(activeSkill.image_url, activeSkill.name)}
+            </div>
+            <div>
+              <h3 class="player-name">${escapeHtml(playerName)}</h3>
+              <div class="player-sub">
+                Main character / active skill:
+                <strong>${escapeHtml(activeSkill.name)}</strong>
+              </div>
+            </div>
+          </div>
 
           <div class="row">
             <span class="label">Active Skill</span>
-            <div class="value-text">${escapeHtml(activeSkill)}</div>
+            <div class="chips">
+              <span class="chip chip-lg">
+                ${renderCircleThumb(activeSkill.image_url, activeSkill.name)}
+                <span>${escapeHtml(activeSkill.name)}</span>
+              </span>
+            </div>
           </div>
 
           <div class="row">
             <span class="label">Passive Skills</span>
-            ${chipsFromArray(
-              passiveSkills,
-              item => escapeHtml(item),
-              "No passive skill IDs found"
-            )}
-          </div>
-
-          <div class="row">
-            <span class="label">Weapons</span>
-            ${chipsFromArray(
-              weapons,
-              weapon => `${escapeHtml(weapon.name)} • K ${weapon.kills} • DMG ${weapon.damage}`,
-              "No weapon data"
-            )}
-          </div>
-
-          <div class="row">
-            <span class="label">Items (latest round with inventory)</span>
-            ${chipsFromArray(
-              items,
-              item => `${escapeHtml(item.name)} x${item.count}`,
-              "No item data"
-            )}
+            ${
+              passiveSkills.length
+                ? `
+                  <div class="chips">
+                    ${passiveSkills.map(skill => `
+                      <span class="chip chip-md">
+                        ${renderCircleThumb(skill.image_url, skill.name)}
+                        <span>${escapeHtml(skill.name)}</span>
+                      </span>
+                    `).join("")}
+                  </div>
+                `
+                : `<div class="empty">No passive skill IDs found</div>`
+            }
           </div>
 
           <div class="row">
             <span class="label">Pet</span>
-            <div class="value-text">${escapeHtml(pet)}</div>
+            ${
+              pet.id
+                ? `
+                  <div class="chips">
+                    <span class="chip chip-md">
+                      ${renderCircleThumb(pet.image_url, pet.name)}
+                      <span>${escapeHtml(pet.name)}</span>
+                    </span>
+                  </div>
+                `
+                : `<div class="empty">No pet data</div>`
+            }
+          </div>
+
+          <div class="row">
+            <span class="label">Weapons</span>
+            ${
+              weapons.length
+                ? `
+                  <div class="weapon-list">
+                    ${weapons.map(weapon => `
+                      <div class="media-row">
+                        ${renderRectThumb(weapon.image_url, weapon.name)}
+                        <div class="media-copy">
+                          <div class="media-title">${escapeHtml(weapon.name)}</div>
+                          <div class="media-sub">K ${weapon.kills} • DMG ${weapon.damage} • Hits ${weapon.hits}</div>
+                        </div>
+                      </div>
+                    `).join("")}
+                  </div>
+                `
+                : `<div class="empty">No weapon data</div>`
+            }
+          </div>
+
+          <div class="row">
+            <span class="label">Items (latest round with inventory)</span>
+            ${
+              items.length
+                ? `
+                  <div class="item-list">
+                    ${items.map(item => `
+                      <div class="media-row">
+                        ${renderRectThumb(item.image_url, item.name)}
+                        <div class="media-copy">
+                          <div class="media-title">${escapeHtml(item.name)}</div>
+                          <div class="media-sub">x${item.count}</div>
+                        </div>
+                      </div>
+                    `).join("")}
+                  </div>
+                `
+                : `<div class="empty">No item data</div>`
+            }
           </div>
         </div>
       `;
@@ -620,6 +1021,24 @@
       return [];
     }
 
+    async function ensureResourcesLoaded() {
+      const tasks = [];
+
+      if (!matchApiLoaded) tasks.push(loadMatchApiLookups());
+      if (!assetsLoaded) tasks.push(loadAssetCatalogs());
+
+      if (!tasks.length) return;
+
+      setStatus("Loading missing lookup/image resources...");
+      await Promise.all(tasks);
+
+      setStatus(
+        `Ready.\n` +
+        `match_api → Items ${LOOKUPS.items.size}, Skills ${LOOKUPS.skills.size}, Pets ${LOOKUPS.pets.size}\n` +
+        `Images → Characters ${ASSETS.charactersById.size}, Pets ${ASSETS.petsByName.size}, Weapons ${ASSETS.weaponsByName.size}`
+      );
+    }
+
     async function renderJson() {
       try {
         const raw = $("jsonInput").value.trim();
@@ -630,10 +1049,7 @@
           return;
         }
 
-        if (!lookupLoaded) {
-          await loadMatchApiLookups();
-          if (!lookupLoaded) return;
-        }
+        await ensureResourcesLoaded();
 
         let data;
         try {
@@ -670,7 +1086,13 @@
     $("renderBtn").addEventListener("click", renderJson);
 
     $("reloadLookupBtn").addEventListener("click", async () => {
-      await loadMatchApiLookups();
+      matchApiLoaded = false;
+      assetsLoaded = false;
+      try {
+        await warmUp();
+      } catch (err) {
+        setStatus(`Reload failed:\n${err.message || err}`, true);
+      }
     });
 
     $("clearBtn").addEventListener("click", () => {
@@ -679,8 +1101,7 @@
       setStatus("Cleared. Paste new JSON to render.");
     });
 
-    // Auto-load lookup on page load
-    loadMatchApiLookups();
+    warmUp();
   </script>
 </body>
 </html>
