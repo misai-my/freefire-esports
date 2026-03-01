@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Clash Squad JSON Viewer</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -32,7 +33,7 @@
     }
 
     .app{
-      max-width:1880px;
+      max-width:1760px;
       margin:0 auto;
       padding:18px;
     }
@@ -166,8 +167,9 @@
       color:var(--orange);
       text-transform:uppercase;
       line-height:1;
-      white-space:normal;
-      word-break:break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .match-team-name.right{
@@ -239,19 +241,15 @@
       position:relative;
       z-index:1;
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-      gap:18px;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      gap:16px;
     }
 
     .player-lane{
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:10px;
       min-width:0;
-      padding:12px;
-      border-radius:20px;
-      border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.02);
     }
 
     .hero-card{
@@ -264,7 +262,7 @@
 
     .hero-card-inner{
       position:relative;
-      height:180px;
+      height:164px;
       border-radius:15px;
       overflow:hidden;
       background:
@@ -291,36 +289,34 @@
       justify-content:center;
       color:var(--muted);
       font-size:12px;
-      text-align:center;
-      padding:10px;
     }
 
     .char-name{
       text-align:center;
-      font-size:15px;
-      font-weight:900;
+      font-size:14px;
+      font-weight:800;
       color:#dfe9ff;
-      white-space:normal;
-      word-break:break-word;
-      line-height:1.25;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .player-tag{
       border:1px solid rgba(124,172,255,.14);
       background:rgba(255,255,255,.03);
       border-radius:999px;
-      min-height:38px;
+      min-height:36px;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:8px 12px;
+      padding:8px 10px;
       text-align:center;
       font-size:13px;
-      font-weight:800;
+      font-weight:700;
       color:#f2f6ff;
-      white-space:normal;
-      word-break:break-word;
-      line-height:1.25;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .skill-chip-row{
@@ -328,11 +324,12 @@
       flex-wrap:wrap;
       justify-content:center;
       gap:10px;
+      min-height:72px;
     }
 
     .skill-chip{
       position:relative;
-      width:92px;
+      width:74px;
       display:flex;
       flex-direction:column;
       align-items:center;
@@ -341,8 +338,8 @@
     }
 
     .skill-chip-icon{
-      width:58px;
-      height:58px;
+      width:52px;
+      height:52px;
       border-radius:14px;
       border:1px solid rgba(124,172,255,.18);
       background:rgba(255,255,255,.04);
@@ -363,12 +360,15 @@
     .skill-chip-label{
       width:100%;
       font-size:11px;
-      line-height:1.2;
+      line-height:1.15;
       text-align:center;
-      font-weight:800;
+      font-weight:700;
       color:#dfe9ff;
-      white-space:normal;
-      word-break:break-word;
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:2;
+      overflow:hidden;
+      min-height:24px;
     }
 
     .icon-fallback{
@@ -376,7 +376,6 @@
       color:var(--muted);
       padding:4px;
       text-align:center;
-      line-height:1.2;
     }
 
     .hover-wrap{
@@ -389,7 +388,7 @@
       left:50%;
       bottom:calc(100% + 10px);
       transform:translateX(-50%) translateY(6px);
-      width:min(320px, calc(100vw - 32px));
+      width:min(280px, calc(100vw - 32px));
       padding:10px 12px;
       border-radius:14px;
       border:1px solid rgba(124,172,255,.18);
@@ -423,7 +422,7 @@
 
     .hover-title{
       font-size:12px;
-      font-weight:900;
+      font-weight:800;
       color:#fff;
       margin-bottom:4px;
       line-height:1.3;
@@ -432,7 +431,7 @@
     .hover-meta{
       font-size:11px;
       color:#7fe0ff;
-      font-weight:800;
+      font-weight:700;
       margin-bottom:6px;
       line-height:1.3;
     }
@@ -441,35 +440,29 @@
       font-size:11px;
       color:#d3dffc;
       line-height:1.45;
-      white-space:normal;
     }
 
-    .section-box{
-      border-radius:18px;
-      border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.025);
-      padding:10px;
-      display:grid;
-      gap:10px;
-    }
-
-    .section-title{
-      font-size:12px;
+    .section-label{
+      font-size:11px;
       text-transform:uppercase;
-      letter-spacing:.1em;
+      letter-spacing:.11em;
       color:var(--muted);
-      font-weight:900;
-      white-space:normal;
-      line-height:1.3;
+      text-align:center;
+      font-weight:800;
     }
 
-    .single-card,
-    .slot-box,
-    .purchase-item{
-      min-height:56px;
-      border-radius:14px;
-      border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.03);
+    .slot-stack{
+      display:grid;
+      gap:8px;
+    }
+
+    .slot-box{
+      min-height:54px;
+      border-radius:16px;
+      border:1px solid rgba(124,172,255,.12);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
+        linear-gradient(90deg, rgba(85,130,255,.06), rgba(255,140,70,.04));
       display:flex;
       align-items:center;
       gap:8px;
@@ -477,17 +470,14 @@
       min-width:0;
     }
 
-    .single-card.primary,
     .slot-box.primary{
       border-color:rgba(255,173,58,.55);
       box-shadow:inset 0 0 0 1px rgba(255,173,58,.18);
     }
 
-    .card-thumb,
-    .slot-thumb,
-    .purchase-thumb{
-      width:38px;
-      height:38px;
+    .slot-thumb{
+      width:36px;
+      height:36px;
       border-radius:10px;
       background:rgba(255,255,255,.04);
       border:1px solid rgba(124,172,255,.14);
@@ -498,8 +488,76 @@
       flex:0 0 auto;
     }
 
-    .card-thumb img,
-    .slot-thumb img,
+    .slot-thumb img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      padding:3px;
+    }
+
+    .slot-copy{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      width:100%;
+    }
+
+    .slot-title{
+      font-size:12px;
+      font-weight:700;
+      color:#eef4ff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .slot-sub{
+      font-size:11px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .slot-empty{
+      opacity:.75;
+    }
+
+    .slot-empty .slot-title{
+      color:var(--muted);
+    }
+
+    .purchase-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .purchase-item{
+      min-height:48px;
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.03);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px;
+      min-width:0;
+    }
+
+    .purchase-thumb{
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(124,172,255,.14);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+
     .purchase-thumb img{
       width:100%;
       height:100%;
@@ -507,8 +565,6 @@
       padding:3px;
     }
 
-    .card-copy,
-    .slot-copy,
     .purchase-copy{
       min-width:0;
       display:flex;
@@ -517,106 +573,65 @@
       width:100%;
     }
 
-    .card-title,
-    .slot-title,
     .purchase-title{
       font-size:12px;
-      font-weight:800;
+      font-weight:700;
       color:#eef4ff;
-      white-space:normal;
-      line-height:1.25;
-      word-break:break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .card-sub,
-    .slot-sub,
     .purchase-sub{
       font-size:11px;
       color:var(--muted);
-      white-space:normal;
-      line-height:1.25;
-      word-break:break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .slot-stack,
-    .purchase-list{
+    .round-data{
       display:grid;
       gap:8px;
     }
 
-    .stats-sections{
+    .round-grid{
       display:grid;
-      gap:10px;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:6px;
     }
 
-    .stats-category{
-      border-radius:14px;
-      border:1px solid rgba(124,172,255,.08);
-      background:rgba(255,255,255,.02);
-      overflow:hidden;
+    .round-stat{
+      min-width:0;
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.03);
+      padding:7px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
     }
 
-    .stats-category-title{
-      padding:8px 10px;
-      font-size:11px;
-      font-weight:900;
-      color:#cfe0ff;
+    .round-stat-key{
+      font-size:10px;
+      color:var(--muted);
       text-transform:uppercase;
       letter-spacing:.08em;
-      background:rgba(255,255,255,.03);
-      border-bottom:1px solid rgba(124,172,255,.08);
-      white-space:normal;
-      line-height:1.3;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .stats-table{
-      display:grid;
-    }
-
-    .stats-row{
-      display:grid;
-      grid-template-columns:minmax(120px, 1fr) minmax(0, 1.4fr);
-      gap:10px;
-      padding:8px 10px;
-      border-top:1px solid rgba(124,172,255,.06);
-      align-items:start;
-    }
-
-    .stats-row:first-child{
-      border-top:0;
-    }
-
-    .stats-key{
-      font-size:11px;
+    .round-stat-val{
+      font-size:12px;
       font-weight:800;
-      color:var(--muted);
-      white-space:normal;
-      line-height:1.3;
-      word-break:break-word;
-    }
-
-    .stats-val{
-      font-size:12px;
-      font-weight:700;
       color:#eef4ff;
-      white-space:normal;
-      line-height:1.35;
-      word-break:break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .empty-lite{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.35;
-    }
-
-    @media (max-width:1200px){
-      .arena-wrap{
-        grid-template-columns:1fr;
-      }
-    }
-
-    @media (max-width:900px){
+    @media (max-width:1100px){
       .match-head{
         grid-template-columns:1fr;
         justify-items:center;
@@ -626,20 +641,19 @@
       .match-team-name.right{
         text-align:center;
       }
+
+      .arena-wrap{
+        grid-template-columns:1fr;
+      }
     }
 
-    @media (max-width:640px){
+    @media (max-width:560px){
       .player-lanes{
-        grid-template-columns:1fr;
+        grid-template-columns:repeat(auto-fit,minmax(135px,1fr));
       }
 
       .hero-card-inner{
-        height:160px;
-      }
-
-      .stats-row{
-        grid-template-columns:1fr;
-        gap:4px;
+        height:150px;
       }
     }
   </style>
@@ -664,10 +678,7 @@
       <div id="status" class="status">Loading lookup and image catalogs…</div>
 
       <div class="note">
-        This version:
-        <br>• checks <code>match_api</code> types <code>0</code>, <code>1</code>, <code>2</code>, <code>3</code>
-        <br>• uses <code>type 0</code> as a fallback for purchased items
-        <br>• separates each player section into: skills, pet, loadout, item snapshot, purchased items, weapon usages, and categorized latest round stats
+        The center header shows the detected round. Per player, the stats block now renders all values found in the latest <code>round_stats[]</code> entry, while <code>purchased_items</code>, <code>item_nums</code>, and <code>weapon_usages</code> are shown in their own sections.
       </div>
     </div>
 
@@ -699,7 +710,6 @@
     const CHARACTER_JSON_URL = 'https://misai-my.github.io/freefire-esports/character.json';
     const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     const WEAPON_JSON_URL = 'https://misai-my.github.io/freefire-esports/weapon.json';
-    const LOADOUT_JSON_URL = 'https://misai-my.github.io/freefire-esports/loadout.json';
 
     const $ = (id) => document.getElementById(id);
 
@@ -707,26 +717,17 @@
     let assetsLoaded = false;
 
     const LOOKUPS = {
-      storeItems: new Map(), // type 0
-      items: new Map(),      // type 1
-      skills: new Map(),     // type 2
-      pets: new Map()        // type 3
+      items: new Map(),
+      skills: new Map(),
+      pets: new Map()
     };
 
     const ASSETS = {
       charactersById: new Map(),
       charactersByName: new Map(),
       petsByName: new Map(),
-      weaponsByName: new Map(),
-      loadoutsById: new Map()
+      weaponsByName: new Map()
     };
-
-    const LOADOUT_FALLBACKS = [
-      { id: 500000003, name: 'Super Leg Pockets', image_url: '' },
-      { id: 500000004, name: 'Tactical Market', image_url: '' },
-      { id: 500000005, name: 'Team Booster', image_url: '' },
-      { id: 500000008, name: 'Enhance Hammer', image_url: '' }
-    ];
 
     function setStatus(message, isError = false) {
       const el = $("status");
@@ -771,14 +772,20 @@
       if (Array.isArray(value)) {
         if (!value.length) return "0";
         const allPrimitive = value.every(v =>
-          v === null || ["string", "number", "boolean"].includes(typeof v)
+          v === null ||
+          ["string", "number", "boolean"].includes(typeof v)
         );
-        if (allPrimitive) return value.map(v => formatGenericValue(v)).join(", ");
+        if (allPrimitive) {
+          return value.map(v => formatGenericValue(v)).join(", ");
+        }
         return `${value.length} entries`;
       }
       if (typeof value === "object") {
-        try { return JSON.stringify(value); }
-        catch { return "[object]"; }
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return "[object]";
+        }
       }
       return String(value);
     }
@@ -789,24 +796,14 @@
       return res.json();
     }
 
-    function resolveItemName(id, preferStore = false) {
-      const numId = Number(id);
-      if (!Number.isFinite(numId)) return null;
-
-      if (preferStore) {
-        return LOOKUPS.storeItems.get(numId) || LOOKUPS.items.get(numId) || null;
-      }
-      return LOOKUPS.items.get(numId) || LOOKUPS.storeItems.get(numId) || null;
-    }
-
     function getLookupName(type, id) {
+      if (id === null || id === undefined || id === "") return null;
       const numId = Number(id);
-      if (!Number.isFinite(numId)) return null;
 
-      if (type === 0) return LOOKUPS.storeItems.get(numId) || null;
       if (type === 1) return LOOKUPS.items.get(numId) || null;
       if (type === 2) return LOOKUPS.skills.get(numId) || null;
       if (type === 3) return LOOKUPS.pets.get(numId) || null;
+
       return null;
     }
 
@@ -814,11 +811,10 @@
       const { data, error } = await client
         .from("match_api")
         .select("id, type, name")
-        .in("type", [0, 1, 2, 3]);
+        .in("type", [1, 2, 3]);
 
       if (error) throw error;
 
-      LOOKUPS.storeItems.clear();
       LOOKUPS.items.clear();
       LOOKUPS.skills.clear();
       LOOKUPS.pets.clear();
@@ -830,7 +826,6 @@
 
         if (!Number.isFinite(id) || !name) continue;
 
-        if (type === 0) LOOKUPS.storeItems.set(id, name);
         if (type === 1) LOOKUPS.items.set(id, name);
         if (type === 2) LOOKUPS.skills.set(id, name);
         if (type === 3) LOOKUPS.pets.set(id, name);
@@ -839,124 +834,74 @@
       matchApiLoaded = true;
 
       return {
-        storeItems: LOOKUPS.storeItems.size,
         items: LOOKUPS.items.size,
         skills: LOOKUPS.skills.size,
         pets: LOOKUPS.pets.size
       };
     }
 
-    function seedFallbackLoadouts() {
-      ASSETS.loadoutsById.clear();
-      for (const row of LOADOUT_FALLBACKS) {
-        ASSETS.loadoutsById.set(Number(row.id), {
-          id: Number(row.id),
-          name: row.name,
-          image_url: row.image_url || ""
-        });
-      }
-    }
-
-    function extractLoadoutRows(raw) {
-      const rows = Array.isArray(raw)
-        ? raw
-        : (Array.isArray(raw?.data) ? raw.data : []);
-
-      for (const row of rows) {
-        const id = Number(row?.id ?? row?.api_id ?? row?.loadout_id);
-        if (!Number.isFinite(id)) continue;
-
-        const name = String(row?.name ?? row?.title ?? row?.label ?? "").trim();
-        const imageUrl = String(row?.image_url ?? row?.img ?? row?.icon ?? "").trim();
-
-        const existing = ASSETS.loadoutsById.get(id) || {};
-        ASSETS.loadoutsById.set(id, {
-          id,
-          name: name || existing.name || `Loadout ${id}`,
-          image_url: imageUrl || existing.image_url || ""
-        });
-      }
-    }
-
     async function loadAssetCatalogs() {
-      const [characters, pets, weapons, loadouts] = await Promise.allSettled([
+      const [characters, pets, weapons] = await Promise.all([
         fetchJson(CHARACTER_JSON_URL),
         fetchJson(PET_JSON_URL),
-        fetchJson(WEAPON_JSON_URL),
-        fetchJson(LOADOUT_JSON_URL)
+        fetchJson(WEAPON_JSON_URL)
       ]);
 
       ASSETS.charactersById.clear();
       ASSETS.charactersByName.clear();
       ASSETS.petsByName.clear();
       ASSETS.weaponsByName.clear();
-      seedFallbackLoadouts();
 
-      if (characters.status === "fulfilled") {
-        for (const row of (characters.value || [])) {
-          const imageUrl = row?.image_url || "";
-          const apiId = Number(row?.api_id);
-          const asset = {
-            name: row?.name || "",
-            image_url: imageUrl,
-            skill: row?.skill || "",
-            description: row?.description || ""
-          };
+      for (const row of (characters || [])) {
+        const imageUrl = row?.image_url || "";
+        const apiId = Number(row?.api_id);
+        const asset = {
+          name: row?.name || "",
+          image_url: imageUrl,
+          skill: row?.skill || "",
+          description: row?.description || ""
+        };
 
-          if (imageUrl && Number.isFinite(apiId)) {
-            ASSETS.charactersById.set(apiId, asset);
-          }
+        if (imageUrl && Number.isFinite(apiId)) {
+          ASSETS.charactersById.set(apiId, asset);
+        }
 
-          if (row?.name) {
-            ASSETS.charactersByName.set(normalizeKey(row.name), asset);
-          }
+        if (row?.name) {
+          ASSETS.charactersByName.set(normalizeKey(row.name), asset);
+        }
 
-          if (row?.skill) {
-            ASSETS.charactersByName.set(normalizeKey(row.skill), asset);
-          }
+        if (row?.skill) {
+          ASSETS.charactersByName.set(normalizeKey(row.skill), asset);
         }
       }
 
-      if (pets.status === "fulfilled") {
-        for (const row of (pets.value || [])) {
-          if (!row?.name) continue;
-          ASSETS.petsByName.set(normalizeKey(row.name), {
-            name: row.name,
-            image_url: row?.image_url || "",
-            skill: row?.skill || "",
-            description: row?.description || ""
-          });
-        }
+      for (const row of (pets || [])) {
+        if (!row?.name) continue;
+
+        ASSETS.petsByName.set(normalizeKey(row.name), {
+          name: row.name,
+          image_url: row?.image_url || "",
+          skill: row?.skill || "",
+          description: row?.description || ""
+        });
       }
 
-      if (weapons.status === "fulfilled") {
-        for (const row of (weapons.value || [])) {
-          if (!row?.name) continue;
-          ASSETS.weaponsByName.set(normalizeKey(row.name), {
-            name: row.name,
-            image_url: row?.image_url || "",
-            description: row?.description || ""
-          });
-        }
-      }
+      for (const row of (weapons || [])) {
+        if (!row?.name) continue;
 
-      if (loadouts.status === "fulfilled") {
-        extractLoadoutRows(loadouts.value);
+        ASSETS.weaponsByName.set(normalizeKey(row.name), {
+          name: row.name,
+          image_url: row?.image_url || "",
+          description: row?.description || ""
+        });
       }
 
       assetsLoaded = true;
 
-      const problems = [];
-      if (characters.status === "rejected") problems.push("character.json");
-      if (pets.status === "rejected") problems.push("pet.json");
-      if (weapons.status === "rejected") problems.push("weapon.json");
-
       return {
         characters: ASSETS.charactersById.size,
         pets: ASSETS.petsByName.size,
-        weapons: ASSETS.weaponsByName.size,
-        loadouts: ASSETS.loadoutsById.size,
-        warnings: problems
+        weapons: ASSETS.weaponsByName.size
       };
     }
 
@@ -977,7 +922,7 @@
 
       if (assetResult.status === "rejected") {
         assetsLoaded = false;
-        errors.push(`asset catalogs: ${assetResult.reason?.message || assetResult.reason}`);
+        errors.push(`image catalogs: ${assetResult.reason?.message || assetResult.reason}`);
       }
 
       if (errors.length) {
@@ -985,15 +930,10 @@
         return;
       }
 
-      const warn = assetResult.value.warnings?.length
-        ? `\nWarnings: ${assetResult.value.warnings.join(", ")} failed`
-        : "";
-
       setStatus(
         `Ready.\n` +
-        `match_api → Type0 ${lookupResult.value.storeItems}, Type1 ${lookupResult.value.items}, Skills ${lookupResult.value.skills}, Pets ${lookupResult.value.pets}\n` +
-        `Images → Characters ${assetResult.value.characters}, Pets ${assetResult.value.pets}, Weapons ${assetResult.value.weapons}, Loadouts ${assetResult.value.loadouts}` +
-        warn
+        `match_api → Items ${lookupResult.value.items}, Skills ${lookupResult.value.skills}, Pets ${lookupResult.value.pets}\n` +
+        `Images → Characters ${assetResult.value.characters}, Pets ${assetResult.value.pets}, Weapons ${assetResult.value.weapons}`
       );
     }
 
@@ -1005,6 +945,7 @@
         const byName = ASSETS.charactersByName.get(normalizeKey(fallbackName));
         if (byName) return byName;
       }
+
       return null;
     }
 
@@ -1016,12 +957,6 @@
     function getWeaponAsset(name = "") {
       if (!name) return null;
       return ASSETS.weaponsByName.get(normalizeKey(name)) || null;
-    }
-
-    function getLoadoutAsset(loadoutId) {
-      const id = Number(loadoutId);
-      if (!Number.isFinite(id)) return null;
-      return ASSETS.loadoutsById.get(id) || null;
     }
 
     function getActiveSkillInfo(player) {
@@ -1039,7 +974,14 @@
       const activeId = getActiveSkillId(player);
 
       if (!activeId) {
-        return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Active" };
+        return {
+          id: null,
+          label: "—",
+          skill: "",
+          description: "",
+          image_url: "",
+          slotType: "Active"
+        };
       }
 
       const lookupName = getLookupName(2, activeId) || activeInfo?.skill_name || `Skill ID ${activeId}`;
@@ -1081,7 +1023,14 @@
     function getPetEntry(player) {
       const petId = player?.pet_skill_id;
       if (!petId) {
-        return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Pet" };
+        return {
+          id: null,
+          label: "—",
+          skill: "",
+          description: "",
+          image_url: "",
+          slotType: "Pet"
+        };
       }
 
       const lookupName = getLookupName(3, petId) || `Pet ID ${petId}`;
@@ -1097,50 +1046,6 @@
       };
     }
 
-    function getPlayerLoadoutId(player) {
-      const candidates = [
-        player?.loadout_id,
-        player?.loadout,
-        player?.player_stats_loadouts,
-        player?.player_stats_loadout,
-        player?.loadoutId
-      ];
-
-      for (const value of candidates) {
-        const id = Number(value);
-        if (Number.isFinite(id)) return id;
-      }
-
-      const round = getLatestRoundStat(player);
-      const roundCandidates = [
-        round?.loadout_id,
-        round?.loadout,
-        round?.player_stats_loadouts,
-        round?.player_stats_loadout
-      ];
-
-      for (const value of roundCandidates) {
-        const id = Number(value);
-        if (Number.isFinite(id)) return id;
-      }
-
-      return null;
-    }
-
-    function getPlayerLoadoutEntry(player) {
-      const id = getPlayerLoadoutId(player);
-      if (!Number.isFinite(id)) {
-        return { id:null, name:"No loadout found", image_url:"" };
-      }
-
-      const asset = getLoadoutAsset(id);
-      return {
-        id,
-        name: asset?.name || `Loadout ${id}`,
-        image_url: asset?.image_url || ""
-      };
-    }
-
     function getWeapons(player) {
       const weaponMap = new Map();
       const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
@@ -1149,41 +1054,31 @@
         const usages = Array.isArray(round?.weapon_usages) ? round.weapon_usages : [];
 
         for (const weapon of usages) {
-          const key = `${weapon?.weapon_id ?? ""}__${weapon?.weapon_name || "Unknown Weapon"}`;
+          const key = weapon?.weapon_name || `Weapon ID ${weapon?.weapon_id ?? "?"}`;
 
           if (!weaponMap.has(key)) {
             weaponMap.set(key, {
               id: weapon?.weapon_id ?? null,
-              name: weapon?.weapon_name || `Weapon ID ${weapon?.weapon_id ?? "?"}`,
-              image_url: "",
-              aggregates: {}
+              name: key,
+              kills: 0,
+              damage: 0,
+              hits: 0,
+              image_url: ""
             });
           }
 
           const row = weaponMap.get(key);
-
-          for (const [k, v] of Object.entries(weapon || {})) {
-            if (k === "weapon_id" || k === "weapon_name") continue;
-
-            if (typeof v === "number") {
-              row.aggregates[k] = (row.aggregates[k] || 0) + v;
-            } else if (typeof v === "boolean") {
-              row.aggregates[k] = row.aggregates[k] || 0;
-              row.aggregates[k] += v ? 1 : 0;
-            } else if (v !== null && v !== undefined && v !== "") {
-              if (!(k in row.aggregates)) row.aggregates[k] = v;
-            }
-          }
+          row.kills += toNum(weapon?.kills);
+          row.damage += toNum(weapon?.damage);
+          row.hits += toNum(weapon?.hits);
         }
       }
 
-      const list = [...weaponMap.values()];
-
-      list.sort((a, b) => {
-        const aScore = Number(a.aggregates.kills || 0);
-        const bScore = Number(b.aggregates.kills || 0);
-        return bScore - aScore || a.name.localeCompare(b.name);
-      });
+      const list = [...weaponMap.values()].sort((a, b) =>
+        (b.kills - a.kills) ||
+        (b.damage - a.damage) ||
+        a.name.localeCompare(b.name)
+      );
 
       for (const weapon of list) {
         const asset = getWeaponAsset(weapon.name);
@@ -1208,7 +1103,7 @@
         .filter(item => toNum(item?.item_num) > 0)
         .map(item => {
           const id = Number(item?.item_id);
-          const name = resolveItemName(id, false) || item?.item_name || `Item ID ${id}`;
+          const name = getLookupName(1, id) || item?.item_name || `Item ID ${id}`;
           const asset = getWeaponAsset(name);
 
           return {
@@ -1231,13 +1126,16 @@
         counts.set(id, (counts.get(id) || 0) + 1);
       }
 
-      return [...counts.entries()]
-        .map(([id, count]) => {
-          const name = resolveItemName(id, true) || `Item ID ${id}`;
-          const asset = getWeaponAsset(name);
-          return { id, name, count, image_url: asset?.image_url || "" };
-        })
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+      return [...counts.entries()].map(([id, count]) => {
+        const name = getLookupName(1, id) || `Item ID ${id}`;
+        const asset = getWeaponAsset(name);
+        return {
+          id,
+          name,
+          count,
+          image_url: asset?.image_url || ""
+        };
+      });
     }
 
     function getDisplayRound(payload, teams = []) {
@@ -1300,248 +1198,156 @@
       `;
     }
 
-    function renderSingleCard(entry, title, isPrimary = false, subtitle = "") {
-      if (!entry || (!entry.name && !entry.title)) {
+    function renderSlot(entry, isPrimary = false) {
+      if (!entry || !entry.name) {
         return `
-          <div class="single-card ${isPrimary ? "primary" : ""}">
-            <div class="card-thumb"><span class="icon-fallback">—</span></div>
-            <div class="card-copy">
-              <div class="card-title">${escapeHtml(title)}</div>
-              <div class="card-sub">No data</div>
+          <div class="slot-box ${isPrimary ? "primary" : ""} slot-empty">
+            <div class="slot-thumb"><span class="icon-fallback">—</span></div>
+            <div class="slot-copy">
+              <div class="slot-title">Empty Slot</div>
+              <div class="slot-sub">No data</div>
             </div>
           </div>
         `;
       }
 
-      const name = entry.name || entry.title || title;
       return `
-        <div class="single-card ${isPrimary ? "primary" : ""}">
-          <div class="card-thumb">
-            ${entry.image_url
-              ? `<img src="${escapeHtml(entry.image_url)}" alt="${escapeHtml(name)}" loading="lazy">`
-              : `<span class="icon-fallback">N/A</span>`
+        <div class="slot-box ${isPrimary ? "primary" : ""}">
+          <div class="slot-thumb">
+            ${
+              entry.image_url
+                ? `<img src="${escapeHtml(entry.image_url)}" alt="${escapeHtml(entry.name)}" loading="lazy">`
+                : `<span class="icon-fallback">N/A</span>`
             }
           </div>
-          <div class="card-copy">
-            <div class="card-title">${escapeHtml(name)}</div>
-            <div class="card-sub">${escapeHtml(subtitle || entry.sub || "")}</div>
+          <div class="slot-copy">
+            <div class="slot-title">${escapeHtml(entry.name)}</div>
+            <div class="slot-sub">${escapeHtml(entry.sub || "")}</div>
           </div>
         </div>
       `;
     }
 
-    function buildLoadoutSection(player) {
-      const loadout = getPlayerLoadoutEntry(player);
-      const subtitle = loadout.id ? `Loadout ID: ${loadout.id}` : "No loadout id found in JSON";
-
-      return `
-        <div class="section-box">
-          <div class="section-title">Loadout</div>
-          ${renderSingleCard(loadout, "Loadout", true, subtitle)}
-        </div>
-      `;
-    }
-
-    function buildItemSnapshotSection(player) {
+    function buildLoadoutSlots(player) {
+      const weapons = getWeapons(player);
       const items = getLatestItems(player);
 
-      return `
-        <div class="section-box">
-          <div class="section-title">Current Items (Latest Round Inventory)</div>
-          <div class="slot-stack">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="slot-box">
-                      <div class="slot-thumb">
-                        ${item.image_url
-                          ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
-                          : `<span class="icon-fallback">N/A</span>`
-                        }
-                      </div>
-                      <div class="slot-copy">
-                        <div class="slot-title">${escapeHtml(item.name)}</div>
-                        <div class="slot-sub">Count: ${item.count}</div>
-                      </div>
-                    </div>
-                  `).join("")
-                : `<div class="empty-lite">No item snapshot found in latest round.</div>`
+      const topWeapon = weapons[0]
+        ? {
+            name: weapons[0].name,
+            image_url: weapons[0].image_url || "",
+            sub: `K ${weapons[0].kills} • DMG ${weapons[0].damage}`
+          }
+        : null;
+
+      const secondSlot = items[0]
+        ? {
+            name: items[0].name,
+            image_url: items[0].image_url || "",
+            sub: `x${items[0].count}`
+          }
+        : (weapons[1]
+          ? {
+              name: weapons[1].name,
+              image_url: weapons[1].image_url || "",
+              sub: `K ${weapons[1].kills}`
             }
-          </div>
+          : null);
+
+      const thirdSlot = items[1]
+        ? {
+            name: items[1].name,
+            image_url: items[1].image_url || "",
+            sub: `x${items[1].count}`
+          }
+        : (weapons[2]
+          ? {
+              name: weapons[2].name,
+              image_url: weapons[2].image_url || "",
+              sub: `K ${weapons[2].kills}`
+            }
+          : null);
+
+      return `
+        <div class="slot-stack">
+          <div class="section-label">Loadout Snapshot</div>
+          ${renderSlot(topWeapon, true)}
+          ${renderSlot(secondSlot, false)}
+          ${renderSlot(thirdSlot, false)}
         </div>
       `;
     }
 
-    function buildPurchasedItemsSection(player) {
+    function buildPurchasedItems(player) {
       const items = getLatestPurchasedItems(player);
 
-      return `
-        <div class="section-box">
-          <div class="section-title">Purchased Items (Latest Round)</div>
-          <div class="purchase-list">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="purchase-item">
-                      <div class="purchase-thumb">
-                        ${item.image_url
-                          ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
-                          : `<span class="icon-fallback">N/A</span>`
-                        }
-                      </div>
-                      <div class="purchase-copy">
-                        <div class="purchase-title">${escapeHtml(item.name)}</div>
-                        <div class="purchase-sub">Purchased x${item.count}</div>
-                      </div>
-                    </div>
-                  `).join("")
-                : `<div class="empty-lite">No purchased items found in latest round.</div>`
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function buildWeaponUsageSection(player) {
-      const weapons = getWeapons(player);
-
-      return `
-        <div class="section-box">
-          <div class="section-title">Weapon Usages (All Rounds Aggregated)</div>
-          <div class="stats-sections">
-            ${
-              weapons.length
-                ? weapons.map(weapon => `
-                    <div class="stats-category">
-                      <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
-                      <div class="single-card" style="border:0;border-radius:0;background:transparent;box-shadow:none;padding:10px;">
-                        <div class="card-thumb">
-                          ${weapon.image_url
-                            ? `<img src="${escapeHtml(weapon.image_url)}" alt="${escapeHtml(weapon.name)}" loading="lazy">`
-                            : `<span class="icon-fallback">N/A</span>`
-                          }
-                        </div>
-                        <div class="card-copy">
-                          <div class="card-title">${escapeHtml(weapon.name)}</div>
-                          <div class="card-sub">${weapon.id ? `Weapon ID: ${weapon.id}` : "No weapon ID"}</div>
-                        </div>
-                      </div>
-                      <div class="stats-table">
-                        ${
-                          Object.keys(weapon.aggregates).length
-                            ? Object.entries(weapon.aggregates).map(([k, v]) => `
-                                <div class="stats-row">
-                                  <div class="stats-key">${escapeHtml(humanizeKey(k))}</div>
-                                  <div class="stats-val">${escapeHtml(formatGenericValue(v))}</div>
-                                </div>
-                              `).join("")
-                            : `
-                              <div class="stats-row">
-                                <div class="stats-key">Stats</div>
-                                <div class="stats-val">No weapon usage stats available</div>
-                              </div>
-                            `
-                        }
-                      </div>
-                    </div>
-                  `).join("")
-                : `<div class="empty-lite">No weapon usage entries found.</div>`
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function categorizeRoundStats(round) {
-      const sections = {
-        "Round Outcome & Flags": [],
-        "Combat Output": [],
-        "Damage & Survival": [],
-        "Support & Recovery": [],
-        "Economy & Purchases": [],
-        "Abilities & Utility": [],
-        "Other Round Fields": []
-      };
-
-      const exclude = new Set(["purchased_items", "weapon_usages", "item_nums"]);
-
-      const map = {
-        round_index: "Round Outcome & Flags",
-        is_win: "Round Outcome & Flags",
-        is_dead: "Round Outcome & Flags",
-        is_first_down: "Round Outcome & Flags",
-        is_first_taken_down: "Round Outcome & Flags",
-
-        kill: "Combat Output",
-        assists: "Combat Output",
-        knock_down: "Combat Output",
-        headshots: "Combat Output",
-        hits: "Combat Output",
-        torso_hits: "Combat Output",
-        leg_hits: "Combat Output",
-
-        damage: "Damage & Survival",
-        real_damage: "Damage & Survival",
-        real_damage_taken: "Damage & Survival",
-
-        healing_to_self: "Support & Recovery",
-        healing_to_teammates: "Support & Recovery",
-        rescue_count: "Support & Recovery",
-
-        economy_spent_self: "Economy & Purchases",
-        economy_spent_on_teammates: "Economy & Purchases",
-        initial_item_value: "Economy & Purchases",
-        airdrop_points: "Economy & Purchases",
-
-        nb_skill_usages: "Abilities & Utility",
-        medkit_use: "Abilities & Utility",
-        grenade_use: "Abilities & Utility",
-        icewall_use: "Abilities & Utility",
-        throwable_use: "Abilities & Utility"
-      };
-
-      for (const [key, value] of Object.entries(round || {})) {
-        if (exclude.has(key)) continue;
-        const bucket = map[key] || "Other Round Fields";
-        sections[bucket].push([key, value]);
-      }
-
-      return sections;
-    }
-
-    function buildLatestRoundStatsSection(player) {
-      const round = getLatestRoundStat(player);
-
-      if (!round) {
+      if (!items.length) {
         return `
-          <div class="section-box">
-            <div class="section-title">Latest Round Stats</div>
-            <div class="empty-lite">No round_stats found for this player.</div>
+          <div class="purchase-list">
+            <div class="section-label">Purchased Items</div>
+            <div class="purchase-item">
+              <div class="purchase-thumb"><span class="icon-fallback">—</span></div>
+              <div class="purchase-copy">
+                <div class="purchase-title">No purchased items</div>
+                <div class="purchase-sub">Latest round</div>
+              </div>
+            </div>
           </div>
         `;
       }
 
-      const sections = categorizeRoundStats(round);
+      return `
+        <div class="purchase-list">
+          <div class="section-label">Purchased Items</div>
+          ${items.map(item => `
+            <div class="purchase-item">
+              <div class="purchase-thumb">
+                ${item.image_url
+                  ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" loading="lazy">`
+                  : `<span class="icon-fallback">N/A</span>`
+                }
+              </div>
+              <div class="purchase-copy">
+                <div class="purchase-title">${escapeHtml(item.name)}</div>
+                <div class="purchase-sub">x${item.count}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function buildRoundData(player) {
+      const round = getLatestRoundStat(player);
+
+      if (!round) {
+        return `
+          <div class="round-data">
+            <div class="section-label">Latest Round Stats</div>
+            <div class="round-grid">
+              <div class="round-stat">
+                <div class="round-stat-key">Status</div>
+                <div class="round-stat-val">No round data</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const excluded = new Set(["purchased_items", "weapon_usages", "item_nums"]);
+      const entries = Object.entries(round)
+        .filter(([key]) => !excluded.has(key));
 
       return `
-        <div class="section-box">
-          <div class="section-title">Latest Round Stats (Categorized)</div>
-          <div class="stats-sections">
-            ${Object.entries(sections)
-              .filter(([, rows]) => rows.length)
-              .map(([title, rows]) => `
-                <div class="stats-category">
-                  <div class="stats-category-title">${escapeHtml(title)}</div>
-                  <div class="stats-table">
-                    ${rows.map(([key, value]) => `
-                      <div class="stats-row">
-                        <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                        <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                      </div>
-                    `).join("")}
-                  </div>
-                </div>
-              `).join("")}
+        <div class="round-data">
+          <div class="section-label">Latest Round Stats</div>
+          <div class="round-grid">
+            ${entries.map(([key, value]) => `
+              <div class="round-stat">
+                <div class="round-stat-key">${escapeHtml(humanizeKey(key))}</div>
+                <div class="round-stat-val">${escapeHtml(formatGenericValue(value))}</div>
+              </div>
+            `).join("")}
           </div>
         </div>
       `;
@@ -1565,33 +1371,26 @@
           </div>
 
           <div class="char-name">${escapeHtml(activeSkill.label || "—")}</div>
+
           <div class="player-tag">${escapeHtml(playerName)}</div>
 
-          <div class="section-box">
-            <div class="section-title">Passive Skills</div>
-            <div class="skill-chip-row">
-              ${passiveSkills.length
-                ? passiveSkills.map(renderSkillChip).join("")
-                : `<div class="empty-lite">No passive skills found.</div>`
-              }
-            </div>
+          <div class="skill-chip-row">
+            ${passiveSkills.length
+              ? passiveSkills.map(renderSkillChip).join("")
+              : `<div class="skill-chip"><div class="skill-chip-icon"><span class="icon-fallback">—</span></div><div class="skill-chip-label">No Passive</div></div>`
+            }
           </div>
 
-          <div class="section-box">
-            <div class="section-title">Pet</div>
-            <div class="skill-chip-row">
-              ${pet?.id
-                ? renderSkillChip(pet)
-                : `<div class="empty-lite">No pet found.</div>`
-              }
-            </div>
+          <div class="skill-chip-row">
+            ${pet?.id
+              ? renderSkillChip(pet)
+              : `<div class="skill-chip"><div class="skill-chip-icon"><span class="icon-fallback">—</span></div><div class="skill-chip-label">No Pet</div></div>`
+            }
           </div>
 
-          ${buildLoadoutSection(player)}
-          ${buildItemSnapshotSection(player)}
-          ${buildPurchasedItemsSection(player)}
-          ${buildWeaponUsageSection(player)}
-          ${buildLatestRoundStatsSection(player)}
+          ${buildLoadoutSlots(player)}
+          ${buildPurchasedItems(player)}
+          ${buildRoundData(player)}
         </div>
       `;
     }
@@ -1601,7 +1400,13 @@
       const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
 
       if (!players.length) {
-        playerWrapEl.innerHTML = `<div class="empty-lite">No players found.</div>`;
+        playerWrapEl.innerHTML = `
+          <div class="slot-box slot-empty">
+            <div class="slot-copy">
+              <div class="slot-title">No players found</div>
+            </div>
+          </div>
+        `;
         return;
       }
 
@@ -1626,6 +1431,7 @@
 
     async function ensureResourcesLoaded() {
       const tasks = [];
+
       if (!matchApiLoaded) tasks.push(loadMatchApiLookups());
       if (!assetsLoaded) tasks.push(loadAssetCatalogs());
 
@@ -1636,8 +1442,8 @@
 
       setStatus(
         `Ready.\n` +
-        `match_api → Type0 ${LOOKUPS.storeItems.size}, Type1 ${LOOKUPS.items.size}, Skills ${LOOKUPS.skills.size}, Pets ${LOOKUPS.pets.size}\n` +
-        `Images → Characters ${ASSETS.charactersById.size}, Pets ${ASSETS.petsByName.size}, Weapons ${ASSETS.weaponsByName.size}, Loadouts ${ASSETS.loadoutsById.size}`
+        `match_api → Items ${LOOKUPS.items.size}, Skills ${LOOKUPS.skills.size}, Pets ${LOOKUPS.pets.size}\n` +
+        `Images → Characters ${ASSETS.charactersById.size}, Pets ${ASSETS.petsByName.size}, Weapons ${ASSETS.weaponsByName.size}`
       );
     }
 
