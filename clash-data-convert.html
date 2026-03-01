@@ -251,8 +251,7 @@
       min-width:0;
     }
 
-    .player-grid,
-    .detail-grid{
+    .player-grid{
       display:grid;
       grid-template-columns:repeat(4, minmax(0,1fr));
       gap:10px;
@@ -269,27 +268,6 @@
       border-radius:16px;
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.02);
-    }
-
-    .detail-col{
-      min-width:0;
-      display:grid;
-      gap:8px;
-      align-content:start;
-    }
-
-    .detail-col-head{
-      padding:8px 10px;
-      border-radius:12px;
-      border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.03);
-      font-size:11px;
-      font-weight:900;
-      color:#eef4ff;
-      line-height:1.25;
-      text-align:center;
-      white-space:normal;
-      word-break:break-word;
     }
 
     .hero-card{
@@ -568,12 +546,127 @@
       word-break:break-word;
     }
 
-    .loadout-desc{
+    .details-panel{
+      margin-top:16px;
+      padding:14px;
+    }
+
+    .details-panel-title{
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:#eef4ff;
+      margin-bottom:10px;
+    }
+
+    .global-details-list{
+      display:grid;
+      gap:10px;
+      min-width:0;
+    }
+
+    .player-row-details{
+      border-radius:16px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.025);
+      overflow:hidden;
+      min-width:0;
+    }
+
+    .player-row-details summary{
+      list-style:none;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.02);
+      min-width:0;
+    }
+
+    .player-row-details summary::-webkit-details-marker{
+      display:none;
+    }
+
+    .player-row-details summary::after{
+      content:"▸";
+      font-size:12px;
+      color:#cfe0ff;
+      flex:0 0 auto;
+      transition:transform .18s ease;
+    }
+
+    .player-row-details[open] summary::after{
+      transform:rotate(90deg);
+    }
+
+    .player-row-meta{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .team-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px 8px;
+      border-radius:999px;
       font-size:10px;
-      line-height:1.3;
-      color:#d7e6ff;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border:1px solid rgba(124,172,255,.12);
+      background:rgba(255,255,255,.04);
+      color:#eef4ff;
+    }
+
+    .team-pill.left{
+      border-color:rgba(45,175,255,.30);
+      color:#9fe7ff;
+    }
+
+    .team-pill.right{
+      border-color:rgba(255,127,50,.30);
+      color:#ffc49b;
+    }
+
+    .player-row-name{
+      font-size:12px;
+      font-weight:900;
+      color:#eef4ff;
+      line-height:1.2;
       white-space:normal;
       word-break:break-word;
+    }
+
+    .player-row-sub{
+      font-size:10px;
+      font-weight:800;
+      color:var(--muted);
+      line-height:1.2;
+      text-align:right;
+      white-space:normal;
+      word-break:break-word;
+      min-width:0;
+    }
+
+    .player-row-body{
+      padding:10px;
+      display:grid;
+      gap:10px;
+      border-top:1px solid rgba(124,172,255,.08);
+    }
+
+    .player-row-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      min-width:0;
     }
 
     .stats-sections{
@@ -650,58 +743,8 @@
       word-break:break-word;
     }
 
-    .row-details{
-      border-radius:16px;
-      border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.025);
-      overflow:hidden;
-      min-width:0;
-    }
-
-    .row-details summary{
-      list-style:none;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
-      font-size:10px;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      color:var(--muted);
-      font-weight:900;
-      line-height:1.25;
-      user-select:none;
-      background:rgba(255,255,255,.02);
-    }
-
-    .row-details summary::-webkit-details-marker{
-      display:none;
-    }
-
-    .row-details summary::after{
-      content:"▸";
-      font-size:12px;
-      color:#cfe0ff;
-      flex:0 0 auto;
-      transition:transform .18s ease;
-    }
-
-    .row-details[open] summary::after{
-      transform:rotate(90deg);
-    }
-
-    .row-details-body{
-      padding:10px;
-      display:grid;
-      gap:10px;
-      border-top:1px solid rgba(124,172,255,.08);
-    }
-
     @media (max-width: 1500px){
-      .player-grid,
-      .detail-grid{
+      .player-grid{
         grid-template-columns:repeat(2, minmax(0,1fr));
       }
 
@@ -726,15 +769,26 @@
         grid-template-columns:1fr;
       }
 
-      .player-grid,
-      .detail-grid{
+      .player-grid{
         grid-template-columns:repeat(2, minmax(0,1fr));
+      }
+
+      .player-row-grid{
+        grid-template-columns:1fr;
+      }
+
+      .player-row-details summary{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .player-row-sub{
+        text-align:left;
       }
     }
 
     @media (max-width: 640px){
-      .player-grid,
-      .detail-grid{
+      .player-grid{
         grid-template-columns:1fr;
       }
 
@@ -769,8 +823,9 @@
       <div id="status" class="status">Loading lookup and image catalogs…</div>
 
       <div class="note">
-        Loadout uses <code>player.loadouts[0]</code> from your match JSON, then matches it to <code>loadout_id</code> in <code>loadout.json</code>.
-        <br>The lower player info is merged into one aligned collapsible row per team.
+        Loadout uses <code>player.loadouts[0]</code> from your match JSON and matches it to <code>loadout_id</code> in <code>loadout.json</code>.
+        <br>Loadout description is now shown in a popup.
+        <br>Player stat details are now rendered in one full-width section below both teams, with one collapsible row per player.
       </div>
     </div>
 
@@ -790,6 +845,11 @@
         <div class="team-glow team-glow-right"></div>
         <div id="teamBContent" class="team-inner"></div>
       </section>
+    </div>
+
+    <div class="panel details-panel">
+      <div class="details-panel-title">Player Stat Details</div>
+      <div id="globalPlayerDetails" class="global-details-list"></div>
     </div>
   </div>
 
@@ -1165,7 +1225,6 @@
       };
     }
 
-    /* LOADOUT FIX: use player.loadouts[0] */
     function getPlayerLoadoutId(player) {
       const arr = Array.isArray(player?.loadouts) ? player.loadouts : [];
       if (!arr.length) return null;
@@ -1266,18 +1325,22 @@
       return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
     }
 
+    function renderPopup(title, meta, body) {
+      if (!body) return "";
+      return `
+        <div class="hover-popup">
+          <div class="hover-title">${escapeHtml(title || "Info")}</div>
+          <div class="hover-meta">${escapeHtml(meta || "")}</div>
+          <div class="hover-body">${escapeHtmlWithBreaks(body)}</div>
+        </div>
+      `;
+    }
+
     function renderTooltip(entry) {
       if (!entry || (!entry.skill && !entry.description)) return "";
 
       const meta = entry.slotType ? `${entry.slotType}${entry.label ? " • " + entry.label : ""}` : (entry.label || "");
-
-      return `
-        <div class="hover-popup">
-          <div class="hover-title">${escapeHtml(entry.skill || entry.label || "Skill")}</div>
-          <div class="hover-meta">${escapeHtml(meta)}</div>
-          <div class="hover-body">${escapeHtmlWithBreaks(entry.description || "No description available.")}</div>
-        </div>
-      `;
+      return renderPopup(entry.skill || entry.label || "Skill", meta, entry.description || "No description available.");
     }
 
     function renderSkillChip(entry) {
@@ -1300,21 +1363,23 @@
     function renderLoadoutCard(loadout) {
       const title = loadout?.name || "No loadout found";
       const idText = loadout?.loadout_id ? `Loadout ID: ${loadout.loadout_id}` : "No loadout id found in loadouts";
-      const desc = loadout?.cs_description || "No CS description found in loadout.json.";
+      const desc = loadout?.cs_description || "";
 
       return `
-        <div class="single-card primary">
-          <div class="card-thumb">
-            ${loadout?.image_url
-              ? `<img src="${escapeHtml(loadout.image_url)}" alt="${escapeHtml(title)}" loading="lazy">`
-              : `<span class="icon-fallback">N/A</span>`
-            }
+        <div class="hover-wrap" tabindex="0">
+          <div class="single-card primary">
+            <div class="card-thumb">
+              ${loadout?.image_url
+                ? `<img src="${escapeHtml(loadout.image_url)}" alt="${escapeHtml(title)}" loading="lazy">`
+                : `<span class="icon-fallback">N/A</span>`
+              }
+            </div>
+            <div class="card-copy">
+              <div class="card-title">${escapeHtml(title)}</div>
+              <div class="card-sub">${escapeHtml(idText)}</div>
+            </div>
           </div>
-          <div class="card-copy">
-            <div class="card-title">${escapeHtml(title)}</div>
-            <div class="card-sub">${escapeHtml(idText)}</div>
-            <div class="loadout-desc">${escapeHtmlWithBreaks(desc)}</div>
-          </div>
+          ${desc ? renderPopup(title, `Loadout • ${idText}`, desc) : ""}
         </div>
       `;
     }
@@ -1570,17 +1635,29 @@
       `;
     }
 
-    function renderPlayerDetailColumn(player) {
+    function renderPlayerDetailRow(player, teamName, side) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
+      const loadout = getPlayerLoadoutEntry(player);
+      const sideClass = side === "right" ? "right" : "left";
 
       return `
-        <div class="detail-col">
-          <div class="detail-col-head">${escapeHtml(playerName)}</div>
-          ${buildCurrentItemsBlock(player)}
-          ${buildPurchasedItemsBlock(player)}
-          ${buildWeaponUsagesBlock(player)}
-          ${buildLatestRoundStatsBlock(player)}
-        </div>
+        <details class="player-row-details">
+          <summary>
+            <div class="player-row-meta">
+              <span class="team-pill ${sideClass}">${escapeHtml(teamName || (side === "right" ? "Team B" : "Team A"))}</span>
+              <span class="player-row-name">${escapeHtml(playerName)}</span>
+            </div>
+            <div class="player-row-sub">${escapeHtml(loadout?.name || "No Loadout")}</div>
+          </summary>
+          <div class="player-row-body">
+            <div class="player-row-grid">
+              ${buildCurrentItemsBlock(player)}
+              ${buildPurchasedItemsBlock(player)}
+              ${buildWeaponUsagesBlock(player)}
+              ${buildLatestRoundStatsBlock(player)}
+            </div>
+          </div>
+        </details>
       `;
     }
 
@@ -1595,16 +1672,29 @@
         <div class="player-grid">
           ${players.map(renderPlayerSummaryCard).join("")}
         </div>
-
-        <details class="row-details">
-          <summary>Player Data Details</summary>
-          <div class="row-details-body">
-            <div class="detail-grid">
-              ${players.map(renderPlayerDetailColumn).join("")}
-            </div>
-          </div>
-        </details>
       `;
+    }
+
+    function renderGlobalPlayerDetails(teams) {
+      const rows = [];
+
+      if (teams[0]?.player_stats?.length) {
+        for (const player of teams[0].player_stats) {
+          rows.push(renderPlayerDetailRow(player, teams[0]?.team_name || "Team A", "left"));
+        }
+      }
+
+      if (teams[1]?.player_stats?.length) {
+        for (const player of teams[1].player_stats) {
+          rows.push(renderPlayerDetailRow(player, teams[1]?.team_name || "Team B", "right"));
+        }
+      }
+
+      if (!rows.length) {
+        return `<div class="empty-lite">No player detail rows found.</div>`;
+      }
+
+      return rows.join("");
     }
 
     function clearRender() {
@@ -1613,6 +1703,7 @@
       $("matchRound").textContent = "Round —";
       $("teamAContent").innerHTML = "";
       $("teamBContent").innerHTML = "";
+      $("globalPlayerDetails").innerHTML = "";
     }
 
     function getPayload(data) {
@@ -1677,6 +1768,7 @@
 
         $("teamAContent").innerHTML = renderTeamContent(teams[0]);
         $("teamBContent").innerHTML = renderTeamContent(teams[1]);
+        $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(teams);
 
         let message = `Rendered ${teams[0]?.team_name || "Team A"} vs ${teams[1]?.team_name || "Team B"}.`;
         if (teams.length > 2) {
