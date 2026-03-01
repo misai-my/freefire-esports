@@ -769,7 +769,7 @@
       <div id="status" class="status">Loading lookup and image catalogs…</div>
 
       <div class="note">
-        Loadout uses only <code>loadout_id</code>, <code>name</code>, <code>image_url</code>, and <code>description.cs</code> from <code>loadout.json</code>.
+        Loadout uses <code>player.loadouts[0]</code> from your match JSON, then matches it to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>The lower player info is merged into one aligned collapsible row per team.
       </div>
     </div>
@@ -1165,13 +1165,18 @@
       };
     }
 
+    /* LOADOUT FIX: use player.loadouts[0] */
     function getPlayerLoadoutId(player) {
-      const id = Number(player?.player_stats_loadouts);
+      const arr = Array.isArray(player?.loadouts) ? player.loadouts : [];
+      if (!arr.length) return null;
+
+      const id = Number(arr[0]);
       return Number.isFinite(id) ? id : null;
     }
 
     function getPlayerLoadoutEntry(player) {
       const id = getPlayerLoadoutId(player);
+
       if (!Number.isFinite(id)) {
         return { loadout_id:null, name:"No loadout found", image_url:"", cs_description:"" };
       }
@@ -1294,7 +1299,7 @@
 
     function renderLoadoutCard(loadout) {
       const title = loadout?.name || "No loadout found";
-      const idText = loadout?.loadout_id ? `Loadout ID: ${loadout.loadout_id}` : "No loadout id found in JSON";
+      const idText = loadout?.loadout_id ? `Loadout ID: ${loadout.loadout_id}` : "No loadout id found in loadouts";
       const desc = loadout?.cs_description || "No CS description found in loadout.json.";
 
       return `
