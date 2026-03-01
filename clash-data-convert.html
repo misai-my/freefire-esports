@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clash Squad Data Viewer</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a2d;
+      --panel2:#18233c;
+      --line:rgba(255,255,255,.10);
+      --ink:#eef4ff;
+      --muted:#9fb0d1;
+      --brand:#6cb8ff;
+      --brand2:#8bffcf;
+      --danger:#ff7b7b;
+      --chip:rgba(255,255,255,.08);
+      --shadow:0 18px 45px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(108,184,255,.12), transparent 30%),
+        radial-gradient(circle at top right, rgba(139,255,207,.10), transparent 28%),
+        linear-gradient(180deg, #08101d 0%, #0b1020 100%);
+      color:var(--ink);
+    }
+
+    .app{
+      max-width:1400px;
+      margin:0 auto;
+      padding:20px;
+    }
+
+    .title{
+      font-size:28px;
+      font-weight:800;
+      margin:0 0 6px;
+      letter-spacing:.3px;
+    }
+
+    .sub{
+      margin:0 0 16px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .input-panel{
+      padding:16px;
+      margin-bottom:18px;
+    }
+
+    textarea{
+      width:100%;
+      min-height:260px;
+      resize:vertical;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#0a1222;
+      color:var(--ink);
+      padding:14px;
+      font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      outline:none;
+    }
+
+    textarea:focus{
+      border-color:rgba(108,184,255,.55);
+      box-shadow:0 0 0 3px rgba(108,184,255,.12);
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      align-items:center;
+    }
+
+    button{
+      border:0;
+      border-radius:12px;
+      padding:10px 16px;
+      font-weight:700;
+      cursor:pointer;
+      background:linear-gradient(90deg, var(--brand), var(--brand2));
+      color:#08101d;
+    }
+
+    button.ghost{
+      background:transparent;
+      color:var(--ink);
+      border:1px solid var(--line);
+    }
+
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .status.error{
+      color:#ffd7d7;
+      border-color:rgba(255,123,123,.35);
+      background:rgba(255,123,123,.08);
+    }
+
+    .teams{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+    }
+
+    .team-col{
+      padding:16px;
+      min-height:300px;
+    }
+
+    .team-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:14px;
+      padding-bottom:12px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .team-left .team-head{
+      border-left:4px solid var(--brand);
+      padding-left:12px;
+    }
+
+    .team-right .team-head{
+      border-right:4px solid var(--brand2);
+      padding-right:12px;
+    }
+
+    .team-label{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.15em;
+      color:var(--muted);
+    }
+
+    .team-name{
+      margin:4px 0 0;
+      font-size:24px;
+      line-height:1.1;
+    }
+
+    .player-count{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .players{
+      display:grid;
+      gap:14px;
+    }
+
+    .player-card{
+      background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+    }
+
+    .player-name{
+      margin:0 0 12px;
+      font-size:18px;
+      font-weight:800;
+      color:#fff;
+    }
+
+    .row{
+      margin-bottom:10px;
+    }
+
+    .label{
+      display:block;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    .value-text{
+      font-size:14px;
+      color:var(--ink);
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:var(--chip);
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      line-height:1.2;
+      color:var(--ink);
+    }
+
+    .empty{
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .note{
+      margin-top:14px;
+      font-size:12px;
+      color:var(--muted);
+      border-top:1px dashed var(--line);
+      padding-top:12px;
+    }
+
+    @media (max-width: 980px){
+      .teams{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1 class="title">Clash Squad Data → Team Viewer</h1>
+    <p class="sub">
+      Paste your full match JSON below, then click <strong>Render</strong>.
+      Left column = Team A. Right column = Team B.
+    </p>
+
+    <div class="panel input-panel">
+      <textarea id="jsonInput" placeholder='Paste the full JSON here...'></textarea>
+
+      <div class="actions">
+        <button id="renderBtn">Render</button>
+        <button id="clearBtn" class="ghost" type="button">Clear</button>
+      </div>
+
+      <div id="status" class="status">Waiting for pasted JSON…</div>
+
+      <div class="note">
+        Active skill names come from <code>skill_info</code>. Passive skills and pets use ID fallback unless you fill the lookup maps in the script.
+      </div>
+    </div>
+
+    <div class="teams">
+      <div class="panel team-col team-left">
+        <div class="team-head">
+          <div>
+            <div class="team-label">Team A • Left</div>
+            <h2 id="teamAName" class="team-name">—</h2>
+          </div>
+          <div id="teamACount" class="player-count">0 players</div>
+        </div>
+        <div id="teamAPlayers" class="players"></div>
+      </div>
+
+      <div class="panel team-col team-right">
+        <div class="team-head">
+          <div>
+            <div class="team-label">Team B • Right</div>
+            <h2 id="teamBName" class="team-name">—</h2>
+          </div>
+          <div id="teamBCount" class="player-count">0 players</div>
+        </div>
+        <div id="teamBPlayers" class="players"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*
+      OPTIONAL LOOKUP MAPS
+      Fill these in if you want real names for passive skills / pets.
+      Example:
+      const SKILL_NAME_MAP = { 5006: "Moco", 1806: "Alvaro" };
+      const PET_NAME_MAP = { 1315000011: "Beaston" };
+    */
+    const SKILL_NAME_MAP = {};
+    const PET_NAME_MAP = {};
+
+    const $ = (id) => document.getElementById(id);
+
+    const statusEl = $("status");
+    const inputEl = $("jsonInput");
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.className = isError ? "status error" : "status";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatCount(count, label) {
+      return `${count} ${label}${count === 1 ? "" : "s"}`;
+    }
+
+    function getActiveSkillInfo(player) {
+      const info = Array.isArray(player?.skill_info) ? player.skill_info : [];
+      return info.find(s => s && s.skill_active) || info[0] || null;
+    }
+
+    function getActiveSkillLabel(player) {
+      const active = getActiveSkillInfo(player);
+      if (active) {
+        return active.skill_name || SKILL_NAME_MAP[active.skill_id] || `Skill ID ${active.skill_id}`;
+      }
+
+      const firstSkillId = Array.isArray(player?.skill_ids) ? player.skill_ids[0] : null;
+      return firstSkillId ? (SKILL_NAME_MAP[firstSkillId] || `Skill ID ${firstSkillId}`) : "—";
+    }
+
+    function getPassiveSkillLabels(player) {
+      const ids = Array.isArray(player?.skill_ids) ? player.skill_ids.slice() : [];
+      const active = getActiveSkillInfo(player);
+      const activeId = active?.skill_id;
+
+      const passiveIds = ids.filter(id => id !== activeId);
+
+      if (!passiveIds.length) {
+        return [];
+      }
+
+      return passiveIds.map(id => SKILL_NAME_MAP[id] || `Skill ID ${id}`);
+    }
+
+    function getPetLabel(player) {
+      const petId = player?.pet_skill_id;
+      if (!petId) return "—";
+      return PET_NAME_MAP[petId] || `Pet ID ${petId}`;
+    }
+
+    function getWeapons(player) {
+      const weaponMap = new Map();
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+
+      for (const round of rounds) {
+        const usages = Array.isArray(round?.weapon_usages) ? round.weapon_usages : [];
+        for (const weapon of usages) {
+          const key = weapon?.weapon_name || `Weapon ID ${weapon?.weapon_id ?? "?"}`;
+          if (!weaponMap.has(key)) {
+            weaponMap.set(key, {
+              name: key,
+              kills: 0,
+              damage: 0,
+              hits: 0,
+              rounds: 0
+            });
+          }
+
+          const row = weaponMap.get(key);
+          row.kills += Number(weapon?.kills || 0);
+          row.damage += Number(weapon?.damage || 0);
+          row.hits += Number(weapon?.hits || 0);
+          row.rounds += 1;
+        }
+      }
+
+      return [...weaponMap.values()].sort((a, b) =>
+        (b.kills - a.kills) ||
+        (b.damage - a.damage) ||
+        a.name.localeCompare(b.name)
+      );
+    }
+
+    function getLatestItems(player) {
+      const rounds = Array.isArray(player?.round_stats) ? [...player.round_stats] : [];
+      if (!rounds.length) return [];
+
+      rounds.sort((a, b) => Number(b?.round_index ?? -1) - Number(a?.round_index ?? -1));
+
+      let chosenRound = rounds.find(round =>
+        Array.isArray(round?.item_nums) && round.item_nums.some(item => Number(item?.item_num || 0) > 0)
+      );
+
+      if (!chosenRound) {
+        chosenRound = rounds[0];
+      }
+
+      const items = Array.isArray(chosenRound?.item_nums) ? chosenRound.item_nums : [];
+
+      return items
+        .filter(item => Number(item?.item_num || 0) > 0)
+        .map(item => ({
+          name: item?.item_name || `Item ID ${item?.item_id ?? "?"}`,
+          count: Number(item?.item_num || 0)
+        }));
+    }
+
+    function chipsFromArray(items, formatter, emptyLabel = "—") {
+      if (!items || !items.length) {
+        return `<div class="empty">${escapeHtml(emptyLabel)}</div>`;
+      }
+
+      return `
+        <div class="chips">
+          ${items.map(item => `<span class="chip">${formatter(item)}</span>`).join("")}
+        </div>
+      `;
+    }
+
+    function renderPlayerCard(player) {
+      const name = player?.nickname || player?.account_id || "Unknown Player";
+      const activeSkill = getActiveSkillLabel(player);
+      const passiveSkills = getPassiveSkillLabels(player);
+      const weapons = getWeapons(player);
+      const items = getLatestItems(player);
+      const pet = getPetLabel(player);
+
+      return `
+        <div class="player-card">
+          <h3 class="player-name">${escapeHtml(name)}</h3>
+
+          <div class="row">
+            <span class="label">Active Skill</span>
+            <div class="value-text">${escapeHtml(activeSkill)}</div>
+          </div>
+
+          <div class="row">
+            <span class="label">Passive Skills</span>
+            ${chipsFromArray(
+              passiveSkills,
+              item => escapeHtml(item),
+              "No passive skill IDs found"
+            )}
+          </div>
+
+          <div class="row">
+            <span class="label">Weapons</span>
+            ${chipsFromArray(
+              weapons,
+              weapon => `${escapeHtml(weapon.name)} • K ${weapon.kills} • DMG ${weapon.damage}`,
+              "No weapon data"
+            )}
+          </div>
+
+          <div class="row">
+            <span class="label">Items (latest round with inventory)</span>
+            ${chipsFromArray(
+              items,
+              item => `${escapeHtml(item.name)} x${item.count}`,
+              "No item data"
+            )}
+          </div>
+
+          <div class="row">
+            <span class="label">Pet</span>
+            <div class="value-text">${escapeHtml(pet)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTeam(team, teamNameElId, teamCountElId, playerWrapElId) {
+      const teamNameEl = $(teamNameElId);
+      const teamCountEl = $(teamCountElId);
+      const playerWrapEl = $(playerWrapElId);
+
+      const teamName = team?.team_name || "—";
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+
+      teamNameEl.textContent = teamName;
+      teamCountEl.textContent = formatCount(players.length, "player");
+
+      if (!players.length) {
+        playerWrapEl.innerHTML = `<div class="player-card"><div class="empty">No players found.</div></div>`;
+        return;
+      }
+
+      playerWrapEl.innerHTML = players.map(renderPlayerCard).join("");
+    }
+
+    function clearRender() {
+      $("teamAName").textContent = "—";
+      $("teamBName").textContent = "—";
+      $("teamACount").textContent = "0 players";
+      $("teamBCount").textContent = "0 players";
+      $("teamAPlayers").innerHTML = "";
+      $("teamBPlayers").innerHTML = "";
+    }
+
+    function renderJson() {
+      const raw = inputEl.value.trim();
+
+      if (!raw) {
+        clearRender();
+        setStatus("Paste JSON first.", true);
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (err) {
+        clearRender();
+        setStatus(`Invalid JSON: ${err.message}`, true);
+        return;
+      }
+
+      const teams = Array.isArray(data?.team_stats) ? data.team_stats : [];
+
+      if (teams.length < 2) {
+        clearRender();
+        setStatus("This JSON needs at least 2 teams inside team_stats.", true);
+        return;
+      }
+
+      renderTeam(teams[0], "teamAName", "teamACount", "teamAPlayers");
+      renderTeam(teams[1], "teamBName", "teamBCount", "teamBPlayers");
+
+      let message = `Rendered Team A (${teams[0]?.team_name || "—"}) and Team B (${teams[1]?.team_name || "—"}).`;
+
+      if (teams.length > 2) {
+        message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
+      }
+
+      setStatus(message);
+    }
+
+    $("renderBtn").addEventListener("click", renderJson);
+
+    $("clearBtn").addEventListener("click", () => {
+      inputEl.value = "";
+      clearRender();
+      setStatus("Cleared. Paste new JSON to render.");
+    });
+  </script>
+</body>
+</html>
