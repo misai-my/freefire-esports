@@ -251,7 +251,8 @@
       min-width:0;
     }
 
-    .player-grid{
+    .player-grid,
+    .detail-grid{
       display:grid;
       grid-template-columns:repeat(4, minmax(0,1fr));
       gap:10px;
@@ -538,14 +539,6 @@
       word-break:break-word;
     }
 
-    .card-sub{
-      font-size:10px;
-      color:var(--muted);
-      line-height:1.15;
-      white-space:normal;
-      word-break:break-word;
-    }
-
     .details-panel{
       margin-top:16px;
       padding:14px;
@@ -560,37 +553,83 @@
       margin-bottom:10px;
     }
 
-    .global-details-list{
+    .details-wrap{
       display:grid;
-      gap:10px;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:16px;
       min-width:0;
     }
 
-    .player-row-details{
-      border-radius:16px;
+    .details-team-block{
+      border-radius:18px;
       border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.025);
+      background:rgba(255,255,255,.02);
+      padding:10px;
+      min-width:0;
+    }
+
+    .details-team-title{
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:#eef4ff;
+      margin-bottom:10px;
+      white-space:normal;
+      word-break:break-word;
+    }
+
+    .detail-col{
+      min-width:0;
+      display:grid;
+      gap:8px;
+      align-content:start;
+    }
+
+    .detail-col-head{
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.03);
+      font-size:11px;
+      font-weight:900;
+      color:#eef4ff;
+      line-height:1.25;
+      text-align:center;
+      white-space:normal;
+      word-break:break-word;
+    }
+
+    .category-fold{
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.08);
+      background:rgba(255,255,255,.02);
       overflow:hidden;
       min-width:0;
     }
 
-    .player-row-details summary{
+    .category-fold summary{
       list-style:none;
       cursor:pointer;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
+      gap:8px;
+      padding:8px 10px;
       background:rgba(255,255,255,.02);
-      min-width:0;
+      color:#cfe0ff;
+      font-size:10px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      line-height:1.2;
     }
 
-    .player-row-details summary::-webkit-details-marker{
+    .category-fold summary::-webkit-details-marker{
       display:none;
     }
 
-    .player-row-details summary::after{
+    .category-fold summary::after{
       content:"▸";
       font-size:12px;
       color:#cfe0ff;
@@ -598,75 +637,15 @@
       transition:transform .18s ease;
     }
 
-    .player-row-details[open] summary::after{
+    .category-fold[open] summary::after{
       transform:rotate(90deg);
     }
 
-    .player-row-meta{
-      min-width:0;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-
-    .team-pill{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:10px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      border:1px solid rgba(124,172,255,.12);
-      background:rgba(255,255,255,.04);
-      color:#eef4ff;
-    }
-
-    .team-pill.left{
-      border-color:rgba(45,175,255,.30);
-      color:#9fe7ff;
-    }
-
-    .team-pill.right{
-      border-color:rgba(255,127,50,.30);
-      color:#ffc49b;
-    }
-
-    .player-row-name{
-      font-size:12px;
-      font-weight:900;
-      color:#eef4ff;
-      line-height:1.2;
-      white-space:normal;
-      word-break:break-word;
-    }
-
-    .player-row-sub{
-      font-size:10px;
-      font-weight:800;
-      color:var(--muted);
-      line-height:1.2;
-      text-align:right;
-      white-space:normal;
-      word-break:break-word;
-      min-width:0;
-    }
-
-    .player-row-body{
-      padding:10px;
-      display:grid;
-      gap:10px;
+    .category-fold-body{
+      padding:8px;
       border-top:1px solid rgba(124,172,255,.08);
-    }
-
-    .player-row-grid{
       display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
-      gap:10px;
-      min-width:0;
+      gap:8px;
     }
 
     .stats-sections{
@@ -744,7 +723,8 @@
     }
 
     @media (max-width: 1500px){
-      .player-grid{
+      .player-grid,
+      .detail-grid{
         grid-template-columns:repeat(2, minmax(0,1fr));
       }
 
@@ -765,30 +745,20 @@
         text-align:center;
       }
 
-      .arena-wrap{
+      .arena-wrap,
+      .details-wrap{
         grid-template-columns:1fr;
       }
 
-      .player-grid{
+      .player-grid,
+      .detail-grid{
         grid-template-columns:repeat(2, minmax(0,1fr));
-      }
-
-      .player-row-grid{
-        grid-template-columns:1fr;
-      }
-
-      .player-row-details summary{
-        align-items:flex-start;
-        flex-direction:column;
-      }
-
-      .player-row-sub{
-        text-align:left;
       }
     }
 
     @media (max-width: 640px){
-      .player-grid{
+      .player-grid,
+      .detail-grid{
         grid-template-columns:1fr;
       }
 
@@ -822,6 +792,11 @@
 
       <div id="status" class="status">Loading lookup and image catalogs…</div>
 
+      <div class="note">
+        Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
+        <br>Loadout description is shown in a popup.
+        <br>Player stat details keep player columns, while each category is now its own collapsible row.
+      </div>
     </div>
 
     <div class="panel match-head">
@@ -844,7 +819,7 @@
 
     <div class="panel details-panel">
       <div class="details-panel-title">Player Stat Details</div>
-      <div id="globalPlayerDetails" class="global-details-list"></div>
+      <div id="globalPlayerDetails"></div>
     </div>
   </div>
 
@@ -1357,7 +1332,6 @@
 
     function renderLoadoutCard(loadout) {
       const title = loadout?.name || "No loadout found";
-      const idText = loadout?.loadout_id ? `Loadout ID: ${loadout.loadout_id}` : "No loadout id found in loadouts";
       const desc = loadout?.cs_description || "";
 
       return `
@@ -1371,10 +1345,9 @@
             </div>
             <div class="card-copy">
               <div class="card-title">${escapeHtml(title)}</div>
-              <div class="card-sub">${escapeHtml(idText)}</div>
             </div>
           </div>
-          ${desc ? renderPopup(title, `Loadout • ${idText}`, desc) : ""}
+          ${desc ? renderPopup(title, "Loadout", desc) : ""}
         </div>
       `;
     }
@@ -1436,12 +1409,22 @@
       return sections;
     }
 
+    function buildCollapsibleCategory(title, innerHtml) {
+      return `
+        <details class="category-fold">
+          <summary>${escapeHtml(title)}</summary>
+          <div class="category-fold-body">
+            ${innerHtml}
+          </div>
+        </details>
+      `;
+    }
+
     function buildCurrentItemsBlock(player) {
       const items = getLatestItems(player);
 
-      return `
+      const content = `
         <div class="stats-category">
-          <div class="stats-category-title">Current Items Latest Round Inventory</div>
           <div class="stats-table">
             ${
               items.length
@@ -1461,14 +1444,15 @@
           </div>
         </div>
       `;
+
+      return buildCollapsibleCategory("Current Items Latest Round Inventory", content);
     }
 
     function buildPurchasedItemsBlock(player) {
       const items = getLatestPurchasedItems(player);
 
-      return `
+      const content = `
         <div class="stats-category">
-          <div class="stats-category-title">Purchased Items Latest Round Type 0 To Type 1 Fallback</div>
           <div class="stats-table">
             ${
               items.length
@@ -1488,61 +1472,61 @@
           </div>
         </div>
       `;
+
+      return buildCollapsibleCategory("Purchased Items Latest Round Type 0 To Type 1 Fallback", content);
     }
 
     function buildWeaponUsagesBlock(player) {
       const usages = getLatestWeaponUsages(player);
 
-      return `
-        <div class="stats-category">
-          <div class="stats-category-title">Weapon Usages Latest Round</div>
-          <div class="stats-sections" style="padding:8px;">
-            ${
-              usages.length
-                ? usages.map(weapon => {
-                    const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
+      const content = `
+        <div class="stats-sections">
+          ${
+            usages.length
+              ? usages.map(weapon => {
+                  const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
 
-                    return `
-                      <div class="stats-category">
-                        <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
-                        <div class="stats-table">
-                          <div class="stats-row">
-                            <div class="stats-key">Weapon ID</div>
-                            <div class="stats-val">${Number.isFinite(weapon.id) ? weapon.id : "No weapon ID"}</div>
-                          </div>
-                          ${
-                            rows.length
-                              ? rows.map(([key, value]) => `
-                                  <div class="stats-row">
-                                    <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                                    <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                                  </div>
-                                `).join("")
-                              : `
-                                  <div class="stats-row">
-                                    <div class="stats-key">Stats</div>
-                                    <div class="stats-val">No weapon usage fields found.</div>
-                                  </div>
-                                `
-                          }
+                  return `
+                    <div class="stats-category">
+                      <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
+                      <div class="stats-table">
+                        <div class="stats-row">
+                          <div class="stats-key">Weapon ID</div>
+                          <div class="stats-val">${Number.isFinite(weapon.id) ? weapon.id : "No weapon ID"}</div>
                         </div>
+                        ${
+                          rows.length
+                            ? rows.map(([key, value]) => `
+                                <div class="stats-row">
+                                  <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
+                                  <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                                </div>
+                              `).join("")
+                            : `
+                                <div class="stats-row">
+                                  <div class="stats-key">Stats</div>
+                                  <div class="stats-val">No weapon usage fields found.</div>
+                                </div>
+                              `
+                        }
                       </div>
-                    `;
-                  }).join("")
-                : `<div class="empty-lite">No weapon usage data found in latest round.</div>`
-            }
-          </div>
+                    </div>
+                  `;
+                }).join("")
+              : `<div class="empty-lite">No weapon usage data found in latest round.</div>`
+          }
         </div>
       `;
+
+      return buildCollapsibleCategory("Weapon Usages Latest Round", content);
     }
 
     function buildLatestRoundStatsBlock(player) {
       const round = getLatestRoundStat(player);
 
       if (!round) {
-        return `
+        const content = `
           <div class="stats-category">
-            <div class="stats-category-title">Latest Round Stats Broken Down By Section</div>
             <div class="stats-table">
               <div class="stats-row">
                 <div class="stats-key">Round Stats</div>
@@ -1551,32 +1535,32 @@
             </div>
           </div>
         `;
+        return buildCollapsibleCategory("Latest Round Stats Broken Down By Section", content);
       }
 
       const sections = categorizeRoundStats(round);
 
-      return `
-        <div class="stats-category">
-          <div class="stats-category-title">Latest Round Stats Broken Down By Section</div>
-          <div class="stats-sections" style="padding:8px;">
-            ${Object.entries(sections)
-              .filter(([, rows]) => rows.length)
-              .map(([title, rows]) => `
-                <div class="stats-category">
-                  <div class="stats-category-title">${escapeHtml(title)}</div>
-                  <div class="stats-table">
-                    ${rows.map(([key, value]) => `
-                      <div class="stats-row">
-                        <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                        <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                      </div>
-                    `).join("")}
-                  </div>
+      const content = `
+        <div class="stats-sections">
+          ${Object.entries(sections)
+            .filter(([, rows]) => rows.length)
+            .map(([title, rows]) => `
+              <div class="stats-category">
+                <div class="stats-category-title">${escapeHtml(title)}</div>
+                <div class="stats-table">
+                  ${rows.map(([key, value]) => `
+                    <div class="stats-row">
+                      <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
+                      <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                    </div>
+                  `).join("")}
                 </div>
-              `).join("")}
-          </div>
+              </div>
+            `).join("")}
         </div>
       `;
+
+      return buildCollapsibleCategory("Latest Round Stats Broken Down By Section", content);
     }
 
     function renderPlayerSummaryCard(player) {
@@ -1630,29 +1614,17 @@
       `;
     }
 
-    function renderPlayerDetailRow(player, teamName, side) {
+    function renderPlayerDetailColumn(player) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
-      const loadout = getPlayerLoadoutEntry(player);
-      const sideClass = side === "right" ? "right" : "left";
 
       return `
-        <details class="player-row-details">
-          <summary>
-            <div class="player-row-meta">
-              <span class="team-pill ${sideClass}">${escapeHtml(teamName || (side === "right" ? "Team B" : "Team A"))}</span>
-              <span class="player-row-name">${escapeHtml(playerName)}</span>
-            </div>
-            <div class="player-row-sub">${escapeHtml(loadout?.name || "No Loadout")}</div>
-          </summary>
-          <div class="player-row-body">
-            <div class="player-row-grid">
-              ${buildCurrentItemsBlock(player)}
-              ${buildPurchasedItemsBlock(player)}
-              ${buildWeaponUsagesBlock(player)}
-              ${buildLatestRoundStatsBlock(player)}
-            </div>
-          </div>
-        </details>
+        <div class="detail-col">
+          <div class="detail-col-head">${escapeHtml(playerName)}</div>
+          ${buildCurrentItemsBlock(player)}
+          ${buildPurchasedItemsBlock(player)}
+          ${buildWeaponUsagesBlock(player)}
+          ${buildLatestRoundStatsBlock(player)}
+        </div>
       `;
     }
 
@@ -1670,26 +1642,29 @@
       `;
     }
 
+    function renderDetailsTeamBlock(team, fallbackName) {
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+      const teamName = team?.team_name || fallbackName;
+
+      return `
+        <div class="details-team-block">
+          <div class="details-team-title">${escapeHtml(teamName)}</div>
+          ${
+            players.length
+              ? `<div class="detail-grid">${players.map(renderPlayerDetailColumn).join("")}</div>`
+              : `<div class="empty-lite">No players found.</div>`
+          }
+        </div>
+      `;
+    }
+
     function renderGlobalPlayerDetails(teams) {
-      const rows = [];
-
-      if (teams[0]?.player_stats?.length) {
-        for (const player of teams[0].player_stats) {
-          rows.push(renderPlayerDetailRow(player, teams[0]?.team_name || "Team A", "left"));
-        }
-      }
-
-      if (teams[1]?.player_stats?.length) {
-        for (const player of teams[1].player_stats) {
-          rows.push(renderPlayerDetailRow(player, teams[1]?.team_name || "Team B", "right"));
-        }
-      }
-
-      if (!rows.length) {
-        return `<div class="empty-lite">No player detail rows found.</div>`;
-      }
-
-      return rows.join("");
+      return `
+        <div class="details-wrap">
+          ${renderDetailsTeamBlock(teams[0], "Team A")}
+          ${renderDetailsTeamBlock(teams[1], "Team B")}
+        </div>
+      `;
     }
 
     function clearRender() {
