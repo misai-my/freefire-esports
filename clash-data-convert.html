@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clash Squad JSON Viewer</title>
+  <title>Clash Squad Data Viewer</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -726,6 +726,39 @@
       word-break:break-word;
     }
 
+    .prompt-panel{
+      margin-top:16px;
+      padding:14px;
+    }
+
+    .prompt-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
+    .prompt-title{
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:#eef4ff;
+    }
+
+    #aiPromptOutput{
+      min-height:340px;
+      background:#07101f;
+    }
+
+    .copy-note{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
     @media (max-width: 1500px){
       .player-grid,
       .detail-grid{
@@ -801,6 +834,7 @@
         <br>Loadout description is shown in a popup.
         <br>Purchased items now ignore loadout-style IDs (such as <code>500000007</code>) and only show valid type 0 / type 1 item matches.
         <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
+        <br>An AI-ready analysis prompt is generated at the bottom after render.
       </div>
     </div>
 
@@ -825,6 +859,15 @@
     <div class="panel details-panel">
       <div class="details-panel-title">Player Stat Details</div>
       <div id="globalPlayerDetails"></div>
+    </div>
+
+    <div class="panel prompt-panel">
+      <div class="prompt-head">
+        <div class="prompt-title">AI Analysis Prompt</div>
+        <button id="copyPromptBtn" class="ghost" type="button">Copy Prompt</button>
+      </div>
+      <textarea id="aiPromptOutput" readonly placeholder="Render match JSON first to generate a copy-ready prompt for AI analysis..."></textarea>
+      <div id="copyPromptStatus" class="copy-note">The generated prompt is built for an esports commentator / analyst / coach perspective.</div>
     </div>
   </div>
 
@@ -868,6 +911,10 @@
       const el = $("status");
       el.textContent = message;
       el.className = isError ? "status error" : "status";
+    }
+
+    function setCopyPromptStatus(message) {
+      $("copyPromptStatus").textContent = message;
     }
 
     function escapeHtml(value) {
@@ -1255,10 +1302,8 @@
         const id = Number(rawId);
         if (!Number.isFinite(id)) continue;
 
-        // Ignore loadout-style / non-store IDs
         if (id >= 500000000) continue;
 
-        // Only keep IDs that resolve to an actual type 0 / type 1 item
         const resolvedName = resolveItemName(id, true);
         if (!resolvedName) continue;
 
@@ -1672,6 +1717,157 @@
       `;
     }
 
+    function summarizeSimpleList(arr, mapper, emptyText = "None") {
+      const out = (Array.isArray(arr) ? arr : [])
+        .map(mapper)
+        .map(v => String(v || "").trim())
+        .filter(Boolean);
+      return out.length ? out.join(", ") : emptyText;
+    }
+
+    function summarizeItemsForPrompt(items) {
+      return (items && items.length)
+        ? items.map(item => `${item.name} x${item.count}`).join(", ")
+        : "None";
+    }
+
+    function summarizeWeaponsForPrompt(usages) {
+      if (!usages || !usages.length) return "None";
+
+      return usages.map(weapon => {
+        const extra = Object.entries(weapon.raw || {})
+          .filter(([k]) => k !== "weapon_name" && k !== "weapon_id")
+          .map(([k, v]) => `${humanizeKey(k)}: ${formatGenericValue(v)}`)
+          .join("; ");
+
+        return `${weapon.name}${Number.isFinite(weapon.id) ? ` [ID ${weapon.id}]` : ""}${extra ? ` — ${extra}` : ""}`;
+      }).join("\n      - ");
+    }
+
+    function summarizeRoundStatsForPrompt(player) {
+      const round = getLatestRoundStat(player);
+      if (!round) return "No round_stats found.";
+
+      const sections = categorizeRoundStats(round);
+      const lines = [];
+
+      for (const [title, rows] of Object.entries(sections)) {
+        if (!rows.length) continue;
+        lines.push(`${title}: ${rows.map(([key, value]) => `${humanizeKey(key)} = ${formatGenericValue(value)}`).join("; ")}`);
+      }
+
+      return lines.length ? lines.join("\n      - ") : "No categorized round stats found.";
+    }
+
+    function buildPlayerPromptBlock(player, idx) {
+      const activeSkill = getActiveSkillEntry(player);
+      const passiveSkills = getPassiveSkillEntries(player);
+      const pet = getPetEntry(player);
+      const loadout = getPlayerLoadoutEntry(player);
+      const currentItems = getLatestItems(player);
+      const purchasedItems = getLatestPurchasedItems(player);
+      const weaponUsages = getLatestWeaponUsages(player);
+
+      const playerName = player?.nickname || player?.account_id || `Player ${idx + 1}`;
+      const accountId = player?.account_id || "N/A";
+
+      return [
+        `${idx + 1}. ${playerName}`,
+        `   - Account ID: ${accountId}`,
+        `   - Active Skill: ${activeSkill.label || "None"}`,
+        `   - Passive Skills: ${summarizeSimpleList(passiveSkills, s => s.label, "None")}`,
+        `   - Pet: ${pet.label || "None"}`,
+        `   - Loadout: ${loadout.name || "None"}`,
+        `   - Current Items (Latest Round Inventory): ${summarizeItemsForPrompt(currentItems)}`,
+        `   - Purchased Items (Latest Round): ${summarizeItemsForPrompt(purchasedItems)}`,
+        `   - Weapon Usages (Latest Round):`,
+        `      - ${summarizeWeaponsForPrompt(weaponUsages)}`,
+        `   - Latest Round Stats By Section:`,
+        `      - ${summarizeRoundStatsForPrompt(player)}`
+      ].join("\n");
+    }
+
+    function buildTeamPromptBlock(team, fallbackName) {
+      const teamName = team?.team_name || fallbackName;
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+
+      return [
+        `=== ${teamName} ===`,
+        players.length
+          ? players.map((player, idx) => buildPlayerPromptBlock(player, idx)).join("\n\n")
+          : "No players found."
+      ].join("\n");
+    }
+
+    function buildAiAnalysisPrompt(payload, teams) {
+      const roundText = getDisplayRound(payload, teams);
+
+      return [
+        `You are an expert esports commentator, analyst, and coach reviewing a Free Fire Clash Squad match snapshot.`,
+        ``,
+        `Use the data below to produce a deep but practical analysis.`,
+        ``,
+        `Please provide:`,
+        `1. A caster-ready overview of both teams and their likely game plan.`,
+        `2. A coach-style breakdown of each team's strengths, weaknesses, win conditions, and risk factors.`,
+        `3. Player-by-player insights, including who is carrying, enabling, struggling, or playing supportive roles.`,
+        `4. A read on item economy, purchased utility, and what the loadouts suggest about team strategy.`,
+        `5. A breakdown of weapon usage and what it says about preferred fight distances and execution.`,
+        `6. A comparison of both teams' compositions, active/passive synergy, pet impact, and loadout value.`,
+        `7. The most important storylines an esports commentator should highlight on broadcast.`,
+        `8. Clear coaching adjustments for each team if they were going into the next round.`,
+        `9. A short final verdict: which team currently looks better and why.`,
+        ``,
+        `Keep the response useful for:`,
+        `- live shoutcasting / commentary`,
+        `- analyst desk breakdown`,
+        `- team coaching review`,
+        ``,
+        `Match Context:`,
+        `- Display Round: ${roundText}`,
+        `- Team A: ${teams[0]?.team_name || "Team A"}`,
+        `- Team B: ${teams[1]?.team_name || "Team B"}`,
+        ``,
+        `Data:`,
+        ``,
+        buildTeamPromptBlock(teams[0], "Team A"),
+        ``,
+        buildTeamPromptBlock(teams[1], "Team B"),
+        ``,
+        `Now analyze this as an esports commentator / analyst / coach.`
+      ].join("\n");
+    }
+
+    async function copyTextToClipboard(text) {
+      if (!text) return false;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch {}
+
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      temp.style.position = "fixed";
+      temp.style.opacity = "0";
+      temp.style.pointerEvents = "none";
+      document.body.appendChild(temp);
+      temp.focus();
+      temp.select();
+
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      }
+
+      document.body.removeChild(temp);
+      return ok;
+    }
+
     function clearRender() {
       $("teamAName").textContent = "—";
       $("teamBName").textContent = "—";
@@ -1679,6 +1875,8 @@
       $("teamAContent").innerHTML = "";
       $("teamBContent").innerHTML = "";
       $("globalPlayerDetails").innerHTML = "";
+      $("aiPromptOutput").value = "";
+      setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
     }
 
     function getPayload(data) {
@@ -1744,6 +1942,7 @@
         $("teamAContent").innerHTML = renderTeamContent(teams[0]);
         $("teamBContent").innerHTML = renderTeamContent(teams[1]);
         $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(teams);
+        $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, teams);
 
         let message = `Rendered ${teams[0]?.team_name || "Team A"} vs ${teams[1]?.team_name || "Team B"}.`;
         if (teams.length > 2) {
@@ -1751,6 +1950,7 @@
         }
 
         setStatus(message);
+        setCopyPromptStatus("AI prompt generated. Use Copy Prompt to paste it into another AI tool.");
       } catch (err) {
         setStatus(`Render failed:\n${err.message || err}`, true);
       }
@@ -1772,6 +1972,17 @@
       $("jsonInput").value = "";
       clearRender();
       setStatus("Cleared. Paste new JSON to render.");
+    });
+
+    $("copyPromptBtn").addEventListener("click", async () => {
+      const text = $("aiPromptOutput").value.trim();
+      if (!text) {
+        setCopyPromptStatus("No prompt to copy yet. Render match JSON first.");
+        return;
+      }
+
+      const ok = await copyTextToClipboard(text);
+      setCopyPromptStatus(ok ? "AI prompt copied to clipboard." : "Copy failed. You can still manually select and copy the prompt.");
     });
 
     warmUp();
