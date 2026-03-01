@@ -833,7 +833,7 @@
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
         <br>Purchased items are aligned by <code>round</code> across player columns.
-        <br>Cleanup is reverted to the lighter version.
+        <br>Render now refreshes <code>match_api</code> every time.
         <br>In Player Stat Details, each category collapses across both teams, and the expanded content keeps player columns aligned inside each team.
         <br>An AI-ready analysis prompt is generated at the bottom after render.
       </div>
@@ -978,7 +978,7 @@
 
       let score = 0;
 
-      if (!/\b500000\d+\b/.test(s)) score += 100;
+      if (!/500000\d+/.test(s)) score += 100;
 
       const wordCount = s.split(/\s+/).filter(Boolean).length;
       if (wordCount <= 4) score += 40;
@@ -1012,7 +1012,8 @@
       let s = String(name || "").replace(/\s+/g, " ").trim();
       if (!s) return null;
 
-      s = s.replace(/\s*\b500000\d+\b[\s\S]*$/, "").trim();
+      // trims embedded IDs even when attached directly to text: 500000007Resupply
+      s = s.replace(/\s*500000\d+[\s\S]*$/i, "").trim();
 
       const words = s.split(/\s+/).filter(Boolean);
       if (words.length > 5) {
@@ -1033,15 +1034,18 @@
       const numId = Number(id);
       if (!Number.isFinite(numId)) return null;
 
-      let raw = null;
+      const firstRaw = preferStore
+        ? (LOOKUPS.storeItems.get(numId) || null)
+        : (LOOKUPS.items.get(numId) || null);
 
-      if (preferStore) {
-        raw = LOOKUPS.storeItems.get(numId) || LOOKUPS.items.get(numId) || null;
-      } else {
-        raw = LOOKUPS.items.get(numId) || LOOKUPS.storeItems.get(numId) || null;
-      }
+      const secondRaw = preferStore
+        ? (LOOKUPS.items.get(numId) || null)
+        : (LOOKUPS.storeItems.get(numId) || null);
 
-      return sanitizeResolvedItemName(raw);
+      const firstClean = sanitizeResolvedItemName(firstRaw);
+      const secondClean = sanitizeResolvedItemName(secondRaw);
+
+      return firstClean || secondClean || null;
     }
 
     function getLookupName(type, id) {
@@ -2076,7 +2080,9 @@
           return;
         }
 
-        await ensureResourcesLoaded();
+        // Force fresh lookup data on every render so DB updates are reflected immediately
+        await loadMatchApiLookups();
+        if (!assetsLoaded) await loadAssetCatalogs();
 
         let data;
         try {
