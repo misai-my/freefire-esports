@@ -566,6 +566,8 @@
       background:rgba(255,255,255,.02);
       padding:10px;
       min-width:0;
+      display:grid;
+      gap:10px;
     }
 
     .details-team-title{
@@ -574,7 +576,6 @@
       text-transform:uppercase;
       letter-spacing:.08em;
       color:#eef4ff;
-      margin-bottom:10px;
       white-space:normal;
       word-break:break-word;
     }
@@ -600,7 +601,7 @@
       word-break:break-word;
     }
 
-    .category-fold{
+    .row-fold{
       border-radius:12px;
       border:1px solid rgba(124,172,255,.08);
       background:rgba(255,255,255,.02);
@@ -608,7 +609,7 @@
       min-width:0;
     }
 
-    .category-fold summary{
+    .row-fold summary{
       list-style:none;
       cursor:pointer;
       display:flex;
@@ -625,11 +626,11 @@
       line-height:1.2;
     }
 
-    .category-fold summary::-webkit-details-marker{
+    .row-fold summary::-webkit-details-marker{
       display:none;
     }
 
-    .category-fold summary::after{
+    .row-fold summary::after{
       content:"▸";
       font-size:12px;
       color:#cfe0ff;
@@ -637,15 +638,13 @@
       transition:transform .18s ease;
     }
 
-    .category-fold[open] summary::after{
+    .row-fold[open] summary::after{
       transform:rotate(90deg);
     }
 
-    .category-fold-body{
-      padding:8px;
+    .row-fold-body{
+      padding:10px;
       border-top:1px solid rgba(124,172,255,.08);
-      display:grid;
-      gap:8px;
     }
 
     .stats-sections{
@@ -795,7 +794,7 @@
       <div class="note">
         Loadout uses <code>player.loadouts[0]</code> and matches to <code>loadout_id</code> in <code>loadout.json</code>.
         <br>Loadout description is shown in a popup.
-        <br>Player stat details keep player columns, while each category is now its own collapsible row.
+        <br>In Player Stat Details, each category collapses across the whole row, and the expanded content keeps the player columns aligned.
       </div>
     </div>
 
@@ -1409,21 +1408,10 @@
       return sections;
     }
 
-    function buildCollapsibleCategory(title, innerHtml) {
-      return `
-        <details class="category-fold">
-          <summary>${escapeHtml(title)}</summary>
-          <div class="category-fold-body">
-            ${innerHtml}
-          </div>
-        </details>
-      `;
-    }
-
-    function buildCurrentItemsBlock(player) {
+    function buildCurrentItemsContent(player) {
       const items = getLatestItems(player);
 
-      const content = `
+      return `
         <div class="stats-category">
           <div class="stats-table">
             ${
@@ -1444,14 +1432,12 @@
           </div>
         </div>
       `;
-
-      return buildCollapsibleCategory("Current Items Latest Round Inventory", content);
     }
 
-    function buildPurchasedItemsBlock(player) {
+    function buildPurchasedItemsContent(player) {
       const items = getLatestPurchasedItems(player);
 
-      const content = `
+      return `
         <div class="stats-category">
           <div class="stats-table">
             ${
@@ -1472,14 +1458,12 @@
           </div>
         </div>
       `;
-
-      return buildCollapsibleCategory("Purchased Items Latest Round Type 0 To Type 1 Fallback", content);
     }
 
-    function buildWeaponUsagesBlock(player) {
+    function buildWeaponUsagesContent(player) {
       const usages = getLatestWeaponUsages(player);
 
-      const content = `
+      return `
         <div class="stats-sections">
           ${
             usages.length
@@ -1517,15 +1501,13 @@
           }
         </div>
       `;
-
-      return buildCollapsibleCategory("Weapon Usages Latest Round", content);
     }
 
-    function buildLatestRoundStatsBlock(player) {
+    function buildLatestRoundStatsContent(player) {
       const round = getLatestRoundStat(player);
 
       if (!round) {
-        const content = `
+        return `
           <div class="stats-category">
             <div class="stats-table">
               <div class="stats-row">
@@ -1535,12 +1517,11 @@
             </div>
           </div>
         `;
-        return buildCollapsibleCategory("Latest Round Stats Broken Down By Section", content);
       }
 
       const sections = categorizeRoundStats(round);
 
-      const content = `
+      return `
         <div class="stats-sections">
           ${Object.entries(sections)
             .filter(([, rows]) => rows.length)
@@ -1559,8 +1540,6 @@
             `).join("")}
         </div>
       `;
-
-      return buildCollapsibleCategory("Latest Round Stats Broken Down By Section", content);
     }
 
     function renderPlayerSummaryCard(player) {
@@ -1614,17 +1593,27 @@
       `;
     }
 
-    function renderPlayerDetailColumn(player) {
+    function renderPlayerCategoryColumn(player, contentHtml) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
 
       return `
         <div class="detail-col">
           <div class="detail-col-head">${escapeHtml(playerName)}</div>
-          ${buildCurrentItemsBlock(player)}
-          ${buildPurchasedItemsBlock(player)}
-          ${buildWeaponUsagesBlock(player)}
-          ${buildLatestRoundStatsBlock(player)}
+          ${contentHtml}
         </div>
+      `;
+    }
+
+    function renderCategoryRow(players, title, builderFn) {
+      return `
+        <details class="row-fold">
+          <summary>${escapeHtml(title)}</summary>
+          <div class="row-fold-body">
+            <div class="detail-grid">
+              ${players.map(player => renderPlayerCategoryColumn(player, builderFn(player))).join("")}
+            </div>
+          </div>
+        </details>
       `;
     }
 
@@ -1646,14 +1635,22 @@
       const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
       const teamName = team?.team_name || fallbackName;
 
+      if (!players.length) {
+        return `
+          <div class="details-team-block">
+            <div class="details-team-title">${escapeHtml(teamName)}</div>
+            <div class="empty-lite">No players found.</div>
+          </div>
+        `;
+      }
+
       return `
         <div class="details-team-block">
           <div class="details-team-title">${escapeHtml(teamName)}</div>
-          ${
-            players.length
-              ? `<div class="detail-grid">${players.map(renderPlayerDetailColumn).join("")}</div>`
-              : `<div class="empty-lite">No players found.</div>`
-          }
+          ${renderCategoryRow(players, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
+          ${renderCategoryRow(players, "Purchased Items Latest Round Type 0 To Type 1 Fallback", buildPurchasedItemsContent)}
+          ${renderCategoryRow(players, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
+          ${renderCategoryRow(players, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
         </div>
       `;
     }
