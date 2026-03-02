@@ -195,12 +195,14 @@
       gap:16px;
       align-items:start;
       min-width:0;
+      position:relative;
+      overflow:visible;
     }
 
     .team-panel{
       position:relative;
       min-width:0;
-      overflow:hidden;
+      overflow:visible;
       border-radius:24px;
       padding:14px;
       border:1px solid rgba(124,172,255,.12);
@@ -208,6 +210,12 @@
         linear-gradient(180deg, rgba(7,18,38,.95), rgba(5,14,30,.96)),
         linear-gradient(90deg, rgba(45,175,255,.04), rgba(255,127,50,.03));
       box-shadow:var(--shadow);
+      z-index:1;
+    }
+
+    .team-panel:hover,
+    .team-panel:focus-within{
+      z-index:6;
     }
 
     .team-panel::after{
@@ -246,6 +254,7 @@
       display:grid;
       gap:12px;
       min-width:0;
+      overflow:visible;
     }
 
     .player-grid,
@@ -254,7 +263,9 @@
       grid-template-columns:repeat(4, minmax(0,1fr));
       gap:10px;
       align-items:start;
+      align-content:start;
       min-width:0;
+      overflow:visible;
     }
 
     .player-card{
@@ -266,6 +277,9 @@
       border-radius:16px;
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.02);
+      overflow:visible;
+      position:relative;
+      z-index:1;
     }
 
     .hero-card{
@@ -274,6 +288,7 @@
       padding:4px;
       background:linear-gradient(180deg, rgba(55,133,255,.25), rgba(255,127,50,.10));
       border:1px solid rgba(124,172,255,.14);
+      overflow:visible;
     }
 
     .hero-card-inner{
@@ -345,6 +360,9 @@
       justify-content:center;
       gap:6px;
       min-height:40px;
+      overflow:visible;
+      position:relative;
+      z-index:1;
     }
 
     .skill-chip{
@@ -355,6 +373,7 @@
       align-items:center;
       gap:4px;
       min-width:0;
+      overflow:visible;
     }
 
     .skill-chip-icon{
@@ -399,6 +418,13 @@
     .hover-wrap{
       position:relative;
       outline:none;
+      z-index:1;
+      overflow:visible;
+    }
+
+    .hover-wrap:hover,
+    .hover-wrap:focus-within{
+      z-index:9999;
     }
 
     .hover-popup{
@@ -415,7 +441,7 @@
       opacity:0;
       pointer-events:none;
       transition:opacity .16s ease, transform .16s ease;
-      z-index:50;
+      z-index:10000;
       text-align:left;
     }
 
@@ -469,6 +495,7 @@
       display:grid;
       gap:8px;
       min-width:0;
+      overflow:visible;
     }
 
     .section-title{
@@ -564,6 +591,8 @@
       grid-template-columns:minmax(0,1fr) minmax(0,1fr);
       gap:16px;
       min-width:0;
+      align-items:start;
+      align-content:start;
     }
 
     .details-team-block{
@@ -574,6 +603,9 @@
       min-width:0;
       display:grid;
       gap:10px;
+      align-content:start;
+      align-items:start;
+      align-self:start;
     }
 
     .details-team-title{
@@ -591,6 +623,8 @@
       display:grid;
       gap:8px;
       align-content:start;
+      align-items:start;
+      align-self:start;
     }
 
     .detail-col-head{
@@ -658,10 +692,59 @@
       border-top:1px solid rgba(124,172,255,.08);
     }
 
+    .round-fold{
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.08);
+      background:rgba(255,255,255,.02);
+      overflow:hidden;
+      min-width:0;
+      align-self:start;
+    }
+
+    .round-fold summary{
+      list-style:none;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:8px 10px;
+      background:rgba(255,255,255,.03);
+      color:#cfe0ff;
+      font-size:10px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      line-height:1.2;
+    }
+
+    .round-fold summary::-webkit-details-marker{
+      display:none;
+    }
+
+    .round-fold summary::after{
+      content:"▸";
+      font-size:12px;
+      color:#cfe0ff;
+      flex:0 0 auto;
+      transition:transform .18s ease;
+    }
+
+    .round-fold[open] summary::after{
+      transform:rotate(90deg);
+    }
+
+    .round-fold-body{
+      padding:10px;
+      border-top:1px solid rgba(124,172,255,.08);
+    }
+
     .stats-sections{
       display:grid;
       gap:8px;
       min-width:0;
+      align-items:start;
+      align-content:start;
     }
 
     .stats-category{
@@ -670,6 +753,7 @@
       background:rgba(255,255,255,.02);
       overflow:hidden;
       min-width:0;
+      align-self:start;
     }
 
     .stats-category-title{
@@ -689,6 +773,7 @@
     .stats-table{
       display:grid;
       min-width:0;
+      align-content:start;
     }
 
     .stats-row{
@@ -712,6 +797,7 @@
       white-space:normal;
       line-height:1.2;
       word-break:break-word;
+      align-self:start;
     }
 
     .stats-val{
@@ -722,6 +808,7 @@
       line-height:1.25;
       word-break:break-word;
       min-width:0;
+      align-self:start;
     }
 
     .empty-lite{
@@ -1503,7 +1590,6 @@
 
     function renderTooltip(entry) {
       if (!entry || (!entry.skill && !entry.description)) return "";
-
       const meta = entry.slotType ? `${entry.slotType}${entry.label ? " • " + entry.label : ""}` : (entry.label || "");
       return renderPopup(entry.skill || entry.label || "Skill", meta, entry.description || "No description available.");
     }
@@ -1886,6 +1972,7 @@
 
     function renderGlobalRoundBasedRow(teams, title, builderFn, emptyLabel = "No round data found.") {
       const roundIndices = getAllRoundIndicesForTeams(teams);
+      const latestRoundIndex = roundIndices.length ? roundIndices[roundIndices.length - 1] : null;
 
       return `
         <details class="row-fold">
@@ -1895,15 +1982,15 @@
               ${
                 roundIndices.length
                   ? roundIndices.map(roundIndex => `
-                      <div class="stats-category">
-                        <div class="stats-category-title">Round ${roundIndex + 1}</div>
-                        <div style="padding:10px;">
+                      <details class="round-fold" ${roundIndex === latestRoundIndex ? "open" : ""}>
+                        <summary>Round ${roundIndex + 1}</summary>
+                        <div class="round-fold-body">
                           <div class="details-wrap">
                             ${renderCategoryContentForTeamWithArgs(teams[0], "Team A", builderFn, roundIndex)}
                             ${renderCategoryContentForTeamWithArgs(teams[1], "Team B", builderFn, roundIndex)}
                           </div>
                         </div>
-                      </div>
+                      </details>
                     `).join("")
                   : `
                       <div class="stats-category">
@@ -2287,7 +2374,6 @@
           return;
         }
 
-        // force fresh lookup every render so DB changes reflect immediately
         await loadMatchApiLookups();
         if (!assetsLoaded) await loadAssetCatalogs();
 
