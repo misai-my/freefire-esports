@@ -153,12 +153,23 @@
     .match-head{
       display:grid;
       grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
-      gap:12px;
+      gap:14px;
       align-items:center;
       padding:12px 16px;
       margin-bottom:16px;
       border-radius:20px;
       min-width:0;
+    }
+
+    .match-team-side{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .match-team-side.right{
+      justify-content:flex-end;
     }
 
     .match-team-name{
@@ -168,49 +179,34 @@
       color:var(--orange);
       text-transform:uppercase;
       line-height:1.1;
-      white-space:normal;
-      word-break:break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .match-team-name.right{
       text-align:right;
     }
 
-    .team-name-wrap{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-
-    .match-team-name.right .team-name-wrap{
-      justify-content:flex-end;
-      flex-direction:row-reverse;
-    }
-
-    .team-name-text{
-      min-width:0;
-      white-space:normal;
-      word-break:break-word;
-    }
-
-    .team-score-pill{
+    .team-score-chip{
       flex:0 0 auto;
       min-width:42px;
-      padding:6px 10px;
+      height:32px;
+      padding:0 12px;
       border-radius:999px;
-      border:1px solid rgba(124,172,255,.18);
-      background:rgba(255,255,255,.05);
-      color:#fff;
-      font-size:16px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
       font-weight:900;
-      line-height:1;
-      text-align:center;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+      color:#fff;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(255,255,255,.04);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
     }
 
     .match-round{
-      padding:8px 14px;
+      padding:8px 18px;
       border-radius:14px;
       border:1px solid rgba(124,172,255,.18);
       background:rgba(3,12,28,.72);
@@ -220,6 +216,7 @@
       text-transform:uppercase;
       color:#fff;
       white-space:nowrap;
+      text-align:center;
     }
 
     .arena-wrap{
@@ -228,8 +225,6 @@
       gap:16px;
       align-items:start;
       min-width:0;
-      position:relative;
-      overflow:visible;
     }
 
     .team-panel{
@@ -243,12 +238,6 @@
         linear-gradient(180deg, rgba(7,18,38,.95), rgba(5,14,30,.96)),
         linear-gradient(90deg, rgba(45,175,255,.04), rgba(255,127,50,.03));
       box-shadow:var(--shadow);
-      z-index:1;
-    }
-
-    .team-panel:hover,
-    .team-panel:focus-within{
-      z-index:6;
     }
 
     .team-panel::after{
@@ -287,7 +276,6 @@
       display:grid;
       gap:12px;
       min-width:0;
-      overflow:visible;
     }
 
     .player-grid,
@@ -296,9 +284,7 @@
       grid-template-columns:repeat(4, minmax(0,1fr));
       gap:10px;
       align-items:start;
-      align-content:start;
       min-width:0;
-      overflow:visible;
     }
 
     .player-card{
@@ -311,8 +297,6 @@
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.02);
       overflow:visible;
-      position:relative;
-      z-index:1;
     }
 
     .hero-card{
@@ -394,8 +378,6 @@
       gap:6px;
       min-height:40px;
       overflow:visible;
-      position:relative;
-      z-index:1;
     }
 
     .skill-chip{
@@ -452,7 +434,6 @@
       position:relative;
       outline:none;
       z-index:1;
-      overflow:visible;
     }
 
     .hover-wrap:hover,
@@ -625,7 +606,6 @@
       gap:16px;
       min-width:0;
       align-items:start;
-      align-content:start;
     }
 
     .details-team-block{
@@ -637,7 +617,6 @@
       display:grid;
       gap:10px;
       align-content:start;
-      align-items:start;
       align-self:start;
     }
 
@@ -656,7 +635,6 @@
       display:grid;
       gap:8px;
       align-content:start;
-      align-items:start;
       align-self:start;
     }
 
@@ -674,7 +652,8 @@
       word-break:break-word;
     }
 
-    .row-fold{
+    .row-fold,
+    .round-fold{
       border-radius:12px;
       border:1px solid rgba(124,172,255,.08);
       background:rgba(255,255,255,.02);
@@ -687,7 +666,8 @@
       margin-top:0;
     }
 
-    .row-fold summary{
+    .row-fold summary,
+    .round-fold summary{
       list-style:none;
       cursor:pointer;
       display:flex;
@@ -702,59 +682,20 @@
       text-transform:uppercase;
       letter-spacing:.08em;
       line-height:1.2;
-    }
-
-    .row-fold summary::-webkit-details-marker{
-      display:none;
-    }
-
-    .row-fold summary::after{
-      content:"▸";
-      font-size:12px;
-      color:#cfe0ff;
-      flex:0 0 auto;
-      transition:transform .18s ease;
-    }
-
-    .row-fold[open] summary::after{
-      transform:rotate(90deg);
-    }
-
-    .row-fold-body{
-      padding:10px;
-      border-top:1px solid rgba(124,172,255,.08);
-    }
-
-    .round-fold{
-      border-radius:12px;
-      border:1px solid rgba(124,172,255,.08);
-      background:rgba(255,255,255,.02);
-      overflow:hidden;
-      min-width:0;
-      align-self:start;
+      user-select:none;
     }
 
     .round-fold summary{
-      list-style:none;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      padding:8px 10px;
-      background:rgba(255,255,255,.03);
-      color:#cfe0ff;
-      font-size:10px;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      line-height:1.2;
+      padding:9px 11px;
+      background:rgba(255,255,255,.015);
     }
 
+    .row-fold summary::-webkit-details-marker,
     .round-fold summary::-webkit-details-marker{
       display:none;
     }
 
+    .row-fold summary::after,
     .round-fold summary::after{
       content:"▸";
       font-size:12px;
@@ -763,13 +704,15 @@
       transition:transform .18s ease;
     }
 
+    .row-fold[open] summary::after,
     .round-fold[open] summary::after{
       transform:rotate(90deg);
     }
 
-    .round-fold-body{
+    .row-fold-body{
       padding:10px;
       border-top:1px solid rgba(124,172,255,.08);
+      min-width:0;
     }
 
     .stats-sections{
@@ -777,7 +720,6 @@
       gap:8px;
       min-width:0;
       align-items:start;
-      align-content:start;
     }
 
     .stats-category{
@@ -806,7 +748,7 @@
     .stats-table{
       display:grid;
       min-width:0;
-      align-content:start;
+      align-items:start;
     }
 
     .stats-row{
@@ -903,15 +845,14 @@
         text-align:center;
       }
 
+      .match-team-side,
+      .match-team-side.right{
+        justify-content:center;
+      }
+
       .match-team-name,
       .match-team-name.right{
         text-align:center;
-      }
-
-      .match-team-name .team-name-wrap,
-      .match-team-name.right .team-name-wrap{
-        justify-content:center;
-        flex-direction:row;
       }
 
       .arena-wrap,
@@ -943,6 +884,16 @@
       .details-head{
         align-items:flex-start;
       }
+
+      .match-team-name{
+        font-size:20px;
+      }
+
+      .team-score-chip{
+        min-width:38px;
+        height:30px;
+        font-size:16px;
+      }
     }
   </style>
 </head>
@@ -967,9 +918,17 @@
     </div>
 
     <div class="panel match-head">
-      <div id="teamAName" class="match-team-name">—</div>
-      <div id="matchRound" class="match-round">Round —</div>
-      <div id="teamBName" class="match-team-name right">—</div>
+      <div class="match-team-side left">
+        <span id="teamAName" class="match-team-name">—</span>
+        <span id="teamAScore" class="team-score-chip">0</span>
+      </div>
+
+      <div id="matchRound" class="match-round">ROUND —</div>
+
+      <div class="match-team-side right">
+        <span id="teamBScore" class="team-score-chip">0</span>
+        <span id="teamBName" class="match-team-name right">—</span>
+      </div>
     </div>
 
     <div class="arena-wrap">
@@ -1015,7 +974,6 @@
     const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     const LOADOUT_JSON_URL = 'https://misai-my.github.io/freefire-esports/loadout.json';
     const SHARED_ROOM = 'global';
-    const LOCAL_INPUT_KEY = 'cs_clash_local_json';
 
     const $ = (id) => document.getElementById(id);
 
@@ -1024,7 +982,6 @@
     let detailsMode = "latest";
     let CURRENT_TEAMS = null;
     let CURRENT_PAYLOAD = null;
-    let CURRENT_SHARED_JSON_TEXT = "";
     let sharedChannel = null;
     let applyingRemoteState = false;
 
@@ -1057,26 +1014,6 @@
 
     function setCopyPromptStatus(message) {
       $("copyPromptStatus").textContent = message;
-    }
-
-    function getLocalInput() {
-      try {
-        return localStorage.getItem(LOCAL_INPUT_KEY) || "";
-      } catch {
-        return "";
-      }
-    }
-
-    function setLocalInput(value) {
-      try {
-        localStorage.setItem(LOCAL_INPUT_KEY, String(value || ""));
-      } catch {}
-    }
-
-    function clearLocalInput() {
-      try {
-        localStorage.removeItem(LOCAL_INPUT_KEY);
-      } catch {}
     }
 
     function escapeHtml(value) {
@@ -1630,42 +1567,24 @@
         }
       }
 
-      return best >= 0 ? `Round ${best + 1}` : "Round —";
+      return best >= 0 ? `ROUND ${best + 1}` : "ROUND —";
     }
 
-    function computeTeamScore(team) {
+    function getTeamRoundWins(team) {
+      const winRounds = new Set();
       const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-      const wonRounds = new Set();
 
       for (const player of players) {
         const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
         for (const round of rounds) {
-          const roundIndex = toNum(round?.round_index, -1);
-          if (roundIndex < 0) continue;
-          if (round?.is_win === true) wonRounds.add(roundIndex);
+          const idx = toNum(round?.round_index, -1);
+          if (idx >= 0 && round?.is_win === true) {
+            winRounds.add(idx);
+          }
         }
       }
 
-      return wonRounds.size;
-    }
-
-    function renderTeamHeader(name, score, side = "left") {
-      const safeName = escapeHtml(name || "—");
-      const scoreHtml = Number.isFinite(score)
-        ? `<span class="team-score-pill">${score}</span>`
-        : "";
-
-      return `
-        <div class="team-name-wrap ${side === "right" ? "right" : "left"}">
-          <span class="team-name-text">${safeName}</span>
-          ${scoreHtml}
-        </div>
-      `;
-    }
-
-    function setTeamHeader(elId, name, score, side) {
-      const el = $(elId);
-      el.innerHTML = renderTeamHeader(name, score, side);
+      return winRounds.size;
     }
 
     function renderHeroImage(imageUrl, alt) {
@@ -1686,6 +1605,7 @@
 
     function renderTooltip(entry) {
       if (!entry || (!entry.skill && !entry.description)) return "";
+
       const meta = entry.slotType ? `${entry.slotType}${entry.label ? " • " + entry.label : ""}` : (entry.label || "");
       return renderPopup(entry.skill || entry.label || "Skill", meta, entry.description || "No description available.");
     }
@@ -1729,61 +1649,44 @@
       `;
     }
 
-    function categorizeRoundStats(round) {
-      const sections = {
-        "Round Outcome & Flags": [],
-        "Combat Output": [],
-        "Damage & Survival": [],
-        "Support & Recovery": [],
-        "Economy & Purchases": [],
-        "Abilities & Utility": [],
-        "Other Round Fields": []
-      };
+    function getCustomRoundSections(round) {
+      if (!round) return [];
 
-      const exclude = new Set(["purchased_items", "weapon_usages", "item_nums"]);
+      const firstBloodRows = [];
+      if (round?.is_first_down === true) firstBloodRows.push(["Tag", "First Blood"]);
+      if (round?.is_first_taken_down === true) firstBloodRows.push(["Tag", "First Down"]);
+      if (!firstBloodRows.length) firstBloodRows.push(["Tag", "None"]);
 
-      const map = {
-        round_index: "Round Outcome & Flags",
-        is_win: "Round Outcome & Flags",
-        is_dead: "Round Outcome & Flags",
-        is_first_down: "Round Outcome & Flags",
-        is_first_taken_down: "Round Outcome & Flags",
+      const combatRows = [
+        ["Kills", round?.kill],
+        ["Assists", round?.assists],
+        ["Headshot", round?.headshots],
+        ["Damage", round?.real_damage],
+        ["Damage Taken", round?.real_damage_taken],
+        ["Knock Down", round?.knock_down]
+      ];
 
-        kill: "Combat Output",
-        assists: "Combat Output",
-        knock_down: "Combat Output",
-        headshots: "Combat Output",
-        hits: "Combat Output",
-        torso_hits: "Combat Output",
-        leg_hits: "Combat Output",
+      const economyRows = [
+        ["Economy Spent Self", round?.economy_spent_self],
+        ["Economy Spent On Teammates", round?.economy_spent_on_teammates],
+        ["Initial Item Value", round?.initial_item_value],
+        ["Airdrop Points", round?.airdrop_points]
+      ];
 
-        damage: "Damage & Survival",
-        real_damage: "Damage & Survival",
-        real_damage_taken: "Damage & Survival",
+      const utilityRows = [
+        ["Nb Skill Usages", round?.nb_skill_usages],
+        ["Medkit Use", round?.medkit_use],
+        ["Grenade Use", round?.grenade_use],
+        ["Icewall Use", round?.icewall_use],
+        ["Throwable Use", round?.throwable_use]
+      ];
 
-        healing_to_self: "Support & Recovery",
-        healing_to_teammates: "Support & Recovery",
-        rescue_count: "Support & Recovery",
-
-        economy_spent_self: "Economy & Purchases",
-        economy_spent_on_teammates: "Economy & Purchases",
-        initial_item_value: "Economy & Purchases",
-        airdrop_points: "Economy & Purchases",
-
-        nb_skill_usages: "Abilities & Utility",
-        medkit_use: "Abilities & Utility",
-        grenade_use: "Abilities & Utility",
-        icewall_use: "Abilities & Utility",
-        throwable_use: "Abilities & Utility"
-      };
-
-      for (const [key, value] of Object.entries(round || {})) {
-        if (exclude.has(key)) continue;
-        const bucket = map[key] || "Other Round Fields";
-        sections[bucket].push([key, value]);
-      }
-
-      return sections;
+      return [
+        { title: "First Blood", rows: firstBloodRows },
+        { title: "Combat Output", rows: combatRows },
+        { title: "Economy & Purchases", rows: economyRows },
+        { title: "Abilities & Utility", rows: utilityRows }
+      ];
     }
 
     function buildCurrentItemsContent(player) {
@@ -1935,25 +1838,23 @@
         `;
       }
 
-      const sections = categorizeRoundStats(round);
+      const sections = getCustomRoundSections(round);
 
       return `
         <div class="stats-sections">
-          ${Object.entries(sections)
-            .filter(([, rows]) => rows.length)
-            .map(([title, rows]) => `
-              <div class="stats-category">
-                <div class="stats-category-title">${escapeHtml(title)}</div>
-                <div class="stats-table">
-                  ${rows.map(([key, value]) => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                      <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                    </div>
-                  `).join("")}
-                </div>
+          ${sections.map(section => `
+            <div class="stats-category">
+              <div class="stats-category-title">${escapeHtml(section.title)}</div>
+              <div class="stats-table">
+                ${(section.rows || []).map(([key, value]) => `
+                  <div class="stats-row">
+                    <div class="stats-key">${escapeHtml(key)}</div>
+                    <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                  </div>
+                `).join("")}
               </div>
-            `).join("")}
+            </div>
+          `).join("")}
         </div>
       `;
     }
@@ -2068,7 +1969,6 @@
 
     function renderGlobalRoundBasedRow(teams, title, builderFn, emptyLabel = "No round data found.") {
       const roundIndices = getAllRoundIndicesForTeams(teams);
-      const latestRoundIndex = roundIndices.length ? roundIndices[roundIndices.length - 1] : null;
 
       return `
         <details class="row-fold">
@@ -2078,9 +1978,9 @@
               ${
                 roundIndices.length
                   ? roundIndices.map(roundIndex => `
-                      <details class="round-fold" ${roundIndex === latestRoundIndex ? "open" : ""}>
+                      <details class="round-fold">
                         <summary>Round ${roundIndex + 1}</summary>
-                        <div class="round-fold-body">
+                        <div class="row-fold-body">
                           <div class="details-wrap">
                             ${renderCategoryContentForTeamWithArgs(teams[0], "Team A", builderFn, roundIndex)}
                             ${renderCategoryContentForTeamWithArgs(teams[1], "Team B", builderFn, roundIndex)}
@@ -2110,7 +2010,7 @@
         ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
         ${renderGlobalCategoryRow(teams, "Purchased Items Latest Round", buildLatestPurchasedItemsContent)}
         ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
-        ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
+        ${renderGlobalCategoryRow(teams, "Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
       `;
     }
 
@@ -2207,12 +2107,12 @@
       const round = getLatestRoundStat(player);
       if (!round) return "No round_stats found.";
 
-      const sections = categorizeRoundStats(round);
+      const sections = getCustomRoundSections(round);
       const lines = [];
 
-      for (const [title, rows] of Object.entries(sections)) {
-        if (!rows.length) continue;
-        lines.push(`${title}: ${rows.map(([key, value]) => `${humanizeKey(key)} = ${formatGenericValue(value)}`).join("; ")}`);
+      for (const section of sections) {
+        if (!section.rows?.length) continue;
+        lines.push(`${section.title}: ${section.rows.map(([key, value]) => `${key} = ${formatGenericValue(value)}`).join("; ")}`);
       }
 
       return lines.length ? lines.join("\n      - ") : "No categorized round stats found.";
@@ -2240,352 +2140,4 @@
         `   - Purchased Items By Round:`,
         `      - ${summarizePurchasedRoundsForPrompt(player)}`,
         `   - Weapon Usages (Latest Round):`,
-        `      - ${summarizeWeaponsForPrompt(weaponUsages)}`,
-        `   - Latest Round Stats By Section:`,
-        `      - ${summarizeRoundStatsForPrompt(player)}`
-      ].join("\n");
-    }
-
-    function buildTeamPromptBlock(team, fallbackName) {
-      const teamName = team?.team_name || fallbackName;
-      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-
-      return [
-        `=== ${teamName} ===`,
-        players.length
-          ? players.map((player, idx) => buildPlayerPromptBlock(player, idx)).join("\n\n")
-          : "No players found."
-      ].join("\n");
-    }
-
-    function buildAiAnalysisPrompt(payload, teams) {
-      const roundText = getDisplayRound(payload, teams);
-
-      return [
-        `You are an expert esports commentator, analyst, and coach reviewing a Free Fire Clash Squad match snapshot.`,
-        ``,
-        `Use the data below to produce a deep but practical analysis.`,
-        ``,
-        `Please provide:`,
-        `1. A caster-ready overview of both teams and their likely game plan.`,
-        `2. A coach-style breakdown of each team's strengths, weaknesses, win conditions, and risk factors.`,
-        `3. Player-by-player insights, including who is carrying, enabling, struggling, or playing supportive roles.`,
-        `4. A read on item economy, purchased utility, and what the loadouts suggest about team strategy.`,
-        `5. A breakdown of weapon usage and what it says about preferred fight distances and execution.`,
-        `6. A comparison of both teams' compositions, active/passive synergy, pet impact, and loadout value.`,
-        `7. The most important storylines an esports commentator should highlight on broadcast.`,
-        `8. Clear coaching adjustments for each team if they were going into the next round.`,
-        `9. A short final verdict: which team currently looks better and why.`,
-        ``,
-        `Keep the response useful for:`,
-        `- live shoutcasting / commentary`,
-        `- analyst desk breakdown`,
-        `- team coaching review`,
-        ``,
-        `Match Context:`,
-        `- Display Round: ${roundText}`,
-        `- Team A: ${teams[0]?.team_name || "Team A"}`,
-        `- Team B: ${teams[1]?.team_name || "Team B"}`,
-        ``,
-        `Data:`,
-        ``,
-        buildTeamPromptBlock(teams[0], "Team A"),
-        ``,
-        buildTeamPromptBlock(teams[1], "Team B"),
-        ``,
-        `Now analyze this as an esports commentator / analyst / coach.`
-      ].join("\n");
-    }
-
-    async function copyTextToClipboard(text) {
-      if (!text) return false;
-
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(text);
-          return true;
-        }
-      } catch {}
-
-      const temp = document.createElement("textarea");
-      temp.value = text;
-      temp.style.position = "fixed";
-      temp.style.opacity = "0";
-      temp.style.pointerEvents = "none";
-      document.body.appendChild(temp);
-      temp.focus();
-      temp.select();
-
-      let ok = false;
-      try {
-        ok = document.execCommand("copy");
-      } catch {
-        ok = false;
-      }
-
-      document.body.removeChild(temp);
-      return ok;
-    }
-
-    function clearRender() {
-      setTeamHeader("teamAName", "—", null, "left");
-      setTeamHeader("teamBName", "—", null, "right");
-      $("matchRound").textContent = "Round —";
-      $("teamAContent").innerHTML = "";
-      $("teamBContent").innerHTML = "";
-      $("globalPlayerDetails").innerHTML = "";
-      $("aiPromptOutput").value = "";
-      CURRENT_TEAMS = null;
-      CURRENT_PAYLOAD = null;
-      setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
-      updateDetailsModeButtons();
-    }
-
-    function getPayload(data) {
-      return Array.isArray(data) ? data[0] : data;
-    }
-
-    function getTeamsFromPayload(payload) {
-      return Array.isArray(payload?.team_stats) ? payload.team_stats : [];
-    }
-
-    async function saveSharedState() {
-      if (applyingRemoteState) return false;
-
-      const payload = {
-        room: SHARED_ROOM,
-        json_text: CURRENT_SHARED_JSON_TEXT || "",
-        details_mode: detailsMode === "all" ? "all" : "latest",
-        updated_at: new Date().toISOString()
-      };
-
-      const { error } = await client
-        .from("shared_match_state")
-        .upsert(payload, { onConflict: "room" });
-
-      if (error) {
-        console.error("saveSharedState error:", error);
-        setStatus("Shared state save failed:\n" + JSON.stringify(error, null, 2), true);
-        return false;
-      }
-
-      return true;
-    }
-
-    async function loadSharedState() {
-      const { data, error } = await client
-        .from("shared_match_state")
-        .select("room, json_text, details_mode")
-        .eq("room", SHARED_ROOM)
-        .maybeSingle();
-
-      if (error) {
-        console.error("loadSharedState error:", error);
-        setStatus("Shared state load failed:\n" + JSON.stringify(error, null, 2), true);
-        return;
-      }
-
-      $("jsonInput").value = getLocalInput();
-
-      if (!data) {
-        updateDetailsModeButtons();
-        return;
-      }
-
-      applyingRemoteState = true;
-      try {
-        CURRENT_SHARED_JSON_TEXT = data.json_text || "";
-        detailsMode = data.details_mode === "all" ? "all" : "latest";
-        updateDetailsModeButtons();
-
-        if (CURRENT_SHARED_JSON_TEXT.trim()) {
-          await renderJson(false, CURRENT_SHARED_JSON_TEXT);
-        } else {
-          clearRender();
-        }
-      } finally {
-        applyingRemoteState = false;
-      }
-    }
-
-    function subscribeSharedState() {
-      if (sharedChannel) return;
-
-      sharedChannel = client
-        .channel("shared-match-state")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "shared_match_state",
-            filter: `room=eq.${SHARED_ROOM}`
-          },
-          async (payload) => {
-            const row = payload?.new;
-            if (!row) return;
-
-            applyingRemoteState = true;
-            try {
-              CURRENT_SHARED_JSON_TEXT = row.json_text || "";
-              detailsMode = row.details_mode === "all" ? "all" : "latest";
-              updateDetailsModeButtons();
-
-              if (CURRENT_SHARED_JSON_TEXT.trim()) {
-                await renderJson(false, CURRENT_SHARED_JSON_TEXT);
-              } else {
-                clearRender();
-              }
-            } finally {
-              applyingRemoteState = false;
-            }
-          }
-        )
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            if (!$("status").classList.contains("error")) {
-              const current = $("status").textContent || "";
-              if (!current.includes("Realtime")) {
-                $("status").textContent = current + (current ? "\n" : "") + "Realtime: SUBSCRIBED";
-              }
-            }
-          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            setStatus("Realtime status: " + status, true);
-          }
-        });
-    }
-
-    async function renderJson(shouldBroadcast = true, rawOverride = null) {
-      try {
-        const sourceRaw = typeof rawOverride === "string"
-          ? rawOverride
-          : ($("jsonInput").value || "");
-
-        if (typeof rawOverride !== "string") {
-          setLocalInput(sourceRaw);
-        }
-
-        const raw = sourceRaw.trim();
-
-        if (!raw) {
-          clearRender();
-          setStatus("Paste JSON first.", true);
-
-          if (shouldBroadcast) {
-            CURRENT_SHARED_JSON_TEXT = "";
-            await saveSharedState();
-          }
-          return;
-        }
-
-        CURRENT_SHARED_JSON_TEXT = raw;
-
-        await loadMatchApiLookups();
-        if (!assetsLoaded) await loadAssetCatalogs();
-
-        let data;
-        try {
-          data = JSON.parse(raw);
-        } catch (err) {
-          clearRender();
-          setStatus(`Invalid JSON:\n${err.message}`, true);
-          return;
-        }
-
-        const payload = getPayload(data);
-        const teams = getTeamsFromPayload(payload);
-
-        if (teams.length < 2) {
-          clearRender();
-          setStatus("This JSON needs at least 2 teams inside team_stats.", true);
-          return;
-        }
-
-        CURRENT_PAYLOAD = payload;
-        CURRENT_TEAMS = [teams[0], teams[1]];
-
-        const teamAScore = computeTeamScore(CURRENT_TEAMS[0]);
-        const teamBScore = computeTeamScore(CURRENT_TEAMS[1]);
-
-        setTeamHeader("teamAName", CURRENT_TEAMS[0]?.team_name || "—", teamAScore, "left");
-        setTeamHeader("teamBName", CURRENT_TEAMS[1]?.team_name || "—", teamBScore, "right");
-        $("matchRound").textContent = getDisplayRound(payload, CURRENT_TEAMS);
-
-        $("teamAContent").innerHTML = renderTeamContent(CURRENT_TEAMS[0]);
-        $("teamBContent").innerHTML = renderTeamContent(CURRENT_TEAMS[1]);
-        renderDetailsPanel();
-        $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, CURRENT_TEAMS);
-
-        let message = `Rendered ${CURRENT_TEAMS[0]?.team_name || "Team A"} (${teamAScore}) vs ${CURRENT_TEAMS[1]?.team_name || "Team B"} (${teamBScore}).`;
-        if (teams.length > 2) {
-          message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
-        }
-
-        setStatus(message);
-        setCopyPromptStatus("AI prompt generated. Use Copy Prompt to paste it into another AI tool.");
-
-        if (shouldBroadcast) {
-          await saveSharedState();
-        }
-      } catch (err) {
-        setStatus(`Render failed:\n${err.message || err}`, true);
-      }
-    }
-
-    $("jsonInput").addEventListener("input", () => {
-      setLocalInput($("jsonInput").value || "");
-    });
-
-    $("renderBtn").addEventListener("click", () => renderJson());
-
-    $("reloadLookupBtn").addEventListener("click", async () => {
-      matchApiLoaded = false;
-      assetsLoaded = false;
-      try {
-        await warmUp();
-        if (CURRENT_TEAMS && CURRENT_TEAMS.length >= 2) {
-          const teamAScore = computeTeamScore(CURRENT_TEAMS[0]);
-          const teamBScore = computeTeamScore(CURRENT_TEAMS[1]);
-          setTeamHeader("teamAName", CURRENT_TEAMS[0]?.team_name || "—", teamAScore, "left");
-          setTeamHeader("teamBName", CURRENT_TEAMS[1]?.team_name || "—", teamBScore, "right");
-          renderDetailsPanel();
-        }
-      } catch (err) {
-        setStatus(`Reload failed:\n${err.message || err}`, true);
-      }
-    });
-
-    $("clearBtn").addEventListener("click", async () => {
-      $("jsonInput").value = "";
-      clearLocalInput();
-      clearRender();
-      setStatus("Cleared. Paste new JSON to render.");
-      CURRENT_SHARED_JSON_TEXT = "";
-      await saveSharedState();
-    });
-
-    $("copyPromptBtn").addEventListener("click", async () => {
-      const text = $("aiPromptOutput").value.trim();
-      if (!text) {
-        setCopyPromptStatus("No prompt to copy yet. Render match JSON first.");
-        return;
-      }
-
-      const ok = await copyTextToClipboard(text);
-      setCopyPromptStatus(ok ? "AI prompt copied to clipboard." : "Copy failed. You can still manually select and copy the prompt.");
-    });
-
-    $("latestModeBtn").addEventListener("click", () => setDetailsMode("latest"));
-    $("allRoundsModeBtn").addEventListener("click", () => setDetailsMode("all"));
-
-    updateDetailsModeButtons();
-
-    (async () => {
-      $("jsonInput").value = getLocalInput();
-      await warmUp();
-      await loadSharedState();
-      subscribeSharedState();
-    })();
-  </script>
-</body>
-</html>
+        `      - ${summarizeWeaponsForPrompt(
