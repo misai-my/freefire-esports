@@ -888,6 +888,7 @@
     const CHARACTER_JSON_URL = 'https://misai-my.github.io/freefire-esports/character.json';
     const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     const LOADOUT_JSON_URL = 'https://misai-my.github.io/freefire-esports/loadout.json';
+    const SHARED_ROOM = 'global';
 
     const $ = (id) => document.getElementById(id);
 
@@ -896,6 +897,8 @@
     let detailsMode = "latest";
     let CURRENT_TEAMS = null;
     let CURRENT_PAYLOAD = null;
+    let sharedChannel = null;
+    let applyingRemoteState = false;
 
     const LOOKUPS = {
       storeItems: new Map(),
@@ -987,7 +990,6 @@
       if (!s) return -999;
 
       let score = 0;
-
       if (!/500000\d+/.test(s)) score += 100;
 
       const wordCount = s.split(/\s+/).filter(Boolean).length;
@@ -999,7 +1001,6 @@
       if (/(will|obtain|marked on the map|once you open|head there)/i.test(s)) score -= 40;
 
       score -= Math.min(s.length, 120) * 0.15;
-
       return score;
     }
 
@@ -1961,9 +1962,10 @@
       updateDetailsModeButtons();
     }
 
-    function setDetailsMode(mode) {
+    async function setDetailsMode(mode) {
       detailsMode = mode === "all" ? "all" : "latest";
       renderDetailsPanel();
+      await saveSharedState();
     }
 
     function renderTeamContent(team) {
@@ -2164,6 +2166,91 @@
       return Array.isArray(payload?.team_stats) ? payload.team_stats : [];
     }
 
+    async function saveSharedState() {
+      if (applyingRemoteState) return;
+
+      const payload = {
+        room: SHARED_ROOM,
+        json_text: $("jsonInput").value || "",
+        details_mode: detailsMode === "all" ? "all" : "latest",
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await client
+        .from("shared_match_state")
+        .upsert(payload, { onConflict: "room" });
+
+      if (error) {
+        console.error("saveSharedState error:", error);
+      }
+    }
+
+    async function loadSharedState() {
+      const { data, error } = await client
+        .from("shared_match_state")
+        .select("room, json_text, details_mode")
+        .eq("room", SHARED_ROOM)
+        .maybeSingle();
+
+      if (error) {
+        console.error("loadSharedState error:", error);
+        return;
+      }
+
+      if (!data) return;
+
+      applyingRemoteState = true;
+      try {
+        $("jsonInput").value = data.json_text || "";
+        detailsMode = data.details_mode === "all" ? "all" : "latest";
+        updateDetailsModeButtons();
+
+        if ((data.json_text || "").trim()) {
+          await renderJson(false);
+        } else {
+          clearRender();
+        }
+      } finally {
+        applyingRemoteState = false;
+      }
+    }
+
+    function subscribeSharedState() {
+      if (sharedChannel) return;
+
+      sharedChannel = client
+        .channel("shared-match-state")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "shared_match_state",
+            filter: `room=eq.${SHARED_ROOM}`
+          },
+          async (payload) => {
+            const row = payload?.new;
+            if (!row) return;
+
+            applyingRemoteState = true;
+            try {
+              $("jsonInput").value = row.json_text || "";
+              detailsMode = row.details_mode === "all" ? "all" : "latest";
+              updateDetailsModeButtons();
+
+              if ((row.json_text || "").trim()) {
+                await renderJson(false);
+              } else {
+                clearRender();
+              }
+            } finally {
+              applyingRemoteState = false;
+            }
+          }
+        )
+        .subscribe();
+    }
+
     async function ensureResourcesLoaded() {
       const tasks = [];
 
@@ -2182,13 +2269,17 @@
       );
     }
 
-    async function renderJson() {
+    async function renderJson(shouldBroadcast = true) {
       try {
         const raw = $("jsonInput").value.trim();
 
         if (!raw) {
           clearRender();
           setStatus("Paste JSON first.", true);
+
+          if (shouldBroadcast) {
+            await saveSharedState();
+          }
           return;
         }
 
@@ -2232,27 +2323,33 @@
 
         setStatus(message);
         setCopyPromptStatus("AI prompt generated. Use Copy Prompt to paste it into another AI tool.");
+
+        if (shouldBroadcast) {
+          await saveSharedState();
+        }
       } catch (err) {
         setStatus(`Render failed:\n${err.message || err}`, true);
       }
     }
 
-    $("renderBtn").addEventListener("click", renderJson);
+    $("renderBtn").addEventListener("click", () => renderJson());
 
     $("reloadLookupBtn").addEventListener("click", async () => {
       matchApiLoaded = false;
       assetsLoaded = false;
       try {
         await warmUp();
+        if (CURRENT_TEAMS) renderDetailsPanel();
       } catch (err) {
         setStatus(`Reload failed:\n${err.message || err}`, true);
       }
     });
 
-    $("clearBtn").addEventListener("click", () => {
+    $("clearBtn").addEventListener("click", async () => {
       $("jsonInput").value = "";
       clearRender();
       setStatus("Cleared. Paste new JSON to render.");
+      await saveSharedState();
     });
 
     $("copyPromptBtn").addEventListener("click", async () => {
@@ -2270,7 +2367,12 @@
     $("allRoundsModeBtn").addEventListener("click", () => setDetailsMode("all"));
 
     updateDetailsModeButtons();
-    warmUp();
+
+    (async () => {
+      await warmUp();
+      await loadSharedState();
+      subscribeSharedState();
+    })();
   </script>
 </body>
 </html>
