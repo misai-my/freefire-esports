@@ -976,6 +976,7 @@
     const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     const LOADOUT_JSON_URL = 'https://misai-my.github.io/freefire-esports/loadout.json';
     const SHARED_ROOM = 'global';
+    const LOCAL_INPUT_KEY = 'cs_clash_local_json';
 
     const $ = (id) => document.getElementById(id);
 
@@ -1016,6 +1017,26 @@
 
     function setCopyPromptStatus(message) {
       $("copyPromptStatus").textContent = message;
+    }
+
+    function getLocalInput() {
+      try {
+        return localStorage.getItem(LOCAL_INPUT_KEY) || "";
+      } catch {
+        return "";
+      }
+    }
+
+    function setLocalInput(value) {
+      try {
+        localStorage.setItem(LOCAL_INPUT_KEY, String(value || ""));
+      } catch {}
+    }
+
+    function clearLocalInput() {
+      try {
+        localStorage.removeItem(LOCAL_INPUT_KEY);
+      } catch {}
     }
 
     function escapeHtml(value) {
@@ -2256,9 +2277,12 @@
     async function saveSharedState() {
       if (applyingRemoteState) return false;
 
+      const localJson = $("jsonInput").value || "";
+      setLocalInput(localJson);
+
       const payload = {
         room: SHARED_ROOM,
-        json_text: $("jsonInput").value || "",
+        json_text: localJson,
         details_mode: detailsMode === "all" ? "all" : "latest",
         updated_at: new Date().toISOString()
       };
@@ -2292,16 +2316,21 @@
         return;
       }
 
-      if (!data) return;
+      // Keep each user's own local textarea content only.
+      $("jsonInput").value = getLocalInput();
+
+      if (!data) {
+        updateDetailsModeButtons();
+        return;
+      }
 
       applyingRemoteState = true;
       try {
-        $("jsonInput").value = data.json_text || "";
         detailsMode = data.details_mode === "all" ? "all" : "latest";
         updateDetailsModeButtons();
 
         if ((data.json_text || "").trim()) {
-          await renderJson(false);
+          await renderFromRawText(data.json_text, false);
         } else {
           clearRender();
         }
@@ -2331,12 +2360,11 @@
 
             applyingRemoteState = true;
             try {
-              $("jsonInput").value = row.json_text || "";
               detailsMode = row.details_mode === "all" ? "all" : "latest";
               updateDetailsModeButtons();
 
               if ((row.json_text || "").trim()) {
-                await renderJson(false);
+                await renderFromRawText(row.json_text, false);
               } else {
                 clearRender();
               }
@@ -2360,9 +2388,9 @@
         });
     }
 
-    async function renderJson(shouldBroadcast = true) {
+    async function renderFromRawText(rawText, shouldBroadcast = false) {
       try {
-        const raw = $("jsonInput").value.trim();
+        const raw = String(rawText || "").trim();
 
         if (!raw) {
           clearRender();
@@ -2423,6 +2451,16 @@
       }
     }
 
+    async function renderJson(shouldBroadcast = true) {
+      const raw = $("jsonInput").value || "";
+      setLocalInput(raw);
+      await renderFromRawText(raw, shouldBroadcast);
+    }
+
+    $("jsonInput").addEventListener("input", () => {
+      setLocalInput($("jsonInput").value || "");
+    });
+
     $("renderBtn").addEventListener("click", () => renderJson());
 
     $("reloadLookupBtn").addEventListener("click", async () => {
@@ -2438,6 +2476,7 @@
 
     $("clearBtn").addEventListener("click", async () => {
       $("jsonInput").value = "";
+      clearLocalInput();
       clearRender();
       setStatus("Cleared. Paste new JSON to render.");
       await saveSharedState();
@@ -2460,6 +2499,7 @@
     updateDetailsModeButtons();
 
     (async () => {
+      $("jsonInput").value = getLocalInput();
       await warmUp();
       await loadSharedState();
       subscribeSharedState();
