@@ -176,6 +176,39 @@
       text-align:right;
     }
 
+    .team-name-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+
+    .match-team-name.right .team-name-wrap{
+      justify-content:flex-end;
+      flex-direction:row-reverse;
+    }
+
+    .team-name-text{
+      min-width:0;
+      white-space:normal;
+      word-break:break-word;
+    }
+
+    .team-score-pill{
+      flex:0 0 auto;
+      min-width:42px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      font-size:16px;
+      font-weight:900;
+      line-height:1;
+      text-align:center;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
     .match-round{
       padding:8px 14px;
       border-radius:14px;
@@ -739,53 +772,6 @@
       border-top:1px solid rgba(124,172,255,.08);
     }
 
-    .sub-fold{
-      border-radius:10px;
-      border:1px solid rgba(124,172,255,.07);
-      background:rgba(255,255,255,.02);
-      overflow:hidden;
-      min-width:0;
-      align-self:start;
-    }
-
-    .sub-fold summary{
-      list-style:none;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      padding:7px 9px;
-      background:rgba(255,255,255,.025);
-      color:#cfe0ff;
-      font-size:9px;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      line-height:1.2;
-    }
-
-    .sub-fold summary::-webkit-details-marker{
-      display:none;
-    }
-
-    .sub-fold summary::after{
-      content:"▸";
-      font-size:11px;
-      color:#cfe0ff;
-      flex:0 0 auto;
-      transition:transform .18s ease;
-    }
-
-    .sub-fold[open] summary::after{
-      transform:rotate(90deg);
-    }
-
-    .sub-fold-body{
-      padding:0;
-      border-top:1px solid rgba(124,172,255,.06);
-    }
-
     .stats-sections{
       display:grid;
       gap:8px;
@@ -920,6 +906,12 @@
       .match-team-name,
       .match-team-name.right{
         text-align:center;
+      }
+
+      .match-team-name .team-name-wrap,
+      .match-team-name.right .team-name-wrap{
+        justify-content:center;
+        flex-direction:row;
       }
 
       .arena-wrap,
@@ -1641,6 +1633,41 @@
       return best >= 0 ? `Round ${best + 1}` : "Round —";
     }
 
+    function computeTeamScore(team) {
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+      const wonRounds = new Set();
+
+      for (const player of players) {
+        const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+        for (const round of rounds) {
+          const roundIndex = toNum(round?.round_index, -1);
+          if (roundIndex < 0) continue;
+          if (round?.is_win === true) wonRounds.add(roundIndex);
+        }
+      }
+
+      return wonRounds.size;
+    }
+
+    function renderTeamHeader(name, score, side = "left") {
+      const safeName = escapeHtml(name || "—");
+      const scoreHtml = Number.isFinite(score)
+        ? `<span class="team-score-pill">${score}</span>`
+        : "";
+
+      return `
+        <div class="team-name-wrap ${side === "right" ? "right" : "left"}">
+          <span class="team-name-text">${safeName}</span>
+          ${scoreHtml}
+        </div>
+      `;
+    }
+
+    function setTeamHeader(elId, name, score, side) {
+      const el = $(elId);
+      el.innerHTML = renderTeamHeader(name, score, side);
+    }
+
     function renderHeroImage(imageUrl, alt) {
       if (!imageUrl) return `<div class="hero-fallback">No Image</div>`;
       return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt)}" loading="lazy">`;
@@ -1931,59 +1958,6 @@
       `;
     }
 
-    function buildRoundStatsContentForRoundCollapsed(player, roundIndex) {
-      const round = Number.isFinite(roundIndex) ? getRoundStatByIndex(player, roundIndex) : null;
-
-      if (!round) {
-        return `
-          <div class="stats-category">
-            <div class="stats-table">
-              <div class="stats-row">
-                <div class="stats-key">Round Stats</div>
-                <div class="stats-val">No round_stats found for this player.</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      const sections = categorizeRoundStats(round);
-      const entries = Object.entries(sections).filter(([, rows]) => rows.length);
-
-      if (!entries.length) {
-        return `
-          <div class="stats-category">
-            <div class="stats-table">
-              <div class="stats-row">
-                <div class="stats-key">Round Stats</div>
-                <div class="stats-val">No categorized round stats found.</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="stats-sections">
-          ${entries.map(([title, rows], idx) => `
-            <details class="sub-fold" ${idx === 0 ? "open" : ""}>
-              <summary>${escapeHtml(title)}</summary>
-              <div class="sub-fold-body">
-                <div class="stats-table">
-                  ${rows.map(([key, value]) => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                      <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                    </div>
-                  `).join("")}
-                </div>
-              </div>
-            </details>
-          `).join("")}
-        </div>
-      `;
-    }
-
     function renderPlayerSummaryCard(player) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
       const activeSkill = getActiveSkillEntry(player);
@@ -2145,7 +2119,7 @@
         ${renderGlobalRoundBasedRow(teams, "Current Items All Rounds", buildCurrentItemsContentForRound, "No item data found.")}
         ${renderGlobalRoundBasedRow(teams, "Purchased Items All Rounds", buildPurchasedItemsContentForRound, "No purchased item data found.")}
         ${renderGlobalRoundBasedRow(teams, "Weapon Usages All Rounds", buildWeaponUsagesContentForRound, "No weapon usage data found.")}
-        ${renderGlobalRoundBasedRow(teams, "Player Details Per Round", buildRoundStatsContentForRoundCollapsed, "No round stats found.")}
+        ${renderGlobalRoundBasedRow(teams, "Player Details Per Round", buildRoundStatsContentForRound, "No round stats found.")}
       `;
     }
 
@@ -2354,8 +2328,8 @@
     }
 
     function clearRender() {
-      $("teamAName").textContent = "—";
-      $("teamBName").textContent = "—";
+      setTeamHeader("teamAName", "—", null, "left");
+      setTeamHeader("teamBName", "—", null, "right");
       $("matchRound").textContent = "Round —";
       $("teamAContent").innerHTML = "";
       $("teamBContent").innerHTML = "";
@@ -2530,8 +2504,11 @@
         CURRENT_PAYLOAD = payload;
         CURRENT_TEAMS = [teams[0], teams[1]];
 
-        $("teamAName").textContent = CURRENT_TEAMS[0]?.team_name || "—";
-        $("teamBName").textContent = CURRENT_TEAMS[1]?.team_name || "—";
+        const teamAScore = computeTeamScore(CURRENT_TEAMS[0]);
+        const teamBScore = computeTeamScore(CURRENT_TEAMS[1]);
+
+        setTeamHeader("teamAName", CURRENT_TEAMS[0]?.team_name || "—", teamAScore, "left");
+        setTeamHeader("teamBName", CURRENT_TEAMS[1]?.team_name || "—", teamBScore, "right");
         $("matchRound").textContent = getDisplayRound(payload, CURRENT_TEAMS);
 
         $("teamAContent").innerHTML = renderTeamContent(CURRENT_TEAMS[0]);
@@ -2539,7 +2516,7 @@
         renderDetailsPanel();
         $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, CURRENT_TEAMS);
 
-        let message = `Rendered ${CURRENT_TEAMS[0]?.team_name || "Team A"} vs ${CURRENT_TEAMS[1]?.team_name || "Team B"}.`;
+        let message = `Rendered ${CURRENT_TEAMS[0]?.team_name || "Team A"} (${teamAScore}) vs ${CURRENT_TEAMS[1]?.team_name || "Team B"} (${teamBScore}).`;
         if (teams.length > 2) {
           message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
         }
@@ -2566,7 +2543,13 @@
       assetsLoaded = false;
       try {
         await warmUp();
-        if (CURRENT_TEAMS) renderDetailsPanel();
+        if (CURRENT_TEAMS && CURRENT_TEAMS.length >= 2) {
+          const teamAScore = computeTeamScore(CURRENT_TEAMS[0]);
+          const teamBScore = computeTeamScore(CURRENT_TEAMS[1]);
+          setTeamHeader("teamAName", CURRENT_TEAMS[0]?.team_name || "—", teamAScore, "left");
+          setTeamHeader("teamBName", CURRENT_TEAMS[1]?.team_name || "—", teamBScore, "right");
+          renderDetailsPanel();
+        }
       } catch (err) {
         setStatus(`Reload failed:\n${err.message || err}`, true);
       }
