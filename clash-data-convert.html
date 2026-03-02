@@ -2167,7 +2167,7 @@
     }
 
     async function saveSharedState() {
-      if (applyingRemoteState) return;
+      if (applyingRemoteState) return false;
 
       const payload = {
         room: SHARED_ROOM,
@@ -2176,13 +2176,20 @@
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await client
+      const { data, error } = await client
         .from("shared_match_state")
-        .upsert(payload, { onConflict: "room" });
+        .upsert(payload, { onConflict: "room" })
+        .select()
+        .single();
 
       if (error) {
         console.error("saveSharedState error:", error);
+        setStatus("Shared state save failed:\n" + JSON.stringify(error, null, 2), true);
+        return false;
       }
+
+      console.log("shared row saved:", data);
+      return true;
     }
 
     async function loadSharedState() {
@@ -2194,6 +2201,7 @@
 
       if (error) {
         console.error("loadSharedState error:", error);
+        setStatus("Shared state load failed:\n" + JSON.stringify(error, null, 2), true);
         return;
       }
 
@@ -2229,6 +2237,8 @@
             filter: `room=eq.${SHARED_ROOM}`
           },
           async (payload) => {
+            console.log("Realtime payload:", payload);
+
             const row = payload?.new;
             if (!row) return;
 
@@ -2248,25 +2258,19 @@
             }
           }
         )
-        .subscribe();
-    }
-
-    async function ensureResourcesLoaded() {
-      const tasks = [];
-
-      if (!matchApiLoaded) tasks.push(loadMatchApiLookups());
-      if (!assetsLoaded) tasks.push(loadAssetCatalogs());
-
-      if (!tasks.length) return;
-
-      setStatus("Loading missing lookup/image resources...");
-      await Promise.all(tasks);
-
-      setStatus(
-        `Ready.\n` +
-        `match_api → Type0 ${LOOKUPS.storeItems.size}, Type1 ${LOOKUPS.items.size}, Skills ${LOOKUPS.skills.size}, Pets ${LOOKUPS.pets.size}\n` +
-        `Assets → Characters ${ASSETS.charactersById.size}, Pets ${ASSETS.petsByName.size}, Loadouts ${ASSETS.loadoutsById.size}`
-      );
+        .subscribe((status) => {
+          console.log("Realtime status:", status);
+          if (status === "SUBSCRIBED") {
+            if (!$("status").classList.contains("error")) {
+              const current = $("status").textContent || "";
+              if (!current.includes("Realtime")) {
+                $("status").textContent = current + (current ? "\n" : "") + "Realtime: SUBSCRIBED";
+              }
+            }
+          } else {
+            setStatus("Realtime status: " + status, true);
+          }
+        });
     }
 
     async function renderJson(shouldBroadcast = true) {
@@ -2283,6 +2287,7 @@
           return;
         }
 
+        // force fresh lookup every render so DB changes reflect immediately
         await loadMatchApiLookups();
         if (!assetsLoaded) await loadAssetCatalogs();
 
