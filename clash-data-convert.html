@@ -150,6 +150,7 @@
       background:rgba(255,123,123,.08);
     }
 
+    /* ===== Match header ===== */
     .match-head{
       display:grid;
       grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
@@ -167,7 +168,7 @@
       font-weight:900;
       color:var(--orange);
       text-transform:uppercase;
-      line-height:1.1;
+      line-height:1;
       white-space:normal;
       word-break:break-word;
     }
@@ -176,28 +177,32 @@
       text-align:right;
     }
 
+    /* ✅ Score alignment fix: score always hugs the center edge (both in the middle) */
     .team-name-wrap{
       display:flex;
       align-items:center;
-      gap:10px;
+      justify-content:space-between; /* name to edge, score to center edge */
+      gap:12px;
+      width:100%;
       min-width:0;
-    }
-
-    .match-team-name.right .team-name-wrap{
-      justify-content:flex-end;
-      flex-direction:row-reverse;
     }
 
     .team-name-text{
       min-width:0;
+      flex:1 1 auto;
       white-space:normal;
       word-break:break-word;
+      line-height:1;
+    }
+    .team-name-text.right{
+      text-align:right;
     }
 
     .team-score-pill{
       flex:0 0 auto;
-      min-width:42px;
-      padding:6px 10px;
+      min-width:44px;
+      height:30px;
+      padding:0 10px;
       border-radius:999px;
       border:1px solid rgba(124,172,255,.18);
       background:rgba(255,255,255,.05);
@@ -205,7 +210,9 @@
       font-size:16px;
       font-weight:900;
       line-height:1;
-      text-align:center;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
     }
 
@@ -220,6 +227,7 @@
       text-transform:uppercase;
       color:#fff;
       white-space:nowrap;
+      line-height:1;
     }
 
     .arena-wrap{
@@ -448,6 +456,7 @@
       line-height:1.2;
     }
 
+    /* ✅ Popups above everything */
     .hover-wrap{
       position:relative;
       outline:none;
@@ -704,9 +713,7 @@
       line-height:1.2;
     }
 
-    .row-fold summary::-webkit-details-marker{
-      display:none;
-    }
+    .row-fold summary::-webkit-details-marker{ display:none; }
 
     .row-fold summary::after{
       content:"▸";
@@ -716,9 +723,7 @@
       transition:transform .18s ease;
     }
 
-    .row-fold[open] summary::after{
-      transform:rotate(90deg);
-    }
+    .row-fold[open] summary::after{ transform:rotate(90deg); }
 
     .row-fold-body{
       padding:10px;
@@ -751,9 +756,7 @@
       line-height:1.2;
     }
 
-    .round-fold summary::-webkit-details-marker{
-      display:none;
-    }
+    .round-fold summary::-webkit-details-marker{ display:none; }
 
     .round-fold summary::after{
       content:"▸";
@@ -763,9 +766,7 @@
       transition:transform .18s ease;
     }
 
-    .round-fold[open] summary::after{
-      transform:rotate(90deg);
-    }
+    .round-fold[open] summary::after{ transform:rotate(90deg); }
 
     .round-fold-body{
       padding:10px;
@@ -819,9 +820,7 @@
       min-width:0;
     }
 
-    .stats-row:first-child{
-      border-top:0;
-    }
+    .stats-row:first-child{ border-top:0; }
 
     .stats-key{
       font-size:10px;
@@ -886,14 +885,8 @@
     }
 
     @media (max-width: 1500px){
-      .player-grid,
-      .detail-grid{
-        grid-template-columns:repeat(2, minmax(0,1fr));
-      }
-
-      .hero-card-inner{
-        height:130px;
-      }
+      .player-grid, .detail-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .hero-card-inner{ height:130px; }
     }
 
     @media (max-width: 980px){
@@ -908,41 +901,22 @@
         text-align:center;
       }
 
-      .match-team-name .team-name-wrap,
-      .match-team-name.right .team-name-wrap{
+      /* Center on mobile */
+      .team-name-wrap{
         justify-content:center;
-        flex-direction:row;
+        gap:10px;
       }
+      .team-name-text, .team-name-text.right{ text-align:center; }
 
-      .arena-wrap,
-      .details-wrap{
-        grid-template-columns:1fr;
-      }
-
-      .player-grid,
-      .detail-grid{
-        grid-template-columns:repeat(2, minmax(0,1fr));
-      }
+      .arena-wrap, .details-wrap{ grid-template-columns:1fr; }
+      .player-grid, .detail-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
     }
 
     @media (max-width: 640px){
-      .player-grid,
-      .detail-grid{
-        grid-template-columns:1fr;
-      }
-
-      .hero-card-inner{
-        height:150px;
-      }
-
-      .stats-row{
-        grid-template-columns:1fr;
-        gap:4px;
-      }
-
-      .details-head{
-        align-items:flex-start;
-      }
+      .player-grid, .detail-grid{ grid-template-columns:1fr; }
+      .hero-card-inner{ height:150px; }
+      .stats-row{ grid-template-columns:1fr; gap:4px; }
+      .details-head{ align-items:flex-start; }
     }
   </style>
 </head>
@@ -1060,23 +1034,18 @@
     }
 
     function getLocalInput() {
-      try {
-        return localStorage.getItem(LOCAL_INPUT_KEY) || "";
-      } catch {
-        return "";
-      }
+      try { return localStorage.getItem(LOCAL_INPUT_KEY) || ""; }
+      catch { return ""; }
     }
 
     function setLocalInput(value) {
-      try {
-        localStorage.setItem(LOCAL_INPUT_KEY, String(value || ""));
-      } catch {}
+      try { localStorage.setItem(LOCAL_INPUT_KEY, String(value || "")); }
+      catch {}
     }
 
     function clearLocalInput() {
-      try {
-        localStorage.removeItem(LOCAL_INPUT_KEY);
-      } catch {}
+      try { localStorage.removeItem(LOCAL_INPUT_KEY); }
+      catch {}
     }
 
     function escapeHtml(value) {
@@ -1093,10 +1062,7 @@
     }
 
     function normalizeKey(value) {
-      return String(value ?? "")
-        .trim()
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, "");
+      return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "");
     }
 
     function toNum(value, fallback = 0) {
@@ -1113,23 +1079,14 @@
     function formatGenericValue(value) {
       if (value === null || value === undefined) return "—";
       if (typeof value === "boolean") return value ? "Yes" : "No";
-
       if (Array.isArray(value)) {
         if (!value.length) return "0";
-
-        const allPrimitive = value.every(v =>
-          v === null || ["string", "number", "boolean"].includes(typeof v)
-        );
-
-        if (allPrimitive) return value.map(v => formatGenericValue(v)).join(", ");
-        return `${value.length} entries`;
+        const allPrimitive = value.every(v => v === null || ["string","number","boolean"].includes(typeof v));
+        return allPrimitive ? value.map(formatGenericValue).join(", ") : `${value.length} entries`;
       }
-
       if (typeof value === "object") {
-        try { return JSON.stringify(value); }
-        catch { return "[object]"; }
+        try { return JSON.stringify(value); } catch { return "[object]"; }
       }
-
       return String(value);
     }
 
@@ -1157,29 +1114,17 @@
       if (!cleanName) return;
 
       const current = map.get(id);
-      if (!current) {
-        map.set(id, cleanName);
-        return;
-      }
-
-      if (scoreLookupName(cleanName) > scoreLookupName(current)) {
-        map.set(id, cleanName);
-      }
+      if (!current) { map.set(id, cleanName); return; }
+      if (scoreLookupName(cleanName) > scoreLookupName(current)) map.set(id, cleanName);
     }
 
     function sanitizeResolvedItemName(name) {
       let s = String(name || "").replace(/\s+/g, " ").trim();
       if (!s) return null;
-
       s = s.replace(/\s*500000\d+[\s\S]*$/i, "").trim();
-
       const words = s.split(/\s+/).filter(Boolean);
-      if (words.length > 5) {
-        s = words.slice(0, 3).join(" ");
-      }
-
-      if (!s) return null;
-      return s;
+      if (words.length > 5) s = words.slice(0, 3).join(" ");
+      return s || null;
     }
 
     async function fetchJson(url) {
@@ -1192,24 +1137,17 @@
       const numId = Number(id);
       if (!Number.isFinite(numId)) return null;
 
-      const firstRaw = preferStore
-        ? (LOOKUPS.storeItems.get(numId) || null)
-        : (LOOKUPS.items.get(numId) || null);
-
-      const secondRaw = preferStore
-        ? (LOOKUPS.items.get(numId) || null)
-        : (LOOKUPS.storeItems.get(numId) || null);
+      const firstRaw = preferStore ? (LOOKUPS.storeItems.get(numId) || null) : (LOOKUPS.items.get(numId) || null);
+      const secondRaw = preferStore ? (LOOKUPS.items.get(numId) || null) : (LOOKUPS.storeItems.get(numId) || null);
 
       const firstClean = sanitizeResolvedItemName(firstRaw);
       const secondClean = sanitizeResolvedItemName(secondRaw);
-
       return firstClean || secondClean || null;
     }
 
     function getLookupName(type, id) {
       const numId = Number(id);
       if (!Number.isFinite(numId)) return null;
-
       if (type === 0) return LOOKUPS.storeItems.get(numId) || null;
       if (type === 1) return LOOKUPS.items.get(numId) || null;
       if (type === 2) return LOOKUPS.skills.get(numId) || null;
@@ -1234,7 +1172,6 @@
         const id = Number(row.id);
         const type = Number(row.type);
         const name = String(row.name || "").trim();
-
         if (!Number.isFinite(id) || !name) continue;
 
         if (type === 0) setBestLookupEntry(LOOKUPS.storeItems, id, name);
@@ -1244,7 +1181,6 @@
       }
 
       matchApiLoaded = true;
-
       return {
         storeItems: LOOKUPS.storeItems.size,
         items: LOOKUPS.items.size,
@@ -1255,7 +1191,6 @@
 
     function seedFallbackLoadouts() {
       ASSETS.loadoutsById.clear();
-
       for (const row of LOADOUT_FALLBACKS) {
         ASSETS.loadoutsById.set(Number(row.loadout_id), {
           loadout_id: Number(row.loadout_id),
@@ -1268,7 +1203,6 @@
 
     function extractLoadoutRows(raw) {
       const rows = Array.isArray(raw) ? raw : [];
-
       for (const row of rows) {
         const loadoutId = Number(row?.loadout_id);
         if (!Number.isFinite(loadoutId)) continue;
@@ -1298,17 +1232,9 @@
         for (const row of (characters.value || [])) {
           const imageUrl = row?.image_url || "";
           const apiId = Number(row?.api_id);
-          const asset = {
-            name: row?.name || "",
-            image_url: imageUrl,
-            skill: row?.skill || "",
-            description: row?.description || ""
-          };
+          const asset = { name: row?.name || "", image_url: imageUrl, skill: row?.skill || "", description: row?.description || "" };
 
-          if (imageUrl && Number.isFinite(apiId)) {
-            ASSETS.charactersById.set(apiId, asset);
-          }
-
+          if (imageUrl && Number.isFinite(apiId)) ASSETS.charactersById.set(apiId, asset);
           if (row?.name) ASSETS.charactersByName.set(normalizeKey(row.name), asset);
           if (row?.skill) ASSETS.charactersByName.set(normalizeKey(row.skill), asset);
         }
@@ -1317,7 +1243,6 @@
       if (pets.status === "fulfilled") {
         for (const row of (pets.value || [])) {
           if (!row?.name) continue;
-
           ASSETS.petsByName.set(normalizeKey(row.name), {
             name: row.name,
             image_url: row?.image_url || "",
@@ -1327,12 +1252,9 @@
         }
       }
 
-      if (loadouts.status === "fulfilled") {
-        extractLoadoutRows(loadouts.value);
-      }
+      if (loadouts.status === "fulfilled") extractLoadoutRows(loadouts.value);
 
       assetsLoaded = true;
-
       return {
         characters: ASSETS.charactersById.size,
         pets: ASSETS.petsByName.size,
@@ -1342,28 +1264,13 @@
 
     async function warmUp() {
       setStatus("Loading lookup and image catalogs...");
-
-      const [lookupResult, assetResult] = await Promise.allSettled([
-        loadMatchApiLookups(),
-        loadAssetCatalogs()
-      ]);
-
+      const [lookupResult, assetResult] = await Promise.allSettled([loadMatchApiLookups(), loadAssetCatalogs()]);
       const errors = [];
 
-      if (lookupResult.status === "rejected") {
-        matchApiLoaded = false;
-        errors.push(`match_api: ${lookupResult.reason?.message || lookupResult.reason}`);
-      }
+      if (lookupResult.status === "rejected") { matchApiLoaded = false; errors.push(`match_api: ${lookupResult.reason?.message || lookupResult.reason}`); }
+      if (assetResult.status === "rejected") { assetsLoaded = false; errors.push(`asset catalogs: ${assetResult.reason?.message || assetResult.reason}`); }
 
-      if (assetResult.status === "rejected") {
-        assetsLoaded = false;
-        errors.push(`asset catalogs: ${assetResult.reason?.message || assetResult.reason}`);
-      }
-
-      if (errors.length) {
-        setStatus(`Some data failed to load:\n${errors.join("\n")}`, true);
-        return;
-      }
+      if (errors.length) { setStatus(`Some data failed to load:\n${errors.join("\n")}`, true); return; }
 
       setStatus(
         `Ready.\n` +
@@ -1375,12 +1282,7 @@
     function getCharacterAsset(skillId, fallbackName = "") {
       const byId = ASSETS.charactersById.get(Number(skillId));
       if (byId) return byId;
-
-      if (fallbackName) {
-        const byName = ASSETS.charactersByName.get(normalizeKey(fallbackName));
-        if (byName) return byName;
-      }
-
+      if (fallbackName) return ASSETS.charactersByName.get(normalizeKey(fallbackName)) || null;
       return null;
     }
 
@@ -1409,9 +1311,7 @@
       const activeInfo = getActiveSkillInfo(player);
       const activeId = getActiveSkillId(player);
 
-      if (!activeId) {
-        return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Active" };
-      }
+      if (!activeId) return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Active" };
 
       const lookupName = getLookupName(2, activeId) || activeInfo?.skill_name || `Skill ID ${activeId}`;
       const asset = getCharacterAsset(activeId, lookupName);
@@ -1429,13 +1329,11 @@
     function getPassiveSkillEntries(player) {
       const ids = Array.isArray(player?.skill_ids) ? player.skill_ids : [];
       const activeId = getActiveSkillId(player);
-
       const uniquePassiveIds = [...new Set(ids.filter(id => Number(id) !== Number(activeId)))];
 
       return uniquePassiveIds.map(id => {
         const lookupName = getLookupName(2, id) || `Skill ID ${id}`;
         const asset = getCharacterAsset(id, lookupName);
-
         return {
           id: Number(id),
           label: asset?.name || lookupName,
@@ -1449,9 +1347,7 @@
 
     function getPetEntry(player) {
       const petId = player?.pet_skill_id;
-      if (!petId) {
-        return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Pet" };
-      }
+      if (!petId) return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Pet" };
 
       const lookupName = getLookupName(3, petId) || `Pet ID ${petId}`;
       const asset = getPetAsset(lookupName);
@@ -1469,20 +1365,15 @@
     function getPlayerLoadoutId(player) {
       const arr = Array.isArray(player?.loadouts) ? player.loadouts : [];
       if (!arr.length) return null;
-
       const id = Number(arr[0]);
       return Number.isFinite(id) ? id : null;
     }
 
     function getPlayerLoadoutEntry(player) {
       const id = getPlayerLoadoutId(player);
-
-      if (!Number.isFinite(id)) {
-        return { loadout_id:null, name:"No loadout found", image_url:"", cs_description:"" };
-      }
+      if (!Number.isFinite(id)) return { loadout_id:null, name:"No loadout found", image_url:"", cs_description:"" };
 
       const asset = getLoadoutAsset(id);
-
       return {
         loadout_id: id,
         name: asset?.name || `Loadout ${id}`,
@@ -1511,7 +1402,6 @@
 
     function getAllRoundIndicesForTeams(teams) {
       const set = new Set();
-
       for (const team of teams || []) {
         const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
         for (const player of players) {
@@ -1522,7 +1412,6 @@
           }
         }
       }
-
       return [...set].sort((a, b) => a - b);
     }
 
@@ -1538,12 +1427,6 @@
           return { id, name, count: toNum(item?.item_num) };
         })
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    }
-
-    function getLatestItems(player) {
-      const roundIndex = getLatestRoundIndex(player);
-      if (roundIndex === null) return [];
-      return getItemsForRound(player, roundIndex);
     }
 
     function getPurchasedItemsForRound(player, targetRoundIndex) {
@@ -1565,36 +1448,9 @@
       }
 
       return [...counts.entries()]
-        .map(([id, count]) => ({
-          id,
-          name: resolveItemName(id, true),
-          count
-        }))
+        .map(([id, count]) => ({ id, name: resolveItemName(id, true), count }))
         .filter(item => item.name)
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    }
-
-    function getLatestPurchasedItems(player) {
-      const roundIndex = getLatestRoundIndex(player);
-      if (roundIndex === null) return [];
-      return getPurchasedItemsForRound(player, roundIndex);
-    }
-
-    function getPurchasedItemsByRound(player) {
-      const roundIndices = [];
-      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
-
-      for (const round of rounds) {
-        const idx = toNum(round?.round_index, -1);
-        if (idx >= 0) roundIndices.push(idx);
-      }
-
-      const uniqueSorted = [...new Set(roundIndices)].sort((a, b) => a - b);
-
-      return uniqueSorted.map(roundIndex => ({
-        roundIndex,
-        items: getPurchasedItemsForRound(player, roundIndex)
-      }));
     }
 
     function getWeaponUsagesForRound(player, roundIndex) {
@@ -1608,19 +1464,11 @@
       }));
     }
 
-    function getLatestWeaponUsages(player) {
-      const roundIndex = getLatestRoundIndex(player);
-      if (roundIndex === null) return [];
-      return getWeaponUsagesForRound(player, roundIndex);
-    }
-
     function getDisplayRound(payload, teams = []) {
       let best = -1;
 
       const matchRounds = payload?.match?.match_stats_extra?.round_stats;
-      if (Array.isArray(matchRounds)) {
-        for (const r of matchRounds) best = Math.max(best, toNum(r?.round_index, -1));
-      }
+      if (Array.isArray(matchRounds)) for (const r of matchRounds) best = Math.max(best, toNum(r?.round_index, -1));
 
       for (const team of teams) {
         const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
@@ -1649,14 +1497,20 @@
       return wonRounds.size;
     }
 
+    /* ✅ Score in the middle edge for both sides (symmetric) */
     function renderTeamHeader(name, score, side = "left") {
       const safeName = escapeHtml(name || "—");
-      const scoreHtml = Number.isFinite(score)
-        ? `<span class="team-score-pill">${score}</span>`
-        : "";
-
+      const scoreHtml = Number.isFinite(score) ? `<span class="team-score-pill">${score}</span>` : "";
+      if (side === "right") {
+        return `
+          <div class="team-name-wrap">
+            ${scoreHtml}
+            <span class="team-name-text right">${safeName}</span>
+          </div>
+        `;
+      }
       return `
-        <div class="team-name-wrap ${side === "right" ? "right" : "left"}">
+        <div class="team-name-wrap">
           <span class="team-name-text">${safeName}</span>
           ${scoreHtml}
         </div>
@@ -1692,7 +1546,6 @@
 
     function renderSkillChip(entry) {
       if (!entry) return "";
-
       return `
         <div class="skill-chip hover-wrap" tabindex="0">
           <div class="skill-chip-icon">
@@ -1710,7 +1563,6 @@
     function renderLoadoutCard(loadout) {
       const title = loadout?.name || "No loadout found";
       const desc = loadout?.cs_description || "";
-
       return `
         <div class="hover-wrap" tabindex="0">
           <div class="single-card primary">
@@ -1729,70 +1581,56 @@
       `;
     }
 
-    function categorizeRoundStats(round) {
-      const sections = {
-        "Round Outcome & Flags": [],
+    /* ============================================================
+       ✅ Round Stats Broken Down By Section (NEW RULES)
+       - Remove Round Outcome & Flags
+       - Add First Blood:
+           is_first_down === true => Tag "First Blood"
+           is_first_taken_down === true => Tag "First Down"
+       - Combat Output ONLY:
+           Kills, Assists, Headshots, Damage(real_damage), Damage Taken(real_damage_taken), Knock Down
+       - Economy & Purchases (as is)
+       - Abilities & Utility (as is)
+       - Remove Other Round Fields / everything else
+    ============================================================ */
+    function buildRoundStatsSections(round) {
+      const out = {
+        "First Blood": [],
         "Combat Output": [],
-        "Damage & Survival": [],
-        "Support & Recovery": [],
         "Economy & Purchases": [],
-        "Abilities & Utility": [],
-        "Other Round Fields": []
+        "Abilities & Utility": []
       };
 
-      const exclude = new Set(["purchased_items", "weapon_usages", "item_nums"]);
+      const tag = [];
+      if (round?.is_first_down === true) tag.push("First Blood");
+      if (round?.is_first_taken_down === true) tag.push("First Down");
+      out["First Blood"].push(["Tag", tag.length ? tag.join(" • ") : "None"]);
 
-      const map = {
-        round_index: "Round Outcome & Flags",
-        is_win: "Round Outcome & Flags",
-        is_dead: "Round Outcome & Flags",
-        is_first_down: "Round Outcome & Flags",
-        is_first_taken_down: "Round Outcome & Flags",
+      const combat = [
+        ["Kills", round?.kill],
+        ["Assists", round?.assists],
+        ["Headshots", round?.headshots],
+        ["Damage", round?.real_damage],
+        ["Damage Taken", round?.real_damage_taken],
+        ["Knock Down", round?.knock_down],
+      ];
+      for (const [label, val] of combat) out["Combat Output"].push([label, val]);
 
-        kill: "Combat Output",
-        assists: "Combat Output",
-        knock_down: "Combat Output",
-        headshots: "Combat Output",
-        hits: "Combat Output",
-        torso_hits: "Combat Output",
-        leg_hits: "Combat Output",
-
-        damage: "Damage & Survival",
-        real_damage: "Damage & Survival",
-        real_damage_taken: "Damage & Survival",
-
-        healing_to_self: "Support & Recovery",
-        healing_to_teammates: "Support & Recovery",
-        rescue_count: "Support & Recovery",
-
-        economy_spent_self: "Economy & Purchases",
-        economy_spent_on_teammates: "Economy & Purchases",
-        initial_item_value: "Economy & Purchases",
-        airdrop_points: "Economy & Purchases",
-
-        nb_skill_usages: "Abilities & Utility",
-        medkit_use: "Abilities & Utility",
-        grenade_use: "Abilities & Utility",
-        icewall_use: "Abilities & Utility",
-        throwable_use: "Abilities & Utility"
-      };
-
-      for (const [key, value] of Object.entries(round || {})) {
-        if (exclude.has(key)) continue;
-        const bucket = map[key] || "Other Round Fields";
-        sections[bucket].push([key, value]);
+      const econKeys = ["economy_spent_self","economy_spent_on_teammates","initial_item_value","airdrop_points"];
+      for (const k of econKeys) {
+        if (k in (round || {})) out["Economy & Purchases"].push([humanizeKey(k), round[k]]);
       }
 
-      return sections;
-    }
+      const utilKeys = ["nb_skill_usages","medkit_use","grenade_use","icewall_use","throwable_use"];
+      for (const k of utilKeys) {
+        if (k in (round || {})) out["Abilities & Utility"].push([humanizeKey(k), round[k]]);
+      }
 
-    function buildCurrentItemsContent(player) {
-      return buildCurrentItemsContentForRound(player, getLatestRoundIndex(player));
+      return out;
     }
 
     function buildCurrentItemsContentForRound(player, roundIndex) {
       const items = Number.isFinite(roundIndex) ? getItemsForRound(player, roundIndex) : [];
-
       return `
         <div class="stats-category">
           <div class="stats-table">
@@ -1816,35 +1654,12 @@
       `;
     }
 
-    function buildLatestPurchasedItemsContent(player) {
-      const items = getLatestPurchasedItems(player);
-
-      return `
-        <div class="stats-category">
-          <div class="stats-table">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(item.name)}</div>
-                      <div class="stats-val">Purchased x${item.count}</div>
-                    </div>
-                  `).join("")
-                : `
-                    <div class="stats-row">
-                      <div class="stats-key">Purchased Items</div>
-                      <div class="stats-val">No valid purchased items found.</div>
-                    </div>
-                  `
-            }
-          </div>
-        </div>
-      `;
+    function buildCurrentItemsContent(player) {
+      return buildCurrentItemsContentForRound(player, getLatestRoundIndex(player));
     }
 
     function buildPurchasedItemsContentForRound(player, roundIndex) {
       const items = Number.isFinite(roundIndex) ? getPurchasedItemsForRound(player, roundIndex) : [];
-
       return `
         <div class="stats-category">
           <div class="stats-table">
@@ -1868,20 +1683,19 @@
       `;
     }
 
-    function buildWeaponUsagesContent(player) {
-      return buildWeaponUsagesContentForRound(player, getLatestRoundIndex(player));
+    function buildLatestPurchasedItemsContent(player) {
+      const idx = getLatestRoundIndex(player);
+      return buildPurchasedItemsContentForRound(player, idx);
     }
 
     function buildWeaponUsagesContentForRound(player, roundIndex) {
       const usages = Number.isFinite(roundIndex) ? getWeaponUsagesForRound(player, roundIndex) : [];
-
       return `
         <div class="stats-sections">
           ${
             usages.length
               ? usages.map(weapon => {
                   const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
-
                   return `
                     <div class="stats-category">
                       <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
@@ -1915,8 +1729,8 @@
       `;
     }
 
-    function buildLatestRoundStatsContent(player) {
-      return buildRoundStatsContentForRound(player, getLatestRoundIndex(player));
+    function buildWeaponUsagesContent(player) {
+      return buildWeaponUsagesContentForRound(player, getLatestRoundIndex(player));
     }
 
     function buildRoundStatsContentForRound(player, roundIndex) {
@@ -1935,19 +1749,19 @@
         `;
       }
 
-      const sections = categorizeRoundStats(round);
+      const sections = buildRoundStatsSections(round);
 
       return `
         <div class="stats-sections">
           ${Object.entries(sections)
-            .filter(([, rows]) => rows.length)
+            .filter(([, rows]) => rows && rows.length)
             .map(([title, rows]) => `
               <div class="stats-category">
                 <div class="stats-category-title">${escapeHtml(title)}</div>
                 <div class="stats-table">
-                  ${rows.map(([key, value]) => `
+                  ${rows.map(([label, value]) => `
                     <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
+                      <div class="stats-key">${escapeHtml(label)}</div>
                       <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
                     </div>
                   `).join("")}
@@ -1956,6 +1770,10 @@
             `).join("")}
         </div>
       `;
+    }
+
+    function buildLatestRoundStatsContent(player) {
+      return buildRoundStatsContentForRound(player, getLatestRoundIndex(player));
     }
 
     function renderPlayerSummaryCard(player) {
@@ -1982,22 +1800,14 @@
           <div class="section-box">
             <div class="section-title">Passive Skills</div>
             <div class="skill-chip-row">
-              ${
-                passiveSkills.length
-                  ? passiveSkills.map(renderSkillChip).join("")
-                  : `<div class="empty-lite">No passive skills found.</div>`
-              }
+              ${passiveSkills.length ? passiveSkills.map(renderSkillChip).join("") : `<div class="empty-lite">No passive skills found.</div>`}
             </div>
           </div>
 
           <div class="section-box">
             <div class="section-title">Pet</div>
             <div class="skill-chip-row">
-              ${
-                pet?.id
-                  ? renderSkillChip(pet)
-                  : `<div class="empty-lite">No pet found.</div>`
-              }
+              ${pet?.id ? renderSkillChip(pet) : `<div class="empty-lite">No pet found.</div>`}
             </div>
           </div>
 
@@ -2011,7 +1821,6 @@
 
     function renderPlayerCategoryColumn(player, contentHtml) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
-
       return `
         <div class="detail-col">
           <div class="detail-col-head">${escapeHtml(playerName)}</div>
@@ -2124,9 +1933,7 @@
     }
 
     function renderGlobalPlayerDetails(teams) {
-      return detailsMode === "all"
-        ? renderGlobalPlayerDetailsAllRounds(teams)
-        : renderGlobalPlayerDetailsLatest(teams);
+      return detailsMode === "all" ? renderGlobalPlayerDetailsAllRounds(teams) : renderGlobalPlayerDetailsLatest(teams);
     }
 
     function updateDetailsModeButtons() {
@@ -2140,7 +1947,6 @@
         updateDetailsModeButtons();
         return;
       }
-
       $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(CURRENT_TEAMS);
       updateDetailsModeButtons();
     }
@@ -2153,52 +1959,46 @@
 
     function renderTeamContent(team) {
       const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-
-      if (!players.length) {
-        return `<div class="empty-lite">No players found.</div>`;
-      }
-
-      return `
-        <div class="player-grid">
-          ${players.map(renderPlayerSummaryCard).join("")}
-        </div>
-      `;
+      if (!players.length) return `<div class="empty-lite">No players found.</div>`;
+      return `<div class="player-grid">${players.map(renderPlayerSummaryCard).join("")}</div>`;
     }
 
     function summarizeSimpleList(arr, mapper, emptyText = "None") {
-      const out = (Array.isArray(arr) ? arr : [])
-        .map(mapper)
-        .map(v => String(v || "").trim())
-        .filter(Boolean);
+      const out = (Array.isArray(arr) ? arr : []).map(mapper).map(v => String(v || "").trim()).filter(Boolean);
       return out.length ? out.join(", ") : emptyText;
     }
 
     function summarizeItemsForPrompt(items) {
-      return (items && items.length)
-        ? items.map(item => `${item.name} x${item.count}`).join(", ")
-        : "None";
+      return (items && items.length) ? items.map(item => `${item.name} x${item.count}`).join(", ") : "None";
+    }
+
+    function getPurchasedItemsByRound(player) {
+      const roundIndices = [];
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+      for (const round of rounds) {
+        const idx = toNum(round?.round_index, -1);
+        if (idx >= 0) roundIndices.push(idx);
+      }
+      const uniqueSorted = [...new Set(roundIndices)].sort((a, b) => a - b);
+      return uniqueSorted.map(roundIndex => ({ roundIndex, items: getPurchasedItemsForRound(player, roundIndex) }));
     }
 
     function summarizePurchasedRoundsForPrompt(player) {
       const rounds = getPurchasedItemsByRound(player);
       const useful = rounds.filter(r => r.items.length);
-
       if (!useful.length) return "None";
-
       return useful
-        .map(r => `Round ${r.roundIndex >= 0 ? r.roundIndex + 1 : "?"}: ${r.items.map(item => `${item.name} x${item.count}`).join(", ")}`)
+        .map(r => `Round ${r.roundIndex + 1}: ${r.items.map(item => `${item.name} x${item.count}`).join(", ")}`)
         .join("\n      - ");
     }
 
     function summarizeWeaponsForPrompt(usages) {
       if (!usages || !usages.length) return "None";
-
       return usages.map(weapon => {
         const extra = Object.entries(weapon.raw || {})
           .filter(([k]) => k !== "weapon_name" && k !== "weapon_id")
           .map(([k, v]) => `${humanizeKey(k)}: ${formatGenericValue(v)}`)
           .join("; ");
-
         return `${weapon.name}${Number.isFinite(weapon.id) ? ` [ID ${weapon.id}]` : ""}${extra ? ` — ${extra}` : ""}`;
       }).join("\n      - ");
     }
@@ -2206,15 +2006,13 @@
     function summarizeRoundStatsForPrompt(player) {
       const round = getLatestRoundStat(player);
       if (!round) return "No round_stats found.";
+      const sections = buildRoundStatsSections(round);
 
-      const sections = categorizeRoundStats(round);
       const lines = [];
-
       for (const [title, rows] of Object.entries(sections)) {
-        if (!rows.length) continue;
-        lines.push(`${title}: ${rows.map(([key, value]) => `${humanizeKey(key)} = ${formatGenericValue(value)}`).join("; ")}`);
+        if (!rows?.length) continue;
+        lines.push(`${title}: ${rows.map(([k, v]) => `${k} = ${formatGenericValue(v)}`).join("; ")}`);
       }
-
       return lines.length ? lines.join("\n      - ") : "No categorized round stats found.";
     }
 
@@ -2223,8 +2021,10 @@
       const passiveSkills = getPassiveSkillEntries(player);
       const pet = getPetEntry(player);
       const loadout = getPlayerLoadoutEntry(player);
-      const currentItems = getLatestItems(player);
-      const weaponUsages = getLatestWeaponUsages(player);
+
+      const latestIdx = getLatestRoundIndex(player);
+      const currentItems = Number.isFinite(latestIdx) ? getItemsForRound(player, latestIdx) : [];
+      const weaponUsages = Number.isFinite(latestIdx) ? getWeaponUsagesForRound(player, latestIdx) : [];
 
       const playerName = player?.nickname || player?.account_id || `Player ${idx + 1}`;
       const accountId = player?.account_id || "N/A";
@@ -2249,18 +2049,14 @@
     function buildTeamPromptBlock(team, fallbackName) {
       const teamName = team?.team_name || fallbackName;
       const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-
       return [
         `=== ${teamName} ===`,
-        players.length
-          ? players.map((player, idx) => buildPlayerPromptBlock(player, idx)).join("\n\n")
-          : "No players found."
+        players.length ? players.map((p, i) => buildPlayerPromptBlock(p, i)).join("\n\n") : "No players found."
       ].join("\n");
     }
 
     function buildAiAnalysisPrompt(payload, teams) {
       const roundText = getDisplayRound(payload, teams);
-
       return [
         `You are an expert esports commentator, analyst, and coach reviewing a Free Fire Clash Squad match snapshot.`,
         ``,
@@ -2299,7 +2095,6 @@
 
     async function copyTextToClipboard(text) {
       if (!text) return false;
-
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
@@ -2317,12 +2112,7 @@
       temp.select();
 
       let ok = false;
-      try {
-        ok = document.execCommand("copy");
-      } catch {
-        ok = false;
-      }
-
+      try { ok = document.execCommand("copy"); } catch { ok = false; }
       document.body.removeChild(temp);
       return ok;
     }
@@ -2341,13 +2131,8 @@
       updateDetailsModeButtons();
     }
 
-    function getPayload(data) {
-      return Array.isArray(data) ? data[0] : data;
-    }
-
-    function getTeamsFromPayload(payload) {
-      return Array.isArray(payload?.team_stats) ? payload.team_stats : [];
-    }
+    function getPayload(data) { return Array.isArray(data) ? data[0] : data; }
+    function getTeamsFromPayload(payload) { return Array.isArray(payload?.team_stats) ? payload.team_stats : []; }
 
     async function saveSharedState() {
       if (applyingRemoteState) return false;
@@ -2368,7 +2153,6 @@
         setStatus("Shared state save failed:\n" + JSON.stringify(error, null, 2), true);
         return false;
       }
-
       return true;
     }
 
@@ -2415,12 +2199,7 @@
         .channel("shared-match-state")
         .on(
           "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "shared_match_state",
-            filter: `room=eq.${SHARED_ROOM}`
-          },
+          { event: "*", schema: "public", table: "shared_match_state", filter: `room=eq.${SHARED_ROOM}` },
           async (payload) => {
             const row = payload?.new;
             if (!row) return;
@@ -2457,24 +2236,14 @@
 
     async function renderJson(shouldBroadcast = true, rawOverride = null) {
       try {
-        const sourceRaw = typeof rawOverride === "string"
-          ? rawOverride
-          : ($("jsonInput").value || "");
-
-        if (typeof rawOverride !== "string") {
-          setLocalInput(sourceRaw);
-        }
+        const sourceRaw = typeof rawOverride === "string" ? rawOverride : ($("jsonInput").value || "");
+        if (typeof rawOverride !== "string") setLocalInput(sourceRaw);
 
         const raw = sourceRaw.trim();
-
         if (!raw) {
           clearRender();
           setStatus("Paste JSON first.", true);
-
-          if (shouldBroadcast) {
-            CURRENT_SHARED_JSON_TEXT = "";
-            await saveSharedState();
-          }
+          if (shouldBroadcast) { CURRENT_SHARED_JSON_TEXT = ""; await saveSharedState(); }
           return;
         }
 
@@ -2484,9 +2253,8 @@
         if (!assetsLoaded) await loadAssetCatalogs();
 
         let data;
-        try {
-          data = JSON.parse(raw);
-        } catch (err) {
+        try { data = JSON.parse(raw); }
+        catch (err) {
           clearRender();
           setStatus(`Invalid JSON:\n${err.message}`, true);
           return;
@@ -2517,24 +2285,18 @@
         $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, CURRENT_TEAMS);
 
         let message = `Rendered ${CURRENT_TEAMS[0]?.team_name || "Team A"} (${teamAScore}) vs ${CURRENT_TEAMS[1]?.team_name || "Team B"} (${teamBScore}).`;
-        if (teams.length > 2) {
-          message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
-        }
+        if (teams.length > 2) message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
 
         setStatus(message);
         setCopyPromptStatus("AI prompt generated. Use Copy Prompt to paste it into another AI tool.");
 
-        if (shouldBroadcast) {
-          await saveSharedState();
-        }
+        if (shouldBroadcast) await saveSharedState();
       } catch (err) {
         setStatus(`Render failed:\n${err.message || err}`, true);
       }
     }
 
-    $("jsonInput").addEventListener("input", () => {
-      setLocalInput($("jsonInput").value || "");
-    });
+    $("jsonInput").addEventListener("input", () => setLocalInput($("jsonInput").value || ""));
 
     $("renderBtn").addEventListener("click", () => renderJson());
 
@@ -2566,11 +2328,7 @@
 
     $("copyPromptBtn").addEventListener("click", async () => {
       const text = $("aiPromptOutput").value.trim();
-      if (!text) {
-        setCopyPromptStatus("No prompt to copy yet. Render match JSON first.");
-        return;
-      }
-
+      if (!text) { setCopyPromptStatus("No prompt to copy yet. Render match JSON first."); return; }
       const ok = await copyTextToClipboard(text);
       setCopyPromptStatus(ok ? "AI prompt copied to clipboard." : "Copy failed. You can still manually select and copy the prompt.");
     });
