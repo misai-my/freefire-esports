@@ -985,6 +985,7 @@
     let detailsMode = "latest";
     let CURRENT_TEAMS = null;
     let CURRENT_PAYLOAD = null;
+    let CURRENT_SHARED_JSON_TEXT = "";
     let sharedChannel = null;
     let applyingRemoteState = false;
 
@@ -2277,12 +2278,9 @@
     async function saveSharedState() {
       if (applyingRemoteState) return false;
 
-      const localJson = $("jsonInput").value || "";
-      setLocalInput(localJson);
-
       const payload = {
         room: SHARED_ROOM,
-        json_text: localJson,
+        json_text: CURRENT_SHARED_JSON_TEXT || "",
         details_mode: detailsMode === "all" ? "all" : "latest",
         updated_at: new Date().toISOString()
       };
@@ -2299,7 +2297,6 @@
         return false;
       }
 
-      console.log("shared row saved:", data);
       return true;
     }
 
@@ -2316,7 +2313,7 @@
         return;
       }
 
-      // Keep each user's own local textarea content only.
+      // keep textarea local-only
       $("jsonInput").value = getLocalInput();
 
       if (!data) {
@@ -2326,11 +2323,12 @@
 
       applyingRemoteState = true;
       try {
+        CURRENT_SHARED_JSON_TEXT = data.json_text || "";
         detailsMode = data.details_mode === "all" ? "all" : "latest";
         updateDetailsModeButtons();
 
-        if ((data.json_text || "").trim()) {
-          await renderFromRawText(data.json_text, false);
+        if (CURRENT_SHARED_JSON_TEXT.trim()) {
+          await renderJson(false, CURRENT_SHARED_JSON_TEXT);
         } else {
           clearRender();
         }
@@ -2353,18 +2351,17 @@
             filter: `room=eq.${SHARED_ROOM}`
           },
           async (payload) => {
-            console.log("Realtime payload:", payload);
-
             const row = payload?.new;
             if (!row) return;
 
             applyingRemoteState = true;
             try {
+              CURRENT_SHARED_JSON_TEXT = row.json_text || "";
               detailsMode = row.details_mode === "all" ? "all" : "latest";
               updateDetailsModeButtons();
 
-              if ((row.json_text || "").trim()) {
-                await renderFromRawText(row.json_text, false);
+              if (CURRENT_SHARED_JSON_TEXT.trim()) {
+                await renderJson(false, CURRENT_SHARED_JSON_TEXT);
               } else {
                 clearRender();
               }
@@ -2374,7 +2371,6 @@
           }
         )
         .subscribe((status) => {
-          console.log("Realtime status:", status);
           if (status === "SUBSCRIBED") {
             if (!$("status").classList.contains("error")) {
               const current = $("status").textContent || "";
@@ -2382,25 +2378,37 @@
                 $("status").textContent = current + (current ? "\n" : "") + "Realtime: SUBSCRIBED";
               }
             }
-          } else {
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
             setStatus("Realtime status: " + status, true);
           }
         });
     }
 
-    async function renderFromRawText(rawText, shouldBroadcast = false) {
+    async function renderJson(shouldBroadcast = true, rawOverride = null) {
       try {
-        const raw = String(rawText || "").trim();
+        const sourceRaw = typeof rawOverride === "string"
+          ? rawOverride
+          : ($("jsonInput").value || "");
+
+        if (typeof rawOverride !== "string") {
+          setLocalInput(sourceRaw);
+        }
+
+        const raw = sourceRaw.trim();
 
         if (!raw) {
           clearRender();
           setStatus("Paste JSON first.", true);
 
           if (shouldBroadcast) {
+            CURRENT_SHARED_JSON_TEXT = "";
             await saveSharedState();
           }
           return;
         }
+
+        // critical: shared JSON must live in memory, not depend on visible textarea
+        CURRENT_SHARED_JSON_TEXT = raw;
 
         await loadMatchApiLookups();
         if (!assetsLoaded) await loadAssetCatalogs();
@@ -2451,12 +2459,6 @@
       }
     }
 
-    async function renderJson(shouldBroadcast = true) {
-      const raw = $("jsonInput").value || "";
-      setLocalInput(raw);
-      await renderFromRawText(raw, shouldBroadcast);
-    }
-
     $("jsonInput").addEventListener("input", () => {
       setLocalInput($("jsonInput").value || "");
     });
@@ -2479,6 +2481,7 @@
       clearLocalInput();
       clearRender();
       setStatus("Cleared. Paste new JSON to render.");
+      CURRENT_SHARED_JSON_TEXT = "";
       await saveSharedState();
     });
 
