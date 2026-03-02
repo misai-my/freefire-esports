@@ -121,6 +121,18 @@
       border:1px solid var(--line);
     }
 
+    .mode-btn{
+      padding:8px 12px;
+      font-size:12px;
+      border-radius:10px;
+    }
+
+    .mode-btn.active{
+      background:linear-gradient(90deg, var(--cyan), #68ffd7);
+      color:#08101d;
+      border-color:transparent;
+    }
+
     .status{
       margin-top:12px;
       padding:10px 12px;
@@ -136,21 +148,6 @@
       color:#ffd7d7;
       border-color:rgba(255,123,123,.35);
       background:rgba(255,123,123,.08);
-    }
-
-    .note{
-      margin-top:14px;
-      font-size:12px;
-      color:var(--muted);
-      border-top:1px dashed var(--line);
-      padding-top:12px;
-      line-height:1.5;
-    }
-
-    code{
-      background:rgba(255,255,255,.05);
-      padding:2px 6px;
-      border-radius:6px;
     }
 
     .match-head{
@@ -544,13 +541,22 @@
       padding:14px;
     }
 
+    .details-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
     .details-panel-title{
       font-size:14px;
       font-weight:900;
       letter-spacing:.06em;
       text-transform:uppercase;
       color:#eef4ff;
-      margin-bottom:10px;
+      margin:0;
     }
 
     .details-wrap{
@@ -807,6 +813,10 @@
         grid-template-columns:1fr;
         gap:4px;
       }
+
+      .details-head{
+        align-items:flex-start;
+      }
     }
   </style>
 </head>
@@ -849,7 +859,13 @@
     </div>
 
     <div class="panel details-panel">
-      <div class="details-panel-title">Player Stat Details</div>
+      <div class="details-head">
+        <div class="details-panel-title">Player Stat Details</div>
+        <div class="actions" style="margin-top:0;">
+          <button id="latestModeBtn" class="ghost mode-btn active" type="button">Latest Round</button>
+          <button id="allRoundsModeBtn" class="ghost mode-btn" type="button">All Rounds</button>
+        </div>
+      </div>
       <div id="globalPlayerDetails"></div>
     </div>
 
@@ -877,6 +893,9 @@
 
     let matchApiLoaded = false;
     let assetsLoaded = false;
+    let detailsMode = "latest";
+    let CURRENT_TEAMS = null;
+    let CURRENT_PAYLOAD = null;
 
     const LOOKUPS = {
       storeItems: new Map(),
@@ -1003,7 +1022,6 @@
       let s = String(name || "").replace(/\s+/g, " ").trim();
       if (!s) return null;
 
-      // trims embedded IDs even when attached directly to text: 500000007Resupply
       s = s.replace(/\s*500000\d+[\s\S]*$/i, "").trim();
 
       const words = s.split(/\s+/).filter(Boolean);
@@ -1331,8 +1349,36 @@
       return rounds[0];
     }
 
-    function getLatestItems(player) {
+    function getLatestRoundIndex(player) {
       const round = getLatestRoundStat(player);
+      const idx = Number(round?.round_index);
+      return Number.isFinite(idx) ? idx : null;
+    }
+
+    function getRoundStatByIndex(player, targetRoundIndex) {
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+      return rounds.find(r => toNum(r?.round_index, -999) === targetRoundIndex) || null;
+    }
+
+    function getAllRoundIndicesForTeams(teams) {
+      const set = new Set();
+
+      for (const team of teams || []) {
+        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+        for (const player of players) {
+          const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+          for (const round of rounds) {
+            const idx = toNum(round?.round_index, -1);
+            if (idx >= 0) set.add(idx);
+          }
+        }
+      }
+
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function getItemsForRound(player, roundIndex) {
+      const round = getRoundStatByIndex(player, roundIndex);
       const items = Array.isArray(round?.item_nums) ? round.item_nums : [];
 
       return items
@@ -1345,10 +1391,14 @@
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     }
 
-    function getPurchasedItemsForRound(player, targetRoundIndex) {
-      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
-      const round = rounds.find(r => toNum(r?.round_index, -999) === targetRoundIndex);
+    function getLatestItems(player) {
+      const roundIndex = getLatestRoundIndex(player);
+      if (roundIndex === null) return [];
+      return getItemsForRound(player, roundIndex);
+    }
 
+    function getPurchasedItemsForRound(player, targetRoundIndex) {
+      const round = getRoundStatByIndex(player, targetRoundIndex);
       if (!round) return [];
 
       const purchased = Array.isArray(round?.purchased_items) ? round.purchased_items : [];
@@ -1357,7 +1407,6 @@
       for (const rawId of purchased) {
         const id = Number(rawId);
         if (!Number.isFinite(id)) continue;
-
         if (id >= 500000000) continue;
 
         const resolvedName = resolveItemName(id, true);
@@ -1376,21 +1425,10 @@
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
     }
 
-    function getPurchasedRoundIndicesForTeams(teams) {
-      const set = new Set();
-
-      for (const team of teams || []) {
-        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-        for (const player of players) {
-          const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
-          for (const round of rounds) {
-            const idx = toNum(round?.round_index, -1);
-            if (idx >= 0) set.add(idx);
-          }
-        }
-      }
-
-      return [...set].sort((a, b) => a - b);
+    function getLatestPurchasedItems(player) {
+      const roundIndex = getLatestRoundIndex(player);
+      if (roundIndex === null) return [];
+      return getPurchasedItemsForRound(player, roundIndex);
     }
 
     function getPurchasedItemsByRound(player) {
@@ -1410,8 +1448,8 @@
       }));
     }
 
-    function getLatestWeaponUsages(player) {
-      const round = getLatestRoundStat(player);
+    function getWeaponUsagesForRound(player, roundIndex) {
+      const round = getRoundStatByIndex(player, roundIndex);
       const usages = Array.isArray(round?.weapon_usages) ? round.weapon_usages : [];
 
       return usages.map(weapon => ({
@@ -1419,6 +1457,12 @@
         id: Number(weapon?.weapon_id),
         name: weapon?.weapon_name || `Weapon ID ${weapon?.weapon_id ?? "?"}`
       }));
+    }
+
+    function getLatestWeaponUsages(player) {
+      const roundIndex = getLatestRoundIndex(player);
+      if (roundIndex === null) return [];
+      return getWeaponUsagesForRound(player, roundIndex);
     }
 
     function getDisplayRound(payload, teams = []) {
@@ -1560,7 +1604,11 @@
     }
 
     function buildCurrentItemsContent(player) {
-      const items = getLatestItems(player);
+      return buildCurrentItemsContentForRound(player, getLatestRoundIndex(player));
+    }
+
+    function buildCurrentItemsContentForRound(player, roundIndex) {
+      const items = Number.isFinite(roundIndex) ? getItemsForRound(player, roundIndex) : [];
 
       return `
         <div class="stats-category">
@@ -1576,7 +1624,33 @@
                 : `
                     <div class="stats-row">
                       <div class="stats-key">Items</div>
-                      <div class="stats-val">No current item snapshot found.</div>
+                      <div class="stats-val">No item snapshot found.</div>
+                    </div>
+                  `
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function buildLatestPurchasedItemsContent(player) {
+      const items = getLatestPurchasedItems(player);
+
+      return `
+        <div class="stats-category">
+          <div class="stats-table">
+            ${
+              items.length
+                ? items.map(item => `
+                    <div class="stats-row">
+                      <div class="stats-key">${escapeHtml(item.name)}</div>
+                      <div class="stats-val">Purchased x${item.count}</div>
+                    </div>
+                  `).join("")
+                : `
+                    <div class="stats-row">
+                      <div class="stats-key">Purchased Items</div>
+                      <div class="stats-val">No valid purchased items found.</div>
                     </div>
                   `
             }
@@ -1586,7 +1660,7 @@
     }
 
     function buildPurchasedItemsContentForRound(player, roundIndex) {
-      const items = getPurchasedItemsForRound(player, roundIndex);
+      const items = Number.isFinite(roundIndex) ? getPurchasedItemsForRound(player, roundIndex) : [];
 
       return `
         <div class="stats-category">
@@ -1612,7 +1686,11 @@
     }
 
     function buildWeaponUsagesContent(player) {
-      const usages = getLatestWeaponUsages(player);
+      return buildWeaponUsagesContentForRound(player, getLatestRoundIndex(player));
+    }
+
+    function buildWeaponUsagesContentForRound(player, roundIndex) {
+      const usages = Number.isFinite(roundIndex) ? getWeaponUsagesForRound(player, roundIndex) : [];
 
       return `
         <div class="stats-sections">
@@ -1648,14 +1726,18 @@
                     </div>
                   `;
                 }).join("")
-              : `<div class="empty-lite">No weapon usage data found in latest round.</div>`
+              : `<div class="empty-lite">No weapon usage data found.</div>`
           }
         </div>
       `;
     }
 
     function buildLatestRoundStatsContent(player) {
-      const round = getLatestRoundStat(player);
+      return buildRoundStatsContentForRound(player, getLatestRoundIndex(player));
+    }
+
+    function buildRoundStatsContentForRound(player, roundIndex) {
+      const round = Number.isFinite(roundIndex) ? getRoundStatByIndex(player, roundIndex) : null;
 
       if (!round) {
         return `
@@ -1801,12 +1883,12 @@
       `;
     }
 
-    function renderGlobalPurchasedItemsRow(teams) {
-      const roundIndices = getPurchasedRoundIndicesForTeams(teams);
+    function renderGlobalRoundBasedRow(teams, title, builderFn, emptyLabel = "No round data found.") {
+      const roundIndices = getAllRoundIndicesForTeams(teams);
 
       return `
         <details class="row-fold">
-          <summary>Purchased Items By Round</summary>
+          <summary>${escapeHtml(title)}</summary>
           <div class="row-fold-body">
             <div class="stats-sections">
               ${
@@ -1816,8 +1898,8 @@
                         <div class="stats-category-title">Round ${roundIndex + 1}</div>
                         <div style="padding:10px;">
                           <div class="details-wrap">
-                            ${renderCategoryContentForTeamWithArgs(teams[0], "Team A", buildPurchasedItemsContentForRound, roundIndex)}
-                            ${renderCategoryContentForTeamWithArgs(teams[1], "Team B", buildPurchasedItemsContentForRound, roundIndex)}
+                            ${renderCategoryContentForTeamWithArgs(teams[0], "Team A", builderFn, roundIndex)}
+                            ${renderCategoryContentForTeamWithArgs(teams[1], "Team B", builderFn, roundIndex)}
                           </div>
                         </div>
                       </div>
@@ -1826,8 +1908,8 @@
                       <div class="stats-category">
                         <div class="stats-table">
                           <div class="stats-row">
-                            <div class="stats-key">Purchased Items</div>
-                            <div class="stats-val">No purchased item data found.</div>
+                            <div class="stats-key">Rounds</div>
+                            <div class="stats-val">${escapeHtml(emptyLabel)}</div>
                           </div>
                         </div>
                       </div>
@@ -1837,6 +1919,51 @@
           </div>
         </details>
       `;
+    }
+
+    function renderGlobalPlayerDetailsLatest(teams) {
+      return `
+        ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
+        ${renderGlobalCategoryRow(teams, "Purchased Items Latest Round", buildLatestPurchasedItemsContent)}
+        ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
+        ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
+      `;
+    }
+
+    function renderGlobalPlayerDetailsAllRounds(teams) {
+      return `
+        ${renderGlobalRoundBasedRow(teams, "Current Items All Rounds", buildCurrentItemsContentForRound, "No item data found.")}
+        ${renderGlobalRoundBasedRow(teams, "Purchased Items All Rounds", buildPurchasedItemsContentForRound, "No purchased item data found.")}
+        ${renderGlobalRoundBasedRow(teams, "Weapon Usages All Rounds", buildWeaponUsagesContentForRound, "No weapon usage data found.")}
+        ${renderGlobalRoundBasedRow(teams, "Player Details Per Round", buildRoundStatsContentForRound, "No round stats found.")}
+      `;
+    }
+
+    function renderGlobalPlayerDetails(teams) {
+      return detailsMode === "all"
+        ? renderGlobalPlayerDetailsAllRounds(teams)
+        : renderGlobalPlayerDetailsLatest(teams);
+    }
+
+    function updateDetailsModeButtons() {
+      $("latestModeBtn").classList.toggle("active", detailsMode === "latest");
+      $("allRoundsModeBtn").classList.toggle("active", detailsMode === "all");
+    }
+
+    function renderDetailsPanel() {
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        $("globalPlayerDetails").innerHTML = "";
+        updateDetailsModeButtons();
+        return;
+      }
+
+      $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(CURRENT_TEAMS);
+      updateDetailsModeButtons();
+    }
+
+    function setDetailsMode(mode) {
+      detailsMode = mode === "all" ? "all" : "latest";
+      renderDetailsPanel();
     }
 
     function renderTeamContent(team) {
@@ -1850,15 +1977,6 @@
         <div class="player-grid">
           ${players.map(renderPlayerSummaryCard).join("")}
         </div>
-      `;
-    }
-
-    function renderGlobalPlayerDetails(teams) {
-      return `
-        ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
-        ${renderGlobalPurchasedItemsRow(teams)}
-        ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
-        ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
       `;
     }
 
@@ -2032,7 +2150,10 @@
       $("teamBContent").innerHTML = "";
       $("globalPlayerDetails").innerHTML = "";
       $("aiPromptOutput").value = "";
+      CURRENT_TEAMS = null;
+      CURRENT_PAYLOAD = null;
       setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
+      updateDetailsModeButtons();
     }
 
     function getPayload(data) {
@@ -2071,7 +2192,6 @@
           return;
         }
 
-        // Force fresh lookup data on every render so DB updates are reflected immediately
         await loadMatchApiLookups();
         if (!assetsLoaded) await loadAssetCatalogs();
 
@@ -2093,16 +2213,19 @@
           return;
         }
 
-        $("teamAName").textContent = teams[0]?.team_name || "—";
-        $("teamBName").textContent = teams[1]?.team_name || "—";
-        $("matchRound").textContent = getDisplayRound(payload, teams);
+        CURRENT_PAYLOAD = payload;
+        CURRENT_TEAMS = [teams[0], teams[1]];
 
-        $("teamAContent").innerHTML = renderTeamContent(teams[0]);
-        $("teamBContent").innerHTML = renderTeamContent(teams[1]);
-        $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(teams);
-        $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, teams);
+        $("teamAName").textContent = CURRENT_TEAMS[0]?.team_name || "—";
+        $("teamBName").textContent = CURRENT_TEAMS[1]?.team_name || "—";
+        $("matchRound").textContent = getDisplayRound(payload, CURRENT_TEAMS);
 
-        let message = `Rendered ${teams[0]?.team_name || "Team A"} vs ${teams[1]?.team_name || "Team B"}.`;
+        $("teamAContent").innerHTML = renderTeamContent(CURRENT_TEAMS[0]);
+        $("teamBContent").innerHTML = renderTeamContent(CURRENT_TEAMS[1]);
+        renderDetailsPanel();
+        $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, CURRENT_TEAMS);
+
+        let message = `Rendered ${CURRENT_TEAMS[0]?.team_name || "Team A"} vs ${CURRENT_TEAMS[1]?.team_name || "Team B"}.`;
         if (teams.length > 2) {
           message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
         }
@@ -2143,6 +2266,10 @@
       setCopyPromptStatus(ok ? "AI prompt copied to clipboard." : "Copy failed. You can still manually select and copy the prompt.");
     });
 
+    $("latestModeBtn").addEventListener("click", () => setDetailsMode("latest"));
+    $("allRoundsModeBtn").addEventListener("click", () => setDetailsMode("all"));
+
+    updateDetailsModeButtons();
     warmUp();
   </script>
 </body>
