@@ -24,7 +24,7 @@
     .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
     .controls{display:flex;flex-wrap:wrap;gap:8px}
     .controls label{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);padding:6px 8px;border-radius:8px}
-    .controls select,.controls input[type="date"],.controls input[type="number"]{background:#212121;color:var(--brand);border:1px solid #3a3a3a;border-radius:6px;padding:6px 8px}
+    .controls select,.controls input[type="number"]{background:#212121;color:var(--brand);border:1px solid #3a3a3a;border-radius:6px;padding:6px 8px}
     .muted{color:var(--muted);font-size:.9rem}
 
     /* Regular section (kept for Overview KPIs only) */
@@ -165,8 +165,6 @@
   <div class="bar">
     <a class="btn" href="dashboard.html">← Back to Dashboard</a>
     <div class="controls" style="margin-left:auto">
-      <label>From <input type="date" id="fFrom"></label>
-      <label>To <input type="date" id="fTo"></label>
       <label>Map
         <select id="fMap">
           <option value="__ALL__">All maps</option>
@@ -379,15 +377,13 @@ const el = (id) => document.getElementById(id);
 const fmtPct = (x) => isFinite(x) ? (x*100).toFixed(1)+'%' : '—';
 const pct = (num, den) => den ? fmtPct(num/den) : '—';
 const uniq = (arr) => [...new Set(arr)];
-function ymd(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; }
 function parseState(val){ if (!val) return {}; if (typeof val==='object') return val; try { return JSON.parse(val); } catch(e){ return {}; } }
 function safe(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 /* ========= Filters init ========= */
 function initFilters(){
-  const today = new Date(); const from = new Date(today); from.setDate(from.getDate()-30);
-  el('fFrom').value = ymd(from); el('fTo').value = ymd(today);
-  el('fMap').value='__ALL__'; el('fWL').value='__ALL__';
+  el('fMap').value='__ALL__';
+  el('fWL').value='__ALL__';
   el('fTourn').innerHTML = `<option value="__ALL__">All tournaments</option>`;
 }
 initFilters();
@@ -400,20 +396,13 @@ let LATEST_EXPORT = null;
 
 /* ========= Fetch ========= */
 async function fetchRecords(){
-  const from  = el('fFrom').value;
-  const toRaw = el('fTo').value;
   const map   = el('fMap').value;
   const tourn = el('fTourn').value || '__ALL__';
 
   let q = client
     .from('draft_records')
-    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
-    .gte('match_date', from);
+    .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state');
 
-  if (toRaw){
-    const d = new Date(toRaw); d.setDate(d.getDate()+1);
-    q = q.lt('match_date', ymd(d));
-  }
   if (map!=='__ALL__') q = q.eq('map', map);
   if (tourn!=='__ALL__') q = q.eq('tournament_name', tourn);
 
@@ -1043,7 +1032,6 @@ function buildAIPrompt(exportObj){
 Context:
 - Teams: ${meta.teamA} vs ${meta.teamB}
 - Filters: ${meta.mapLabel}, ${meta.tournamentLabel}, ${meta.wlLabel}
-- Date range: ${meta.from} → ${meta.to}
 
 Instructions:
 1) Summarize overall performance for each team (matches, wins, win%).
@@ -1209,7 +1197,7 @@ function renderAll(){
   el('labelTriosA').textContent = a; el('labelTriosB').textContent = b;
   const triA = buildTrios(rowsA), triB = buildTrios(rowsB);
   el('triosA').innerHTML = tableTrios(triA, 5);
-  el('triosB').innerHTML = tableTrios(rowsB, 5);
+  el('triosB').innerHTML = tableTrios(triB, 5);
 
   // Ban Impact (ignore WL)
   el('labelBIA').textContent = a; el('labelBIB').textContent = b;
@@ -1223,7 +1211,7 @@ function renderAll(){
   el('oppSeriesB').innerHTML = opponentSeriesTable(rowsB, 30);
 
   // ===== Build data snapshot for AI prompt =====
-  const meta = { teamA:a, teamB:b, mapLabel, tournamentLabel: tournLabel, wlLabel, from: el('fFrom').value, to: el('fTo').value };
+  const meta = { teamA:a, teamB:b, mapLabel, tournamentLabel: tournLabel, wlLabel };
   const exportObj = {
     meta,
     teamA:{
@@ -1285,9 +1273,6 @@ async function widenFiltersAndReload(){
   el('fTourn').value = '__ALL__';
   el('fMap').value = '__ALL__';
   el('fWL').value = '__ALL__';
-  const from = new Date(); from.setFullYear(from.getFullYear()-1);
-  el('fFrom').value = ymd(from);
-  el('fTo').value = ymd(new Date());
   await refresh();
 }
 
