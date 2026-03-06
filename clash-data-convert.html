@@ -18,12 +18,40 @@
       --cyan:#2dafff;
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:24px;
+
+      /* layout sizing */
+      --page-min:1120px;
+      --gap-main:clamp(8px, .9vw, 16px);
+      --gap-card:clamp(6px, .65vw, 10px);
+      --pad-main:clamp(10px, 1vw, 18px);
+      --pad-panel:clamp(10px, .9vw, 16px);
+
+      /* typography */
+      --title-size:clamp(22px, 1.55vw, 28px);
+      --team-name-size:clamp(17px, 1.25vw, 24px);
+      --round-size:clamp(12px, .95vw, 16px);
+      --label-size:clamp(10px, .7vw, 12px);
+      --body-size:clamp(11px, .78vw, 13px);
+
+      /* cards */
+      --hero-h:clamp(88px, 8vw, 120px);
+      --hero-pad:clamp(6px, .7vw, 10px);
+      --chip-w:clamp(50px, 3.8vw, 64px);
+      --chip-icon:clamp(32px, 2.45vw, 42px);
+      --card-thumb:clamp(26px, 2vw, 30px);
+      --score-pill-h:clamp(26px, 2.2vw, 30px);
+      --score-pill-min:clamp(38px, 3vw, 44px);
     }
 
     *{ box-sizing:border-box; }
 
-    body{
+    html,body{
       margin:0;
+      min-width:0;
+      overflow-x:auto;
+    }
+
+    body{
       font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
       background:
         radial-gradient(circle at 0% 10%, rgba(0,180,255,.12), transparent 20%),
@@ -33,24 +61,26 @@
     }
 
     .app{
-      max-width:1880px;
+      max-width:none;
+      width:max(100%, var(--page-min));
+      min-width:var(--page-min);
       margin:0 auto;
-      padding:18px;
-      min-width:0;
+      padding:var(--pad-main);
     }
 
     .title{
       margin:0 0 6px;
-      font-size:28px;
+      font-size:var(--title-size);
       font-weight:900;
       letter-spacing:.02em;
+      line-height:1.15;
     }
 
     .sub{
-      margin:0 0 16px;
+      margin:0 0 14px;
       color:var(--muted);
-      font-size:14px;
-      line-height:1.5;
+      font-size:clamp(12px, .9vw, 14px);
+      line-height:1.45;
     }
 
     .panel{
@@ -62,8 +92,8 @@
     }
 
     .input-panel{
-      padding:16px;
-      margin-bottom:18px;
+      padding:var(--pad-panel);
+      margin-bottom:var(--gap-main);
     }
 
     .field{
@@ -73,7 +103,7 @@
     }
 
     .field label{
-      font-size:12px;
+      font-size:var(--label-size);
       text-transform:uppercase;
       letter-spacing:.12em;
       color:var(--muted);
@@ -113,6 +143,9 @@
       cursor:pointer;
       background:linear-gradient(90deg, var(--cyan), #68ffd7);
       color:#08101d;
+      font-size:12px;
+      line-height:1;
+      white-space:nowrap;
     }
 
     button.ghost{
@@ -154,17 +187,17 @@
     .match-head{
       display:grid;
       grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
-      gap:12px;
+      gap:var(--gap-main);
       align-items:center;
       padding:12px 16px;
-      margin-bottom:16px;
+      margin-bottom:var(--gap-main);
       border-radius:20px;
       min-width:0;
     }
 
     .match-team-name{
       min-width:0;
-      font-size:24px;
+      font-size:var(--team-name-size);
       font-weight:900;
       color:var(--orange);
       text-transform:uppercase;
@@ -177,12 +210,11 @@
       text-align:right;
     }
 
-    /* ✅ Score alignment fix: score always hugs the center edge (both in the middle) */
     .team-name-wrap{
       display:flex;
       align-items:center;
-      justify-content:space-between; /* name to edge, score to center edge */
-      gap:12px;
+      justify-content:space-between;
+      gap:10px;
       width:100%;
       min-width:0;
     }
@@ -194,20 +226,21 @@
       word-break:break-word;
       line-height:1;
     }
+
     .team-name-text.right{
       text-align:right;
     }
 
     .team-score-pill{
       flex:0 0 auto;
-      min-width:44px;
-      height:30px;
+      min-width:var(--score-pill-min);
+      height:var(--score-pill-h);
       padding:0 10px;
       border-radius:999px;
       border:1px solid rgba(124,172,255,.18);
       background:rgba(255,255,255,.05);
       color:#fff;
-      font-size:16px;
+      font-size:clamp(14px, 1vw, 16px);
       font-weight:900;
       line-height:1;
       display:inline-flex;
@@ -217,11 +250,11 @@
     }
 
     .match-round{
-      padding:8px 14px;
+      padding:8px 12px;
       border-radius:14px;
       border:1px solid rgba(124,172,255,.18);
       background:rgba(3,12,28,.72);
-      font-size:16px;
+      font-size:var(--round-size);
       font-weight:900;
       letter-spacing:.06em;
       text-transform:uppercase;
@@ -233,7 +266,7 @@
     .arena-wrap{
       display:grid;
       grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-      gap:16px;
+      gap:var(--gap-main);
       align-items:start;
       min-width:0;
       position:relative;
@@ -245,7 +278,7 @@
       min-width:0;
       overflow:visible;
       border-radius:24px;
-      padding:14px;
+      padding:clamp(10px, .9vw, 14px);
       border:1px solid rgba(124,172,255,.12);
       background:
         linear-gradient(180deg, rgba(7,18,38,.95), rgba(5,14,30,.96)),
@@ -270,8 +303,8 @@
 
     .team-glow{
       position:absolute;
-      width:220px;
-      height:220px;
+      width:180px;
+      height:180px;
       filter:blur(70px);
       opacity:.22;
       pointer-events:none;
@@ -302,7 +335,7 @@
     .detail-grid{
       display:grid;
       grid-template-columns:repeat(4, minmax(0,1fr));
-      gap:10px;
+      gap:var(--gap-card);
       align-items:start;
       align-content:start;
       min-width:0;
@@ -313,8 +346,8 @@
       min-width:0;
       display:flex;
       flex-direction:column;
-      gap:10px;
-      padding:10px;
+      gap:8px;
+      padding:8px;
       border-radius:16px;
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.02);
@@ -334,7 +367,7 @@
 
     .hero-card-inner{
       position:relative;
-      height:120px;
+      height:var(--hero-h);
       border-radius:15px;
       overflow:hidden;
       background:
@@ -350,7 +383,7 @@
       height:100%;
       object-fit:contain;
       display:block;
-      padding:10px;
+      padding:var(--hero-pad);
     }
 
     .hero-fallback{
@@ -360,7 +393,7 @@
       align-items:center;
       justify-content:center;
       color:var(--muted);
-      font-size:11px;
+      font-size:10px;
       text-align:center;
       padding:8px;
       line-height:1.2;
@@ -368,26 +401,26 @@
 
     .char-name{
       text-align:center;
-      font-size:13px;
+      font-size:clamp(11px, .78vw, 13px);
       font-weight:800;
       color:#dfe9ff;
       line-height:1.2;
       white-space:normal;
       word-break:break-word;
-      min-height:30px;
+      min-height:28px;
     }
 
     .player-tag{
       border:1px solid rgba(124,172,255,.14);
       background:rgba(255,255,255,.03);
       border-radius:999px;
-      min-height:34px;
+      min-height:30px;
       display:flex;
       align-items:center;
       justify-content:center;
       padding:6px 8px;
       text-align:center;
-      font-size:12px;
+      font-size:clamp(10px, .72vw, 12px);
       font-weight:800;
       color:#f2f6ff;
       line-height:1.2;
@@ -400,7 +433,7 @@
       flex-wrap:wrap;
       justify-content:center;
       gap:6px;
-      min-height:40px;
+      min-height:36px;
       overflow:visible;
       position:relative;
       z-index:1;
@@ -408,7 +441,7 @@
 
     .skill-chip{
       position:relative;
-      width:64px;
+      width:var(--chip-w);
       display:flex;
       flex-direction:column;
       align-items:center;
@@ -418,8 +451,8 @@
     }
 
     .skill-chip-icon{
-      width:42px;
-      height:42px;
+      width:var(--chip-icon);
+      height:var(--chip-icon);
       border-radius:10px;
       border:1px solid rgba(124,172,255,.18);
       background:rgba(255,255,255,.04);
@@ -439,7 +472,7 @@
 
     .skill-chip-label{
       width:100%;
-      font-size:10px;
+      font-size:9px;
       line-height:1.15;
       text-align:center;
       font-weight:800;
@@ -456,7 +489,6 @@
       line-height:1.2;
     }
 
-    /* ✅ Popups above everything */
     .hover-wrap{
       position:relative;
       outline:none;
@@ -552,7 +584,7 @@
     }
 
     .single-card{
-      min-height:46px;
+      min-height:42px;
       border-radius:12px;
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.03);
@@ -569,8 +601,8 @@
     }
 
     .card-thumb{
-      width:30px;
-      height:30px;
+      width:var(--card-thumb);
+      height:var(--card-thumb);
       border-radius:8px;
       background:rgba(255,255,255,.04);
       border:1px solid rgba(124,172,255,.14);
@@ -597,7 +629,7 @@
     }
 
     .card-title{
-      font-size:11px;
+      font-size:clamp(10px, .72vw, 11px);
       font-weight:800;
       color:#eef4ff;
       line-height:1.15;
@@ -606,7 +638,7 @@
     }
 
     .details-panel{
-      margin-top:16px;
+      margin-top:var(--gap-main);
       padding:14px;
     }
 
@@ -631,7 +663,7 @@
     .details-wrap{
       display:grid;
       grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-      gap:16px;
+      gap:var(--gap-main);
       min-width:0;
       align-items:start;
       align-content:start;
@@ -674,7 +706,7 @@
       border-radius:12px;
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.03);
-      font-size:11px;
+      font-size:10px;
       font-weight:900;
       color:#eef4ff;
       line-height:1.25;
@@ -812,7 +844,7 @@
 
     .stats-row{
       display:grid;
-      grid-template-columns:minmax(72px,.9fr) minmax(0,1.1fr);
+      grid-template-columns:minmax(66px,.88fr) minmax(0,1.12fr);
       gap:6px;
       padding:6px 8px;
       border-top:1px solid rgba(124,172,255,.06);
@@ -852,7 +884,7 @@
     }
 
     .prompt-panel{
-      margin-top:16px;
+      margin-top:var(--gap-main);
       padding:14px;
     }
 
@@ -884,39 +916,21 @@
       color:var(--muted);
     }
 
-    @media (max-width: 1500px){
-      .player-grid, .detail-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
-      .hero-card-inner{ height:130px; }
+    /* keep layout compact instead of stacking */
+    @media (max-width: 1280px){
+      :root{
+        --page-min:1020px;
+        --hero-h:92px;
+        --chip-w:52px;
+        --chip-icon:34px;
+      }
     }
 
-    @media (max-width: 980px){
-      .match-head{
-        grid-template-columns:1fr;
-        justify-items:center;
-        text-align:center;
+    @media (max-width: 1120px){
+      :root{
+        --page-min:980px;
+        --hero-h:88px;
       }
-
-      .match-team-name,
-      .match-team-name.right{
-        text-align:center;
-      }
-
-      /* Center on mobile */
-      .team-name-wrap{
-        justify-content:center;
-        gap:10px;
-      }
-      .team-name-text, .team-name-text.right{ text-align:center; }
-
-      .arena-wrap, .details-wrap{ grid-template-columns:1fr; }
-      .player-grid, .detail-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
-    }
-
-    @media (max-width: 640px){
-      .player-grid, .detail-grid{ grid-template-columns:1fr; }
-      .hero-card-inner{ height:150px; }
-      .stats-row{ grid-template-columns:1fr; gap:4px; }
-      .details-head{ align-items:flex-start; }
     }
   </style>
 </head>
@@ -1497,7 +1511,6 @@
       return wonRounds.size;
     }
 
-    /* ✅ Score in the middle edge for both sides (symmetric) */
     function renderTeamHeader(name, score, side = "left") {
       const safeName = escapeHtml(name || "—");
       const scoreHtml = Number.isFinite(score) ? `<span class="team-score-pill">${score}</span>` : "";
@@ -1581,18 +1594,6 @@
       `;
     }
 
-    /* ============================================================
-       ✅ Round Stats Broken Down By Section (NEW RULES)
-       - Remove Round Outcome & Flags
-       - Add First Blood:
-           is_first_down === true => Tag "First Blood"
-           is_first_taken_down === true => Tag "First Down"
-       - Combat Output ONLY:
-           Kills, Assists, Headshots, Damage(real_damage), Damage Taken(real_damage_taken), Knock Down
-       - Economy & Purchases (as is)
-       - Abilities & Utility (as is)
-       - Remove Other Round Fields / everything else
-    ============================================================ */
     function buildRoundStatsSections(round) {
       const out = {
         "First Blood": [],
@@ -2057,21 +2058,21 @@
 
     function buildAiAnalysisPrompt(payload, teams) {
       const roundText = getDisplayRound(payload, teams);
+      const teamAScore = computeTeamScore(teams[0]);
+      const teamBScore = computeTeamScore(teams[1]);
+
       return [
         `You are an expert esports commentator, analyst, and coach reviewing a Free Fire Clash Squad match snapshot.`,
         ``,
         `Use the data below to produce a deep but practical analysis.`,
         ``,
         `Please provide:`,
+        `0. A short final verdict: which team currently looks better and why.`,
         `1. A caster-ready overview of both teams and their likely game plan.`,
-        `2. A coach-style breakdown of each team's strengths, weaknesses, win conditions, and risk factors.`,
-        `3. Player-by-player insights, including who is carrying, enabling, struggling, or playing supportive roles.`,
-        `4. A read on item economy, purchased utility, and what the loadouts suggest about team strategy.`,
-        `5. A breakdown of weapon usage and what it says about preferred fight distances and execution.`,
-        `6. A comparison of both teams' compositions, active/passive synergy, pet impact, and loadout value.`,
-        `7. The most important storylines an esports commentator should highlight on broadcast.`,
-        `8. Clear coaching adjustments for each team if they were going into the next round.`,
-        `9. A short final verdict: which team currently looks better and why.`,
+        `2. Player-by-player insights, including who is carrying, enabling, struggling, or playing supportive roles.`,
+        `3. A breakdown of weapon usage and what it says about preferred fight distances and execution.`,
+        `4. The most important storylines an esports commentator should highlight on broadcast.`,
+        `5. Clear coaching adjustments for each team if they were going into the next round.`,
         ``,
         `Keep the response useful for:`,
         `- live shoutcasting / commentary`,
@@ -2082,6 +2083,9 @@
         `- Display Round: ${roundText}`,
         `- Team A: ${teams[0]?.team_name || "Team A"}`,
         `- Team B: ${teams[1]?.team_name || "Team B"}`,
+        `- Current Score: ${teams[0]?.team_name || "Team A"} ${teamAScore} - ${teamBScore} ${teams[1]?.team_name || "Team B"}`,
+        ``,
+        `Use the following player data, loadouts, items, purchased items, weapon usage, and latest round stats as the basis of the analysis.`,
         ``,
         `Data:`,
         ``,
