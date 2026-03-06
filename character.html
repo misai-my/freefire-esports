@@ -1513,19 +1513,18 @@
     }
 
     function compareCharacters(a, b){
-      if (currentMergeMode === 'merged'){
-        const aMeta = isMeta(a) ? 0 : 1;
-        const bMeta = isMeta(b) ? 0 : 1;
-        if (aMeta !== bMeta) return aMeta - bMeta;
-      }
-
+      const nameA = tidy(a?.name);
+      const nameB = tidy(b?.name);
+    
+      // In merged mode, DO NOT group by meta/non-meta.
+      // Only follow the selected sort mode.
       if (currentSortMode === 'active-passive'){
-        const aPassive = isPassive(a) ? 1 : 0;
+        const aPassive = isPassive(a) ? 1 : 0; // active first
         const bPassive = isPassive(b) ? 1 : 0;
         if (aPassive !== bPassive) return aPassive - bPassive;
       }
-
-      return tidy(a?.name).localeCompare(tidy(b?.name));
+    
+      return nameA.localeCompare(nameB);
     }
 
     const KEY_LANG = 'ff_char_desc_lang_v1';
