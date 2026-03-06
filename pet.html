@@ -2,15 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- ✅ notch + safe-area support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Pet Gallery</title>
 
-  
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-
-  <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -34,7 +29,6 @@
       --sb-w: 260px;
       --sb-w-collapsed: 82px;
 
-      /* Role accents */
       --role-info:#4dd3ff;
       --role-attack:#ff5a5a;
       --role-survival:#8be27a;
@@ -42,7 +36,6 @@
       --role-movement:#b58cff;
       --role-other:#ffbd59;
 
-      /* 👇 sizing knobs (smaller cards) */
       --pet-min: 128px;
       --pet-gap: 10px;
       --pet-pad: 8px;
@@ -94,7 +87,6 @@
     }
     select option{ background:#0b1020; color:var(--ink); }
 
-    /* Layout */
     .app{
       min-height: 100vh;
       display:flex;
@@ -105,7 +97,6 @@
       align-items:flex-start;
     }
 
-    /* Mobile sidebar backdrop (drawer) */
     .sb-backdrop{
       position:fixed;
       inset:0;
@@ -122,7 +113,6 @@
       pointer-events:auto;
     }
 
-    /* Sidebar */
     .sidebar{
       width: var(--sb-w);
       background: var(--panel2);
@@ -245,7 +235,6 @@
       padding:10px 8px;
     }
 
-    /* Main */
     .main{
       flex:1;
       display:flex;
@@ -254,7 +243,6 @@
       gap: 14px;
     }
 
-    /* Topbar */
     .topbar{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -280,6 +268,7 @@
       border:1px solid rgba(255,255,255,.10);
       border-radius: 14px;
       min-width: 0;
+      justify-content: space-between;
     }
     .search input{
       width:100%;
@@ -289,12 +278,9 @@
       color: var(--ink);
       font-size: .95rem;
       min-width: 0;
+      flex:1;
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
-
-    /* keep theme button snug inside search */
-    .search{ justify-content: space-between; }
-    .search input{ flex: 1; }
     #themeIcon svg{ width:18px; height:18px; opacity:.92; display:block; }
 
     .top-actions{
@@ -375,7 +361,6 @@
       box-shadow: 0 0 0 3px rgba(255,77,77,.10);
     }
 
-    /* Card shell */
     .card{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -420,7 +405,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Controls */
     .controls{
       display:flex;
       gap:10px;
@@ -531,7 +515,6 @@
       letter-spacing: 0;
     }
 
-    /* ✅ Smaller pet grid/cards */
     .grid{
       display:grid;
       grid-template-columns: repeat(auto-fill, minmax(var(--pet-min), 1fr));
@@ -645,7 +628,7 @@
       text-align: center;
     }
 
-    /* Modal (Info popup) */
+    /* Modal */
     .modal{
       position: fixed;
       inset: 0;
@@ -661,15 +644,15 @@
     .modal.show{display:flex;}
 
     .modal-card{
-      width: min(560px, 100%);
+      width: min(840px, 100%);
       background: rgba(14, 18, 28, .92);
       border: 1px solid rgba(255,255,255,.10);
-      border-radius: 22px;
+      border-radius: 28px;
       box-shadow: 0 26px 80px rgba(0,0,0,.65);
       overflow:hidden;
       display:flex;
       flex-direction:column;
-      max-height: min(720px, calc(100vh - 36px));
+      max-height: 90vh;
       color: var(--ink);
     }
 
@@ -677,8 +660,8 @@
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:12px;
-      padding: 14px 14px 10px 14px;
+      gap:16px;
+      padding: 22px 22px 16px 22px;
       border-bottom: 1px solid rgba(255,255,255,.08);
     }
     .modal-top h3{
@@ -686,23 +669,23 @@
       font-family: Orbitron, sans-serif;
       letter-spacing:.6px;
       color: var(--brand);
-      font-size: 1.15rem;
-      line-height: 1.25rem;
+      font-size: 1.7rem;
+      line-height: 1.9rem;
     }
     .modal-top p{
-      margin:6px 0 0 0;
+      margin:8px 0 0 0;
       color: var(--muted);
-      font-size:.82rem;
+      font-size: 1rem;
       font-weight:700;
       letter-spacing:.2px;
       white-space:normal;
     }
 
     .modal-body{
-      padding: 12px 14px 14px 14px;
+      padding: 18px 22px 22px 22px;
       display:flex;
       flex-direction:column;
-      gap: 10px;
+      gap: 14px;
       justify-content:flex-start;
       overflow:auto;
       -webkit-overflow-scrolling: touch;
@@ -710,37 +693,57 @@
 
     .badge-row{
       display:flex;
-      gap:10px;
+      gap:12px;
       flex-wrap:wrap;
       align-items:center;
       margin: 0;
       padding: 0;
     }
 
+    .badge-row .pill{
+      font-size: .95rem;
+      padding: 10px 14px;
+    }
+
+    .badge-row .dot{
+      width: 11px;
+      height: 11px;
+    }
+
     .info-block{
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 10px 12px;
+      border-radius: 18px;
+      padding: 16px 18px;
     }
 
     .info-block b{
       display:block;
-      margin:0 0 6px 0;
+      margin:0 0 8px 0;
       color: var(--ink);
-      font-size: .92rem;
+      font-size: 1.08rem;
       font-weight:1000;
     }
     .info-block .txt{
       margin:0;
       color: color-mix(in srgb, var(--ink) 88%, transparent);
-      font-size: .92rem;
-      line-height: 1.28rem;
+      font-size: 1.02rem;
+      line-height: 1.55rem;
       white-space: normal;
     }
-    /* ============================================================
-       ✅ MOBILE OPTIMIZATION + DRAWER SIDEBAR
-       ============================================================ */
+
+    #infoClose.icon-btn{
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      flex: 0 0 48px;
+    }
+
+    #infoClose.icon-btn svg{
+      width: 20px;
+      height: 20px;
+    }
+
     @media (max-width: 980px){
       body::before, body::after{display:none;}
 
@@ -753,7 +756,6 @@
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
 
-      /* drawer sidebar */
       .sidebar{
         position: fixed;
         top: env(safe-area-inset-top);
@@ -768,7 +770,6 @@
       }
       .sidebar.open{ transform: translateX(0); }
 
-      /* ignore collapsed layout on mobile (always show labels) */
       .sidebar.collapsed{ width: min(88vw, 340px); }
       .sidebar.collapsed .brand h1,
       .sidebar.collapsed .brand small,
@@ -786,7 +787,7 @@
         border-radius: 0;
         border-left: 0;
         border-right: 0;
-        margin: -10px -10px 0 -10px; /* edge-to-edge */
+        margin: -10px -10px 0 -10px;
         padding: 10px 10px;
         gap: 10px;
       }
@@ -800,7 +801,6 @@
       .hero-content{left:12px; right:12px; bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
 
-      /* modal becomes bottom sheet */
       .modal{
         align-items:flex-end;
         padding: 10px;
@@ -808,93 +808,115 @@
       }
       .modal-card{
         width: 100%;
-        border-radius: 18px;
+        border-radius: 22px;
         max-height: 92vh;
+      }
+      .modal-top{
+        padding: 18px 18px 14px 18px;
+      }
+      .modal-top h3{
+        font-size: 1.3rem;
+        line-height: 1.45rem;
+      }
+      .modal-top p{
+        font-size: .92rem;
+      }
+      .modal-body{
+        padding: 14px 18px 18px 18px;
+        gap: 12px;
+      }
+      .info-block{
+        padding: 14px 16px;
+      }
+      .info-block b{
+        font-size: 1rem;
+      }
+      .info-block .txt{
+        font-size: .96rem;
+        line-height: 1.45rem;
       }
     }
 
-    /* ============================================================
-         ✅ LIGHT MODE (toggle via body.theme-light)
-         ============================================================ */
-      body.theme-light{
-        /* core surfaces */
-        --bg:#f4f6ff;
-        --bg2:#e9eefc;
-        --panel: rgba(255,255,255,.78);
-        --panel2: rgba(255,255,255,.86);
-        --line: rgba(10,15,30,.10);
-        --ink:#0b1020;
-        --muted:#4d556a;
-      
-        --shadow: 0 18px 60px rgba(0,0,0,.14);
+    @media (max-width: 560px){
+      .modal-top{padding: 16px;}
+      .modal-top h3{
+        font-size: 1.12rem;
+        line-height: 1.25rem;
       }
-      
-      /* make inputs match in light mode */
-      body.theme-light select,
-      body.theme-light input{
-        color-scheme: light;
-      }
-      
-      /* soften “dark glass” pieces in light mode */
-      body.theme-light .search,
-      body.theme-light .field,
-      body.theme-light .btn,
-      body.theme-light .pill,
-      body.theme-light .chip,
-      body.theme-light .icon-btn,
-      body.theme-light .userchip{
-        background: rgba(255,255,255,.72) !important;
-        border-color: rgba(10,15,30,.12) !important;
-        color: var(--ink) !important;
-        box-shadow: none;
-      }
-      
-      body.theme-light .search input::placeholder{
-        color: rgba(77,85,106,.70);
-      }
-      
-      body.theme-light .pet-card{
-        background: rgba(255,255,255,.68);
-        border-color: rgba(10,15,30,.10);
-      }
-      
-      body.theme-light .pet-card:hover{
-        background: rgba(255,255,255,.86);
-        border-color: rgba(255,189,89,.35);
-      }
-      
-      body.theme-light .pet-thumb{
-        background: rgba(255,255,255,.55);
-        border-color: rgba(10,15,30,.10);
-      }
-      
-      /* modal in light */
-      body.theme-light .modal-card{
-        background: rgba(255,255,255,.92);
-        border-color: rgba(10,15,30,.12);
-      }
-      
-      body.theme-light .info-block{
-        background: rgba(255,255,255,.75);
-        border-color: rgba(10,15,30,.10);
-      }
-      
-      body.theme-light .logout{
-        background: rgba(255,255,255,.72);
-        border-color: rgba(10,15,30,.12);
-        color: rgba(10,15,30,.75);
-      }
+    }
+
+    body.theme-light{
+      --bg:#f4f6ff;
+      --bg2:#e9eefc;
+      --panel: rgba(255,255,255,.78);
+      --panel2: rgba(255,255,255,.86);
+      --line: rgba(10,15,30,.10);
+      --ink:#0b1020;
+      --muted:#4d556a;
+      --shadow: 0 18px 60px rgba(0,0,0,.14);
+    }
+
+    body.theme-light select,
+    body.theme-light input{
+      color-scheme: light;
+    }
+
+    body.theme-light .search,
+    body.theme-light .field,
+    body.theme-light .btn,
+    body.theme-light .pill,
+    body.theme-light .chip,
+    body.theme-light .icon-btn,
+    body.theme-light .userchip{
+      background: rgba(255,255,255,.72) !important;
+      border-color: rgba(10,15,30,.12) !important;
+      color: var(--ink) !important;
+      box-shadow: none;
+    }
+
+    body.theme-light .search input::placeholder{
+      color: rgba(77,85,106,.70);
+    }
+
+    body.theme-light .pet-card{
+      background: rgba(255,255,255,.68);
+      border-color: rgba(10,15,30,.10);
+    }
+
+    body.theme-light .pet-card:hover{
+      background: rgba(255,255,255,.86);
+      border-color: rgba(255,189,89,.35);
+    }
+
+    body.theme-light .pet-thumb{
+      background: rgba(255,255,255,.55);
+      border-color: rgba(10,15,30,.10);
+    }
+
+    body.theme-light .modal-card{
+      background: rgba(255,255,255,.92);
+      border-color: rgba(10,15,30,.12);
+    }
+
+    body.theme-light .info-block{
+      background: rgba(255,255,255,.75);
+      border-color: rgba(10,15,30,.10);
+    }
+
+    body.theme-light .logout{
+      background: rgba(255,255,255,.72);
+      border-color: rgba(10,15,30,.12);
+      color: rgba(10,15,30,.75);
+    }
 
     #themeIcon svg{ width:18px; height:18px; opacity:.92; display:block; }
   </style>
 </head>
 
 <body>
-  <!-- mobile drawer backdrop -->
   <div class="sb-backdrop" id="sbBackdrop" aria-hidden="true"></div>
 
   <div class="app">
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
       <div class="brand">
         <div class="brand-left">
@@ -907,7 +929,6 @@
       </div>
 
       <nav class="nav" id="nav">
-        <!-- ✅ make this match your real dashboard filename -->
         <a class="nav-item" href="home.html" data-page="home.html" title="Dashboard">
           <span class="nav-ico">
             <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1021,10 +1042,9 @@
       </nav>
     </aside>
 
-    <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn" id="sbToggle" aria-label="Sidebar" title="Sidebar">
+        <button class="icon-btn" id="sbToggle" aria-label="Sidebar" title="Sidebar" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -1042,9 +1062,9 @@
               title="Toggle Light/Dark"
               aria-label="Toggle theme"
               aria-pressed="false">
-        <span id="themeIcon" aria-hidden="true"></span>
-      </button>
-        
+          <span id="themeIcon" aria-hidden="true"></span>
+        </button>
+
         <div class="top-actions">
           <div class="userchip">
             <div class="avatar"></div>
@@ -1080,11 +1100,10 @@
             </div>
 
             <div class="controls-right">
-              <!-- ✅ Language toggle button -->
               <button class="btn" id="langToggle" type="button" title="Toggle description language" aria-pressed="false">
                 Desc: EN
               </button>
-              
+
               <div class="field">
                 <label for="filterRole">Role</label>
                 <select id="filterRole">
@@ -1098,7 +1117,7 @@
                 </select>
               </div>
 
-              <a class="btn" href="dashboard.html">← Dashboard</a>
+              <a class="btn" href="home.html">← Dashboard</a>
             </div>
           </div>
 
@@ -1115,7 +1134,6 @@
     </main>
   </div>
 
-  <!-- Info Modal -->
   <div class="modal" id="infoModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Pet Info">
       <div class="modal-top">
@@ -1123,7 +1141,7 @@
           <h3 id="infoName">—</h3>
           <p id="infoSub">—</p>
         </div>
-        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close">
+        <button class="icon-btn" id="infoClose" aria-label="Close" title="Close" type="button">
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -1145,9 +1163,6 @@
   </div>
 
   <script>
-    /***********************
-     * Supabase Auth
-     ***********************/
     const client = supabase.createClient(
       'https://ooutjrewmwsixghbouxi.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
@@ -1167,9 +1182,6 @@
       window.location.href = "index.html";
     }
 
-    /***********************
-     * Sidebar: desktop collapse + mobile drawer
-     ***********************/
     const sidebar = document.getElementById('sidebar');
     const sbBackdrop = document.getElementById('sbBackdrop');
 
@@ -1254,10 +1266,7 @@
       });
     })();
 
-    /***********************
-     * ✅ Description language toggle (description vs description_ms)
-     ***********************/
-    const KEY_LANG = 'ff_pet_desc_lang_v2'; // 'en' / 'ms'
+    const KEY_LANG = 'ff_pet_desc_lang_v2';
     const langToggle = document.getElementById('langToggle');
     let useMS = (localStorage.getItem(KEY_LANG) === 'ms');
     let lastOpenedPet = null;
@@ -1294,77 +1303,66 @@
       }
     });
 
-      /***********************
-       * ✅ Theme toggle (dark / light) — FIXED ICON + LABELS
-       * Uses shared key: ff_theme_v1 (same as weapon.html) + migrates old pet key
-       ***********************/
-      const KEY_THEME = 'ff_theme_v1';          // shared across pages
-      const OLD_KEY_THEME = 'ff_theme_pet_v1';  // migrate from older pet-only key
-      
-      const themeToggle = document.getElementById('themeToggle');
-      const themeIcon   = document.getElementById('themeIcon');
-      
-      const ICON_SUN = `
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path
-            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `;
-      
-      const ICON_MOON = `
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `;
-      
-      function setMetaThemeColor(isLight){
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', isLight ? '#f4f6ff' : '#07090f');
-      }
-      
-      function applyTheme(mode){
-        const isLight = (mode === 'light');
-        document.body.classList.toggle('theme-light', isLight);
-      
-        // ✅ show icon for the MODE YOU WILL SWITCH TO
-        // light now -> show moon (tap -> dark)
-        // dark now  -> show sun  (tap -> light)
-        if (themeIcon) themeIcon.innerHTML = isLight ? ICON_MOON : ICON_SUN;
-      
-        if (themeToggle){
-          themeToggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-          themeToggle.title = isLight ? 'Switch to Dark mode' : 'Switch to Light mode';
-          themeToggle.setAttribute('aria-label', isLight ? 'Switch to Dark mode' : 'Switch to Light mode');
-        }
-      
-        setMetaThemeColor(isLight);
-      }
-      
-      function initTheme(){
-        // migrate old pet key if it exists
-        const saved = localStorage.getItem(KEY_THEME) || localStorage.getItem(OLD_KEY_THEME) || 'dark';
-        try{
-          localStorage.setItem(KEY_THEME, saved);
-          localStorage.removeItem(OLD_KEY_THEME);
-        }catch(_){}
-        applyTheme(saved);
-      }
-      
-      themeToggle?.addEventListener('click', () => {
-        const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
-        try{ localStorage.setItem(KEY_THEME, next); }catch(_){}
-        applyTheme(next);
-      });
+    const KEY_THEME = 'ff_theme_v1';
+    const OLD_KEY_THEME = 'ff_theme_pet_v1';
 
-    /***********************
-     * Helpers (role)
-     ***********************/
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon   = document.getElementById('themeIcon');
+
+    const ICON_SUN = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+
+    const ICON_MOON = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+
+    function setMetaThemeColor(isLight){
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', isLight ? '#f4f6ff' : '#07090f');
+    }
+
+    function applyTheme(mode){
+      const isLight = (mode === 'light');
+      document.body.classList.toggle('theme-light', isLight);
+
+      if (themeIcon) themeIcon.innerHTML = isLight ? ICON_MOON : ICON_SUN;
+
+      if (themeToggle){
+        themeToggle.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+        themeToggle.title = isLight ? 'Switch to Dark mode' : 'Switch to Light mode';
+        themeToggle.setAttribute('aria-label', isLight ? 'Switch to Dark mode' : 'Switch to Light mode');
+      }
+
+      setMetaThemeColor(isLight);
+    }
+
+    function initTheme(){
+      const saved = localStorage.getItem(KEY_THEME) || localStorage.getItem(OLD_KEY_THEME) || 'dark';
+      try{
+        localStorage.setItem(KEY_THEME, saved);
+        localStorage.removeItem(OLD_KEY_THEME);
+      }catch(_){}
+      applyTheme(saved);
+    }
+
+    themeToggle?.addEventListener('click', () => {
+      const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
+      try{ localStorage.setItem(KEY_THEME, next); }catch(_){}
+      applyTheme(next);
+    });
+
     function normalizeRole(role){
       const r = tidy(role).toUpperCase();
       if (['INFO','ATTACK','SURVIVAL','INVENTORY','MOVEMENT'].includes(r)) return r;
@@ -1391,9 +1389,6 @@
       }[k] || 'var(--role-other)';
     }
 
-    /***********************
-     * Data + Rendering
-     ***********************/
     const PET_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     let allPets = [];
     let currentSearch = '';
@@ -1448,7 +1443,6 @@
         img.loading = 'lazy';
         img.referrerPolicy = 'no-referrer';
         img.addEventListener('error', () => {
-          // replace broken image with fallback
           thumb.innerHTML = '';
           thumb.appendChild(makeFallbackThumb(name[0] || 'P'));
           thumb.appendChild(dot);
@@ -1555,7 +1549,6 @@
     async function loadPets(){
       petGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
 
-      // ✅ hard cache-bust + no-store to avoid stale GitHub Pages caching
       const url = `${PET_URL}?v=${Date.now()}`;
       const res = await fetch(url, {
         cache: 'no-store',
@@ -1568,9 +1561,6 @@
       renderPets();
     }
 
-    /***********************
-     * Modal (Popup)
-     ***********************/
     const infoModal = document.getElementById('infoModal');
     const infoClose = document.getElementById('infoClose');
     const infoName = document.getElementById('infoName');
@@ -1624,9 +1614,6 @@
     infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo(); });
 
-    /***********************
-     * Events
-     ***********************/
     topSearch?.addEventListener('input', (e) => {
       currentSearch = e.target.value || '';
       applyFilters();
@@ -1642,9 +1629,6 @@
       logout();
     });
 
-    /***********************
-     * Init
-     ***********************/
     window.addEventListener('DOMContentLoaded', async () => {
       syncLangUI();
       initTheme();
