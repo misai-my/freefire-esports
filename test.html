@@ -904,6 +904,7 @@
     .matrix-cell{
       color:#eef4ff;
       font-weight:700;
+      transition: background-color .18s ease, box-shadow .18s ease;
     }
 
     .matrix-cell.muted{
@@ -2574,9 +2575,56 @@
       return usages.map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon) ? ` — ${summarizeWeaponUsageLine(weapon)}` : ""}`).join(" | ");
     }
 
-    function renderMatrixCell(value, className = "") {
+    function renderMatrixCell(value, className = "", inlineStyle = "") {
       const safeClass = className ? ` ${className}` : "";
-      return `<td class="matrix-cell${safeClass}">${escapeHtml(formatGenericValue(value))}</td>`;
+      const styleAttr = inlineStyle ? ` style="${inlineStyle}"` : "";
+      return `<td class="matrix-cell${safeClass}"${styleAttr}>${escapeHtml(formatGenericValue(value))}</td>`;
+    }
+
+    function toFiniteNumberOrNull(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function getHeatRangeForMetricRound(metricDef, filteredPlayers, roundIndex) {
+      const nums = [];
+
+      for (const meta of filteredPlayers) {
+        const round = getRoundStatByIndex(meta.player, roundIndex);
+        if (!round) continue;
+
+        const rawValue = metricDef.getValue(round);
+        const n = toFiniteNumberOrNull(rawValue);
+        if (n !== null) nums.push(n);
+      }
+
+      if (!nums.length) return { min: null, max: null };
+
+      return {
+        min: Math.min(...nums),
+        max: Math.max(...nums)
+      };
+    }
+
+    function getHeatStyle(value, min, max) {
+      const n = toFiniteNumberOrNull(value);
+      if (n === null || min === null || max === null) return "";
+
+      if (max === min) {
+        return [
+          "background: rgba(124,172,255,.12);",
+          "box-shadow: inset 0 0 0 1px rgba(124,172,255,.20);"
+        ].join("");
+      }
+
+      const ratio = (n - min) / (max - min);
+      const hue = ratio * 120;
+      const alpha = 0.14 + (ratio * 0.26);
+
+      return [
+        `background: hsla(${hue}, 85%, 42%, ${alpha});`,
+        `box-shadow: inset 0 0 0 1px hsla(${hue}, 90%, 58%, .35);`
+      ].join("");
     }
 
     function renderProgressionMatrix(player, roundIndices) {
@@ -2713,6 +2761,12 @@
     }
 
     function renderStackedMetricCard(metricDef, filteredPlayers, roundIndices) {
+      const rangesByRound = new Map();
+
+      for (const idx of roundIndices) {
+        rangesByRound.set(idx, getHeatRangeForMetricRound(metricDef, filteredPlayers, idx));
+      }
+
       return `
         <section class="stacked-card">
           <div class="stacked-card-head">
@@ -2743,9 +2797,13 @@
                     ${roundIndices.map(idx => {
                       const round = getRoundStatByIndex(meta.player, idx);
                       if (!round) return renderMatrixCell("—", "muted");
+
                       const value = metricDef.getValue(round);
                       const cls = metricDef.getClass ? metricDef.getClass(value, round) : "";
-                      return renderMatrixCell(value, cls);
+                      const range = rangesByRound.get(idx) || { min: null, max: null };
+                      const heatStyle = getHeatStyle(value, range.min, range.max);
+
+                      return renderMatrixCell(value, cls, heatStyle);
                     }).join("")}
                   </tr>
                 `).join("")}
