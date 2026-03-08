@@ -19,21 +19,18 @@
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:24px;
 
-      /* layout sizing */
       --page-min:1120px;
       --gap-main:clamp(8px, .9vw, 16px);
       --gap-card:clamp(6px, .65vw, 10px);
       --pad-main:clamp(10px, 1vw, 18px);
       --pad-panel:clamp(10px, .9vw, 16px);
 
-      /* typography */
       --title-size:clamp(22px, 1.55vw, 28px);
       --team-name-size:clamp(17px, 1.25vw, 24px);
       --round-size:clamp(12px, .95vw, 16px);
       --label-size:clamp(10px, .7vw, 12px);
       --body-size:clamp(11px, .78vw, 13px);
 
-      /* cards */
       --hero-h:clamp(88px, 8vw, 120px);
       --hero-pad:clamp(6px, .7vw, 10px);
       --chip-w:clamp(50px, 3.8vw, 64px);
@@ -154,6 +151,11 @@
       border:1px solid var(--line);
     }
 
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
     .mode-btn{
       padding:8px 12px;
       font-size:12px;
@@ -183,7 +185,6 @@
       background:rgba(255,123,123,.08);
     }
 
-    /* ===== Match header ===== */
     .match-head{
       display:grid;
       grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
@@ -331,8 +332,7 @@
       overflow:visible;
     }
 
-    .player-grid,
-    .detail-grid{
+    .player-grid{
       display:grid;
       grid-template-columns:repeat(4, minmax(0,1fr));
       gap:var(--gap-card);
@@ -637,7 +637,6 @@
       word-break:break-word;
     }
 
-    /* ===== Details ===== */
     .details-panel{
       margin-top:var(--gap-main);
       padding:14px;
@@ -670,7 +669,7 @@
 
     .details-filters{
       display:grid;
-      grid-template-columns:minmax(210px,1fr) minmax(340px,1.45fr) minmax(240px,1fr);
+      grid-template-columns:minmax(210px,1fr) minmax(420px,1.5fr) minmax(240px,1fr);
       gap:10px;
       margin-bottom:10px;
       align-items:end;
@@ -751,6 +750,228 @@
       color:#fff;
     }
 
+    .empty-lite{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.3;
+      white-space:normal;
+      word-break:break-word;
+    }
+
+    /* ===== Progression View ===== */
+    .progression-stack{
+      display:grid;
+      gap:12px;
+      min-width:0;
+    }
+
+    .progression-card{
+      border-radius:18px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.02);
+      padding:10px;
+      display:grid;
+      gap:10px;
+      min-width:0;
+    }
+
+    .progression-card.team-a{
+      box-shadow:inset 0 0 0 1px rgba(45,175,255,.12);
+    }
+
+    .progression-card.team-b{
+      box-shadow:inset 0 0 0 1px rgba(255,127,50,.12);
+    }
+
+    .progression-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      min-width:0;
+    }
+
+    .progression-head-left{
+      min-width:0;
+    }
+
+    .progression-player-name{
+      font-size:14px;
+      font-weight:900;
+      color:#fff;
+      line-height:1.15;
+      word-break:break-word;
+    }
+
+    .progression-player-meta{
+      margin-top:4px;
+      font-size:11px;
+      color:#c9d8fb;
+      line-height:1.4;
+      word-break:break-word;
+    }
+
+    .progression-head-right{
+      flex:0 0 auto;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .mini-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:26px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.14);
+      background:rgba(255,255,255,.04);
+      color:#eef4ff;
+      font-size:10px;
+      font-weight:900;
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    .matrix-wrap{
+      overflow:auto;
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.08);
+      background:rgba(255,255,255,.02);
+    }
+
+    .matrix-table{
+      width:max-content;
+      min-width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:11px;
+    }
+
+    .matrix-table th,
+    .matrix-table td{
+      padding:8px 10px;
+      border-right:1px solid rgba(124,172,255,.06);
+      border-bottom:1px solid rgba(124,172,255,.06);
+      vertical-align:middle;
+      text-align:center;
+      min-width:74px;
+    }
+
+    .matrix-table thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#0a1527;
+      color:#eef4ff;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-size:10px;
+    }
+
+    .matrix-table .metric-col{
+      position:sticky;
+      left:0;
+      z-index:1;
+      background:#0a1322;
+      text-align:left;
+      min-width:180px;
+      max-width:180px;
+      color:#d9e5ff;
+      font-weight:800;
+    }
+
+    .matrix-table thead .metric-col{
+      z-index:3;
+      background:#0c1629;
+    }
+
+    .matrix-category-row td{
+      position:sticky;
+      left:0;
+      z-index:1;
+      background:rgba(45,175,255,.08);
+      color:#9be8ff;
+      text-align:left;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-size:10px;
+    }
+
+    .matrix-cell{
+      color:#eef4ff;
+      font-weight:700;
+    }
+
+    .matrix-cell.muted{
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .matrix-cell.good{
+      color:#8dffb6;
+    }
+
+    .matrix-cell.bad{
+      color:#ff9d9d;
+    }
+
+    .matrix-cell.tag{
+      font-weight:900;
+      letter-spacing:.04em;
+    }
+
+    .round-trail{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+      gap:8px;
+      min-width:0;
+    }
+
+    .trail-card{
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.08);
+      background:rgba(255,255,255,.02);
+      padding:9px;
+      display:grid;
+      gap:8px;
+      align-content:start;
+      min-width:0;
+    }
+
+    .trail-title{
+      font-size:11px;
+      font-weight:900;
+      color:#fff;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    .trail-block{
+      display:grid;
+      gap:3px;
+    }
+
+    .trail-label{
+      font-size:10px;
+      font-weight:900;
+      color:#8fe6ff;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+
+    .trail-body{
+      font-size:11px;
+      color:#d8e4ff;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    /* ===== Compare View ===== */
     .round-stack{
       display:grid;
       gap:12px;
@@ -943,14 +1164,6 @@
       align-self:start;
     }
 
-    .empty-lite{
-      color:var(--muted);
-      font-size:11px;
-      line-height:1.3;
-      white-space:normal;
-      word-break:break-word;
-    }
-
     .prompt-panel{
       margin-top:var(--gap-main);
       padding:14px;
@@ -1052,10 +1265,12 @@
       <div class="details-head">
         <div>
           <div class="details-panel-title">Player Stat Details</div>
-          <div class="details-subline">Filter by team or player, then compare visible round blocks without opening nested accordions.</div>
+          <div class="details-subline">Use Progression View to track the same player left-to-right across rounds. Use Compare View for round snapshots.</div>
         </div>
 
         <div class="actions" style="margin-top:0;">
+          <button id="progressionViewBtn" class="ghost mode-btn active" type="button">Progression View</button>
+          <button id="compareViewBtn" class="ghost mode-btn" type="button">Compare View</button>
           <button id="latestModeBtn" class="ghost mode-btn active" type="button">Latest Round</button>
           <button id="allRoundsModeBtn" class="ghost mode-btn" type="button">All Rounds</button>
         </div>
@@ -1114,7 +1329,8 @@
 
     let matchApiLoaded = false;
     let assetsLoaded = false;
-    let detailsMode = "latest";
+    let detailsMode = "latest";        // compare scope
+    let detailsViewMode = "progression";
     let detailsTeamFilter = "both";
     let detailsUseSpecificPlayers = false;
     let detailsSelectedPlayerKeys = new Set();
@@ -1739,153 +1955,6 @@
       return out;
     }
 
-    function buildCurrentItemsContentForRound(player, roundIndex) {
-      const items = Number.isFinite(roundIndex) ? getItemsForRound(player, roundIndex) : [];
-      return `
-        <div class="stats-category">
-          <div class="stats-table">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(item.name)}</div>
-                      <div class="stats-val">Count: ${item.count}</div>
-                    </div>
-                  `).join("")
-                : `
-                    <div class="stats-row">
-                      <div class="stats-key">Items</div>
-                      <div class="stats-val">No item snapshot found.</div>
-                    </div>
-                  `
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function buildCurrentItemsContent(player) {
-      return buildCurrentItemsContentForRound(player, getLatestRoundIndex(player));
-    }
-
-    function buildPurchasedItemsContentForRound(player, roundIndex) {
-      const items = Number.isFinite(roundIndex) ? getPurchasedItemsForRound(player, roundIndex) : [];
-      return `
-        <div class="stats-category">
-          <div class="stats-table">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(item.name)}</div>
-                      <div class="stats-val">Purchased x${item.count}</div>
-                    </div>
-                  `).join("")
-                : `
-                    <div class="stats-row">
-                      <div class="stats-key">Purchased Items</div>
-                      <div class="stats-val">No valid purchased items found.</div>
-                    </div>
-                  `
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function buildLatestPurchasedItemsContent(player) {
-      const idx = getLatestRoundIndex(player);
-      return buildPurchasedItemsContentForRound(player, idx);
-    }
-
-    function buildWeaponUsagesContentForRound(player, roundIndex) {
-      const usages = Number.isFinite(roundIndex) ? getWeaponUsagesForRound(player, roundIndex) : [];
-      return `
-        <div class="stats-sections">
-          ${
-            usages.length
-              ? usages.map(weapon => {
-                  const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
-                  return `
-                    <div class="stats-category">
-                      <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
-                      <div class="stats-table">
-                        <div class="stats-row">
-                          <div class="stats-key">Weapon ID</div>
-                          <div class="stats-val">${Number.isFinite(weapon.id) ? weapon.id : "No weapon ID"}</div>
-                        </div>
-                        ${
-                          rows.length
-                            ? rows.map(([key, value]) => `
-                                <div class="stats-row">
-                                  <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                                  <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                                </div>
-                              `).join("")
-                            : `
-                                <div class="stats-row">
-                                  <div class="stats-key">Stats</div>
-                                  <div class="stats-val">No weapon usage fields found.</div>
-                                </div>
-                              `
-                        }
-                      </div>
-                    </div>
-                  `;
-                }).join("")
-              : `<div class="empty-lite">No weapon usage data found.</div>`
-          }
-        </div>
-      `;
-    }
-
-    function buildWeaponUsagesContent(player) {
-      return buildWeaponUsagesContentForRound(player, getLatestRoundIndex(player));
-    }
-
-    function buildRoundStatsContentForRound(player, roundIndex) {
-      const round = Number.isFinite(roundIndex) ? getRoundStatByIndex(player, roundIndex) : null;
-
-      if (!round) {
-        return `
-          <div class="stats-category">
-            <div class="stats-table">
-              <div class="stats-row">
-                <div class="stats-key">Round Stats</div>
-                <div class="stats-val">No round_stats found for this player.</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      const sections = buildRoundStatsSections(round);
-
-      return `
-        <div class="stats-sections">
-          ${Object.entries(sections)
-            .filter(([, rows]) => rows && rows.length)
-            .map(([title, rows]) => `
-              <div class="stats-category">
-                <div class="stats-category-title">${escapeHtml(title)}</div>
-                <div class="stats-table">
-                  ${rows.map(([label, value]) => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(label)}</div>
-                      <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                    </div>
-                  `).join("")}
-                </div>
-              </div>
-            `).join("")}
-        </div>
-      `;
-    }
-
-    function buildLatestRoundStatsContent(player) {
-      return buildRoundStatsContentForRound(player, getLatestRoundIndex(player));
-    }
-
     function renderPlayerSummaryCard(player) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
       const activeSkill = getActiveSkillEntry(player);
@@ -2147,6 +2216,16 @@
       return [...set].sort((a, b) => a - b);
     }
 
+    function getPlayerRoundIndices(player) {
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+      const set = new Set();
+      for (const round of rounds) {
+        const idx = toNum(round?.round_index, -1);
+        if (idx >= 0) set.add(idx);
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
     function getTeamScopeLabel() {
       if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) return "No teams";
       if (detailsTeamFilter === "0") return CURRENT_TEAMS[0]?.team_name || "Team A";
@@ -2216,6 +2295,227 @@
       renderDetailsTeamFilterOptions();
       updateSpecificPlayersButton();
       renderPlayerPills();
+    }
+
+    function updateViewButtons() {
+      $("progressionViewBtn").classList.toggle("active", detailsViewMode === "progression");
+      $("compareViewBtn").classList.toggle("active", detailsViewMode === "compare");
+      $("latestModeBtn").classList.toggle("active", detailsMode === "latest");
+      $("allRoundsModeBtn").classList.toggle("active", detailsMode === "all");
+
+      const compareDisabled = detailsViewMode !== "compare";
+      $("latestModeBtn").disabled = compareDisabled;
+      $("allRoundsModeBtn").disabled = compareDisabled;
+    }
+
+    function updateDetailsSummaryMeta(filteredPlayers, visibleRoundIndices) {
+      const metaEl = $("detailsSummaryMeta");
+      if (!metaEl) return;
+
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        metaEl.textContent = "No data rendered yet.";
+        return;
+      }
+
+      const modeLabel = detailsViewMode === "progression"
+        ? `Progression • ${visibleRoundIndices.length} round${visibleRoundIndices.length === 1 ? "" : "s"}`
+        : `Compare • ${detailsMode === "all" ? `All Rounds (${visibleRoundIndices.length})` : `Latest Round${visibleRoundIndices.length ? ` • R${visibleRoundIndices[visibleRoundIndices.length - 1] + 1}` : ""}`}`;
+
+      const playerLabel = detailsUseSpecificPlayers
+        ? `Specific Players On • ${filteredPlayers.length} selected`
+        : `All Visible Players • ${filteredPlayers.length} shown`;
+
+      metaEl.textContent = `${getTeamScopeLabel()} • ${playerLabel} • ${modeLabel}`;
+    }
+
+    function formatItemsInline(items, emptyText = "None") {
+      if (!items || !items.length) return emptyText;
+      return items.map(item => `${item.name} x${item.count}`).join(", ");
+    }
+
+    function summarizeWeaponUsageLine(weapon) {
+      const fields = Object.entries(weapon?.raw || {})
+        .filter(([k, v]) => k !== "weapon_name" && k !== "weapon_id" && v !== null && v !== undefined && String(v) !== "")
+        .map(([k, v]) => `${humanizeKey(k)}: ${formatGenericValue(v)}`);
+
+      return fields.length ? fields.join(" • ") : "No weapon usage fields found.";
+    }
+
+    function formatWeaponsInline(usages) {
+      if (!usages || !usages.length) return "None";
+      return usages.map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon) ? ` — ${summarizeWeaponUsageLine(weapon)}` : ""}`).join(" | ");
+    }
+
+    function getProgressionMetrics() {
+      return [
+        {
+          title: "Round Outcome",
+          rows: [
+            {
+              label: "Result",
+              getValue: (round) => round?.is_win === true ? "W" : (round?.is_win === false ? "L" : "—"),
+              getClass: (value) => value === "W" ? "good tag" : value === "L" ? "bad tag" : "muted"
+            },
+            {
+              label: "First Tag",
+              getValue: (round) => {
+                const tags = [];
+                if (round?.is_first_down === true) tags.push("FB");
+                if (round?.is_first_taken_down === true) tags.push("FD");
+                return tags.length ? tags.join(" / ") : "—";
+              },
+              getClass: (value) => value !== "—" ? "tag" : "muted"
+            }
+          ]
+        },
+        {
+          title: "Combat",
+          rows: [
+            { label: "Kills", getValue: (round) => round?.kill ?? "—" },
+            { label: "Assists", getValue: (round) => round?.assists ?? "—" },
+            { label: "Headshots", getValue: (round) => round?.headshots ?? "—" },
+            { label: "Damage", getValue: (round) => round?.real_damage ?? "—" },
+            { label: "Damage Taken", getValue: (round) => round?.real_damage_taken ?? "—" },
+            { label: "Knock Down", getValue: (round) => round?.knock_down ?? "—" }
+          ]
+        },
+        {
+          title: "Economy",
+          rows: [
+            { label: "Spent Self", getValue: (round) => round?.economy_spent_self ?? "—" },
+            { label: "Spent Team", getValue: (round) => round?.economy_spent_on_teammates ?? "—" },
+            { label: "Initial Value", getValue: (round) => round?.initial_item_value ?? "—" },
+            { label: "Airdrop Points", getValue: (round) => round?.airdrop_points ?? "—" }
+          ]
+        },
+        {
+          title: "Utility",
+          rows: [
+            { label: "Skill Uses", getValue: (round) => round?.nb_skill_usages ?? "—" },
+            { label: "Medkit", getValue: (round) => round?.medkit_use ?? "—" },
+            { label: "Grenade", getValue: (round) => round?.grenade_use ?? "—" },
+            { label: "Icewall", getValue: (round) => round?.icewall_use ?? "—" },
+            { label: "Throwable", getValue: (round) => round?.throwable_use ?? "—" }
+          ]
+        }
+      ];
+    }
+
+    function renderMatrixCell(value, className = "") {
+      const safeClass = className ? ` ${className}` : "";
+      return `<td class="matrix-cell${safeClass}">${escapeHtml(formatGenericValue(value))}</td>`;
+    }
+
+    function renderProgressionMatrix(player, roundIndices) {
+      const metrics = getProgressionMetrics();
+
+      return `
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th class="metric-col">Metric</th>
+                ${roundIndices.map(idx => `<th>R${idx + 1}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${metrics.map(group => `
+                <tr class="matrix-category-row">
+                  <td colspan="${roundIndices.length + 1}">${escapeHtml(group.title)}</td>
+                </tr>
+                ${group.rows.map(row => `
+                  <tr>
+                    <td class="metric-col">${escapeHtml(row.label)}</td>
+                    ${roundIndices.map(idx => {
+                      const round = getRoundStatByIndex(player, idx);
+                      if (!round) return renderMatrixCell("—", "muted");
+                      const value = row.getValue(round);
+                      const cls = row.getClass ? row.getClass(value, round) : "";
+                      return renderMatrixCell(value, cls);
+                    }).join("")}
+                  </tr>
+                `).join("")}
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderTrailCard(player, roundIndex) {
+      const items = getItemsForRound(player, roundIndex);
+      const purchased = getPurchasedItemsForRound(player, roundIndex);
+      const weapons = getWeaponUsagesForRound(player, roundIndex);
+
+      return `
+        <div class="trail-card">
+          <div class="trail-title">Round ${roundIndex + 1}</div>
+
+          <div class="trail-block">
+            <div class="trail-label">Purchased</div>
+            <div class="trail-body">${escapeHtml(formatItemsInline(purchased))}</div>
+          </div>
+
+          <div class="trail-block">
+            <div class="trail-label">Inventory</div>
+            <div class="trail-body">${escapeHtml(formatItemsInline(items))}</div>
+          </div>
+
+          <div class="trail-block">
+            <div class="trail-label">Weapons</div>
+            <div class="trail-body">${escapeHtml(formatWeaponsInline(weapons))}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProgressionCard(meta) {
+      const player = meta.player;
+      const roundIndices = getPlayerRoundIndices(player);
+      const teamClass = meta.teamIndex === 0 ? "team-a" : "team-b";
+
+      const activeSkill = getActiveSkillEntry(player);
+      const pet = getPetEntry(player);
+      const loadout = getPlayerLoadoutEntry(player);
+
+      const latestRound = getLatestRoundStat(player);
+      const totalKills = roundIndices.reduce((sum, idx) => sum + toNum(getRoundStatByIndex(player, idx)?.kill, 0), 0);
+      const totalDamage = roundIndices.reduce((sum, idx) => sum + toNum(getRoundStatByIndex(player, idx)?.real_damage, 0), 0);
+
+      return `
+        <section class="progression-card ${teamClass}">
+          <div class="progression-head">
+            <div class="progression-head-left">
+              <div class="progression-player-name">${escapeHtml(meta.playerName)}</div>
+              <div class="progression-player-meta">
+                ${escapeHtml(meta.teamName)}
+                ${activeSkill?.label ? ` • Active: ${escapeHtml(activeSkill.label)}` : ""}
+                ${pet?.label && pet.label !== "—" ? ` • Pet: ${escapeHtml(pet.label)}` : ""}
+                ${loadout?.name ? ` • Loadout: ${escapeHtml(loadout.name)}` : ""}
+              </div>
+            </div>
+
+            <div class="progression-head-right">
+              <span class="mini-badge">Rounds ${roundIndices.length}</span>
+              <span class="mini-badge">Kills ${totalKills}</span>
+              <span class="mini-badge">Damage ${totalDamage}</span>
+              <span class="mini-badge">Latest R${latestRound ? toNum(latestRound.round_index, 0) + 1 : "—"}</span>
+            </div>
+          </div>
+
+          ${
+            roundIndices.length
+              ? renderProgressionMatrix(player, roundIndices)
+              : `<div class="empty-lite">No round progression data found for this player.</div>`
+          }
+
+          ${
+            roundIndices.length
+              ? `<div class="round-trail">${roundIndices.map(idx => renderTrailCard(player, idx)).join("")}</div>`
+              : ``
+          }
+        </section>
+      `;
     }
 
     function renderStatBlock(title, rows, emptyText = "No data found.") {
@@ -2305,14 +2605,6 @@
       `;
     }
 
-    function summarizeWeaponUsageLine(weapon) {
-      const fields = Object.entries(weapon?.raw || {})
-        .filter(([k, v]) => k !== "weapon_name" && k !== "weapon_id" && v !== null && v !== undefined && String(v) !== "")
-        .map(([k, v]) => `${humanizeKey(k)}: ${formatGenericValue(v)}`);
-
-      return fields.length ? fields.join(" • ") : "No weapon usage fields found.";
-    }
-
     function renderWeaponsBlock(usages) {
       return `
         <div class="stats-category">
@@ -2338,10 +2630,8 @@
       `;
     }
 
-    function renderDetailPlayerCard(meta, roundIndex) {
+    function renderComparePlayerCard(meta, roundIndex) {
       const player = meta.player;
-      const playerName = meta.playerName;
-      const teamName = meta.teamName;
       const teamClass = meta.teamIndex === 0 ? "team-a" : "team-b";
       const teamBadge = meta.teamIndex === 0 ? "A" : "B";
 
@@ -2358,9 +2648,9 @@
         <div class="detail-player-card ${teamClass}">
           <div class="detail-player-card-head">
             <div>
-              <div class="detail-player-name">${escapeHtml(playerName)}</div>
+              <div class="detail-player-name">${escapeHtml(meta.playerName)}</div>
               <div class="detail-player-meta">
-                ${escapeHtml(teamName)}
+                ${escapeHtml(meta.teamName)}
                 ${activeSkill?.label ? ` • Active: ${escapeHtml(activeSkill.label)}` : ""}
                 ${pet?.label && pet.label !== "—" ? ` • Pet: ${escapeHtml(pet.label)}` : ""}
                 ${loadout?.name ? ` • Loadout: ${escapeHtml(loadout.name)}` : ""}
@@ -2386,32 +2676,7 @@
       `;
     }
 
-    function updateDetailsSummaryMeta(filteredPlayers, allRoundIndices) {
-      const metaEl = $("detailsSummaryMeta");
-      if (!metaEl) return;
-
-      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
-        metaEl.textContent = "No data rendered yet.";
-        return;
-      }
-
-      const modeLabel = detailsMode === "all"
-        ? `All Rounds (${allRoundIndices.length})`
-        : `Latest Round${allRoundIndices.length ? ` • Round ${allRoundIndices[allRoundIndices.length - 1] + 1}` : ""}`;
-
-      const playerLabel = detailsUseSpecificPlayers
-        ? `Specific Players On • ${filteredPlayers.length} selected`
-        : `All Visible Players • ${filteredPlayers.length} shown`;
-
-      metaEl.textContent = `${getTeamScopeLabel()} • ${playerLabel} • ${modeLabel}`;
-    }
-
-    function renderGlobalPlayerDetails(teams) {
-      const filteredPlayers = getFilteredPlayerMetas();
-      const allRoundIndices = getRoundIndicesForPlayerMetas(filteredPlayers);
-
-      updateDetailsSummaryMeta(filteredPlayers, allRoundIndices);
-
+    function renderCompareView(filteredPlayers, visibleRoundIndices) {
       if (!filteredPlayers.length) {
         return `
           <div class="stats-category">
@@ -2430,7 +2695,7 @@
         `;
       }
 
-      if (!allRoundIndices.length) {
+      if (!visibleRoundIndices.length) {
         return `
           <div class="stats-category">
             <div class="stats-table">
@@ -2443,17 +2708,13 @@
         `;
       }
 
-      const visibleRoundIndices = detailsMode === "all"
-        ? allRoundIndices
-        : [allRoundIndices[allRoundIndices.length - 1]];
-
       return `
         <div class="round-stack">
           ${visibleRoundIndices.map(roundIndex => `
             <section class="round-section">
               <div class="round-section-head">
                 <div>
-                  <div class="round-section-kicker">Round Breakdown</div>
+                  <div class="round-section-kicker">Round Snapshot</div>
                   <div class="round-section-title">Round ${roundIndex + 1}</div>
                 </div>
                 <div class="round-section-copy">
@@ -2462,7 +2723,7 @@
               </div>
 
               <div class="round-player-grid">
-                ${filteredPlayers.map(meta => renderDetailPlayerCard(meta, roundIndex)).join("")}
+                ${filteredPlayers.map(meta => renderComparePlayerCard(meta, roundIndex)).join("")}
               </div>
             </section>
           `).join("")}
@@ -2470,9 +2731,47 @@
       `;
     }
 
-    function updateDetailsModeButtons() {
-      $("latestModeBtn").classList.toggle("active", detailsMode === "latest");
-      $("allRoundsModeBtn").classList.toggle("active", detailsMode === "all");
+    function renderProgressionView(filteredPlayers) {
+      if (!filteredPlayers.length) {
+        return `
+          <div class="stats-category">
+            <div class="stats-table">
+              <div class="stats-row">
+                <div class="stats-key">Progression</div>
+                <div class="stats-val">
+                  ${detailsUseSpecificPlayers
+                    ? "Specific player filter is on but no visible players are selected. Click a player pill, use All Visible, or Reset."
+                    : "No players available for the current team scope."
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="progression-stack">
+          ${filteredPlayers.map(meta => renderProgressionCard(meta)).join("")}
+        </div>
+      `;
+    }
+
+    function renderGlobalPlayerDetails() {
+      const filteredPlayers = getFilteredPlayerMetas();
+      const allRoundIndices = getRoundIndicesForPlayerMetas(filteredPlayers);
+      const compareRoundIndices = detailsMode === "all"
+        ? allRoundIndices
+        : (allRoundIndices.length ? [allRoundIndices[allRoundIndices.length - 1]] : []);
+
+      updateDetailsSummaryMeta(
+        filteredPlayers,
+        detailsViewMode === "progression" ? allRoundIndices : compareRoundIndices
+      );
+
+      return detailsViewMode === "progression"
+        ? renderProgressionView(filteredPlayers)
+        : renderCompareView(filteredPlayers, compareRoundIndices);
     }
 
     function renderDetailsPanel() {
@@ -2482,20 +2781,25 @@
         $("detailsSummaryMeta").textContent = "No data rendered yet.";
         renderDetailsTeamFilterOptions();
         updateSpecificPlayersButton();
-        updateDetailsModeButtons();
+        updateViewButtons();
         return;
       }
 
       syncDetailFilterState();
-      $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(CURRENT_TEAMS);
+      $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails();
       updateSpecificPlayersButton();
-      updateDetailsModeButtons();
+      updateViewButtons();
     }
 
     async function setDetailsMode(mode) {
       detailsMode = mode === "all" ? "all" : "latest";
       renderDetailsPanel();
       await saveSharedState();
+    }
+
+    function setDetailsViewMode(mode) {
+      detailsViewMode = mode === "compare" ? "compare" : "progression";
+      renderDetailsPanel();
     }
 
     function clearRender() {
@@ -2512,14 +2816,16 @@
       CURRENT_TEAMS = null;
       CURRENT_PAYLOAD = null;
 
+      detailsMode = "latest";
+      detailsViewMode = "progression";
       detailsTeamFilter = "both";
       detailsUseSpecificPlayers = false;
       detailsSelectedPlayerKeys = new Set();
 
-      updateSpecificPlayersButton();
       renderDetailsTeamFilterOptions();
+      updateSpecificPlayersButton();
+      updateViewButtons();
       setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
-      updateDetailsModeButtons();
     }
 
     async function saveSharedState() {
@@ -2560,7 +2866,7 @@
       $("jsonInput").value = getLocalInput();
 
       if (!data) {
-        updateDetailsModeButtons();
+        updateViewButtons();
         renderDetailsTeamFilterOptions();
         updateSpecificPlayersButton();
         return;
@@ -2570,7 +2876,7 @@
       try {
         CURRENT_SHARED_JSON_TEXT = data.json_text || "";
         detailsMode = data.details_mode === "all" ? "all" : "latest";
-        updateDetailsModeButtons();
+        updateViewButtons();
 
         if (CURRENT_SHARED_JSON_TEXT.trim()) {
           await renderJson(false, CURRENT_SHARED_JSON_TEXT);
@@ -2598,7 +2904,7 @@
             try {
               CURRENT_SHARED_JSON_TEXT = row.json_text || "";
               detailsMode = row.details_mode === "all" ? "all" : "latest";
-              updateDetailsModeButtons();
+              updateViewButtons();
 
               if (CURRENT_SHARED_JSON_TEXT.trim()) {
                 await renderJson(false, CURRENT_SHARED_JSON_TEXT);
@@ -2726,8 +3032,16 @@
       setCopyPromptStatus(ok ? "AI prompt copied to clipboard." : "Copy failed. You can still manually select and copy the prompt.");
     });
 
-    $("latestModeBtn").addEventListener("click", () => setDetailsMode("latest"));
-    $("allRoundsModeBtn").addEventListener("click", () => setDetailsMode("all"));
+    $("progressionViewBtn").addEventListener("click", () => setDetailsViewMode("progression"));
+    $("compareViewBtn").addEventListener("click", () => setDetailsViewMode("compare"));
+
+    $("latestModeBtn").addEventListener("click", () => {
+      if (detailsViewMode === "compare") setDetailsMode("latest");
+    });
+
+    $("allRoundsModeBtn").addEventListener("click", () => {
+      if (detailsViewMode === "compare") setDetailsMode("all");
+    });
 
     $("detailsTeamFilter").addEventListener("change", () => {
       detailsTeamFilter = $("detailsTeamFilter").value || "both";
@@ -2780,7 +3094,7 @@
       renderDetailsPanel();
     });
 
-    updateDetailsModeButtons();
+    updateViewButtons();
     renderDetailsTeamFilterOptions();
     updateSpecificPlayersButton();
 
