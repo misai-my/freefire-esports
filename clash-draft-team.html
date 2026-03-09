@@ -1,3 +1,10 @@
+Updated full page with these changes:
+	•	more resilient smaller-screen layout
+	•	weapon selection replaced with pet selection from pet.json
+	•	latest tournament auto-selected on load
+	•	loading a draft from history auto-updates both tournament filters
+	•	removed the Apply button and made filters auto-load on change
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,6 +65,10 @@
       --good:#71d083;
 
       --rowH: 48px;
+      --slotW: 100px;
+      --slotH: 150px;
+      --petW: 100px;
+      --petH: 52px;
     }
 
     *{ box-sizing:border-box; }
@@ -132,8 +143,9 @@
       text-align:center;
       letter-spacing:.6px;
       color:var(--brand);
-      font-size:2rem;
+      font-size:clamp(1.35rem, 2.2vw, 2rem);
       text-shadow:0 8px 30px rgba(0,0,0,.55);
+      padding-inline:140px;
     }
 
     .user-controls{
@@ -143,6 +155,7 @@
       display:flex;
       align-items:center;
       gap:10px;
+      max-width:min(55vw, 460px);
     }
     .user-controls #user-info{
       font-size:12px;
@@ -184,6 +197,8 @@
       border-radius:12px;
       padding:8px 10px;
       outline:none;
+      min-width:0;
+      width:100%;
       -webkit-backdrop-filter: blur(12px) saturate(130%);
       backdrop-filter: blur(12px) saturate(130%);
       box-shadow: 0 12px 30px rgba(0,0,0,.35);
@@ -196,8 +211,7 @@
 
     details.glassy{
       margin: 20px auto;
-      width: 90%;
-      max-width: 1200px;
+      width: min(95%, 1200px);
       padding: 12px 12px 14px;
       background:rgba(20,26,38,.55);
       border:1px solid var(--line);
@@ -218,16 +232,22 @@
     }
     details.glassy > summary::-webkit-details-marker{ display:none; }
 
-    .top-controls{
-      width: 95%;
-      max-width: 1400px;
-      margin: 14px auto 0;
-      display:flex;
-      flex-wrap:nowrap;
+    .history-filters{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 240px));
       justify-content:center;
-      align-items:center;
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .top-controls{
+      width: min(95%, 1400px);
+      margin: 14px auto 0;
+      display:grid;
+      grid-template-columns: repeat(8, minmax(120px, 1fr));
       gap:10px;
-      padding:10px;
+      align-items:end;
+      padding:12px;
     }
     .top-controls.glassbar{
       background:rgba(20,26,38,.52);
@@ -237,9 +257,11 @@
       backdrop-filter: blur(14px) saturate(140%);
       box-shadow: 0 18px 55px rgba(0,0,0,.45);
     }
-    .top-controls a{
+
+    .control-back{
       display:inline-flex;
       align-items:center;
+      justify-content:center;
       gap:8px;
       text-decoration:none;
       font-weight:900;
@@ -250,9 +272,21 @@
       border:1px solid rgba(255,255,255,.10);
       box-shadow: 0 16px 40px rgba(0,0,0,.35);
       transition: transform .15s ease, filter .15s ease;
+      min-height:42px;
     }
-    .top-controls a:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .top-controls label{ color:var(--muted); font-weight:800; }
+    .control-back:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+
+    .control-group{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+    .control-group label{
+      color:var(--muted);
+      font-weight:800;
+      font-size:12px;
+    }
 
     .top-controls button{
       background:linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.78));
@@ -265,8 +299,15 @@
       border:1px solid rgba(255,255,255,.10);
       box-shadow: 0 16px 40px rgba(0,0,0,.35);
       transition: transform .15s ease, filter .15s ease;
+      min-height:42px;
     }
     .top-controls button:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+
+    .save-btn{
+      align-self:stretch;
+      height:42px;
+      margin-top:auto;
+    }
 
     .reset-btn{
       margin: 14px auto 0;
@@ -285,13 +326,12 @@
     .reset-btn:hover{ transform: translateY(-1px); filter:brightness(1.03); }
 
     .draft-wrapper{
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-      gap:46px;
-      margin-top: 16px;
-      flex-wrap: nowrap;
-      padding: 0 14px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap:18px;
+      width:min(95%, 1400px);
+      margin:16px auto 0;
+      padding:0 14px;
     }
 
     .team-container{
@@ -300,7 +340,7 @@
       align-items:center;
       gap:10px;
       padding:14px;
-      width: min(620px, 100%);
+      min-width:0;
     }
     .team-container.glassbox{
       background:rgba(20,26,38,.48);
@@ -321,18 +361,38 @@
       padding:6px 10px;
       border-radius:12px;
       outline:none;
+      width:min(100%, 280px);
     }
     .team-label:focus{
       background:rgba(10,14,24,.45);
       border:1px dashed rgba(255,189,89,.55);
     }
 
-    .team-row{ display:flex; gap:10px; }
-    .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .team-score-wrap{
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .team-row{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(88px, 1fr));
+      gap:10px;
+      width:100%;
+      align-items:start;
+    }
+
+    .slot{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
 
     .ban-slot, .pick-slot{
-      width: 100px;
-      height: 150px;
+      width: min(100%, var(--slotW));
+      aspect-ratio: 2 / 3;
+      min-height: 132px;
       border-radius:14px;
       position:relative;
       cursor:pointer;
@@ -358,7 +418,7 @@
       font-size:12px;
       color:rgba(244,246,255,.78);
       text-align:center;
-      max-width:100px;
+      width:100%;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -379,7 +439,14 @@
       filter:none;
     }
 
-    .passive-slots, .weapon-slots{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+    .passive-slots, .pet-slots{
+      display:flex;
+      gap:6px;
+      justify-content:center;
+      flex-wrap:wrap;
+      width:100%;
+    }
+
     .passive-slot{
       width:26px; height:52px;
       border-radius:10px;
@@ -395,8 +462,9 @@
     }
     .passive-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
 
-    .weapon-slot{
-      width:100px; height:44px;
+    .pet-slot{
+      width:min(100%, var(--petW));
+      min-height:44px;
       border-radius:14px;
       cursor:pointer;
       display:flex;
@@ -411,21 +479,22 @@
       transition: transform .15s ease, filter .15s ease;
       overflow:hidden;
     }
-    .weapon-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
-    .weapon-slot img{ max-height:100%; max-width:100%; }
+    .pet-slot:hover{ transform: translateY(-1px); filter:brightness(1.03); }
+    .pet-slot img{ max-height:100%; max-width:100%; }
 
-    .passive-name, .weapon-name{
+    .passive-name, .pet-name{
       font-size:10px;
       color:rgba(244,246,255,.72);
       text-align:center;
-      max-width: 100px;
+      width:100%;
       overflow:hidden;
       white-space:nowrap;
       text-overflow:ellipsis;
     }
 
     .player-input{
-      width: 96px;
+      width: 100%;
+      max-width: 100px;
       font-size: 10px;
       padding: 6px 8px;
       text-align:center;
@@ -433,24 +502,6 @@
       margin-top: 4px;
     }
 
-    .pick-pack{ width:100%; display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .pick-main{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .pick-side{
-      width:100%;
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      align-items:flex-start;
-      flex-wrap:wrap;
-    }
-    .pick-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-    .pick-col-title{
-      font-size:10px;
-      font-weight:950;
-      color: rgba(170,177,197,.85);
-      letter-spacing:.3px;
-      text-transform: uppercase;
-    }
     .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
 
     .banned-overlay{
@@ -469,20 +520,17 @@
     }
 
     .summary-wrapper{
-      width: 95%;
-      max-width: 1400px;
+      width: min(95%, 1400px);
       margin: 14px auto 0;
-      display:flex;
-      justify-content:center;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
       gap: 18px;
       font-size: 12px;
       color: rgba(244,246,255,.78);
-      overflow-x:auto;
-      padding: 10px;
-      -webkit-overflow-scrolling: touch;
+      padding: 10px 14px;
     }
     .summary-wrapper > div{
-      min-width: 520px;
+      min-width:0;
       padding: 12px;
       border-radius: var(--radius-lg);
       background:rgba(20,26,38,.48);
@@ -497,36 +545,6 @@
       font-family:'Orbitron',sans-serif;
       color: var(--brand);
       letter-spacing:.5px;
-    }
-
-    .summary-row{ display:flex; flex-direction:row; gap:10px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
-    .summary-card{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:10px;
-      width: 120px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      font-size:10px;
-      text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-    .summary-ban{
-      min-width: 460px;
-      max-width: 460px;
-      background:rgba(255,90,90,.10);
-      border:1px solid rgba(255,90,90,.35);
-      border-radius:14px;
-      padding:10px;
-      font-size:10px;
-      text-align:center;
-      -webkit-backdrop-filter: blur(12px) saturate(135%);
-      backdrop-filter: blur(12px) saturate(135%);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
     }
 
     .sum-section-title{
@@ -702,8 +720,7 @@
     .modal-content{
       margin: 2% auto;
       padding: 16px;
-      width: 92%;
-      max-width: 980px;
+      width: min(92%, 980px);
       max-height: 92vh;
       overflow-y:auto;
       position:relative;
@@ -723,6 +740,7 @@
       color: var(--brand2);
       font-family:'Orbitron',sans-serif;
       letter-spacing:.4px;
+      text-align:center;
     }
     .close-btn{
       position:absolute;
@@ -740,30 +758,6 @@
       backdrop-filter: blur(10px);
     }
     .close-btn:hover{ filter:brightness(1.05); }
-
-    .weapon-filter-wrapper{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      margin: 0 0 10px;
-      width:100%;
-      position:sticky;
-      top:0;
-      padding: 10px 0;
-      background: rgba(14,18,28,.55);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      -webkit-backdrop-filter: blur(14px);
-      backdrop-filter: blur(14px);
-      z-index: 2;
-    }
-    .weapon-filter-wrapper select{
-      min-width: 220px;
-      font-weight: 900;
-      color: var(--brand);
-      background: rgba(10,14,24,.62);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 14px;
-    }
 
     #heroGrid{
       display:grid;
@@ -830,6 +824,7 @@
       height: var(--rowH);
       vertical-align: middle;
       background: transparent;
+      white-space:nowrap;
     }
     #recordTable tbody{
       background: rgba(14,18,28,.35) !important;
@@ -850,8 +845,7 @@
     #recordTable button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
 
     #pbFilterBar{
-      width: 95%;
-      max-width: 1400px;
+      width: min(95%, 1400px);
       margin: 22px auto 0;
       padding: 14px;
       border-radius: var(--radius-lg);
@@ -870,27 +864,15 @@
     }
 
     .counts-controls{
-      display:flex;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
       gap: 10px;
       justify-content:center;
-      align-items:center;
-      flex-wrap:wrap;
+      align-items:end;
       margin-bottom: 10px;
       color: var(--muted);
       font-weight: 800;
     }
-    .counts-controls button{
-      background: linear-gradient(180deg, rgba(255,119,51,.96), rgba(255,119,51,.72));
-      color:#10121a;
-      border:none;
-      border-radius: 14px;
-      padding: 10px 12px;
-      cursor:pointer;
-      font-weight: 950;
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 16px 40px rgba(0,0,0,.35);
-    }
-    .counts-controls button:hover{ filter:brightness(1.04); transform: translateY(-1px); }
 
     #draftCardSummary{
       width: 100%;
@@ -913,7 +895,7 @@
     }
 
     details.team-accordion{
-      width: 340px;
+      width: min(340px, 100%);
       border-radius: 18px;
       background: rgba(255,255,255,.05);
       border: 1px solid rgba(255,255,255,.10);
@@ -1032,6 +1014,7 @@
       -webkit-backdrop-filter: blur(12px) saturate(135%);
       backdrop-filter: blur(12px) saturate(135%);
       box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      min-width:0;
     }
     .counts-card h3{
       margin: 0 0 10px 0;
@@ -1055,8 +1038,7 @@
     }
 
     .section-accordion{
-      width:95%;
-      max-width:1400px;
+      width:min(95%, 1400px);
       margin:14px auto 0;
       border-radius: var(--radius-lg);
       background: rgba(20,26,38,.42);
@@ -1103,56 +1085,85 @@
       padding: 0 14px 14px;
     }
 
+    @media (max-width: 1250px){
+      .top-controls{
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+      }
+    }
+
     @media (max-width: 1100px){
-      .draft-wrapper{ flex-wrap:wrap; gap:14px; }
-      .summary-wrapper > div{ min-width: 360px; }
-      .team-row{ flex-wrap:wrap; justify-content:center; }
+      .draft-wrapper{ grid-template-columns: 1fr; gap:14px; }
+      .summary-wrapper{ grid-template-columns: 1fr; }
+      .team-row{ grid-template-columns: repeat(5, minmax(84px, 1fr)); }
       details.team-accordion{ width: min(520px, 100%); }
     }
 
     @media (max-width: 900px){
+      header{
+        padding-top:64px;
+      }
+      h1{
+        padding-inline:0;
+      }
+      .user-controls{
+        left:14px;
+        right:14px;
+        top:12px;
+        justify-content:space-between;
+        max-width:none;
+      }
       .top-controls{
-        justify-content:flex-start;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 12px;
-        gap: 10px;
-        overscroll-behavior-x: contain;
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
       }
-      .top-controls > *{
-        flex: 0 0 auto;
+      .control-back{
+        grid-column: 1 / -1;
       }
-      .top-controls a,
-      .top-controls button{
-        white-space: nowrap;
+      .save-btn{
+        grid-column: 1 / -1;
       }
-      .top-controls input[type="text"]{ width: 220px; }
-      .top-controls select{ min-width: 160px; }
+      .sum-players{
+        grid-template-columns: 1fr;
+      }
     }
 
-    @media (max-width: 900px){
-      .draft-wrapper{
-        gap: 14px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x mandatory;
-        padding: 0 14px 8px;
-        overscroll-behavior-x: contain;
+    @media (max-width: 680px){
+      :root{
+        --slotW: 88px;
+        --petW: 88px;
       }
+      .team-row{
+        grid-template-columns: repeat(5, minmax(72px, 1fr));
+        gap:8px;
+      }
+      .ban-slot, .pick-slot{
+        min-height:110px;
+      }
+      .passive-slot{
+        width:24px;
+        height:46px;
+      }
+      .player-input{
+        max-width:88px;
+      }
+    }
 
+    @media (max-width: 560px){
+      .top-controls{
+        grid-template-columns: 1fr;
+      }
+      .team-row{
+        grid-template-columns: repeat(5, minmax(64px, 1fr));
+        gap:6px;
+      }
+      .slot-name, .passive-name, .pet-name{
+        font-size:9px;
+      }
       .team-container{
-        min-width: calc(100vw - 28px);
-        scroll-snap-align: start;
+        padding:10px;
       }
-    }
-
-    @media (max-width: 420px){
-      .ban-slot, .pick-slot{ width: 88px; height: 132px; }
-      .slot-name{ max-width: 88px; }
-      .weapon-slot{ width: 88px; height: 40px; }
-      .player-input{ width: 88px; }
+      .summary-wrapper{
+        padding-inline:8px;
+      }
     }
 
     @media (max-width: 520px){
@@ -1179,13 +1190,16 @@
         Enable multiple selection
       </label>
 
-      <div style="margin-top:12px;">
-        <label style="display:block;margin-bottom:6px; color: var(--muted); font-weight: 900;">Tournament</label>
-        <select id="tournamentFilter" style="width:240px;" onchange="loadAllDraftRecords()"></select>
-      </div>
+      <div class="history-filters">
+        <div>
+          <label style="display:block;margin-bottom:6px; color: var(--muted); font-weight: 900;">Tournament</label>
+          <select id="tournamentFilter" onchange="loadAllDraftRecords()"></select>
+        </div>
 
-      <div style="margin-top:12px;">
-        <select id="teamFilter" size="5" style="width: 240px;" onchange="loadAllDraftRecords()"></select>
+        <div>
+          <label style="display:block;margin-bottom:6px; color: var(--muted); font-weight: 900;">Team</label>
+          <select id="teamFilter" size="5" onchange="loadAllDraftRecords()"></select>
+        </div>
       </div>
     </div>
 
@@ -1212,37 +1226,46 @@
   </details>
 
   <div class="top-controls glassbar">
-    <a href="home.html">← Back to Dashboard</a>
+    <a href="home.html" class="control-back">← Back to Dashboard</a>
 
-    <label for="matchDate">Date:</label>
-    <input type="date" id="matchDate" />
+    <div class="control-group">
+      <label for="matchDate">Date</label>
+      <input type="date" id="matchDate" />
+    </div>
 
-    <label for="gameNumberSelect">Game:</label>
-    <select id="gameNumberSelect">
-      <option value="1">Game 1</option>
-      <option value="2">Game 2</option>
-      <option value="3">Game 3</option>
-      <option value="4">Game 4</option>
-      <option value="5">Game 5</option>
-      <option value="6">Game 6</option>
-      <option value="7">Game 7</option>
-    </select>
+    <div class="control-group">
+      <label for="gameNumberSelect">Game</label>
+      <select id="gameNumberSelect">
+        <option value="1">Game 1</option>
+        <option value="2">Game 2</option>
+        <option value="3">Game 3</option>
+        <option value="4">Game 4</option>
+        <option value="5">Game 5</option>
+        <option value="6">Game 6</option>
+        <option value="7">Game 7</option>
+      </select>
+    </div>
 
-    <select id="mapSelect">
-      <option value="Bermuda">Bermuda</option>
-      <option value="Kalahari">Kalahari</option>
-      <option value="Purgatory">Purgatory</option>
-      <option value="Alpine">Alpine</option>
-      <option value="Nexterra">Nexterra</option>
-      <option value="Solara">Solara</option>
-    </select>
+    <div class="control-group">
+      <label for="mapSelect">Map</label>
+      <select id="mapSelect">
+        <option value="Bermuda">Bermuda</option>
+        <option value="Kalahari">Kalahari</option>
+        <option value="Purgatory">Purgatory</option>
+        <option value="Alpine">Alpine</option>
+        <option value="Nexterra">Nexterra</option>
+        <option value="Solara">Solara</option>
+      </select>
+    </div>
 
-    <label for="tournamentInput">Tournament:</label>
-    <input type="text" id="tournamentInput" placeholder="Enter tournament name" list="tournamentList" />
-    <datalist id="tournamentList"></datalist>
+    <div class="control-group">
+      <label for="tournamentInput">Tournament</label>
+      <input type="text" id="tournamentInput" placeholder="Enter tournament name" list="tournamentList" />
+      <datalist id="tournamentList"></datalist>
+    </div>
 
-    <button onclick="saveOrUpdateDraft()">Save/Update</button>
-    <button onclick="loadDraftRecord()">Load</button>
+    <button class="save-btn" onclick="saveOrUpdateDraft()">Save / Update</button>
+    <button class="save-btn" onclick="loadDraftRecord()">Load</button>
   </div>
 
   <button class="reset-btn" onclick="resetDraft()">Reset All</button>
@@ -1250,18 +1273,18 @@
   <div class="draft-wrapper">
     <div class="team-container glassbox">
       <input class="team-label" id="teamNameLeft" list="teamNameOptions" value="TEAM LEFT" onchange="updateTeamName(0)" />
-      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
+      <div class="team-score-wrap">
         <label for="teamLeftScore">Left Score:</label>
-        <input type="number" id="teamLeftScore" min="0" style="width: 80px; margin-left: 8px;" />
+        <input type="number" id="teamLeftScore" min="0" style="width: 80px;" />
       </div>
       <div class="team-row" id="teamLeft"></div>
     </div>
 
     <div class="team-container glassbox">
       <input class="team-label" id="teamNameRight" list="teamNameOptions" value="TEAM RIGHT" onchange="updateTeamName(1)" />
-      <div style="margin-bottom: 4px; color: var(--muted); font-weight: 900;">
+      <div class="team-score-wrap">
         <label for="teamRightScore">Right Score:</label>
-        <input type="number" id="teamRightScore" min="0" style="width: 80px; margin-left: 8px;" />
+        <input type="number" id="teamRightScore" min="0" style="width: 80px;" />
       </div>
       <div class="team-row" id="teamRight"></div>
     </div>
@@ -1276,7 +1299,6 @@
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal()">X</span>
       <h3 id="modalTitle">Select</h3>
-      <div id="weaponFilterHost"></div>
       <div class="hero-grid" id="heroGrid"></div>
     </div>
   </div>
@@ -1284,13 +1306,14 @@
   <div id="pbFilterBar">
     <h2>Filters</h2>
     <div class="counts-controls">
-      <label>Team
-        <select id="teamCountSelect" style="min-width:220px;" onchange="applyPBFilters()"></select>
-      </label>
-      <label>Tournament
-        <select id="countTournamentSelect" style="min-width:220px;" onchange="applyPBFilters()"></select>
-      </label>
-      <button onclick="applyPBFilters()">Apply</button>
+      <div class="control-group">
+        <label>Team</label>
+        <select id="teamCountSelect" onchange="applyPBFilters()"></select>
+      </div>
+      <div class="control-group">
+        <label>Tournament</label>
+        <select id="countTournamentSelect" onchange="applyPBFilters()"></select>
+      </div>
     </div>
     <div style="text-align:center; color: rgba(244,246,255,.70); font-size:12px; font-weight:800;">
       Affects: Match Summary + Pick/Ban Counts
@@ -1346,7 +1369,7 @@
   <datalist id="playerNameOptionsRight"></datalist>
 
 <script>
-let characters = [], weapons = [], currentSlot = null;
+let characters = [], pets = [], currentSlot = null;
 
 let ALL_DRAFT_RECORDS = [];
 let LAST_MATCHED_RECORDS = [];
@@ -1361,7 +1384,7 @@ let draftState = {
   bans: [null, null],
   picks: Array(8).fill(null),
   passives: Array(8).fill(0).map(() => [null, null, null]),
-  weapons: Array(8).fill(0).map(() => [null, null, null]),
+  pets: Array(8).fill(null),
   teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
   playerCards: Array(8).fill(''),
   matchDate: '',
@@ -1371,8 +1394,6 @@ let draftState = {
   map: 'Bermuda',
   tournamentName: ''
 };
-
-const isMobile = () => window.matchMedia('(max-width: 820px) and (orientation: portrait)').matches;
 
 function esc(s){
   return (s ?? '').toString()
@@ -1387,20 +1408,10 @@ function getDesc(obj){
   return (obj?.description || obj?.desc || obj?.details || obj?.notes || obj?.note || '').toString().trim();
 }
 
-function formatWeaponDesc(w){
-  const d = getDesc(w);
+function formatPetDesc(p){
+  const d = getDesc(p);
   if (d) return d;
-
-  const parts = [];
-  if (w?.damage != null) parts.push(`Dmg ${w.damage}`);
-  if (w?.rate_of_fire != null) parts.push(`RoF ${w.rate_of_fire}`);
-  if (w?.range != null) parts.push(`Rng ${w.range}`);
-  if (w?.magazine_size != null) parts.push(`Mag ${w.magazine_size}`);
-
-  const arm = getWeaponArmory(w?.name || '');
-  if (arm) parts.push(`Armory ${arm}`);
-
-  return parts.length ? parts.join(' • ') : '—';
+  return p?.skill || '—';
 }
 
 function debounce(fn, wait=450){
@@ -1524,14 +1535,37 @@ function applySlotFilled(img, imageUrl){
   img.classList.add('slot-filled');
 }
 
+function getLatestTournamentName(records){
+  const latest = (records || [])
+    .filter(r => r?.tournament_name)
+    .sort((a,b) => {
+      const da = new Date(a.match_date || 0).getTime();
+      const db = new Date(b.match_date || 0).getTime();
+      if (db !== da) return db - da;
+      return (b.id || 0) - (a.id || 0);
+    })[0];
+
+  return latest?.tournament_name || '__ALL__';
+}
+
+function setTournamentFilters(tournamentName, reloadHistory = true, applyCounts = true){
+  const t1 = document.getElementById('tournamentFilter');
+  const t2 = document.getElementById('countTournamentSelect');
+  const resolved = tournamentName || '__ALL__';
+
+  if (t1) t1.value = resolved;
+  if (t2) t2.value = resolved;
+
+  if (reloadHistory) loadAllDraftRecords();
+  else if (applyCounts) applyPBFilters();
+}
+
 async function initDraftPage() {
   characters = await (await fetch('https://misai-my.github.io/freefire-esports/character.json')).json();
-  weapons = await (await fetch('https://misai-my.github.io/freefire-esports/weapon.json')).json();
+  pets = await (await fetch('https://misai-my.github.io/freefire-esports/pet.json')).json();
 
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;
-
-  const autoSave = debounce(saveDraftState, 450);
 
   document.getElementById('matchDate').addEventListener('change', saveDraftState);
   document.getElementById('gameNumberSelect').addEventListener('change', saveDraftState);
@@ -1664,37 +1698,36 @@ function makeSlot(type,index){
 
     c.appendChild(pDiv);
 
-    const wDiv=document.createElement('div');
-    wDiv.className='weapon-slots';
+    const petDiv=document.createElement('div');
+    petDiv.className='pet-slots';
 
-    draftState.weapons[index].forEach((w,i)=>{
-      const wSlot=document.createElement('div');
-      wSlot.className='weapon-slot';
-      if(i===0) wSlot.style.border='1px solid rgba(255,189,89,.65)';
+    const pet = draftState.pets[index];
+    const petSlot=document.createElement('div');
+    petSlot.className='pet-slot';
 
-      const wn=document.createElement('div');
-      wn.className='weapon-name';
+    const petName=document.createElement('div');
+    petName.className='pet-name';
 
-      if(w){
-        const wImg=document.createElement('img');
-        wImg.src=w.image_url;
-        wSlot.appendChild(wImg);
-        wn.innerText=w.name;
-      }
+    if(pet){
+      const petImg=document.createElement('img');
+      petImg.src=pet.image_url;
+      petSlot.appendChild(petImg);
+      petName.innerText=pet.name;
+    }
 
-      wSlot.onclick=()=>{ currentSlot={type:'weapon',pickIndex:index,weaponIndex:i}; openModal('Select Weapon'); };
+    petSlot.onclick=()=>{ currentSlot={type:'pet',pickIndex:index}; openModal('Select Pet'); };
 
-      const box=document.createElement('div');
-      box.style.display='flex';
-      box.style.flexDirection='column';
-      box.style.alignItems='center';
+    const petBox=document.createElement('div');
+    petBox.style.display='flex';
+    petBox.style.flexDirection='column';
+    petBox.style.alignItems='center';
+    petBox.style.width='100%';
 
-      box.appendChild(wSlot);
-      box.appendChild(wn);
-      wDiv.appendChild(box);
-    });
+    petBox.appendChild(petSlot);
+    petBox.appendChild(petName);
+    petDiv.appendChild(petBox);
 
-    c.appendChild(wDiv);
+    c.appendChild(petDiv);
   }
 
   return c;
@@ -1713,90 +1746,63 @@ function openModal(title) {
   const grid = document.getElementById('heroGrid');
   grid.innerHTML = '';
 
-  if (currentSlot.type === 'weapon') {
-    const filterWrapper = document.createElement('div');
-    filterWrapper.className = 'weapon-filter-wrapper';
+  if (currentSlot.type === 'pet') {
+    const clearCard = document.createElement('div');
+    clearCard.className = 'hero-grid-item';
+    clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
 
-    const armoryFilter = document.createElement('select');
-    const armoryOptions = ['All', 'Andrew', 'Kelly', 'Laura', 'Mocco', 'Hayato', 'Tatsuya'];
-    armoryOptions.forEach(name => {
-      const option = document.createElement('option');
-      option.value = name.toLowerCase();
-      option.textContent = name;
-      armoryFilter.appendChild(option);
-    });
-    filterWrapper.appendChild(armoryFilter);
-    grid.appendChild(filterWrapper);
+    const clearImg = document.createElement('img');
+    clearImg.src = 'https://imgur.com/AdvPwAO.png';
+    clearImg.alt = 'Clear';
+    clearImg.style.width = '60px';
+    clearImg.style.height = '60px';
+    clearImg.style.opacity = '0.35';
+    clearImg.style.objectFit = 'contain';
+    clearImg.style.marginBottom = '6px';
 
-    function renderWeapons(filter) {
-      Array.from(grid.children).forEach((child, index) => {
-        if (index !== 0) child.remove();
-      });
+    const clearLabel = document.createElement('div');
+    clearLabel.textContent = 'Clear';
+    clearLabel.style.fontSize = '10px';
+    clearLabel.style.color = 'rgba(244,246,255,.75)';
+    clearLabel.style.textAlign = 'center';
 
-      const clearCard = document.createElement('div');
-      clearCard.className = 'hero-grid-item';
-      clearCard.style.border = '1px dashed rgba(255,255,255,.18)';
+    clearCard.appendChild(clearImg);
+    clearCard.appendChild(clearLabel);
+    clearCard.onclick = () => {
+      draftState.pets[currentSlot.pickIndex] = null;
+      closeModal();
+      drawDraft();
+      saveDraftState();
+    };
+    grid.appendChild(clearCard);
 
-      const clearImg = document.createElement('img');
-      clearImg.src = 'https://imgur.com/AdvPwAO.png';
-      clearImg.alt = 'Clear';
-      clearImg.style.width = '60px';
-      clearImg.style.height = '60px';
-      clearImg.style.opacity = '0.35';
-      clearImg.style.objectFit = 'contain';
-      clearImg.style.marginBottom = '6px';
+    pets.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'hero-grid-item';
 
-      const clearLabel = document.createElement('div');
-      clearLabel.textContent = 'Clear';
-      clearLabel.style.fontSize = '10px';
-      clearLabel.style.color = 'rgba(244,246,255,.75)';
-      clearLabel.style.textAlign = 'center';
+      const img = document.createElement('img');
+      img.src = item.image_url;
+      img.alt = item.name;
+      img.style.width = '80px';
+      img.style.height = '80px';
+      img.style.objectFit = 'contain';
+      img.style.marginBottom = '6px';
 
-      clearCard.appendChild(clearImg);
-      clearCard.appendChild(clearLabel);
-      clearCard.onclick = () => {
-        draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = null;
+      const name = document.createElement('div');
+      name.textContent = item.name;
+
+      card.appendChild(img);
+      card.appendChild(name);
+
+      card.onclick = () => {
+        draftState.pets[currentSlot.pickIndex] = item;
         closeModal();
         drawDraft();
         saveDraftState();
       };
-      grid.appendChild(clearCard);
 
-      weapons.forEach(item => {
-        if (!item.armory) return;
-        if (filter !== 'all' && !item.armory.toLowerCase().includes(filter)) return;
-
-        const card = document.createElement('div');
-        card.className = 'hero-grid-item';
-
-        const img = document.createElement('img');
-        img.src = item.image_url;
-        img.alt = item.name;
-        img.style.width = '80px';
-        img.style.height = '80px';
-        img.style.objectFit = 'contain';
-        img.style.marginBottom = '6px';
-
-        const name = document.createElement('div');
-        name.textContent = item.name;
-
-        card.appendChild(img);
-        card.appendChild(name);
-
-        card.onclick = () => {
-          draftState.weapons[currentSlot.pickIndex][currentSlot.weaponIndex] = item;
-          closeModal();
-          drawDraft();
-          saveDraftState();
-        };
-
-        grid.appendChild(card);
-      });
-    }
-
-    renderWeapons('all');
-    armoryFilter.addEventListener('change', () => renderWeapons(armoryFilter.value));
-
+      grid.appendChild(card);
+    });
   } else {
     const clearCard = document.createElement('div');
     clearCard.className = 'hero-grid-item';
@@ -1910,7 +1916,7 @@ function updateSummary() {
     const activeDesc = getDesc(hero) || '—';
 
     const passives = (draftState.passives?.[i] || []).filter(Boolean);
-    const weaponsArr = (draftState.weapons?.[i] || []).filter(Boolean);
+    const pet = draftState.pets?.[i] || null;
 
     const passivesHTML = passives.length
       ? passives.map(ps => {
@@ -1927,16 +1933,16 @@ function updateSummary() {
         }).join('')
       : `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
 
-    const weaponsHTML = weaponsArr.length
-      ? weaponsArr.map(w => `
-          <div class="sum-item">
-            ${w.image_url ? `<img src="${esc(w.image_url)}" alt="">` : ''}
-            <div class="sum-item-text">
-              <div class="sum-item-name">${esc(w.name || 'Weapon')}</div>
-              <div class="sum-item-desc">${esc(formatWeaponDesc(w))}</div>
-            </div>
+    const petHTML = pet
+      ? `
+        <div class="sum-item">
+          ${pet.image_url ? `<img src="${esc(pet.image_url)}" alt="">` : ''}
+          <div class="sum-item-text">
+            <div class="sum-item-name">${esc(pet.name || 'Pet')}</div>
+            <div class="sum-item-desc">${esc(formatPetDesc(pet))}</div>
           </div>
-        `).join('')
+        </div>
+      `
       : `<div style="color:rgba(244,246,255,.55);font-size:11px;">None</div>`;
 
     const id = `sum-${labelPrefix}-${i}`;
@@ -1956,8 +1962,8 @@ function updateSummary() {
         <div class="sum-section-title" style="margin-top:2px;">Passives</div>
         ${passivesHTML}
 
-        <div class="sum-section-title" style="margin-top:2px;">Weapons</div>
-        ${weaponsHTML}
+        <div class="sum-section-title" style="margin-top:2px;">Pet</div>
+        ${petHTML}
       </div>
     `;
   }
@@ -1982,7 +1988,7 @@ function resetDraft() {
     bans: [null, null],
     picks: Array(8).fill(null),
     passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
+    pets: Array(8).fill(null),
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     matchDate: document.getElementById('matchDate').value || '',
@@ -1990,20 +1996,14 @@ function resetDraft() {
     teamLeftScore: 0,
     teamRightScore: 0,
     map: document.getElementById('mapSelect').value || 'Bermuda',
-    tournamentName: ''
+    tournamentName: document.getElementById('tournamentInput').value || ''
   };
 
   document.getElementById('teamLeftScore').value = 0;
   document.getElementById('teamRightScore').value = 0;
-  document.getElementById('tournamentInput').value = '';
 
   drawDraft();
   saveDraftState();
-}
-
-function getWeaponArmory(weaponName) {
-  const weapon = weapons.find(w => w.name === weaponName);
-  return weapon && weapon.armory ? weapon.armory : "";
 }
 
 function applyStateToControls() {
@@ -2074,7 +2074,7 @@ async function loadDraftState() {
     bans: [null, null],
     picks: Array(8).fill(null),
     passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
+    pets: Array(8).fill(null),
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     matchDate: '',
@@ -2119,7 +2119,7 @@ async function loadDraftRecord() {
       bans: [null, null],
       picks: Array(8).fill(null),
       passives: Array(8).fill(0).map(() => [null, null, null]),
-      weapons: Array(8).fill(0).map(() => [null, null, null]),
+      pets: Array(8).fill(null),
       teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
       playerCards: Array(8).fill(''),
       teamLeftScore: 0,
@@ -2139,6 +2139,9 @@ async function loadDraftRecord() {
     draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
 
     applyStateToControls();
+
+    setTournamentFilters(draftState.tournamentName || '__ALL__', true, true);
+
     drawDraft();
     await saveDraftState();
 
@@ -2173,8 +2176,6 @@ async function saveOrUpdateDraft() {
     tournament_name:  tournamentName || null,
     updated_at:       new Date().toISOString()
   };
-
-  console.log("📦 Upserting payload:", payload);
 
   const { error } = await client
     .from('draft_records')
@@ -2222,9 +2223,8 @@ async function loadAllDraftRecords() {
   const tournamentInputList = document.getElementById('tournamentList');
 
   const selectedTeams = Array.from(filterSelect.selectedOptions).map(opt => opt.value.toLowerCase());
-  const prevTournamentHistory = tournamentFilter.value || '__ALL__';
-  const prevTournamentCounts  = countTournamentSelect.value || '__ALL__';
-
+  const prevTournamentHistory = tournamentFilter.dataset.userSelected || tournamentFilter.value || '';
+  const prevTournamentCounts  = countTournamentSelect.value || '';
   const table = document.getElementById('recordBody');
   table.innerHTML = '';
 
@@ -2267,6 +2267,7 @@ async function loadAllDraftRecords() {
   teamCountSelect.value = prevTeamCount || '__ALL__';
 
   const tournamentsSorted = ['__ALL__', ...Array.from(allTournaments).sort()];
+  const latestTournament = getLatestTournamentName(data);
 
   tournamentFilter.innerHTML = '';
   tournamentsSorted.forEach(tn => {
@@ -2275,7 +2276,6 @@ async function loadAllDraftRecords() {
     o.textContent = (tn === '__ALL__') ? 'All tournaments' : tn;
     tournamentFilter.appendChild(o);
   });
-  tournamentFilter.value = prevTournamentHistory || '__ALL__';
 
   countTournamentSelect.innerHTML = '';
   tournamentsSorted.forEach(tn => {
@@ -2284,7 +2284,6 @@ async function loadAllDraftRecords() {
     o2.textContent = (tn === '__ALL__') ? 'All tournaments' : tn;
     countTournamentSelect.appendChild(o2);
   });
-  countTournamentSelect.value = prevTournamentCounts || '__ALL__';
 
   if (tournamentInputList) {
     tournamentInputList.innerHTML = '';
@@ -2294,6 +2293,18 @@ async function loadAllDraftRecords() {
       tournamentInputList.appendChild(opt);
     });
   }
+
+  const chosenHistoryTournament = tournamentsSorted.includes(prevTournamentHistory)
+    ? prevTournamentHistory
+    : latestTournament;
+
+  const chosenCountsTournament = tournamentsSorted.includes(prevTournamentCounts)
+    ? prevTournamentCounts
+    : chosenHistoryTournament;
+
+  tournamentFilter.value = chosenHistoryTournament || '__ALL__';
+  tournamentFilter.dataset.userSelected = tournamentFilter.value;
+  countTournamentSelect.value = chosenCountsTournament || '__ALL__';
 
   const selectedTournament = tournamentFilter.value || '__ALL__';
 
@@ -2349,7 +2360,7 @@ async function loadSpecificDraft(id) {
     bans: [null, null],
     picks: Array(8).fill(null),
     passives: Array(8).fill(0).map(() => [null, null, null]),
-    weapons: Array(8).fill(0).map(() => [null, null, null]),
+    pets: Array(8).fill(null),
     teamNames: ['TEAM LEFT', 'TEAM RIGHT'],
     playerCards: Array(8).fill(''),
     teamLeftScore: 0,
@@ -2369,6 +2380,7 @@ async function loadSpecificDraft(id) {
   draftState.tournamentName = data.tournament_name ?? (draftState.tournamentName || '');
 
   applyStateToControls();
+  setTournamentFilters(draftState.tournamentName || '__ALL__', true, true);
   drawDraft();
   await saveDraftState();
 
@@ -2480,6 +2492,7 @@ function renderTeamAccordionSummaries(records) {
         const hero = draft.picks[i];
         const playerName = draft.playerCards?.[i] || `P${(i % 4) + 1}`;
         const passives = draft.passives?.[i] || [];
+        const pet = draft.pets?.[i] || null;
 
         const pCard = document.createElement('div');
         pCard.className = 'mini-player';
@@ -2522,6 +2535,32 @@ function renderTeamAccordionSummaries(records) {
 
           pCard.appendChild(psLine);
         });
+
+        if (pet) {
+          const petLine = document.createElement('div');
+          petLine.style.display = 'flex';
+          petLine.style.alignItems = 'center';
+          petLine.style.gap = '4px';
+          petLine.style.justifyContent = 'center';
+          petLine.style.fontSize = '9px';
+          petLine.style.color = 'rgba(244,246,255,.72)';
+          petLine.style.marginTop = '6px';
+
+          if (pet.image_url) {
+            const img = document.createElement('img');
+            img.src = pet.image_url;
+            img.style.width = '14px';
+            img.style.height = '14px';
+            img.style.borderRadius = '6px';
+            petLine.appendChild(img);
+          }
+
+          const label = document.createElement('span');
+          label.textContent = pet.name;
+          petLine.appendChild(label);
+
+          pCard.appendChild(petLine);
+        }
 
         playerGrid.appendChild(pCard);
       });
@@ -2644,6 +2683,10 @@ function computeTeamPickBanCountsFromRecords(records) {
     document.getElementById('teamPBTotals').innerHTML = 'No matches for current filter.';
   }
 }
+
+document.getElementById('tournamentFilter').addEventListener('change', (e) => {
+  e.target.dataset.userSelected = e.target.value;
+});
 </script>
 </body>
 </html>
