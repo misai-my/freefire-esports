@@ -42,6 +42,9 @@
       --char-radius: 14px;
       --char-thumb-radius: 14px;
 
+      /* reverted compact card sizing */
+      --card-max: 128px;
+
       color-scheme: dark;
     }
 
@@ -551,14 +554,17 @@
       letter-spacing: 0;
     }
 
+    /* fixed compact grid */
     .grid{
       display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, var(--card-max)));
+      justify-content:start;
       gap: var(--char-gap);
       width:100%;
     }
 
     .char-card{
+      width:100%;
       position:relative;
       padding: var(--char-pad);
       border-radius: var(--char-radius);
@@ -830,11 +836,15 @@
       .userchip{
         max-width:220px;
       }
+
+      .grid{
+        grid-template-columns: repeat(4, minmax(0, 120px));
+      }
     }
 
     @media (max-width: 1100px){
       .grid{
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 108px));
       }
 
       .userchip{
@@ -922,7 +932,7 @@
       .meta-label.short{display:inline;}
 
       .grid{
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 104px));
       }
 
       .hero{height: 120px;}
@@ -967,8 +977,7 @@
 
     @media (max-width: 700px){
       .grid{
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 120px));
       }
       .char-name{font-size:.76rem;}
       .chip{font-size:.62rem;}
@@ -1012,6 +1021,10 @@
         text-indent:0;
         font-size:16px;
         color: rgba(244,246,255,.86);
+      }
+
+      .grid{
+        grid-template-columns: repeat(2, minmax(0, calc((100% - 8px) / 2)));
       }
 
       .modal-top{padding: 16px;}
