@@ -12,28 +12,27 @@
       --bg:#060b18;
       --panel:#081226;
       --line:rgba(124,172,255,.14);
+      --line-2:rgba(124,172,255,.08);
       --ink:#eef4ff;
       --muted:#9fb0d1;
       --orange:#ff7f32;
       --cyan:#2dafff;
+      --good:#7cff9e;
+      --bad:#ff8f8f;
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:24px;
 
-      /* layout sizing */
       --page-min:1120px;
       --gap-main:clamp(8px, .9vw, 16px);
       --gap-card:clamp(6px, .65vw, 10px);
       --pad-main:clamp(10px, 1vw, 18px);
       --pad-panel:clamp(10px, .9vw, 16px);
 
-      /* typography */
       --title-size:clamp(22px, 1.55vw, 28px);
       --team-name-size:clamp(17px, 1.25vw, 24px);
       --round-size:clamp(12px, .95vw, 16px);
       --label-size:clamp(10px, .7vw, 12px);
-      --body-size:clamp(11px, .78vw, 13px);
 
-      /* cards */
       --hero-h:clamp(88px, 8vw, 120px);
       --hero-pad:clamp(6px, .7vw, 10px);
       --chip-w:clamp(50px, 3.8vw, 64px);
@@ -49,6 +48,7 @@
       margin:0;
       min-width:0;
       overflow-x:auto;
+      scroll-behavior:smooth;
     }
 
     body{
@@ -154,6 +154,11 @@
       border:1px solid var(--line);
     }
 
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
     .mode-btn{
       padding:8px 12px;
       font-size:12px;
@@ -183,7 +188,6 @@
       background:rgba(255,123,123,.08);
     }
 
-    /* ===== Match header ===== */
     .match-head{
       display:grid;
       grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
@@ -331,8 +335,7 @@
       overflow:visible;
     }
 
-    .player-grid,
-    .detail-grid{
+    .player-grid{
       display:grid;
       grid-template-columns:repeat(4, minmax(0,1fr));
       gap:var(--gap-card);
@@ -640,11 +643,12 @@
     .details-panel{
       margin-top:var(--gap-main);
       padding:14px;
+      position:relative;
     }
 
     .details-head{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:10px;
       flex-wrap:wrap;
@@ -660,157 +664,595 @@
       margin:0;
     }
 
-    .details-wrap{
-      display:grid;
-      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-      gap:var(--gap-main);
-      min-width:0;
-      align-items:start;
-      align-content:start;
+    .details-subline{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
     }
 
-    .details-team-block{
+    .details-filters{
+      display:grid;
+      grid-template-columns:minmax(180px,1fr) minmax(380px,1.5fr) minmax(220px,1fr) minmax(220px,1fr);
+      gap:10px;
+      margin-bottom:10px;
+      align-items:end;
+    }
+
+    .select-ui{
+      width:100%;
+      min-height:40px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#08111f;
+      color:var(--ink);
+      padding:10px 12px;
+      outline:none;
+      font:600 12px/1.2 Inter,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    .select-ui:focus{
+      border-color:rgba(45,175,255,.45);
+      box-shadow:0 0 0 3px rgba(45,175,255,.10);
+    }
+
+    .details-inline-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      min-height:40px;
+    }
+
+    .details-summary-meta{
+      min-height:40px;
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.03);
+      padding:10px 12px;
+      font-size:12px;
+      color:#d6e2ff;
+      display:flex;
+      align-items:center;
+      line-height:1.35;
+    }
+
+    .player-pills{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:12px;
+    }
+
+    .player-pill{
+      border:1px solid rgba(124,172,255,.14);
+      background:rgba(255,255,255,.03);
+      color:#d9e6ff;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    .player-pill:hover{
+      border-color:rgba(124,172,255,.32);
+      background:rgba(255,255,255,.05);
+    }
+
+    .player-pill.active.team-a{
+      background:linear-gradient(90deg, rgba(45,175,255,.28), rgba(45,175,255,.12));
+      border-color:rgba(45,175,255,.55);
+      color:#fff;
+    }
+
+    .player-pill.active.team-b{
+      background:linear-gradient(90deg, rgba(255,127,50,.28), rgba(255,127,50,.12));
+      border-color:rgba(255,127,50,.55);
+      color:#fff;
+    }
+
+    .jump-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      min-height:40px;
+    }
+
+    .empty-lite{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.3;
+      white-space:normal;
+      word-break:break-word;
+    }
+
+    .progression-stack{
+      display:grid;
+      gap:12px;
+      min-width:0;
+    }
+
+    .progression-card{
       border-radius:18px;
       border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.02);
       padding:10px;
-      min-width:0;
       display:grid;
       gap:10px;
-      align-content:start;
-      align-items:start;
-      align-self:start;
+      min-width:0;
+      scroll-margin-top:16px;
     }
 
-    .details-team-title{
-      font-size:12px;
+    .progression-card.team-a{
+      box-shadow:inset 0 0 0 1px rgba(45,175,255,.12);
+    }
+
+    .progression-card.team-b{
+      box-shadow:inset 0 0 0 1px rgba(255,127,50,.12);
+    }
+
+    .progression-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      min-width:0;
+    }
+
+    .progression-head-left{
+      min-width:0;
+    }
+
+    .progression-player-name{
+      font-size:14px;
       font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      color:#eef4ff;
-      white-space:normal;
+      color:#fff;
+      line-height:1.15;
       word-break:break-word;
     }
 
-    .detail-col{
-      min-width:0;
-      display:grid;
-      gap:8px;
-      align-content:start;
-      align-items:start;
-      align-self:start;
+    .progression-player-meta{
+      margin-top:4px;
+      font-size:11px;
+      color:#c9d8fb;
+      line-height:1.4;
+      word-break:break-word;
     }
 
-    .detail-col-head{
-      padding:8px 10px;
-      border-radius:12px;
-      border:1px solid rgba(124,172,255,.10);
-      background:rgba(255,255,255,.03);
+    .progression-head-right{
+      flex:0 0 auto;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .mini-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:26px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.14);
+      background:rgba(255,255,255,.04);
+      color:#eef4ff;
       font-size:10px;
       font-weight:900;
-      color:#eef4ff;
-      line-height:1.25;
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    .matrix-wrap{
+      overflow:auto;
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.08);
+      background:rgba(255,255,255,.02);
+    }
+
+    .matrix-table{
+      width:max-content;
+      min-width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:11px;
+    }
+
+    .matrix-table th,
+    .matrix-table td{
+      padding:8px 10px;
+      border-right:1px solid rgba(124,172,255,.06);
+      border-bottom:1px solid rgba(124,172,255,.06);
+      vertical-align:middle;
       text-align:center;
-      white-space:normal;
+      min-width:74px;
+    }
+
+    .matrix-table thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#0a1527;
+      color:#eef4ff;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-size:10px;
+    }
+
+    .matrix-table .metric-col{
+      position:sticky;
+      left:0;
+      z-index:1;
+      background:#0a1322;
+      text-align:left;
+      min-width:180px;
+      max-width:180px;
+      color:#d9e5ff;
+      font-weight:800;
+    }
+
+    .matrix-table thead .metric-col{
+      z-index:3;
+      background:#0c1629;
+    }
+
+    .matrix-category-row td{
+      position:sticky;
+      left:0;
+      z-index:1;
+      background:rgba(45,175,255,.08);
+      color:#9be8ff;
+      text-align:left;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-size:10px;
+    }
+
+    .matrix-cell{
+      color:#eef4ff;
+      font-weight:700;
+      transition:background-color .18s ease, box-shadow .18s ease;
+    }
+
+    .matrix-cell.muted{
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .matrix-cell.good{
+      color:#8dffb6;
+    }
+
+    .matrix-cell.bad{
+      color:#ff9d9d;
+    }
+
+    .matrix-cell.tag{
+      font-weight:900;
+      letter-spacing:.04em;
+    }
+
+    .tag-fb{
+      color:var(--good);
+      font-weight:900;
+      letter-spacing:.03em;
+    }
+
+    .tag-fd{
+      color:var(--bad);
+      font-weight:900;
+      letter-spacing:.03em;
+    }
+
+    .tag-sep{
+      color:#c8d6f3;
+      font-weight:800;
+      opacity:.82;
+    }
+
+    .round-trail{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+      gap:8px;
+      min-width:0;
+    }
+
+    .trail-card{
+      border-radius:14px;
+      border:1px solid rgba(124,172,255,.08);
+      background:rgba(255,255,255,.02);
+      padding:9px;
+      display:grid;
+      gap:8px;
+      align-content:start;
+      min-width:0;
+    }
+
+    .trail-title{
+      font-size:11px;
+      font-weight:900;
+      color:#fff;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    .trail-block{
+      display:grid;
+      gap:3px;
+    }
+
+    .trail-label{
+      font-size:10px;
+      font-weight:900;
+      color:#8fe6ff;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+
+    .trail-body{
+      font-size:11px;
+      color:#d8e4ff;
+      line-height:1.35;
       word-break:break-word;
     }
 
-    .row-fold{
-      border-radius:12px;
-      border:1px solid rgba(124,172,255,.08);
-      background:rgba(255,255,255,.02);
-      overflow:hidden;
+    .stacked-stack{
+      display:grid;
+      gap:12px;
       min-width:0;
-      margin-top:10px;
     }
 
-    .row-fold:first-child{
-      margin-top:0;
-    }
-
-    .row-fold summary{
-      list-style:none;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      padding:10px 12px;
+    .stacked-card{
+      border-radius:18px;
+      border:1px solid rgba(124,172,255,.10);
       background:rgba(255,255,255,.02);
-      color:#cfe0ff;
+      padding:10px;
+      display:grid;
+      gap:10px;
+      min-width:0;
+      scroll-margin-top:16px;
+    }
+
+    .stacked-card-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .stacked-card-kicker{
       font-size:10px;
       font-weight:900;
+      color:#8fe6ff;
       text-transform:uppercase;
       letter-spacing:.08em;
-      line-height:1.2;
+      line-height:1.1;
     }
 
-    .row-fold summary::-webkit-details-marker{ display:none; }
-
-    .row-fold summary::after{
-      content:"▸";
-      font-size:12px;
-      color:#cfe0ff;
-      flex:0 0 auto;
-      transition:transform .18s ease;
+    .stacked-card-title{
+      font-size:14px;
+      font-weight:900;
+      color:#fff;
+      line-height:1.15;
+      margin-top:2px;
     }
 
-    .row-fold[open] summary::after{ transform:rotate(90deg); }
+    .stacked-card-copy{
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.3;
+      text-align:right;
+    }
 
-    .row-fold-body{
+    .player-cell{
+      position:sticky;
+      left:0;
+      z-index:1;
+      background:#0a1322;
+      text-align:left !important;
+      min-width:164px;
+      max-width:164px;
+      width:164px;
+      color:#d9e5ff;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .matrix-table thead .player-cell{
+      z-index:3;
+      background:#0c1629;
+      color:#eef4ff;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-size:10px;
+    }
+
+    .wrap-metric-list{
+      display:grid;
+      gap:10px;
+    }
+
+    .wrap-player-card{
+      border-radius:14px;
+      border:1px solid var(--line-2);
+      background:rgba(255,255,255,.02);
       padding:10px;
-      border-top:1px solid rgba(124,172,255,.08);
+      display:grid;
+      gap:10px;
     }
 
-    .round-fold{
+    .wrap-player-title{
+      font-size:12px;
+      font-weight:900;
+      color:#fff;
+      line-height:1.2;
+      word-break:break-word;
+    }
+
+    .wrap-round-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+      gap:8px;
+    }
+
+    .wrap-round-card{
       border-radius:12px;
       border:1px solid rgba(124,172,255,.08);
-      background:rgba(255,255,255,.02);
-      overflow:hidden;
+      background:rgba(255,255,255,.025);
+      padding:8px;
+      display:grid;
+      gap:5px;
+      min-height:74px;
+      align-content:start;
+    }
+
+    .wrap-round-label{
+      font-size:10px;
+      font-weight:900;
+      color:#8fe6ff;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      line-height:1;
+    }
+
+    .wrap-round-body{
+      font-size:11px;
+      color:#d8e4ff;
+      line-height:1.35;
+      word-break:break-word;
+      white-space:normal;
+    }
+
+    .round-stack{
+      display:grid;
+      gap:12px;
       min-width:0;
+    }
+
+    .round-section{
+      border-radius:18px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.02);
+      padding:10px;
+      display:grid;
+      gap:10px;
+      min-width:0;
+      scroll-margin-top:16px;
+    }
+
+    .round-section-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:2px 2px 0;
+    }
+
+    .round-section-kicker{
+      font-size:10px;
+      font-weight:900;
+      color:#8fe6ff;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      line-height:1.1;
+    }
+
+    .round-section-title{
+      font-size:14px;
+      font-weight:900;
+      color:#fff;
+      line-height:1.15;
+      margin-top:2px;
+    }
+
+    .round-section-copy{
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.3;
+      text-align:right;
+    }
+
+    .round-player-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      min-width:0;
+    }
+
+    .detail-player-card{
+      min-width:0;
+      border-radius:16px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.025);
+      padding:10px;
+      display:grid;
+      gap:10px;
       align-self:start;
     }
 
-    .round-fold summary{
-      list-style:none;
-      cursor:pointer;
+    .detail-player-card.team-a{
+      box-shadow:inset 0 0 0 1px rgba(45,175,255,.12);
+    }
+
+    .detail-player-card.team-b{
+      box-shadow:inset 0 0 0 1px rgba(255,127,50,.12);
+    }
+
+    .detail-player-card-head{
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap:8px;
-      padding:8px 10px;
-      background:rgba(255,255,255,.03);
-      color:#cfe0ff;
-      font-size:10px;
+      align-items:flex-start;
+      gap:10px;
+      min-width:0;
+    }
+
+    .detail-player-name{
+      font-size:13px;
       font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      line-height:1.2;
+      color:#fff;
+      line-height:1.15;
+      word-break:break-word;
     }
 
-    .round-fold summary::-webkit-details-marker{ display:none; }
+    .detail-player-meta{
+      margin-top:4px;
+      font-size:11px;
+      color:#c9d8fb;
+      line-height:1.35;
+      word-break:break-word;
+    }
 
-    .round-fold summary::after{
-      content:"▸";
-      font-size:12px;
-      color:#cfe0ff;
+    .detail-player-badge{
+      min-width:28px;
+      height:28px;
+      padding:0 9px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:900;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
       flex:0 0 auto;
-      transition:transform .18s ease;
     }
 
-    .round-fold[open] summary::after{ transform:rotate(90deg); }
-
-    .round-fold-body{
-      padding:10px;
-      border-top:1px solid rgba(124,172,255,.08);
-    }
-
-    .stats-sections{
+    .detail-block-grid{
       display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
       gap:8px;
       min-width:0;
-      align-items:start;
-      align-content:start;
     }
 
     .stats-category{
@@ -852,7 +1294,9 @@
       min-width:0;
     }
 
-    .stats-row:first-child{ border-top:0; }
+    .stats-row:first-child{
+      border-top:0;
+    }
 
     .stats-key{
       font-size:10px;
@@ -873,14 +1317,6 @@
       word-break:break-word;
       min-width:0;
       align-self:start;
-    }
-
-    .empty-lite{
-      color:var(--muted);
-      font-size:11px;
-      line-height:1.3;
-      white-space:normal;
-      word-break:break-word;
     }
 
     .prompt-panel{
@@ -916,13 +1352,34 @@
       color:var(--muted);
     }
 
-    /* keep layout compact instead of stacking */
+    .jump-top-btn{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:99999;
+      display:none;
+      box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+
+    .jump-top-btn.show{
+      display:inline-flex;
+    }
+
     @media (max-width: 1280px){
       :root{
         --page-min:1020px;
         --hero-h:92px;
         --chip-w:52px;
         --chip-icon:34px;
+      }
+
+      .details-filters{
+        grid-template-columns:1fr;
+      }
+
+      .round-player-grid,
+      .detail-block-grid{
+        grid-template-columns:1fr;
       }
     }
 
@@ -935,7 +1392,7 @@
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="pageTopAnchor">
     <h1 class="title">Clash Squad JSON → Team Viewer</h1>
     <p class="sub">Paste your match JSON, then render.</p>
 
@@ -972,14 +1429,64 @@
       </section>
     </div>
 
-    <div class="panel details-panel">
+    <div class="panel details-panel" id="detailsPanelAnchor">
       <div class="details-head">
-        <div class="details-panel-title">Player Stat Details</div>
+        <div>
+          <div class="details-panel-title">Player Stat Details</div>
+          <div class="details-subline">
+            Progression View tracks one player or one team across rounds, Stacked Progress compares rows on one metric across rounds, and Compare View shows round snapshots. Compact Metrics gives a tighter analyst layout.
+          </div>
+        </div>
+
         <div class="actions" style="margin-top:0;">
+          <button id="progressionViewBtn" class="ghost mode-btn" type="button">Progression View</button>
+          <button id="stackedProgressBtn" class="ghost mode-btn active" type="button">Stacked Progress</button>
+          <button id="compareViewBtn" class="ghost mode-btn" type="button">Compare View</button>
+
+          <button id="aggregatePlayersBtn" class="ghost mode-btn active" type="button">By Player</button>
+          <button id="aggregateTeamsBtn" class="ghost mode-btn" type="button">By Team</button>
+
+          <button id="compactMetricsBtn" class="ghost mode-btn" type="button">Compact Metrics</button>
+          <button id="fullMetricsBtn" class="ghost mode-btn active" type="button">Full Metrics</button>
           <button id="latestModeBtn" class="ghost mode-btn active" type="button">Latest Round</button>
           <button id="allRoundsModeBtn" class="ghost mode-btn" type="button">All Rounds</button>
         </div>
       </div>
+
+      <div class="details-filters">
+        <div class="field">
+          <label for="detailsTeamFilter">Team Scope</label>
+          <select id="detailsTeamFilter" class="select-ui">
+            <option value="">Both Teams</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Player Scope</label>
+          <div class="details-inline-actions">
+            <button id="toggleSpecificPlayersBtn" class="ghost mode-btn" type="button">Specific Players: Off</button>
+            <button id="selectAllVisiblePlayersBtn" class="ghost mode-btn" type="button">All Visible</button>
+            <button id="resetPlayerFilterBtn" class="ghost mode-btn" type="button">Reset</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Current View</label>
+          <div id="detailsSummaryMeta" class="details-summary-meta">No data rendered yet.</div>
+        </div>
+
+        <div class="field">
+          <label for="jumpToMetricSelect">Jump To</label>
+          <div class="jump-actions">
+            <select id="jumpToMetricSelect" class="select-ui">
+              <option value="">Select section…</option>
+            </select>
+            <button id="jumpToMetricBtn" class="ghost mode-btn" type="button">Go</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="detailsPlayerPills" class="player-pills"></div>
       <div id="globalPlayerDetails"></div>
     </div>
 
@@ -989,9 +1496,13 @@
         <button id="copyPromptBtn" class="ghost" type="button">Copy Prompt</button>
       </div>
       <textarea id="aiPromptOutput" readonly placeholder="Render match JSON first to generate a copy-ready prompt for AI analysis..."></textarea>
-      <div id="copyPromptStatus" class="copy-note">The generated prompt is built for an esports commentator / analyst / coach perspective.</div>
+      <div id="copyPromptStatus" class="copy-note">
+        The generated prompt is built for an esports commentator / analyst / coach perspective.
+      </div>
     </div>
   </div>
+
+  <button id="jumpTopBtn" class="jump-top-btn">Top</button>
 
   <script>
     const client = supabase.createClient(
@@ -1004,12 +1515,20 @@
     const LOADOUT_JSON_URL = 'https://misai-my.github.io/freefire-esports/loadout.json';
     const SHARED_ROOM = 'global';
     const LOCAL_INPUT_KEY = 'cs_clash_local_json';
+    const MAX_DISPLAY_ROUNDS = 11;
 
     const $ = (id) => document.getElementById(id);
 
     let matchApiLoaded = false;
     let assetsLoaded = false;
     let detailsMode = "latest";
+    let detailsViewMode = "stacked";
+    let detailsMetricDensity = "full";
+    let detailsAggregateMode = "player";
+    let detailsTeamFilter = "both";
+    let detailsUseSpecificPlayers = false;
+    let detailsSelectedPlayerKeys = new Set();
+
     let CURRENT_TEAMS = null;
     let CURRENT_PAYLOAD = null;
     let CURRENT_SHARED_JSON_TEXT = "";
@@ -1039,12 +1558,14 @@
 
     function setStatus(message, isError = false) {
       const el = $("status");
+      if (!el) return;
       el.textContent = message;
       el.className = isError ? "status error" : "status";
     }
 
     function setCopyPromptStatus(message) {
-      $("copyPromptStatus").textContent = message;
+      const el = $("copyPromptStatus");
+      if (el) el.textContent = message;
     }
 
     function getLocalInput() {
@@ -1079,9 +1600,22 @@
       return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "");
     }
 
+    function slugify(value) {
+      return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "section";
+    }
+
     function toNum(value, fallback = 0) {
       const n = Number(value);
       return Number.isFinite(n) ? n : fallback;
+    }
+
+    function toFiniteNumberOrNull(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
     }
 
     function humanizeKey(key) {
@@ -1093,15 +1627,23 @@
     function formatGenericValue(value) {
       if (value === null || value === undefined) return "—";
       if (typeof value === "boolean") return value ? "Yes" : "No";
+
       if (Array.isArray(value)) {
         if (!value.length) return "0";
         const allPrimitive = value.every(v => v === null || ["string","number","boolean"].includes(typeof v));
         return allPrimitive ? value.map(formatGenericValue).join(", ") : `${value.length} entries`;
       }
+
       if (typeof value === "object") {
-        try { return JSON.stringify(value); } catch { return "[object]"; }
+        try { return JSON.stringify(value); }
+        catch { return "[object]"; }
       }
+
       return String(value);
+    }
+
+    function getFixedRoundIndices() {
+      return Array.from({ length: MAX_DISPLAY_ROUNDS }, (_, i) => i);
     }
 
     function scoreLookupName(name) {
@@ -1128,7 +1670,10 @@
       if (!cleanName) return;
 
       const current = map.get(id);
-      if (!current) { map.set(id, cleanName); return; }
+      if (!current) {
+        map.set(id, cleanName);
+        return;
+      }
       if (scoreLookupName(cleanName) > scoreLookupName(current)) map.set(id, cleanName);
     }
 
@@ -1246,7 +1791,12 @@
         for (const row of (characters.value || [])) {
           const imageUrl = row?.image_url || "";
           const apiId = Number(row?.api_id);
-          const asset = { name: row?.name || "", image_url: imageUrl, skill: row?.skill || "", description: row?.description || "" };
+          const asset = {
+            name: row?.name || "",
+            image_url: imageUrl,
+            skill: row?.skill || "",
+            description: row?.description || ""
+          };
 
           if (imageUrl && Number.isFinite(apiId)) ASSETS.charactersById.set(apiId, asset);
           if (row?.name) ASSETS.charactersByName.set(normalizeKey(row.name), asset);
@@ -1281,10 +1831,19 @@
       const [lookupResult, assetResult] = await Promise.allSettled([loadMatchApiLookups(), loadAssetCatalogs()]);
       const errors = [];
 
-      if (lookupResult.status === "rejected") { matchApiLoaded = false; errors.push(`match_api: ${lookupResult.reason?.message || lookupResult.reason}`); }
-      if (assetResult.status === "rejected") { assetsLoaded = false; errors.push(`asset catalogs: ${assetResult.reason?.message || assetResult.reason}`); }
+      if (lookupResult.status === "rejected") {
+        matchApiLoaded = false;
+        errors.push(`match_api: ${lookupResult.reason?.message || lookupResult.reason}`);
+      }
+      if (assetResult.status === "rejected") {
+        assetsLoaded = false;
+        errors.push(`asset catalogs: ${assetResult.reason?.message || assetResult.reason}`);
+      }
 
-      if (errors.length) { setStatus(`Some data failed to load:\n${errors.join("\n")}`, true); return; }
+      if (errors.length) {
+        setStatus(`Some data failed to load:\n${errors.join("\n")}`, true);
+        return;
+      }
 
       setStatus(
         `Ready.\n` +
@@ -1325,7 +1884,9 @@
       const activeInfo = getActiveSkillInfo(player);
       const activeId = getActiveSkillId(player);
 
-      if (!activeId) return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Active" };
+      if (!activeId) {
+        return { id:null, label:"—", skill:"", description:"", image_url:"", slotType:"Active" };
+      }
 
       const lookupName = getLookupName(2, activeId) || activeInfo?.skill_name || `Skill ID ${activeId}`;
       const asset = getCharacterAsset(activeId, lookupName);
@@ -1414,18 +1975,27 @@
       return rounds.find(r => toNum(r?.round_index, -999) === targetRoundIndex) || null;
     }
 
-    function getAllRoundIndicesForTeams(teams) {
+    function getPlayerRoundIndices(player) {
+      const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
       const set = new Set();
-      for (const team of teams || []) {
-        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-        for (const player of players) {
-          const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
-          for (const round of rounds) {
-            const idx = toNum(round?.round_index, -1);
-            if (idx >= 0) set.add(idx);
-          }
+      for (const round of rounds) {
+        const idx = toNum(round?.round_index, -1);
+        if (idx >= 0 && idx < MAX_DISPLAY_ROUNDS) set.add(idx);
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function getRoundIndicesForPlayerMetas(playerMetas) {
+      const set = new Set();
+
+      for (const meta of playerMetas || []) {
+        const rounds = Array.isArray(meta?.player?.round_stats) ? meta.player.round_stats : [];
+        for (const round of rounds) {
+          const idx = toNum(round?.round_index, -1);
+          if (idx >= 0 && idx < MAX_DISPLAY_ROUNDS) set.add(idx);
         }
       }
+
       return [...set].sort((a, b) => a - b);
     }
 
@@ -1457,7 +2027,6 @@
 
         const resolvedName = resolveItemName(id, true);
         if (!resolvedName) continue;
-
         counts.set(id, (counts.get(id) || 0) + 1);
       }
 
@@ -1492,7 +2061,7 @@
         }
       }
 
-      return best >= 0 ? `Round ${best + 1}` : "Round —";
+      return best >= 0 ? `Round ${Math.min(best + 1, MAX_DISPLAY_ROUNDS)}` : "Round —";
     }
 
     function computeTeamScore(team) {
@@ -1503,7 +2072,7 @@
         const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
         for (const round of rounds) {
           const roundIndex = toNum(round?.round_index, -1);
-          if (roundIndex < 0) continue;
+          if (roundIndex < 0 || roundIndex >= MAX_DISPLAY_ROUNDS) continue;
           if (round?.is_win === true) wonRounds.add(roundIndex);
         }
       }
@@ -1514,6 +2083,7 @@
     function renderTeamHeader(name, score, side = "left") {
       const safeName = escapeHtml(name || "—");
       const scoreHtml = Number.isFinite(score) ? `<span class="team-score-pill">${score}</span>` : "";
+
       if (side === "right") {
         return `
           <div class="team-name-wrap">
@@ -1522,6 +2092,7 @@
           </div>
         `;
       }
+
       return `
         <div class="team-name-wrap">
           <span class="team-name-text">${safeName}</span>
@@ -1532,7 +2103,7 @@
 
     function setTeamHeader(elId, name, score, side) {
       const el = $(elId);
-      el.innerHTML = renderTeamHeader(name, score, side);
+      if (el) el.innerHTML = renderTeamHeader(name, score, side);
     }
 
     function renderHeroImage(imageUrl, alt) {
@@ -1594,189 +2165,6 @@
       `;
     }
 
-    function buildRoundStatsSections(round) {
-      const out = {
-        "First Blood": [],
-        "Combat Output": [],
-        "Economy & Purchases": [],
-        "Abilities & Utility": []
-      };
-
-      const tag = [];
-      if (round?.is_first_down === true) tag.push("First Blood");
-      if (round?.is_first_taken_down === true) tag.push("First Down");
-      out["First Blood"].push(["Tag", tag.length ? tag.join(" • ") : "None"]);
-
-      const combat = [
-        ["Kills", round?.kill],
-        ["Assists", round?.assists],
-        ["Headshots", round?.headshots],
-        ["Damage", round?.real_damage],
-        ["Damage Taken", round?.real_damage_taken],
-        ["Knock Down", round?.knock_down],
-      ];
-      for (const [label, val] of combat) out["Combat Output"].push([label, val]);
-
-      const econKeys = ["economy_spent_self","economy_spent_on_teammates","initial_item_value","airdrop_points"];
-      for (const k of econKeys) {
-        if (k in (round || {})) out["Economy & Purchases"].push([humanizeKey(k), round[k]]);
-      }
-
-      const utilKeys = ["nb_skill_usages","medkit_use","grenade_use","icewall_use","throwable_use"];
-      for (const k of utilKeys) {
-        if (k in (round || {})) out["Abilities & Utility"].push([humanizeKey(k), round[k]]);
-      }
-
-      return out;
-    }
-
-    function buildCurrentItemsContentForRound(player, roundIndex) {
-      const items = Number.isFinite(roundIndex) ? getItemsForRound(player, roundIndex) : [];
-      return `
-        <div class="stats-category">
-          <div class="stats-table">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(item.name)}</div>
-                      <div class="stats-val">Count: ${item.count}</div>
-                    </div>
-                  `).join("")
-                : `
-                    <div class="stats-row">
-                      <div class="stats-key">Items</div>
-                      <div class="stats-val">No item snapshot found.</div>
-                    </div>
-                  `
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function buildCurrentItemsContent(player) {
-      return buildCurrentItemsContentForRound(player, getLatestRoundIndex(player));
-    }
-
-    function buildPurchasedItemsContentForRound(player, roundIndex) {
-      const items = Number.isFinite(roundIndex) ? getPurchasedItemsForRound(player, roundIndex) : [];
-      return `
-        <div class="stats-category">
-          <div class="stats-table">
-            ${
-              items.length
-                ? items.map(item => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(item.name)}</div>
-                      <div class="stats-val">Purchased x${item.count}</div>
-                    </div>
-                  `).join("")
-                : `
-                    <div class="stats-row">
-                      <div class="stats-key">Purchased Items</div>
-                      <div class="stats-val">No valid purchased items found.</div>
-                    </div>
-                  `
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function buildLatestPurchasedItemsContent(player) {
-      const idx = getLatestRoundIndex(player);
-      return buildPurchasedItemsContentForRound(player, idx);
-    }
-
-    function buildWeaponUsagesContentForRound(player, roundIndex) {
-      const usages = Number.isFinite(roundIndex) ? getWeaponUsagesForRound(player, roundIndex) : [];
-      return `
-        <div class="stats-sections">
-          ${
-            usages.length
-              ? usages.map(weapon => {
-                  const rows = Object.entries(weapon.raw).filter(([k]) => k !== "weapon_name" && k !== "weapon_id");
-                  return `
-                    <div class="stats-category">
-                      <div class="stats-category-title">${escapeHtml(weapon.name)}</div>
-                      <div class="stats-table">
-                        <div class="stats-row">
-                          <div class="stats-key">Weapon ID</div>
-                          <div class="stats-val">${Number.isFinite(weapon.id) ? weapon.id : "No weapon ID"}</div>
-                        </div>
-                        ${
-                          rows.length
-                            ? rows.map(([key, value]) => `
-                                <div class="stats-row">
-                                  <div class="stats-key">${escapeHtml(humanizeKey(key))}</div>
-                                  <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                                </div>
-                              `).join("")
-                            : `
-                                <div class="stats-row">
-                                  <div class="stats-key">Stats</div>
-                                  <div class="stats-val">No weapon usage fields found.</div>
-                                </div>
-                              `
-                        }
-                      </div>
-                    </div>
-                  `;
-                }).join("")
-              : `<div class="empty-lite">No weapon usage data found.</div>`
-          }
-        </div>
-      `;
-    }
-
-    function buildWeaponUsagesContent(player) {
-      return buildWeaponUsagesContentForRound(player, getLatestRoundIndex(player));
-    }
-
-    function buildRoundStatsContentForRound(player, roundIndex) {
-      const round = Number.isFinite(roundIndex) ? getRoundStatByIndex(player, roundIndex) : null;
-
-      if (!round) {
-        return `
-          <div class="stats-category">
-            <div class="stats-table">
-              <div class="stats-row">
-                <div class="stats-key">Round Stats</div>
-                <div class="stats-val">No round_stats found for this player.</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      const sections = buildRoundStatsSections(round);
-
-      return `
-        <div class="stats-sections">
-          ${Object.entries(sections)
-            .filter(([, rows]) => rows && rows.length)
-            .map(([title, rows]) => `
-              <div class="stats-category">
-                <div class="stats-category-title">${escapeHtml(title)}</div>
-                <div class="stats-table">
-                  ${rows.map(([label, value]) => `
-                    <div class="stats-row">
-                      <div class="stats-key">${escapeHtml(label)}</div>
-                      <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
-                    </div>
-                  `).join("")}
-                </div>
-              </div>
-            `).join("")}
-        </div>
-      `;
-    }
-
-    function buildLatestRoundStatsContent(player) {
-      return buildRoundStatsContentForRound(player, getLatestRoundIndex(player));
-    }
-
     function renderPlayerSummaryCard(player) {
       const playerName = player?.nickname || player?.account_id || "Unknown";
       const activeSkill = getActiveSkillEntry(player);
@@ -1820,144 +2208,6 @@
       `;
     }
 
-    function renderPlayerCategoryColumn(player, contentHtml) {
-      const playerName = player?.nickname || player?.account_id || "Unknown";
-      return `
-        <div class="detail-col">
-          <div class="detail-col-head">${escapeHtml(playerName)}</div>
-          ${contentHtml}
-        </div>
-      `;
-    }
-
-    function renderCategoryContentForTeam(team, fallbackName, builderFn) {
-      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-      const teamName = team?.team_name || fallbackName;
-
-      return `
-        <div class="details-team-block">
-          <div class="details-team-title">${escapeHtml(teamName)}</div>
-          ${
-            players.length
-              ? `<div class="detail-grid">${players.map(player => renderPlayerCategoryColumn(player, builderFn(player))).join("")}</div>`
-              : `<div class="empty-lite">No players found.</div>`
-          }
-        </div>
-      `;
-    }
-
-    function renderCategoryContentForTeamWithArgs(team, fallbackName, builderFn, ...args) {
-      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
-      const teamName = team?.team_name || fallbackName;
-
-      return `
-        <div class="details-team-block">
-          <div class="details-team-title">${escapeHtml(teamName)}</div>
-          ${
-            players.length
-              ? `<div class="detail-grid">${players.map(player => renderPlayerCategoryColumn(player, builderFn(player, ...args))).join("")}</div>`
-              : `<div class="empty-lite">No players found.</div>`
-          }
-        </div>
-      `;
-    }
-
-    function renderGlobalCategoryRow(teams, title, builderFn) {
-      return `
-        <details class="row-fold">
-          <summary>${escapeHtml(title)}</summary>
-          <div class="row-fold-body">
-            <div class="details-wrap">
-              ${renderCategoryContentForTeam(teams[0], "Team A", builderFn)}
-              ${renderCategoryContentForTeam(teams[1], "Team B", builderFn)}
-            </div>
-          </div>
-        </details>
-      `;
-    }
-
-    function renderGlobalRoundBasedRow(teams, title, builderFn, emptyLabel = "No round data found.") {
-      const roundIndices = getAllRoundIndicesForTeams(teams);
-      const latestRoundIndex = roundIndices.length ? roundIndices[roundIndices.length - 1] : null;
-
-      return `
-        <details class="row-fold">
-          <summary>${escapeHtml(title)}</summary>
-          <div class="row-fold-body">
-            <div class="stats-sections">
-              ${
-                roundIndices.length
-                  ? roundIndices.map(roundIndex => `
-                      <details class="round-fold" ${roundIndex === latestRoundIndex ? "open" : ""}>
-                        <summary>Round ${roundIndex + 1}</summary>
-                        <div class="round-fold-body">
-                          <div class="details-wrap">
-                            ${renderCategoryContentForTeamWithArgs(teams[0], "Team A", builderFn, roundIndex)}
-                            ${renderCategoryContentForTeamWithArgs(teams[1], "Team B", builderFn, roundIndex)}
-                          </div>
-                        </div>
-                      </details>
-                    `).join("")
-                  : `
-                      <div class="stats-category">
-                        <div class="stats-table">
-                          <div class="stats-row">
-                            <div class="stats-key">Rounds</div>
-                            <div class="stats-val">${escapeHtml(emptyLabel)}</div>
-                          </div>
-                        </div>
-                      </div>
-                    `
-              }
-            </div>
-          </div>
-        </details>
-      `;
-    }
-
-    function renderGlobalPlayerDetailsLatest(teams) {
-      return `
-        ${renderGlobalCategoryRow(teams, "Current Items Latest Round Inventory", buildCurrentItemsContent)}
-        ${renderGlobalCategoryRow(teams, "Purchased Items Latest Round", buildLatestPurchasedItemsContent)}
-        ${renderGlobalCategoryRow(teams, "Weapon Usages Latest Round", buildWeaponUsagesContent)}
-        ${renderGlobalCategoryRow(teams, "Latest Round Stats Broken Down By Section", buildLatestRoundStatsContent)}
-      `;
-    }
-
-    function renderGlobalPlayerDetailsAllRounds(teams) {
-      return `
-        ${renderGlobalRoundBasedRow(teams, "Current Items All Rounds", buildCurrentItemsContentForRound, "No item data found.")}
-        ${renderGlobalRoundBasedRow(teams, "Purchased Items All Rounds", buildPurchasedItemsContentForRound, "No purchased item data found.")}
-        ${renderGlobalRoundBasedRow(teams, "Weapon Usages All Rounds", buildWeaponUsagesContentForRound, "No weapon usage data found.")}
-        ${renderGlobalRoundBasedRow(teams, "Player Details Per Round", buildRoundStatsContentForRound, "No round stats found.")}
-      `;
-    }
-
-    function renderGlobalPlayerDetails(teams) {
-      return detailsMode === "all" ? renderGlobalPlayerDetailsAllRounds(teams) : renderGlobalPlayerDetailsLatest(teams);
-    }
-
-    function updateDetailsModeButtons() {
-      $("latestModeBtn").classList.toggle("active", detailsMode === "latest");
-      $("allRoundsModeBtn").classList.toggle("active", detailsMode === "all");
-    }
-
-    function renderDetailsPanel() {
-      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
-        $("globalPlayerDetails").innerHTML = "";
-        updateDetailsModeButtons();
-        return;
-      }
-      $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails(CURRENT_TEAMS);
-      updateDetailsModeButtons();
-    }
-
-    async function setDetailsMode(mode) {
-      detailsMode = mode === "all" ? "all" : "latest";
-      renderDetailsPanel();
-      await saveSharedState();
-    }
-
     function renderTeamContent(team) {
       const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
       if (!players.length) return `<div class="empty-lite">No players found.</div>`;
@@ -1978,7 +2228,7 @@
       const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
       for (const round of rounds) {
         const idx = toNum(round?.round_index, -1);
-        if (idx >= 0) roundIndices.push(idx);
+        if (idx >= 0 && idx < MAX_DISPLAY_ROUNDS) roundIndices.push(idx);
       }
       const uniqueSorted = [...new Set(roundIndices)].sort((a, b) => a - b);
       return uniqueSorted.map(roundIndex => ({ roundIndex, items: getPurchasedItemsForRound(player, roundIndex) }));
@@ -1988,9 +2238,7 @@
       const rounds = getPurchasedItemsByRound(player);
       const useful = rounds.filter(r => r.items.length);
       if (!useful.length) return "None";
-      return useful
-        .map(r => `Round ${r.roundIndex + 1}: ${r.items.map(item => `${item.name} x${item.count}`).join(", ")}`)
-        .join("\n      - ");
+      return useful.map(r => `Round ${r.roundIndex + 1}: ${r.items.map(item => `${item.name} x${item.count}`).join(", ")}`).join("\n      - ");
     }
 
     function summarizeWeaponsForPrompt(usages) {
@@ -2004,10 +2252,59 @@
       }).join("\n      - ");
     }
 
+    function buildRoundStatsSections(round, compact = false) {
+      const out = compact
+        ? { "Outcome & Combat": [], "Economy & Utility": [] }
+        : { "First Blood": [], "Combat Output": [], "Economy & Purchases": [], "Abilities & Utility": [] };
+
+      const tags = [];
+      if (round?.is_first_down === true) tags.push("First Blood");
+      if (round?.is_first_taken_down === true) tags.push("First Down");
+
+      if (compact) {
+        out["Outcome & Combat"].push(["Result", round?.is_win === true ? "Win" : round?.is_win === false ? "Loss" : "—"]);
+        out["Outcome & Combat"].push(["Tag", tags.length ? tags.join(" • ") : "None"]);
+        out["Outcome & Combat"].push(["Kills", round?.kill]);
+        out["Outcome & Combat"].push(["Assists", round?.assists]);
+        out["Outcome & Combat"].push(["Damage", round?.real_damage]);
+        out["Outcome & Combat"].push(["Damage Taken", round?.real_damage_taken]);
+
+        out["Economy & Utility"].push(["Spent Self", round?.economy_spent_self]);
+        out["Economy & Utility"].push(["Initial Value", round?.initial_item_value]);
+        out["Economy & Utility"].push(["Grenade", round?.grenade_use]);
+        out["Economy & Utility"].push(["Icewall", round?.icewall_use]);
+        return out;
+      }
+
+      out["First Blood"].push(["Tag", tags.length ? tags.join(" • ") : "None"]);
+
+      const combat = [
+        ["Kills", round?.kill],
+        ["Assists", round?.assists],
+        ["Headshots", round?.headshots],
+        ["Damage", round?.real_damage],
+        ["Damage Taken", round?.real_damage_taken],
+        ["Knock Down", round?.knock_down],
+      ];
+      for (const [label, val] of combat) out["Combat Output"].push([label, val]);
+
+      const econKeys = ["economy_spent_self","economy_spent_on_teammates","initial_item_value","airdrop_points"];
+      for (const k of econKeys) {
+        if (k in (round || {})) out["Economy & Purchases"].push([humanizeKey(k), round[k]]);
+      }
+
+      const utilKeys = ["medkit_use","grenade_use","icewall_use"];
+      for (const k of utilKeys) {
+        if (k in (round || {})) out["Abilities & Utility"].push([humanizeKey(k), round[k]]);
+      }
+
+      return out;
+    }
+
     function summarizeRoundStatsForPrompt(player) {
       const round = getLatestRoundStat(player);
       if (!round) return "No round_stats found.";
-      const sections = buildRoundStatsSections(round);
+      const sections = buildRoundStatsSections(round, false);
 
       const lines = [];
       for (const [title, rows] of Object.entries(sections)) {
@@ -2116,9 +2413,1206 @@
       temp.select();
 
       let ok = false;
-      try { ok = document.execCommand("copy"); } catch { ok = false; }
+      try { ok = document.execCommand("copy"); }
+      catch { ok = false; }
+
       document.body.removeChild(temp);
       return ok;
+    }
+
+    function getPayload(data) {
+      return Array.isArray(data) ? data[0] : data;
+    }
+
+    function getTeamsFromPayload(payload) {
+      return Array.isArray(payload?.team_stats) ? payload.team_stats : [];
+    }
+
+    function getAllPlayerMetas(teams = CURRENT_TEAMS) {
+      const out = [];
+      const teamList = Array.isArray(teams) ? teams : [];
+
+      teamList.slice(0, 2).forEach((team, teamIndex) => {
+        const teamName = team?.team_name || `Team ${teamIndex === 0 ? "A" : "B"}`;
+        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+
+        players.forEach((player, playerIndex) => {
+          const playerName = player?.nickname || player?.account_id || `Player ${playerIndex + 1}`;
+          const rawKey = `${teamIndex}__${playerIndex}__${normalizeKey(player?.account_id || player?.nickname || `PLAYER${playerIndex + 1}`)}`;
+
+          out.push({
+            key: rawKey,
+            teamIndex,
+            teamName,
+            playerIndex,
+            playerName,
+            player
+          });
+        });
+      });
+
+      return out;
+    }
+
+    function getTeamScopedPlayerMetas() {
+      const metas = getAllPlayerMetas();
+      if (detailsTeamFilter === "both") return metas;
+      return metas.filter(meta => String(meta.teamIndex) === String(detailsTeamFilter));
+    }
+
+    function getFilteredPlayerMetas() {
+      const metas = getTeamScopedPlayerMetas();
+      if (!detailsUseSpecificPlayers) return metas;
+      return metas.filter(meta => detailsSelectedPlayerKeys.has(meta.key));
+    }
+
+    function getTeamScopeLabel() {
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) return "No teams";
+      if (detailsTeamFilter === "0") return CURRENT_TEAMS[0]?.team_name || "Team A";
+      if (detailsTeamFilter === "1") return CURRENT_TEAMS[1]?.team_name || "Team B";
+      return `${CURRENT_TEAMS[0]?.team_name || "Team A"} + ${CURRENT_TEAMS[1]?.team_name || "Team B"}`;
+    }
+
+    function updateSpecificPlayersButton() {
+      const btn = $("toggleSpecificPlayersBtn");
+      if (!btn) return;
+      btn.textContent = detailsUseSpecificPlayers ? "Specific Players: On" : "Specific Players: Off";
+      btn.classList.toggle("active", detailsUseSpecificPlayers);
+    }
+
+    function renderDetailsTeamFilterOptions() {
+      const select = $("detailsTeamFilter");
+      if (!select) return;
+
+      const teamA = CURRENT_TEAMS?.[0]?.team_name || "Team A";
+      const teamB = CURRENT_TEAMS?.[1]?.team_name || "Team B";
+
+      select.innerHTML = `
+        <option value="both">Both Teams</option>
+        <option value="0">${escapeHtml(teamA)}</option>
+        <option value="1">${escapeHtml(teamB)}</option>
+      `;
+
+      select.value = ["both", "0", "1"].includes(String(detailsTeamFilter)) ? String(detailsTeamFilter) : "both";
+    }
+
+    function renderPlayerPills() {
+      const wrap = $("detailsPlayerPills");
+      if (!wrap) return;
+
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        wrap.innerHTML = "";
+        return;
+      }
+
+      const metas = getTeamScopedPlayerMetas();
+      if (!metas.length) {
+        wrap.innerHTML = `<div class="empty-lite">No players available for the selected team scope.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = metas.map(meta => `
+        <button
+          type="button"
+          class="player-pill ${meta.teamIndex === 0 ? "team-a" : "team-b"} ${detailsSelectedPlayerKeys.has(meta.key) ? "active" : ""}"
+          data-player-key="${escapeHtml(meta.key)}"
+          title="${escapeHtml(meta.teamName)}"
+        >
+          ${escapeHtml(meta.playerName)}
+        </button>
+      `).join("");
+    }
+
+    function syncDetailFilterState() {
+      const allMetas = getAllPlayerMetas();
+      const validKeys = new Set(allMetas.map(meta => meta.key));
+      detailsSelectedPlayerKeys = new Set([...detailsSelectedPlayerKeys].filter(key => validKeys.has(key)));
+
+      if (!["both", "0", "1"].includes(String(detailsTeamFilter))) {
+        detailsTeamFilter = "both";
+      }
+
+      renderDetailsTeamFilterOptions();
+      updateSpecificPlayersButton();
+      renderPlayerPills();
+    }
+
+    function updateViewButtons() {
+      $("progressionViewBtn")?.classList.toggle("active", detailsViewMode === "progression");
+      $("stackedProgressBtn")?.classList.toggle("active", detailsViewMode === "stacked");
+      $("compareViewBtn")?.classList.toggle("active", detailsViewMode === "compare");
+
+      $("aggregatePlayersBtn")?.classList.toggle("active", detailsAggregateMode === "player");
+      $("aggregateTeamsBtn")?.classList.toggle("active", detailsAggregateMode === "team");
+
+      $("compactMetricsBtn")?.classList.toggle("active", detailsMetricDensity === "compact");
+      $("fullMetricsBtn")?.classList.toggle("active", detailsMetricDensity === "full");
+
+      $("latestModeBtn")?.classList.toggle("active", detailsMode === "latest");
+      $("allRoundsModeBtn")?.classList.toggle("active", detailsMode === "all");
+
+      const compareDisabled = detailsViewMode !== "compare";
+      if ($("latestModeBtn")) $("latestModeBtn").disabled = compareDisabled;
+      if ($("allRoundsModeBtn")) $("allRoundsModeBtn").disabled = compareDisabled;
+    }
+
+    function setDetailsViewMode(mode) {
+      detailsViewMode = mode === "compare" ? "compare" : mode === "stacked" ? "stacked" : "progression";
+      renderDetailsPanel();
+    }
+
+    function setDetailsMetricDensity(mode) {
+      detailsMetricDensity = mode === "full" ? "full" : "compact";
+      renderDetailsPanel();
+    }
+
+    function setDetailsAggregateMode(mode) {
+      detailsAggregateMode = mode === "team" ? "team" : "player";
+      renderDetailsPanel();
+    }
+
+    function getFilteredEntities() {
+      const metas = getFilteredPlayerMetas();
+
+      if (detailsAggregateMode !== "team") {
+        return metas.map(meta => ({ ...meta, kind: "player" }));
+      }
+
+      const grouped = new Map();
+
+      for (const meta of metas) {
+        const key = `team-${meta.teamIndex}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            kind: "team",
+            key,
+            teamIndex: meta.teamIndex,
+            teamName: meta.teamName,
+            players: []
+          });
+        }
+        grouped.get(key).players.push(meta);
+      }
+
+      return [...grouped.values()].sort((a, b) => a.teamIndex - b.teamIndex);
+    }
+
+    function getEntityDisplayLabel(entity) {
+      if (entity.kind === "team") {
+        return `${entity.teamName} - Team - ${entity.teamIndex === 0 ? "A" : "B"}`;
+      }
+      return `${entity.playerName} - ${entity.teamName} - ${entity.teamIndex === 0 ? "A" : "B"}`;
+    }
+
+    function getEntityRoundIndices(entity) {
+      if (!entity) return [];
+      if (entity.kind !== "team") return getPlayerRoundIndices(entity.player);
+
+      const set = new Set();
+      for (const meta of entity.players) {
+        const rounds = getPlayerRoundIndices(meta.player);
+        for (const idx of rounds) set.add(idx);
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function getAggregateRoundStat(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return null;
+
+      const rounds = entity.players
+        .map(meta => getRoundStatByIndex(meta.player, roundIndex))
+        .filter(Boolean);
+
+      if (!rounds.length) return null;
+
+      const sum = (key) => rounds.reduce((acc, r) => acc + toNum(r?.[key], 0), 0);
+
+      return {
+        round_index: roundIndex,
+        is_win: rounds.some(r => r?.is_win === true) ? true : (rounds.some(r => r?.is_win === false) ? false : null),
+        is_first_down: rounds.some(r => r?.is_first_down === true),
+        is_first_taken_down: rounds.some(r => r?.is_first_taken_down === true),
+
+        kill: sum("kill"),
+        assists: sum("assists"),
+        headshots: sum("headshots"),
+        real_damage: sum("real_damage"),
+        real_damage_taken: sum("real_damage_taken"),
+        knock_down: sum("knock_down"),
+
+        economy_spent_self: sum("economy_spent_self"),
+        economy_spent_on_teammates: sum("economy_spent_on_teammates"),
+        initial_item_value: sum("initial_item_value"),
+        airdrop_points: sum("airdrop_points"),
+
+        medkit_use: sum("medkit_use"),
+        grenade_use: sum("grenade_use"),
+        icewall_use: sum("icewall_use")
+      };
+    }
+
+    function aggregateCountEntries(lists) {
+      const map = new Map();
+
+      for (const list of lists || []) {
+        for (const item of (list || [])) {
+          const id = Number(item?.id);
+          const name = item?.name || "Unknown";
+          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
+
+          if (!map.has(key)) {
+            map.set(key, { id, name, count: 0 });
+          }
+
+          map.get(key).count += toNum(item?.count, 0);
+        }
+      }
+
+      return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    }
+
+    function getAggregateItemsForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+      return aggregateCountEntries(entity.players.map(meta => getItemsForRound(meta.player, roundIndex)));
+    }
+
+    function getAggregatePurchasedItemsForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+      return aggregateCountEntries(entity.players.map(meta => getPurchasedItemsForRound(meta.player, roundIndex)));
+    }
+
+    function getAggregateWeaponUsagesForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+
+      const map = new Map();
+
+      for (const meta of entity.players) {
+        const usages = getWeaponUsagesForRound(meta.player, roundIndex);
+
+        for (const weapon of usages) {
+          const id = Number(weapon?.id);
+          const name = weapon?.name || `Weapon ID ${weapon?.id ?? "?"}`;
+          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
+
+          if (!map.has(key)) {
+            map.set(key, {
+              id,
+              name,
+              raw: {
+                weapon_id: id,
+                weapon_name: name
+              }
+            });
+          }
+
+          const entry = map.get(key);
+          for (const [k, v] of Object.entries(weapon.raw || {})) {
+            if (k === "weapon_id" || k === "weapon_name") continue;
+            const n = Number(v);
+            if (Number.isFinite(n)) {
+              entry.raw[k] = (entry.raw[k] || 0) + n;
+            }
+          }
+        }
+      }
+
+      return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function getEntityRoundStat(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateRoundStat(entity, roundIndex)
+        : getRoundStatByIndex(entity.player, roundIndex);
+    }
+
+    function getEntityItemsForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateItemsForRound(entity, roundIndex)
+        : getItemsForRound(entity.player, roundIndex);
+    }
+
+    function getEntityPurchasedItemsForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregatePurchasedItemsForRound(entity, roundIndex)
+        : getPurchasedItemsForRound(entity.player, roundIndex);
+    }
+
+    function getEntityWeaponUsagesForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateWeaponUsagesForRound(entity, roundIndex)
+        : getWeaponUsagesForRound(entity.player, roundIndex);
+    }
+
+    function renderFirstTagHtml(round) {
+      const isFB = round?.is_first_down === true;
+      const isFD = round?.is_first_taken_down === true;
+      if (!isFB && !isFD) return "—";
+      if (isFB && isFD) return `<span class="tag-fb">FB</span> <span class="tag-sep">/</span> <span class="tag-fd">FD</span>`;
+      if (isFB) return `<span class="tag-fb">FB</span>`;
+      return `<span class="tag-fd">FD</span>`;
+    }
+
+    function getProgressionMetrics() {
+      if (detailsMetricDensity === "compact") {
+        return [
+          {
+            title: "Round Outcome",
+            rows: [
+              {
+                label: "Result",
+                getValue: (round) => round?.is_win === true ? "W" : (round?.is_win === false ? "L" : "—"),
+                getClass: (value) => value === "W" ? "good tag" : value === "L" ? "bad tag" : "muted"
+              },
+              {
+                label: "First Tag",
+                getValue: (round) => {
+                  const tags = [];
+                  if (round?.is_first_down === true) tags.push("FB");
+                  if (round?.is_first_taken_down === true) tags.push("FD");
+                  return tags.length ? tags.join(" / ") : "—";
+                },
+                getClass: (value) => value !== "—" ? "tag" : "muted",
+                renderHtml: (round) => renderFirstTagHtml(round)
+              }
+            ]
+          },
+          {
+            title: "Combat",
+            rows: [
+              { label: "Kills", getValue: (round) => round?.kill ?? "—" },
+              { label: "Assists", getValue: (round) => round?.assists ?? "—" },
+              { label: "Damage", getValue: (round) => round?.real_damage ?? "—" },
+              { label: "Damage Taken", getValue: (round) => round?.real_damage_taken ?? "—" },
+              { label: "Knock Down", getValue: (round) => round?.knock_down ?? "—" }
+            ]
+          },
+          {
+            title: "Economy",
+            rows: [
+              { label: "Spent Self", getValue: (round) => round?.economy_spent_self ?? "—" },
+              { label: "Initial Value", getValue: (round) => round?.initial_item_value ?? "—" }
+            ]
+          },
+          {
+            title: "Utility",
+            rows: [
+              { label: "Grenade", getValue: (round) => round?.grenade_use ?? "—" },
+              { label: "Icewall", getValue: (round) => round?.icewall_use ?? "—" }
+            ]
+          }
+        ];
+      }
+
+      return [
+        {
+          title: "Round Outcome",
+          rows: [
+            {
+              label: "Result",
+              getValue: (round) => round?.is_win === true ? "W" : (round?.is_win === false ? "L" : "—"),
+              getClass: (value) => value === "W" ? "good tag" : value === "L" ? "bad tag" : "muted"
+            },
+            {
+              label: "First Tag",
+              getValue: (round) => {
+                const tags = [];
+                if (round?.is_first_down === true) tags.push("FB");
+                if (round?.is_first_taken_down === true) tags.push("FD");
+                return tags.length ? tags.join(" / ") : "—";
+              },
+              getClass: (value) => value !== "—" ? "tag" : "muted",
+              renderHtml: (round) => renderFirstTagHtml(round)
+            }
+          ]
+        },
+        {
+          title: "Combat",
+          rows: [
+            { label: "Kills", getValue: (round) => round?.kill ?? "—" },
+            { label: "Assists", getValue: (round) => round?.assists ?? "—" },
+            { label: "Headshots", getValue: (round) => round?.headshots ?? "—" },
+            { label: "Damage", getValue: (round) => round?.real_damage ?? "—" },
+            { label: "Damage Taken", getValue: (round) => round?.real_damage_taken ?? "—" },
+            { label: "Knock Down", getValue: (round) => round?.knock_down ?? "—" }
+          ]
+        },
+        {
+          title: "Economy",
+          rows: [
+            { label: "Spent Self", getValue: (round) => round?.economy_spent_self ?? "—" },
+            { label: "Spent Team", getValue: (round) => round?.economy_spent_on_teammates ?? "—" },
+            { label: "Initial Value", getValue: (round) => round?.initial_item_value ?? "—" },
+            { label: "Airdrop Points", getValue: (round) => round?.airdrop_points ?? "—" }
+          ]
+        },
+        {
+          title: "Utility",
+          rows: [
+            { label: "Medkit", getValue: (round) => round?.medkit_use ?? "—" },
+            { label: "Grenade", getValue: (round) => round?.grenade_use ?? "—" },
+            { label: "Icewall", getValue: (round) => round?.icewall_use ?? "—" }
+          ]
+        }
+      ];
+    }
+
+    function updateDetailsSummaryMeta(entities, visibleRoundIndices) {
+      const metaEl = $("detailsSummaryMeta");
+      if (!metaEl) return;
+
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        metaEl.textContent = "No data rendered yet.";
+        return;
+      }
+
+      let modeLabel = "";
+      if (detailsViewMode === "progression") {
+        modeLabel = `Progression • ${detailsMetricDensity === "compact" ? "Compact" : "Full"} • Fixed 11 Rounds`;
+      } else if (detailsViewMode === "stacked") {
+        modeLabel = `Stacked Progress • ${detailsMetricDensity === "compact" ? "Compact" : "Full"} • Fixed 11 Rounds`;
+      } else {
+        modeLabel = `Compare • ${detailsMetricDensity === "compact" ? "Compact" : "Full"} • ${detailsMode === "all" ? `Actual Rounds (${visibleRoundIndices.length})` : `Latest Round${visibleRoundIndices.length ? ` • R${visibleRoundIndices[visibleRoundIndices.length - 1] + 1}` : ""}`}`;
+      }
+
+      const aggregateLabel = detailsAggregateMode === "team"
+        ? `Team Aggregate • ${entities.length} team${entities.length === 1 ? "" : "s"}`
+        : `Player View • ${entities.length} player${entities.length === 1 ? "" : "s"}`;
+
+      const selectionLabel = detailsUseSpecificPlayers
+        ? (detailsAggregateMode === "team" ? "Using selected players in team totals" : "Specific Players On")
+        : "All Visible Players";
+
+      metaEl.textContent = `${getTeamScopeLabel()} • ${aggregateLabel} • ${selectionLabel} • ${modeLabel}`;
+    }
+
+    function formatItemsInline(items, emptyText = "None") {
+      if (!items || !items.length) return emptyText;
+      return items.map(item => `${item.name} x${item.count}`).join(", ");
+    }
+
+    function summarizeWeaponUsageLine(weapon) {
+      const fields = Object.entries(weapon?.raw || {})
+        .filter(([k, v]) => k !== "weapon_name" && k !== "weapon_id" && v !== null && v !== undefined && String(v) !== "")
+        .map(([k, v]) => `${humanizeKey(k)}: ${formatGenericValue(v)}`);
+      return fields.length ? fields.join(" • ") : "No weapon usage fields found.";
+    }
+
+    function formatWeaponsInline(usages) {
+      if (!usages || !usages.length) return "None";
+      return usages.map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon) ? ` — ${summarizeWeaponUsageLine(weapon)}` : ""}`).join(" | ");
+    }
+
+    function renderMatrixCell(value, className = "", inlineStyle = "", asHtml = false) {
+      const safeClass = className ? ` ${className}` : "";
+      const styleAttr = inlineStyle ? ` style="${inlineStyle}"` : "";
+      const content = asHtml ? String(value ?? "—") : escapeHtml(formatGenericValue(value));
+      return `<td class="matrix-cell${safeClass}"${styleAttr}>${content}</td>`;
+    }
+
+    function getHeatStyle(value, min, max) {
+      const n = toFiniteNumberOrNull(value);
+      if (n === null || min === null || max === null) return "";
+
+      if (max === min) {
+        return [
+          "background: linear-gradient(180deg, rgba(77,211,255,.16), rgba(77,211,255,.08));",
+          "box-shadow: inset 0 0 0 1px rgba(77,211,255,.22);"
+        ].join(" ");
+      }
+
+      const ratio = (n - min) / (max - min);
+      const hue = 6 + (ratio * 126);
+      const topAlpha = 0.18 + (ratio * 0.12);
+      const bottomAlpha = 0.10 + (ratio * 0.18);
+
+      return [
+        `background: linear-gradient(180deg, hsla(${hue}, 92%, 64%, ${topAlpha}), hsla(${hue}, 86%, 44%, ${bottomAlpha}));`,
+        `box-shadow: inset 0 0 0 1px hsla(${hue}, 95%, 72%, .28), inset 0 10px 18px hsla(${hue}, 95%, 72%, .05);`
+      ].join(" ");
+    }
+
+    function renderComparePlayerCard(meta, roundIndex) {
+      const player = meta.player;
+      const teamClass = meta.teamIndex === 0 ? "team-a" : "team-b";
+      const teamBadge = meta.teamIndex === 0 ? "A" : "B";
+
+      const round = getRoundStatByIndex(player, roundIndex);
+      const activeSkill = getActiveSkillEntry(player);
+      const pet = getPetEntry(player);
+      const loadout = getPlayerLoadoutEntry(player);
+
+      const items = getItemsForRound(player, roundIndex);
+      const purchased = getPurchasedItemsForRound(player, roundIndex);
+      const weapons = getWeaponUsagesForRound(player, roundIndex);
+      const compact = detailsMetricDensity === "compact";
+
+      return `
+        <div class="detail-player-card ${teamClass}">
+          <div class="detail-player-card-head">
+            <div>
+              <div class="detail-player-name">${escapeHtml(meta.playerName)}</div>
+              <div class="detail-player-meta">
+                ${escapeHtml(meta.teamName)}
+                ${activeSkill?.label ? ` • Active: ${escapeHtml(activeSkill.label)}` : ""}
+                ${pet?.label && pet.label !== "—" ? ` • Pet: ${escapeHtml(pet.label)}` : ""}
+                ${loadout?.name ? ` • Loadout: ${escapeHtml(loadout.name)}` : ""}
+              </div>
+            </div>
+            <div class="detail-player-badge">${teamBadge}</div>
+          </div>
+
+          ${round
+            ? `
+              <div class="detail-block-grid">
+                ${renderStatBlock("Round Summary", buildRoundSummaryRows(round), "No round summary found.")}
+                ${renderStatBlock("Economy & Utility", buildEconomyUtilityRows(round), "No economy / utility data found.")}
+                ${renderItemsBlock("Purchased Items", purchased, "No valid purchased items found.", true)}
+                ${renderWeaponsBlock(weapons)}
+                ${compact ? "" : renderItemsBlock("Current Items", items, "No item snapshot found.")}
+              </div>
+            `
+            : `<div class="empty-lite">No round data found for Round ${roundIndex + 1}.</div>`}
+        </div>
+      `;
+    }
+
+    function renderProgressionMatrix(entity, roundIndices) {
+      const metrics = getProgressionMetrics();
+
+      return `
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th class="metric-col">Metric</th>
+                ${roundIndices.map(idx => `<th>R${idx + 1}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${metrics.map(group => `
+                <tr class="matrix-category-row">
+                  <td colspan="${roundIndices.length + 1}">${escapeHtml(group.title)}</td>
+                </tr>
+                ${group.rows.map(row => `
+                  <tr>
+                    <td class="metric-col">${escapeHtml(row.label)}</td>
+                    ${roundIndices.map(idx => {
+                      const round = getEntityRoundStat(entity, idx);
+                      if (!round) return renderMatrixCell("—", "muted");
+                      const value = row.getValue(round);
+                      const cls = row.getClass ? row.getClass(value, round) : "";
+                      if (row.renderHtml) return renderMatrixCell(row.renderHtml(round), cls, "", true);
+                      return renderMatrixCell(value, cls);
+                    }).join("")}
+                  </tr>
+                `).join("")}
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderTrailCard(entity, roundIndex) {
+      const items = getEntityItemsForRound(entity, roundIndex);
+      const purchased = getEntityPurchasedItemsForRound(entity, roundIndex);
+      const weapons = getEntityWeaponUsagesForRound(entity, roundIndex);
+      const compact = detailsMetricDensity === "compact";
+
+      return `
+        <div class="trail-card">
+          <div class="trail-title">Round ${roundIndex + 1}</div>
+
+          <div class="trail-block">
+            <div class="trail-label">Purchased</div>
+            <div class="trail-body">${escapeHtml(formatItemsInline(purchased))}</div>
+          </div>
+
+          ${compact ? "" : `
+            <div class="trail-block">
+              <div class="trail-label">Inventory</div>
+              <div class="trail-body">${escapeHtml(formatItemsInline(items))}</div>
+            </div>
+          `}
+
+          <div class="trail-block">
+            <div class="trail-label">Weapons</div>
+            <div class="trail-body">${escapeHtml(formatWeaponsInline(weapons))}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProgressionCard(entity) {
+      const fixedRoundIndices = getFixedRoundIndices();
+      const actualRoundIndices = getEntityRoundIndices(entity);
+      const teamClass = entity.teamIndex === 0 ? "team-a" : "team-b";
+
+      const latestIdx = actualRoundIndices.length ? actualRoundIndices[actualRoundIndices.length - 1] : null;
+      const latestRound = latestIdx !== null ? getEntityRoundStat(entity, latestIdx) : null;
+
+      const totalKills = actualRoundIndices.reduce((sum, idx) => sum + toNum(getEntityRoundStat(entity, idx)?.kill, 0), 0);
+      const totalDamage = actualRoundIndices.reduce((sum, idx) => sum + toNum(getEntityRoundStat(entity, idx)?.real_damage, 0), 0);
+
+      let title = "";
+      let metaLine = "";
+      let sectionId = "";
+
+      if (entity.kind === "team") {
+        title = entity.teamName;
+        metaLine = `Team Aggregate${detailsUseSpecificPlayers ? " • selected players only" : ""} • ${entity.players.length} player${entity.players.length === 1 ? "" : "s"}`;
+        sectionId = `jump-progress-team-${entity.teamIndex}`;
+      } else {
+        const activeSkill = getActiveSkillEntry(entity.player);
+        const pet = getPetEntry(entity.player);
+        const loadout = getPlayerLoadoutEntry(entity.player);
+
+        title = entity.playerName;
+        metaLine = [
+          entity.teamName,
+          activeSkill?.label ? `Active: ${activeSkill.label}` : "",
+          pet?.label && pet.label !== "—" ? `Pet: ${pet.label}` : "",
+          loadout?.name ? `Loadout: ${loadout.name}` : ""
+        ].filter(Boolean).join(" • ");
+
+        sectionId = `jump-progress-player-${entity.teamIndex}-${entity.playerIndex}`;
+      }
+
+      return `
+        <section
+          id="${sectionId}"
+          class="progression-card ${teamClass}"
+          data-jump-label="${escapeHtml(detailsAggregateMode === "team" ? `Team: ${title}` : `Player: ${title}`)}"
+        >
+          <div class="progression-head">
+            <div class="progression-head-left">
+              <div class="progression-player-name">${escapeHtml(title)}</div>
+              <div class="progression-player-meta">${escapeHtml(metaLine)}</div>
+            </div>
+
+            <div class="progression-head-right">
+              <span class="mini-badge">Rounds ${actualRoundIndices.length}</span>
+              <span class="mini-badge">Kills ${totalKills}</span>
+              <span class="mini-badge">Damage ${totalDamage}</span>
+              <span class="mini-badge">Latest R${latestRound ? toNum(latestRound.round_index, 0) + 1 : "—"}</span>
+            </div>
+          </div>
+
+          ${renderProgressionMatrix(entity, fixedRoundIndices)}
+
+          ${actualRoundIndices.length
+            ? `<div class="round-trail">${actualRoundIndices.map(idx => renderTrailCard(entity, idx)).join("")}</div>`
+            : `<div class="empty-lite">No round progression data found.</div>`}
+        </section>
+      `;
+    }
+
+    function flattenProgressionMetricRows() {
+      const groups = getProgressionMetrics();
+      const rows = [];
+
+      for (const group of groups) {
+        for (const row of group.rows) {
+          rows.push({
+            groupTitle: group.title,
+            label: row.label,
+            getValue: row.getValue,
+            getClass: row.getClass,
+            renderHtml: row.renderHtml
+          });
+        }
+      }
+
+      return rows;
+    }
+
+    function renderStackedMetricCard(metricDef, entities, roundIndices) {
+      const rangesByRound = new Map();
+
+      for (const idx of roundIndices) {
+        const nums = [];
+        for (const entity of entities) {
+          const round = getEntityRoundStat(entity, idx);
+          if (!round) continue;
+          const rawValue = metricDef.getValue(round);
+          const n = toFiniteNumberOrNull(rawValue);
+          if (n !== null) nums.push(n);
+        }
+
+        rangesByRound.set(
+          idx,
+          nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : { min: null, max: null }
+        );
+      }
+
+      const sectionId = `jump-stacked-${slugify(metricDef.groupTitle + "-" + metricDef.label)}`;
+
+      return `
+        <section
+          id="${sectionId}"
+          class="stacked-card"
+          data-jump-label="${escapeHtml(`Metric: ${metricDef.label}`)}"
+        >
+          <div class="stacked-card-head">
+            <div>
+              <div class="stacked-card-kicker">${escapeHtml(metricDef.groupTitle)}</div>
+              <div class="stacked-card-title">${escapeHtml(metricDef.label)}</div>
+            </div>
+            <div class="stacked-card-copy">
+              ${entities.length} row${entities.length === 1 ? "" : "s"} • R1–R${MAX_DISPLAY_ROUNDS}
+            </div>
+          </div>
+
+          <div class="matrix-wrap">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th class="player-cell">${detailsAggregateMode === "team" ? "Team" : "Player"}</th>
+                  ${roundIndices.map(idx => `<th>R${idx + 1}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${entities.map(entity => {
+                  const label = getEntityDisplayLabel(entity);
+
+                  return `
+                    <tr>
+                      <td class="player-cell" title="${escapeHtml(label)}">${escapeHtml(label)}</td>
+                      ${roundIndices.map(idx => {
+                        const round = getEntityRoundStat(entity, idx);
+                        if (!round) return renderMatrixCell("—", "muted");
+
+                        const value = metricDef.getValue(round);
+                        const cls = metricDef.getClass ? metricDef.getClass(value, round) : "";
+
+                        if (metricDef.renderHtml) {
+                          return renderMatrixCell(metricDef.renderHtml(round), cls, "", true);
+                        }
+
+                        const range = rangesByRound.get(idx) || { min: null, max: null };
+                        const heatStyle = getHeatStyle(value, range.min, range.max);
+
+                        return renderMatrixCell(value, cls, heatStyle);
+                      }).join("")}
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderWrappedTextMetricCard(title, kicker, entities, roundIndices, getTextFn, emptyText = "—") {
+      const sectionId = `jump-stacked-${slugify(title)}`;
+
+      return `
+        <section
+          id="${sectionId}"
+          class="stacked-card"
+          data-jump-label="${escapeHtml(`Metric: ${title}`)}"
+        >
+          <div class="stacked-card-head">
+            <div>
+              <div class="stacked-card-kicker">${escapeHtml(kicker)}</div>
+              <div class="stacked-card-title">${escapeHtml(title)}</div>
+            </div>
+            <div class="stacked-card-copy">
+              Wrapped card view
+            </div>
+          </div>
+
+          <div class="wrap-metric-list">
+            ${entities.map(entity => {
+              const label = getEntityDisplayLabel(entity);
+              return `
+                <div class="wrap-player-card">
+                  <div class="wrap-player-title">${escapeHtml(label)}</div>
+                  <div class="wrap-round-grid">
+                    ${roundIndices.map(idx => {
+                      const text = getTextFn(entity, idx) || emptyText;
+                      return `
+                        <div class="wrap-round-card">
+                          <div class="wrap-round-label">R${idx + 1}</div>
+                          <div class="wrap-round-body">${escapeHtml(text)}</div>
+                        </div>
+                      `;
+                    }).join("")}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderStackedProgressView(entities, roundIndices) {
+      if (!entities.length) {
+        return `
+          <div class="stats-category">
+            <div class="stats-table">
+              <div class="stats-row">
+                <div class="stats-key">Stacked Progress</div>
+                <div class="stats-val">
+                  ${detailsUseSpecificPlayers
+                    ? "Specific player filter is on but no visible rows are selected."
+                    : "No rows available for the current scope."}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const metricDefs = flattenProgressionMetricRows();
+
+      return `
+        <div class="stacked-stack">
+          ${metricDefs.map(def => renderStackedMetricCard(def, entities, roundIndices)).join("")}
+
+          ${renderWrappedTextMetricCard(
+            "Purchased Items",
+            "Round Trail",
+            entities,
+            roundIndices,
+            (entity, idx) => formatItemsInline(getEntityPurchasedItemsForRound(entity, idx), "None"),
+            "None"
+          )}
+
+          ${renderWrappedTextMetricCard(
+            "Weapons",
+            "Round Trail",
+            entities,
+            roundIndices,
+            (entity, idx) => formatWeaponsInline(getEntityWeaponUsagesForRound(entity, idx)),
+            "None"
+          )}
+        </div>
+      `;
+    }
+
+    function buildRoundSummaryRows(round) {
+      const tags = [];
+      if (round?.is_first_down === true) tags.push("First Blood");
+      if (round?.is_first_taken_down === true) tags.push("First Down");
+
+      if (detailsMetricDensity === "compact") {
+        return [
+          ["Result", round?.is_win === true ? "Win" : round?.is_win === false ? "Loss" : "—"],
+          ["Tag", tags.length ? tags.join(" • ") : "None"],
+          ["Kills", round?.kill],
+          ["Assists", round?.assists],
+          ["Damage", round?.real_damage],
+          ["Damage Taken", round?.real_damage_taken]
+        ];
+      }
+
+      return [
+        ["Tag", tags.length ? tags.join(" • ") : "None"],
+        ["Kills", round?.kill],
+        ["Assists", round?.assists],
+        ["Headshots", round?.headshots],
+        ["Damage", round?.real_damage],
+        ["Damage Taken", round?.real_damage_taken],
+        ["Knock Down", round?.knock_down]
+      ];
+    }
+
+    function buildEconomyUtilityRows(round) {
+      const rows = [];
+      const compactKeys = [
+        "economy_spent_self",
+        "initial_item_value",
+        "grenade_use",
+        "icewall_use"
+      ];
+      const fullKeys = [
+        "economy_spent_self",
+        "economy_spent_on_teammates",
+        "initial_item_value",
+        "airdrop_points",
+        "medkit_use",
+        "grenade_use",
+        "icewall_use"
+      ];
+
+      const keys = detailsMetricDensity === "compact" ? compactKeys : fullKeys;
+      for (const key of keys) {
+        if (key in (round || {})) rows.push([humanizeKey(key), round[key]]);
+      }
+      return rows;
+    }
+
+    function renderStatBlock(title, rows, emptyText = "No data found.") {
+      return `
+        <div class="stats-category">
+          <div class="stats-category-title">${escapeHtml(title)}</div>
+          <div class="stats-table">
+            ${rows && rows.length
+              ? rows.map(([label, value]) => `
+                  <div class="stats-row">
+                    <div class="stats-key">${escapeHtml(label)}</div>
+                    <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                  </div>
+                `).join("")
+              : `
+                  <div class="stats-row">
+                    <div class="stats-key">${escapeHtml(title)}</div>
+                    <div class="stats-val">${escapeHtml(emptyText)}</div>
+                  </div>
+                `}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderItemsBlock(title, items, emptyText = "No data found.", purchased = false) {
+      return `
+        <div class="stats-category">
+          <div class="stats-category-title">${escapeHtml(title)}</div>
+          <div class="stats-table">
+            ${items && items.length
+              ? items.map(item => `
+                  <div class="stats-row">
+                    <div class="stats-key">${escapeHtml(item.name)}</div>
+                    <div class="stats-val">${purchased ? `Purchased x${item.count}` : `Count: ${item.count}`}</div>
+                  </div>
+                `).join("")
+              : `
+                  <div class="stats-row">
+                    <div class="stats-key">${escapeHtml(title)}</div>
+                    <div class="stats-val">${escapeHtml(emptyText)}</div>
+                  </div>
+                `}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWeaponsBlock(usages) {
+      return `
+        <div class="stats-category">
+          <div class="stats-category-title">Weapon Usage</div>
+          <div class="stats-table">
+            ${usages && usages.length
+              ? usages.map(weapon => `
+                  <div class="stats-row">
+                    <div class="stats-key">${escapeHtml(weapon.name)}</div>
+                    <div class="stats-val">${escapeHtml(summarizeWeaponUsageLine(weapon))}</div>
+                  </div>
+                `).join("")
+              : `
+                  <div class="stats-row">
+                    <div class="stats-key">Weapons</div>
+                    <div class="stats-val">No weapon usage data found.</div>
+                  </div>
+                `}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCompareEntityCard(entity, roundIndex) {
+      if (entity.kind !== "team") {
+        return renderComparePlayerCard(entity, roundIndex);
+      }
+
+      const teamClass = entity.teamIndex === 0 ? "team-a" : "team-b";
+      const teamBadge = entity.teamIndex === 0 ? "A" : "B";
+
+      const round = getAggregateRoundStat(entity, roundIndex);
+      const items = getAggregateItemsForRound(entity, roundIndex);
+      const purchased = getAggregatePurchasedItemsForRound(entity, roundIndex);
+      const weapons = getAggregateWeaponUsagesForRound(entity, roundIndex);
+      const compact = detailsMetricDensity === "compact";
+
+      return `
+        <div class="detail-player-card ${teamClass}">
+          <div class="detail-player-card-head">
+            <div>
+              <div class="detail-player-name">${escapeHtml(entity.teamName)}</div>
+              <div class="detail-player-meta">
+                Team Aggregate${detailsUseSpecificPlayers ? " • selected players only" : ""} • ${entity.players.length} player${entity.players.length === 1 ? "" : "s"}
+              </div>
+            </div>
+            <div class="detail-player-badge">${teamBadge}</div>
+          </div>
+
+          ${round
+            ? `
+              <div class="detail-block-grid">
+                ${renderStatBlock("Round Summary", buildRoundSummaryRows(round), "No round summary found.")}
+                ${renderStatBlock("Economy & Utility", buildEconomyUtilityRows(round), "No economy / utility data found.")}
+                ${renderItemsBlock("Purchased Items", purchased, "No valid purchased items found.", true)}
+                ${renderWeaponsBlock(weapons)}
+                ${compact ? "" : renderItemsBlock("Current Items", items, "No item snapshot found.")}
+              </div>
+            `
+            : `<div class="empty-lite">No round data found for Round ${roundIndex + 1}.</div>`}
+        </div>
+      `;
+    }
+
+    function renderCompareView(entities, visibleRoundIndices) {
+      if (!entities.length) {
+        return `
+          <div class="stats-category">
+            <div class="stats-table">
+              <div class="stats-row">
+                <div class="stats-key">Details</div>
+                <div class="stats-val">
+                  ${detailsUseSpecificPlayers
+                    ? "Specific player filter is on but no visible rows are selected."
+                    : "No rows available for the current scope."}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (!visibleRoundIndices.length) {
+        return `
+          <div class="stats-category">
+            <div class="stats-table">
+              <div class="stats-row">
+                <div class="stats-key">Rounds</div>
+                <div class="stats-val">No round data found for the selected scope.</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="round-stack">
+          ${visibleRoundIndices.map(roundIndex => {
+            const sectionId = `jump-round-${roundIndex + 1}`;
+            return `
+              <section
+                id="${sectionId}"
+                class="round-section"
+                data-jump-label="${escapeHtml(`Round ${roundIndex + 1}`)}"
+              >
+                <div class="round-section-head">
+                  <div>
+                    <div class="round-section-kicker">Round Snapshot</div>
+                    <div class="round-section-title">Round ${roundIndex + 1}</div>
+                  </div>
+                  <div class="round-section-copy">
+                    ${entities.length} row${entities.length === 1 ? "" : "s"} visible
+                  </div>
+                </div>
+
+                <div class="round-player-grid">
+                  ${entities.map(entity => renderCompareEntityCard(entity, roundIndex)).join("")}
+                </div>
+              </section>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function renderProgressionView(entities) {
+      if (!entities.length) {
+        return `
+          <div class="stats-category">
+            <div class="stats-table">
+              <div class="stats-row">
+                <div class="stats-key">Progression</div>
+                <div class="stats-val">
+                  ${detailsUseSpecificPlayers
+                    ? "Specific player filter is on but no visible rows are selected."
+                    : "No rows available for the current scope."}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="progression-stack">
+          ${entities.map(entity => renderProgressionCard(entity)).join("")}
+        </div>
+      `;
+    }
+
+    function populateJumpOptions() {
+      const select = $("jumpToMetricSelect");
+      if (!select) return;
+
+      const nodes = [...document.querySelectorAll("#globalPlayerDetails [data-jump-label][id]")];
+      select.innerHTML = `<option value="">Select section…</option>` +
+        nodes.map(node => `<option value="${escapeHtml(node.id)}">${escapeHtml(node.getAttribute("data-jump-label"))}</option>`).join("");
+    }
+
+    function jumpToSelectedSection() {
+      const select = $("jumpToMetricSelect");
+      if (!select || !select.value) return;
+
+      const target = document.getElementById(select.value);
+      if (!target) return;
+
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function updateJumpTopButton() {
+      const btn = $("jumpTopBtn");
+      if (!btn) return;
+      btn.classList.toggle("show", window.scrollY > 500);
+    }
+
+    function renderGlobalPlayerDetails() {
+      const entities = getFilteredEntities();
+      const fixedRoundIndices = getFixedRoundIndices();
+
+      const actualRoundSet = new Set();
+      for (const entity of entities) {
+        for (const idx of getEntityRoundIndices(entity)) actualRoundSet.add(idx);
+      }
+      const actualRoundIndices = [...actualRoundSet].sort((a, b) => a - b);
+
+      const compareRoundIndices = detailsMode === "all"
+        ? actualRoundIndices
+        : (actualRoundIndices.length ? [actualRoundIndices[actualRoundIndices.length - 1]] : []);
+
+      updateDetailsSummaryMeta(
+        entities,
+        detailsViewMode === "compare" ? compareRoundIndices : fixedRoundIndices
+      );
+
+      if (detailsViewMode === "progression") return renderProgressionView(entities);
+      if (detailsViewMode === "stacked") return renderStackedProgressView(entities, fixedRoundIndices);
+      return renderCompareView(entities, compareRoundIndices);
+    }
+
+    function renderDetailsPanel() {
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        $("globalPlayerDetails").innerHTML = "";
+        $("detailsPlayerPills").innerHTML = "";
+        $("detailsSummaryMeta").textContent = "No data rendered yet.";
+        renderDetailsTeamFilterOptions();
+        updateSpecificPlayersButton();
+        updateViewButtons();
+        populateJumpOptions();
+        return;
+      }
+
+      syncDetailFilterState();
+      $("globalPlayerDetails").innerHTML = renderGlobalPlayerDetails();
+      updateSpecificPlayersButton();
+      updateViewButtons();
+      populateJumpOptions();
+    }
+
+    async function setDetailsMode(mode) {
+      detailsMode = mode === "all" ? "all" : "latest";
+      renderDetailsPanel();
+      await saveSharedState();
     }
 
     function clearRender() {
@@ -2128,15 +3622,27 @@
       $("teamAContent").innerHTML = "";
       $("teamBContent").innerHTML = "";
       $("globalPlayerDetails").innerHTML = "";
+      $("detailsPlayerPills").innerHTML = "";
+      $("detailsSummaryMeta").textContent = "No data rendered yet.";
       $("aiPromptOutput").value = "";
+      $("jumpToMetricSelect").innerHTML = `<option value="">Select section…</option>`;
+
       CURRENT_TEAMS = null;
       CURRENT_PAYLOAD = null;
-      setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
-      updateDetailsModeButtons();
-    }
 
-    function getPayload(data) { return Array.isArray(data) ? data[0] : data; }
-    function getTeamsFromPayload(payload) { return Array.isArray(payload?.team_stats) ? payload.team_stats : []; }
+      detailsMode = "latest";
+      detailsViewMode = "stacked";
+      detailsMetricDensity = "full";
+      detailsAggregateMode = "player";
+      detailsTeamFilter = "both";
+      detailsUseSpecificPlayers = false;
+      detailsSelectedPlayerKeys = new Set();
+
+      renderDetailsTeamFilterOptions();
+      updateSpecificPlayersButton();
+      updateViewButtons();
+      setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
+    }
 
     async function saveSharedState() {
       if (applyingRemoteState) return false;
@@ -2176,7 +3682,10 @@
       $("jsonInput").value = getLocalInput();
 
       if (!data) {
-        updateDetailsModeButtons();
+        updateViewButtons();
+        renderDetailsTeamFilterOptions();
+        updateSpecificPlayersButton();
+        populateJumpOptions();
         return;
       }
 
@@ -2184,7 +3693,7 @@
       try {
         CURRENT_SHARED_JSON_TEXT = data.json_text || "";
         detailsMode = data.details_mode === "all" ? "all" : "latest";
-        updateDetailsModeButtons();
+        updateViewButtons();
 
         if (CURRENT_SHARED_JSON_TEXT.trim()) {
           await renderJson(false, CURRENT_SHARED_JSON_TEXT);
@@ -2212,7 +3721,7 @@
             try {
               CURRENT_SHARED_JSON_TEXT = row.json_text || "";
               detailsMode = row.details_mode === "all" ? "all" : "latest";
-              updateDetailsModeButtons();
+              updateViewButtons();
 
               if (CURRENT_SHARED_JSON_TEXT.trim()) {
                 await renderJson(false, CURRENT_SHARED_JSON_TEXT);
@@ -2247,7 +3756,10 @@
         if (!raw) {
           clearRender();
           setStatus("Paste JSON first.", true);
-          if (shouldBroadcast) { CURRENT_SHARED_JSON_TEXT = ""; await saveSharedState(); }
+          if (shouldBroadcast) {
+            CURRENT_SHARED_JSON_TEXT = "";
+            await saveSharedState();
+          }
           return;
         }
 
@@ -2257,8 +3769,9 @@
         if (!assetsLoaded) await loadAssetCatalogs();
 
         let data;
-        try { data = JSON.parse(raw); }
-        catch (err) {
+        try {
+          data = JSON.parse(raw);
+        } catch (err) {
           clearRender();
           setStatus(`Invalid JSON:\n${err.message}`, true);
           return;
@@ -2285,11 +3798,14 @@
 
         $("teamAContent").innerHTML = renderTeamContent(CURRENT_TEAMS[0]);
         $("teamBContent").innerHTML = renderTeamContent(CURRENT_TEAMS[1]);
+
+        syncDetailFilterState();
         renderDetailsPanel();
         $("aiPromptOutput").value = buildAiAnalysisPrompt(payload, CURRENT_TEAMS);
 
         let message = `Rendered ${CURRENT_TEAMS[0]?.team_name || "Team A"} (${teamAScore}) vs ${CURRENT_TEAMS[1]?.team_name || "Team B"} (${teamBScore}).`;
         if (teams.length > 2) message += ` Found ${teams.length} teams total, so only the first 2 were shown.`;
+        message += ` Display rounds capped at ${MAX_DISPLAY_ROUNDS}.`;
 
         setStatus(message);
         setCopyPromptStatus("AI prompt generated. Use Copy Prompt to paste it into another AI tool.");
@@ -2300,11 +3816,10 @@
       }
     }
 
-    $("jsonInput").addEventListener("input", () => setLocalInput($("jsonInput").value || ""));
+    $("jsonInput")?.addEventListener("input", () => setLocalInput($("jsonInput").value || ""));
+    $("renderBtn")?.addEventListener("click", () => renderJson());
 
-    $("renderBtn").addEventListener("click", () => renderJson());
-
-    $("reloadLookupBtn").addEventListener("click", async () => {
+    $("reloadLookupBtn")?.addEventListener("click", async () => {
       matchApiLoaded = false;
       assetsLoaded = false;
       try {
@@ -2321,7 +3836,7 @@
       }
     });
 
-    $("clearBtn").addEventListener("click", async () => {
+    $("clearBtn")?.addEventListener("click", async () => {
       $("jsonInput").value = "";
       clearLocalInput();
       clearRender();
@@ -2330,17 +3845,101 @@
       await saveSharedState();
     });
 
-    $("copyPromptBtn").addEventListener("click", async () => {
+    $("copyPromptBtn")?.addEventListener("click", async () => {
       const text = $("aiPromptOutput").value.trim();
-      if (!text) { setCopyPromptStatus("No prompt to copy yet. Render match JSON first."); return; }
+      if (!text) {
+        setCopyPromptStatus("No prompt to copy yet. Render match JSON first.");
+        return;
+      }
       const ok = await copyTextToClipboard(text);
       setCopyPromptStatus(ok ? "AI prompt copied to clipboard." : "Copy failed. You can still manually select and copy the prompt.");
     });
 
-    $("latestModeBtn").addEventListener("click", () => setDetailsMode("latest"));
-    $("allRoundsModeBtn").addEventListener("click", () => setDetailsMode("all"));
+    $("progressionViewBtn")?.addEventListener("click", () => setDetailsViewMode("progression"));
+    $("stackedProgressBtn")?.addEventListener("click", () => setDetailsViewMode("stacked"));
+    $("compareViewBtn")?.addEventListener("click", () => setDetailsViewMode("compare"));
 
-    updateDetailsModeButtons();
+    $("aggregatePlayersBtn")?.addEventListener("click", () => setDetailsAggregateMode("player"));
+    $("aggregateTeamsBtn")?.addEventListener("click", () => setDetailsAggregateMode("team"));
+
+    $("compactMetricsBtn")?.addEventListener("click", () => setDetailsMetricDensity("compact"));
+    $("fullMetricsBtn")?.addEventListener("click", () => setDetailsMetricDensity("full"));
+
+    $("latestModeBtn")?.addEventListener("click", () => {
+      if (detailsViewMode === "compare") setDetailsMode("latest");
+    });
+
+    $("allRoundsModeBtn")?.addEventListener("click", () => {
+      if (detailsViewMode === "compare") setDetailsMode("all");
+    });
+
+    $("detailsTeamFilter")?.addEventListener("change", () => {
+      detailsTeamFilter = $("detailsTeamFilter").value || "both";
+      renderDetailsPanel();
+    });
+
+    $("toggleSpecificPlayersBtn")?.addEventListener("click", () => {
+      const visibleMetas = getTeamScopedPlayerMetas();
+
+      if (!detailsUseSpecificPlayers) {
+        detailsUseSpecificPlayers = true;
+        if (!visibleMetas.some(meta => detailsSelectedPlayerKeys.has(meta.key))) {
+          detailsSelectedPlayerKeys = new Set(visibleMetas.map(meta => meta.key));
+        }
+      } else {
+        detailsUseSpecificPlayers = false;
+      }
+
+      renderDetailsPanel();
+    });
+
+    $("selectAllVisiblePlayersBtn")?.addEventListener("click", () => {
+      const visibleMetas = getTeamScopedPlayerMetas();
+      detailsUseSpecificPlayers = true;
+      detailsSelectedPlayerKeys = new Set(visibleMetas.map(meta => meta.key));
+      renderDetailsPanel();
+    });
+
+    $("resetPlayerFilterBtn")?.addEventListener("click", () => {
+      detailsUseSpecificPlayers = false;
+      detailsSelectedPlayerKeys = new Set();
+      renderDetailsPanel();
+    });
+
+    $("detailsPlayerPills")?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-player-key]");
+      if (!btn) return;
+
+      const key = btn.getAttribute("data-player-key");
+      if (!key) return;
+
+      if (!detailsUseSpecificPlayers) {
+        detailsUseSpecificPlayers = true;
+        detailsSelectedPlayerKeys = new Set([key]);
+      } else {
+        if (detailsSelectedPlayerKeys.has(key)) detailsSelectedPlayerKeys.delete(key);
+        else detailsSelectedPlayerKeys.add(key);
+      }
+
+      renderDetailsPanel();
+    });
+
+    $("jumpToMetricBtn")?.addEventListener("click", jumpToSelectedSection);
+    $("jumpToMetricSelect")?.addEventListener("change", () => {
+      if ($("jumpToMetricSelect").value) jumpToSelectedSection();
+    });
+
+    $("jumpTopBtn")?.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    window.addEventListener("scroll", updateJumpTopButton);
+
+    updateViewButtons();
+    renderDetailsTeamFilterOptions();
+    updateSpecificPlayersButton();
+    populateJumpOptions();
+    updateJumpTopButton();
 
     (async () => {
       $("jsonInput").value = getLocalInput();
