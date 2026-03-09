@@ -1,3 +1,5 @@
+Here’s the full valid script with By Player / By Team aggregation included.
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1434,7 +1436,7 @@
         <div>
           <div class="details-panel-title">Player Stat Details</div>
           <div class="details-subline">
-            Progression View tracks one player across rounds, Stacked Progress compares players on one metric across rounds, and Compare View shows round snapshots. Compact Metrics gives a tighter analyst layout.
+            Progression View tracks one player or one team across rounds, Stacked Progress compares rows on one metric across rounds, and Compare View shows round snapshots. Compact Metrics gives a tighter analyst layout.
           </div>
         </div>
 
@@ -1442,6 +1444,10 @@
           <button id="progressionViewBtn" class="ghost mode-btn active" type="button">Progression View</button>
           <button id="stackedProgressBtn" class="ghost mode-btn" type="button">Stacked Progress</button>
           <button id="compareViewBtn" class="ghost mode-btn" type="button">Compare View</button>
+
+          <button id="aggregatePlayersBtn" class="ghost mode-btn active" type="button">By Player</button>
+          <button id="aggregateTeamsBtn" class="ghost mode-btn" type="button">By Team</button>
+
           <button id="compactMetricsBtn" class="ghost mode-btn active" type="button">Compact Metrics</button>
           <button id="fullMetricsBtn" class="ghost mode-btn" type="button">Full Metrics</button>
           <button id="latestModeBtn" class="ghost mode-btn active" type="button">Latest Round</button>
@@ -1520,6 +1526,7 @@
     let detailsMode = "latest";
     let detailsViewMode = "progression";
     let detailsMetricDensity = "compact";
+    let detailsAggregateMode = "player";
     let detailsTeamFilter = "both";
     let detailsUseSpecificPlayers = false;
     let detailsSelectedPlayerKeys = new Set();
@@ -1639,10 +1646,6 @@
 
     function getFixedRoundIndices() {
       return Array.from({ length: MAX_DISPLAY_ROUNDS }, (_, i) => i);
-    }
-
-    function clampRoundIndices(indices) {
-      return (indices || []).filter(idx => idx >= 0 && idx < MAX_DISPLAY_ROUNDS);
     }
 
     function scoreLookupName(name) {
@@ -2542,6 +2545,9 @@
       $("stackedProgressBtn")?.classList.toggle("active", detailsViewMode === "stacked");
       $("compareViewBtn")?.classList.toggle("active", detailsViewMode === "compare");
 
+      $("aggregatePlayersBtn")?.classList.toggle("active", detailsAggregateMode === "player");
+      $("aggregateTeamsBtn")?.classList.toggle("active", detailsAggregateMode === "team");
+
       $("compactMetricsBtn")?.classList.toggle("active", detailsMetricDensity === "compact");
       $("fullMetricsBtn")?.classList.toggle("active", detailsMetricDensity === "full");
 
@@ -2563,8 +2569,187 @@
       renderDetailsPanel();
     }
 
+    function setDetailsAggregateMode(mode) {
+      detailsAggregateMode = mode === "team" ? "team" : "player";
+      renderDetailsPanel();
+    }
+
     function getStackedPlayerLabel(meta) {
       return `${meta.playerName} - ${meta.teamName} - ${meta.teamIndex === 0 ? "A" : "B"}`;
+    }
+
+    function getEntityDisplayLabel(entity) {
+      if (entity.kind === "team") {
+        return `${entity.teamName} - Team - ${entity.teamIndex === 0 ? "A" : "B"}`;
+      }
+      return getStackedPlayerLabel(entity);
+    }
+
+    function getFilteredEntities() {
+      const metas = getFilteredPlayerMetas();
+
+      if (detailsAggregateMode !== "team") {
+        return metas.map(meta => ({ ...meta, kind: "player" }));
+      }
+
+      const grouped = new Map();
+
+      for (const meta of metas) {
+        const key = `team-${meta.teamIndex}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            kind: "team",
+            key,
+            teamIndex: meta.teamIndex,
+            teamName: meta.teamName,
+            players: []
+          });
+        }
+        grouped.get(key).players.push(meta);
+      }
+
+      return [...grouped.values()].sort((a, b) => a.teamIndex - b.teamIndex);
+    }
+
+    function getEntityRoundIndices(entity) {
+      if (!entity) return [];
+      if (entity.kind !== "team") return getPlayerRoundIndices(entity.player);
+
+      const set = new Set();
+      for (const meta of entity.players) {
+        const rounds = getPlayerRoundIndices(meta.player);
+        for (const idx of rounds) set.add(idx);
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function getAggregateRoundStat(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return null;
+
+      const rounds = entity.players
+        .map(meta => getRoundStatByIndex(meta.player, roundIndex))
+        .filter(Boolean);
+
+      if (!rounds.length) return null;
+
+      const sum = (key) => rounds.reduce((acc, r) => acc + toNum(r?.[key], 0), 0);
+
+      return {
+        round_index: roundIndex,
+        is_win: rounds.some(r => r?.is_win === true) ? true : (rounds.some(r => r?.is_win === false) ? false : null),
+        is_first_down: rounds.some(r => r?.is_first_down === true),
+        is_first_taken_down: rounds.some(r => r?.is_first_taken_down === true),
+
+        kill: sum("kill"),
+        assists: sum("assists"),
+        headshots: sum("headshots"),
+        real_damage: sum("real_damage"),
+        real_damage_taken: sum("real_damage_taken"),
+        knock_down: sum("knock_down"),
+
+        economy_spent_self: sum("economy_spent_self"),
+        economy_spent_on_teammates: sum("economy_spent_on_teammates"),
+        initial_item_value: sum("initial_item_value"),
+        airdrop_points: sum("airdrop_points"),
+
+        nb_skill_usages: sum("nb_skill_usages"),
+        medkit_use: sum("medkit_use"),
+        grenade_use: sum("grenade_use"),
+        icewall_use: sum("icewall_use"),
+        throwable_use: sum("throwable_use")
+      };
+    }
+
+    function aggregateCountEntries(lists) {
+      const map = new Map();
+
+      for (const list of lists || []) {
+        for (const item of (list || [])) {
+          const id = Number(item?.id);
+          const name = item?.name || "Unknown";
+          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
+
+          if (!map.has(key)) {
+            map.set(key, { id, name, count: 0 });
+          }
+
+          map.get(key).count += toNum(item?.count, 0);
+        }
+      }
+
+      return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    }
+
+    function getAggregateItemsForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+      return aggregateCountEntries(entity.players.map(meta => getItemsForRound(meta.player, roundIndex)));
+    }
+
+    function getAggregatePurchasedItemsForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+      return aggregateCountEntries(entity.players.map(meta => getPurchasedItemsForRound(meta.player, roundIndex)));
+    }
+
+    function getAggregateWeaponUsagesForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+
+      const map = new Map();
+
+      for (const meta of entity.players) {
+        const usages = getWeaponUsagesForRound(meta.player, roundIndex);
+
+        for (const weapon of usages) {
+          const id = Number(weapon?.id);
+          const name = weapon?.name || `Weapon ID ${weapon?.id ?? "?"}`;
+          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
+
+          if (!map.has(key)) {
+            map.set(key, {
+              id,
+              name,
+              raw: {
+                weapon_id: id,
+                weapon_name: name
+              }
+            });
+          }
+
+          const entry = map.get(key);
+          for (const [k, v] of Object.entries(weapon.raw || {})) {
+            if (k === "weapon_id" || k === "weapon_name") continue;
+            const n = Number(v);
+            if (Number.isFinite(n)) {
+              entry.raw[k] = (entry.raw[k] || 0) + n;
+            }
+          }
+        }
+      }
+
+      return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function getEntityRoundStat(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateRoundStat(entity, roundIndex)
+        : getRoundStatByIndex(entity.player, roundIndex);
+    }
+
+    function getEntityItemsForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateItemsForRound(entity, roundIndex)
+        : getItemsForRound(entity.player, roundIndex);
+    }
+
+    function getEntityPurchasedItemsForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregatePurchasedItemsForRound(entity, roundIndex)
+        : getPurchasedItemsForRound(entity.player, roundIndex);
+    }
+
+    function getEntityWeaponUsagesForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateWeaponUsagesForRound(entity, roundIndex)
+        : getWeaponUsagesForRound(entity.player, roundIndex);
     }
 
     function renderFirstTagHtml(round) {
@@ -2683,7 +2868,7 @@
       ];
     }
 
-    function updateDetailsSummaryMeta(filteredPlayers, visibleRoundIndices) {
+    function updateDetailsSummaryMeta(entities, visibleRoundIndices) {
       const metaEl = $("detailsSummaryMeta");
       if (!metaEl) return;
 
@@ -2701,11 +2886,15 @@
         modeLabel = `Compare • ${detailsMetricDensity === "compact" ? "Compact" : "Full"} • ${detailsMode === "all" ? `Actual Rounds (${visibleRoundIndices.length})` : `Latest Round${visibleRoundIndices.length ? ` • R${visibleRoundIndices[visibleRoundIndices.length - 1] + 1}` : ""}`}`;
       }
 
-      const playerLabel = detailsUseSpecificPlayers
-        ? `Specific Players On • ${filteredPlayers.length} selected`
-        : `All Visible Players • ${filteredPlayers.length} shown`;
+      const aggregateLabel = detailsAggregateMode === "team"
+        ? `Team Aggregate • ${entities.length} team${entities.length === 1 ? "" : "s"}`
+        : `Player View • ${entities.length} player${entities.length === 1 ? "" : "s"}`;
 
-      metaEl.textContent = `${getTeamScopeLabel()} • ${playerLabel} • ${modeLabel}`;
+      const selectionLabel = detailsUseSpecificPlayers
+        ? (detailsAggregateMode === "team" ? "Using selected players in team totals" : "Specific Players On")
+        : "All Visible Players";
+
+      metaEl.textContent = `${getTeamScopeLabel()} • ${aggregateLabel} • ${selectionLabel} • ${modeLabel}`;
     }
 
     function formatItemsInline(items, emptyText = "None") {
@@ -2732,21 +2921,6 @@
       return `<td class="matrix-cell${safeClass}"${styleAttr}>${content}</td>`;
     }
 
-    function getHeatRangeForMetricRound(metricDef, filteredPlayers, roundIndex) {
-      const nums = [];
-
-      for (const meta of filteredPlayers) {
-        const round = getRoundStatByIndex(meta.player, roundIndex);
-        if (!round) continue;
-        const rawValue = metricDef.getValue(round);
-        const n = toFiniteNumberOrNull(rawValue);
-        if (n !== null) nums.push(n);
-      }
-
-      if (!nums.length) return { min: null, max: null };
-      return { min: Math.min(...nums), max: Math.max(...nums) };
-    }
-
     function getHeatStyle(value, min, max) {
       const n = toFiniteNumberOrNull(value);
       if (n === null || min === null || max === null) return "";
@@ -2769,7 +2943,226 @@
       ].join(" ");
     }
 
-    function renderProgressionMatrix(player, roundIndices) {
+    function renderComparePlayerCard(meta, roundIndex) {
+      const player = meta.player;
+      const teamClass = meta.teamIndex === 0 ? "team-a" : "team-b";
+      const teamBadge = meta.teamIndex === 0 ? "A" : "B";
+
+      const round = getRoundStatByIndex(player, roundIndex);
+      const activeSkill = getActiveSkillEntry(player);
+      const pet = getPetEntry(player);
+      const loadout = getPlayerLoadoutEntry(player);
+
+      const items = getItemsForRound(player, roundIndex);
+      const purchased = getPurchasedItemsForRound(player, roundIndex);
+      const weapons = getWeaponUsagesForRound(player, roundIndex);
+      const compact = detailsMetricDensity === "compact";
+
+      return `
+        <div class="detail-player-card ${teamClass}">
+          <div class="detail-player-card-head">
+            <div>
+              <div class="detail-player-name">${escapeHtml(meta.playerName)}</div>
+              <div class="detail-player-meta">
+                ${escapeHtml(meta.teamName)}
+                ${activeSkill?.label ? ` • Active: ${escapeHtml(activeSkill.label)}` : ""}
+                ${pet?.label && pet.label !== "—" ? ` • Pet: ${escapeHtml(pet.label)}` : ""}
+                ${loadout?.name ? ` • Loadout: ${escapeHtml(loadout.name)}` : ""}
+              </div>
+            </div>
+            <div class="detail-player-badge">${teamBadge}</div>
+          </div>
+
+          ${round
+            ? `
+              <div class="detail-block-grid">
+                ${renderStatBlock("Round Summary", buildRoundSummaryRows(round), "No round summary found.")}
+                ${renderStatBlock("Economy & Utility", buildEconomyUtilityRows(round), "No economy / utility data found.")}
+                ${renderItemsBlock("Purchased Items", purchased, "No valid purchased items found.", true)}
+                ${renderWeaponsBlock(weapons)}
+                ${compact ? "" : renderItemsBlock("Current Items", items, "No item snapshot found.")}
+              </div>
+            `
+            : `<div class="empty-lite">No round data found for Round ${roundIndex + 1}.</div>`}
+        </div>
+      `;
+    }
+
+    function getFilteredEntities() {
+      const metas = getFilteredPlayerMetas();
+
+      if (detailsAggregateMode !== "team") {
+        return metas.map(meta => ({ ...meta, kind: "player" }));
+      }
+
+      const grouped = new Map();
+
+      for (const meta of metas) {
+        const key = `team-${meta.teamIndex}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            kind: "team",
+            key,
+            teamIndex: meta.teamIndex,
+            teamName: meta.teamName,
+            players: []
+          });
+        }
+        grouped.get(key).players.push(meta);
+      }
+
+      return [...grouped.values()].sort((a, b) => a.teamIndex - b.teamIndex);
+    }
+
+    function getEntityDisplayLabel(entity) {
+      if (entity.kind === "team") {
+        return `${entity.teamName} - Team - ${entity.teamIndex === 0 ? "A" : "B"}`;
+      }
+      return `${entity.playerName} - ${entity.teamName} - ${entity.teamIndex === 0 ? "A" : "B"}`;
+    }
+
+    function getEntityRoundIndices(entity) {
+      if (!entity) return [];
+      if (entity.kind !== "team") return getPlayerRoundIndices(entity.player);
+
+      const set = new Set();
+      for (const meta of entity.players) {
+        const rounds = getPlayerRoundIndices(meta.player);
+        for (const idx of rounds) set.add(idx);
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function getAggregateRoundStat(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return null;
+
+      const rounds = entity.players
+        .map(meta => getRoundStatByIndex(meta.player, roundIndex))
+        .filter(Boolean);
+
+      if (!rounds.length) return null;
+
+      const sum = (key) => rounds.reduce((acc, r) => acc + toNum(r?.[key], 0), 0);
+
+      return {
+        round_index: roundIndex,
+        is_win: rounds.some(r => r?.is_win === true) ? true : (rounds.some(r => r?.is_win === false) ? false : null),
+        is_first_down: rounds.some(r => r?.is_first_down === true),
+        is_first_taken_down: rounds.some(r => r?.is_first_taken_down === true),
+
+        kill: sum("kill"),
+        assists: sum("assists"),
+        headshots: sum("headshots"),
+        real_damage: sum("real_damage"),
+        real_damage_taken: sum("real_damage_taken"),
+        knock_down: sum("knock_down"),
+
+        economy_spent_self: sum("economy_spent_self"),
+        economy_spent_on_teammates: sum("economy_spent_on_teammates"),
+        initial_item_value: sum("initial_item_value"),
+        airdrop_points: sum("airdrop_points"),
+
+        nb_skill_usages: sum("nb_skill_usages"),
+        medkit_use: sum("medkit_use"),
+        grenade_use: sum("grenade_use"),
+        icewall_use: sum("icewall_use"),
+        throwable_use: sum("throwable_use")
+      };
+    }
+
+    function aggregateCountEntries(lists) {
+      const map = new Map();
+
+      for (const list of lists || []) {
+        for (const item of (list || [])) {
+          const id = Number(item?.id);
+          const name = item?.name || "Unknown";
+          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
+
+          if (!map.has(key)) {
+            map.set(key, { id, name, count: 0 });
+          }
+
+          map.get(key).count += toNum(item?.count, 0);
+        }
+      }
+
+      return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    }
+
+    function getAggregateItemsForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+      return aggregateCountEntries(entity.players.map(meta => getItemsForRound(meta.player, roundIndex)));
+    }
+
+    function getAggregatePurchasedItemsForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+      return aggregateCountEntries(entity.players.map(meta => getPurchasedItemsForRound(meta.player, roundIndex)));
+    }
+
+    function getAggregateWeaponUsagesForRound(entity, roundIndex) {
+      if (!entity || entity.kind !== "team") return [];
+
+      const map = new Map();
+
+      for (const meta of entity.players) {
+        const usages = getWeaponUsagesForRound(meta.player, roundIndex);
+
+        for (const weapon of usages) {
+          const id = Number(weapon?.id);
+          const name = weapon?.name || `Weapon ID ${weapon?.id ?? "?"}`;
+          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
+
+          if (!map.has(key)) {
+            map.set(key, {
+              id,
+              name,
+              raw: {
+                weapon_id: id,
+                weapon_name: name
+              }
+            });
+          }
+
+          const entry = map.get(key);
+          for (const [k, v] of Object.entries(weapon.raw || {})) {
+            if (k === "weapon_id" || k === "weapon_name") continue;
+            const n = Number(v);
+            if (Number.isFinite(n)) {
+              entry.raw[k] = (entry.raw[k] || 0) + n;
+            }
+          }
+        }
+      }
+
+      return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function getEntityRoundStat(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateRoundStat(entity, roundIndex)
+        : getRoundStatByIndex(entity.player, roundIndex);
+    }
+
+    function getEntityItemsForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateItemsForRound(entity, roundIndex)
+        : getItemsForRound(entity.player, roundIndex);
+    }
+
+    function getEntityPurchasedItemsForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregatePurchasedItemsForRound(entity, roundIndex)
+        : getPurchasedItemsForRound(entity.player, roundIndex);
+    }
+
+    function getEntityWeaponUsagesForRound(entity, roundIndex) {
+      return entity?.kind === "team"
+        ? getAggregateWeaponUsagesForRound(entity, roundIndex)
+        : getWeaponUsagesForRound(entity.player, roundIndex);
+    }
+
+    function renderProgressionMatrix(entity, roundIndices) {
       const metrics = getProgressionMetrics();
 
       return `
@@ -2790,7 +3183,7 @@
                   <tr>
                     <td class="metric-col">${escapeHtml(row.label)}</td>
                     ${roundIndices.map(idx => {
-                      const round = getRoundStatByIndex(player, idx);
+                      const round = getEntityRoundStat(entity, idx);
                       if (!round) return renderMatrixCell("—", "muted");
                       const value = row.getValue(round);
                       const cls = row.getClass ? row.getClass(value, round) : "";
@@ -2806,10 +3199,10 @@
       `;
     }
 
-    function renderTrailCard(player, roundIndex) {
-      const items = getItemsForRound(player, roundIndex);
-      const purchased = getPurchasedItemsForRound(player, roundIndex);
-      const weapons = getWeaponUsagesForRound(player, roundIndex);
+    function renderTrailCard(entity, roundIndex) {
+      const items = getEntityItemsForRound(entity, roundIndex);
+      const purchased = getEntityPurchasedItemsForRound(entity, roundIndex);
+      const weapons = getEntityWeaponUsagesForRound(entity, roundIndex);
       const compact = detailsMetricDensity === "compact";
 
       return `
@@ -2836,36 +3229,51 @@
       `;
     }
 
-    function renderProgressionCard(meta) {
-      const player = meta.player;
+    function renderProgressionCard(entity) {
       const fixedRoundIndices = getFixedRoundIndices();
-      const actualRoundIndices = getPlayerRoundIndices(player);
-      const teamClass = meta.teamIndex === 0 ? "team-a" : "team-b";
+      const actualRoundIndices = getEntityRoundIndices(entity);
+      const teamClass = entity.teamIndex === 0 ? "team-a" : "team-b";
 
-      const activeSkill = getActiveSkillEntry(player);
-      const pet = getPetEntry(player);
-      const loadout = getPlayerLoadoutEntry(player);
+      const latestIdx = actualRoundIndices.length ? actualRoundIndices[actualRoundIndices.length - 1] : null;
+      const latestRound = latestIdx !== null ? getEntityRoundStat(entity, latestIdx) : null;
 
-      const latestRound = getLatestRoundStat(player);
-      const totalKills = actualRoundIndices.reduce((sum, idx) => sum + toNum(getRoundStatByIndex(player, idx)?.kill, 0), 0);
-      const totalDamage = actualRoundIndices.reduce((sum, idx) => sum + toNum(getRoundStatByIndex(player, idx)?.real_damage, 0), 0);
-      const sectionId = `jump-progress-${meta.teamIndex}-${meta.playerIndex}-${slugify(meta.playerName)}`;
+      const totalKills = actualRoundIndices.reduce((sum, idx) => sum + toNum(getEntityRoundStat(entity, idx)?.kill, 0), 0);
+      const totalDamage = actualRoundIndices.reduce((sum, idx) => sum + toNum(getEntityRoundStat(entity, idx)?.real_damage, 0), 0);
+
+      let title = "";
+      let metaLine = "";
+      let sectionId = "";
+
+      if (entity.kind === "team") {
+        title = entity.teamName;
+        metaLine = `Team Aggregate${detailsUseSpecificPlayers ? " • selected players only" : ""} • ${entity.players.length} player${entity.players.length === 1 ? "" : "s"}`;
+        sectionId = `jump-progress-team-${entity.teamIndex}`;
+      } else {
+        const activeSkill = getActiveSkillEntry(entity.player);
+        const pet = getPetEntry(entity.player);
+        const loadout = getPlayerLoadoutEntry(entity.player);
+
+        title = entity.playerName;
+        metaLine = [
+          entity.teamName,
+          activeSkill?.label ? `Active: ${activeSkill.label}` : "",
+          pet?.label && pet.label !== "—" ? `Pet: ${pet.label}` : "",
+          loadout?.name ? `Loadout: ${loadout.name}` : ""
+        ].filter(Boolean).join(" • ");
+
+        sectionId = `jump-progress-player-${entity.teamIndex}-${entity.playerIndex}`;
+      }
 
       return `
         <section
           id="${sectionId}"
           class="progression-card ${teamClass}"
-          data-jump-label="Player: ${escapeHtml(meta.playerName)}"
+          data-jump-label="${escapeHtml(detailsAggregateMode === "team" ? `Team: ${title}` : `Player: ${title}`)}"
         >
           <div class="progression-head">
             <div class="progression-head-left">
-              <div class="progression-player-name">${escapeHtml(meta.playerName)}</div>
-              <div class="progression-player-meta">
-                ${escapeHtml(meta.teamName)}
-                ${activeSkill?.label ? ` • Active: ${escapeHtml(activeSkill.label)}` : ""}
-                ${pet?.label && pet.label !== "—" ? ` • Pet: ${escapeHtml(pet.label)}` : ""}
-                ${loadout?.name ? ` • Loadout: ${escapeHtml(loadout.name)}` : ""}
-              </div>
+              <div class="progression-player-name">${escapeHtml(title)}</div>
+              <div class="progression-player-meta">${escapeHtml(metaLine)}</div>
             </div>
 
             <div class="progression-head-right">
@@ -2876,11 +3284,11 @@
             </div>
           </div>
 
-          ${renderProgressionMatrix(player, fixedRoundIndices)}
+          ${renderProgressionMatrix(entity, fixedRoundIndices)}
 
           ${actualRoundIndices.length
-            ? `<div class="round-trail">${actualRoundIndices.map(idx => renderTrailCard(player, idx)).join("")}</div>`
-            : `<div class="empty-lite">No round progression data found for this player.</div>`}
+            ? `<div class="round-trail">${actualRoundIndices.map(idx => renderTrailCard(entity, idx)).join("")}</div>`
+            : `<div class="empty-lite">No round progression data found.</div>`}
         </section>
       `;
     }
@@ -2904,10 +3312,23 @@
       return rows;
     }
 
-    function renderStackedMetricCard(metricDef, filteredPlayers, roundIndices) {
+    function renderStackedMetricCard(metricDef, entities, roundIndices) {
       const rangesByRound = new Map();
+
       for (const idx of roundIndices) {
-        rangesByRound.set(idx, getHeatRangeForMetricRound(metricDef, filteredPlayers, idx));
+        const nums = [];
+        for (const entity of entities) {
+          const round = getEntityRoundStat(entity, idx);
+          if (!round) continue;
+          const rawValue = metricDef.getValue(round);
+          const n = toFiniteNumberOrNull(rawValue);
+          if (n !== null) nums.push(n);
+        }
+
+        rangesByRound.set(
+          idx,
+          nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : { min: null, max: null }
+        );
       }
 
       const sectionId = `jump-stacked-${slugify(metricDef.groupTitle + "-" + metricDef.label)}`;
@@ -2916,7 +3337,7 @@
         <section
           id="${sectionId}"
           class="stacked-card"
-          data-jump-label="Metric: ${escapeHtml(metricDef.label)}"
+          data-jump-label="${escapeHtml(`Metric: ${metricDef.label}`)}"
         >
           <div class="stacked-card-head">
             <div>
@@ -2924,7 +3345,7 @@
               <div class="stacked-card-title">${escapeHtml(metricDef.label)}</div>
             </div>
             <div class="stacked-card-copy">
-              ${filteredPlayers.length} player${filteredPlayers.length === 1 ? "" : "s"} • R1–R${MAX_DISPLAY_ROUNDS}
+              ${entities.length} row${entities.length === 1 ? "" : "s"} • R1–R${MAX_DISPLAY_ROUNDS}
             </div>
           </div>
 
@@ -2932,19 +3353,19 @@
             <table class="matrix-table">
               <thead>
                 <tr>
-                  <th class="player-cell">Player</th>
+                  <th class="player-cell">${detailsAggregateMode === "team" ? "Team" : "Player"}</th>
                   ${roundIndices.map(idx => `<th>R${idx + 1}</th>`).join("")}
                 </tr>
               </thead>
               <tbody>
-                ${filteredPlayers.map(meta => {
-                  const compactLabel = getStackedPlayerLabel(meta);
+                ${entities.map(entity => {
+                  const label = getEntityDisplayLabel(entity);
 
                   return `
                     <tr>
-                      <td class="player-cell" title="${escapeHtml(compactLabel)}">${escapeHtml(compactLabel)}</td>
+                      <td class="player-cell" title="${escapeHtml(label)}">${escapeHtml(label)}</td>
                       ${roundIndices.map(idx => {
-                        const round = getRoundStatByIndex(meta.player, idx);
+                        const round = getEntityRoundStat(entity, idx);
                         if (!round) return renderMatrixCell("—", "muted");
 
                         const value = metricDef.getValue(round);
@@ -2969,14 +3390,14 @@
       `;
     }
 
-    function renderWrappedTextMetricCard(title, kicker, filteredPlayers, roundIndices, getTextFn, emptyText = "—") {
+    function renderWrappedTextMetricCard(title, kicker, entities, roundIndices, getTextFn, emptyText = "—") {
       const sectionId = `jump-stacked-${slugify(title)}`;
 
       return `
         <section
           id="${sectionId}"
           class="stacked-card"
-          data-jump-label="Metric: ${escapeHtml(title)}"
+          data-jump-label="${escapeHtml(`Metric: ${title}`)}"
         >
           <div class="stacked-card-head">
             <div>
@@ -2984,19 +3405,19 @@
               <div class="stacked-card-title">${escapeHtml(title)}</div>
             </div>
             <div class="stacked-card-copy">
-              Wrapped card view • No horizontal right-scroll
+              Wrapped card view
             </div>
           </div>
 
           <div class="wrap-metric-list">
-            ${filteredPlayers.map(meta => {
-              const compactLabel = getStackedPlayerLabel(meta);
+            ${entities.map(entity => {
+              const label = getEntityDisplayLabel(entity);
               return `
                 <div class="wrap-player-card">
-                  <div class="wrap-player-title">${escapeHtml(compactLabel)}</div>
+                  <div class="wrap-player-title">${escapeHtml(label)}</div>
                   <div class="wrap-round-grid">
                     ${roundIndices.map(idx => {
-                      const text = getTextFn(meta.player, idx) || emptyText;
+                      const text = getTextFn(entity, idx) || emptyText;
                       return `
                         <div class="wrap-round-card">
                           <div class="wrap-round-label">R${idx + 1}</div>
@@ -3013,8 +3434,8 @@
       `;
     }
 
-    function renderStackedProgressView(filteredPlayers, roundIndices) {
-      if (!filteredPlayers.length) {
+    function renderStackedProgressView(entities, roundIndices) {
+      if (!entities.length) {
         return `
           <div class="stats-category">
             <div class="stats-table">
@@ -3022,8 +3443,8 @@
                 <div class="stats-key">Stacked Progress</div>
                 <div class="stats-val">
                   ${detailsUseSpecificPlayers
-                    ? "Specific player filter is on but no visible players are selected. Click a player pill, use All Visible, or Reset."
-                    : "No players available for the current team scope."}
+                    ? "Specific player filter is on but no visible rows are selected."
+                    : "No rows available for the current scope."}
                 </div>
               </div>
             </div>
@@ -3035,23 +3456,23 @@
 
       return `
         <div class="stacked-stack">
-          ${metricDefs.map(def => renderStackedMetricCard(def, filteredPlayers, roundIndices)).join("")}
+          ${metricDefs.map(def => renderStackedMetricCard(def, entities, roundIndices)).join("")}
 
           ${renderWrappedTextMetricCard(
             "Purchased Items",
             "Round Trail",
-            filteredPlayers,
+            entities,
             roundIndices,
-            (player, idx) => formatItemsInline(getPurchasedItemsForRound(player, idx), "None"),
+            (entity, idx) => formatItemsInline(getEntityPurchasedItemsForRound(entity, idx), "None"),
             "None"
           )}
 
           ${renderWrappedTextMetricCard(
             "Weapons",
             "Round Trail",
-            filteredPlayers,
+            entities,
             roundIndices,
-            (player, idx) => formatWeaponsInline(getWeaponUsagesForRound(player, idx)),
+            (entity, idx) => formatWeaponsInline(getEntityWeaponUsagesForRound(entity, idx)),
             "None"
           )}
         </div>
@@ -3182,31 +3603,27 @@
       `;
     }
 
-    function renderComparePlayerCard(meta, roundIndex) {
-      const player = meta.player;
-      const teamClass = meta.teamIndex === 0 ? "team-a" : "team-b";
-      const teamBadge = meta.teamIndex === 0 ? "A" : "B";
+    function renderCompareEntityCard(entity, roundIndex) {
+      if (entity.kind !== "team") {
+        return renderComparePlayerCard(entity, roundIndex);
+      }
 
-      const round = getRoundStatByIndex(player, roundIndex);
-      const activeSkill = getActiveSkillEntry(player);
-      const pet = getPetEntry(player);
-      const loadout = getPlayerLoadoutEntry(player);
+      const teamClass = entity.teamIndex === 0 ? "team-a" : "team-b";
+      const teamBadge = entity.teamIndex === 0 ? "A" : "B";
 
-      const items = getItemsForRound(player, roundIndex);
-      const purchased = getPurchasedItemsForRound(player, roundIndex);
-      const weapons = getWeaponUsagesForRound(player, roundIndex);
+      const round = getAggregateRoundStat(entity, roundIndex);
+      const items = getAggregateItemsForRound(entity, roundIndex);
+      const purchased = getAggregatePurchasedItemsForRound(entity, roundIndex);
+      const weapons = getAggregateWeaponUsagesForRound(entity, roundIndex);
       const compact = detailsMetricDensity === "compact";
 
       return `
         <div class="detail-player-card ${teamClass}">
           <div class="detail-player-card-head">
             <div>
-              <div class="detail-player-name">${escapeHtml(meta.playerName)}</div>
+              <div class="detail-player-name">${escapeHtml(entity.teamName)}</div>
               <div class="detail-player-meta">
-                ${escapeHtml(meta.teamName)}
-                ${activeSkill?.label ? ` • Active: ${escapeHtml(activeSkill.label)}` : ""}
-                ${pet?.label && pet.label !== "—" ? ` • Pet: ${escapeHtml(pet.label)}` : ""}
-                ${loadout?.name ? ` • Loadout: ${escapeHtml(loadout.name)}` : ""}
+                Team Aggregate${detailsUseSpecificPlayers ? " • selected players only" : ""} • ${entity.players.length} player${entity.players.length === 1 ? "" : "s"}
               </div>
             </div>
             <div class="detail-player-badge">${teamBadge}</div>
@@ -3227,8 +3644,8 @@
       `;
     }
 
-    function renderCompareView(filteredPlayers, visibleRoundIndices) {
-      if (!filteredPlayers.length) {
+    function renderCompareView(entities, visibleRoundIndices) {
+      if (!entities.length) {
         return `
           <div class="stats-category">
             <div class="stats-table">
@@ -3236,8 +3653,8 @@
                 <div class="stats-key">Details</div>
                 <div class="stats-val">
                   ${detailsUseSpecificPlayers
-                    ? "Specific player filter is on but no visible players are selected. Click a player pill, use All Visible, or Reset."
-                    : "No players available for the current team scope."}
+                    ? "Specific player filter is on but no visible rows are selected."
+                    : "No rows available for the current scope."}
                 </div>
               </div>
             </div>
@@ -3251,7 +3668,7 @@
             <div class="stats-table">
               <div class="stats-row">
                 <div class="stats-key">Rounds</div>
-                <div class="stats-val">No round data found for the selected players.</div>
+                <div class="stats-val">No round data found for the selected scope.</div>
               </div>
             </div>
           </div>
@@ -3266,7 +3683,7 @@
               <section
                 id="${sectionId}"
                 class="round-section"
-                data-jump-label="Round ${roundIndex + 1}"
+                data-jump-label="${escapeHtml(`Round ${roundIndex + 1}`)}"
               >
                 <div class="round-section-head">
                   <div>
@@ -3274,12 +3691,12 @@
                     <div class="round-section-title">Round ${roundIndex + 1}</div>
                   </div>
                   <div class="round-section-copy">
-                    ${filteredPlayers.length} player${filteredPlayers.length === 1 ? "" : "s"} visible
+                    ${entities.length} row${entities.length === 1 ? "" : "s"} visible
                   </div>
                 </div>
 
                 <div class="round-player-grid">
-                  ${filteredPlayers.map(meta => renderComparePlayerCard(meta, roundIndex)).join("")}
+                  ${entities.map(entity => renderCompareEntityCard(entity, roundIndex)).join("")}
                 </div>
               </section>
             `;
@@ -3288,8 +3705,8 @@
       `;
     }
 
-    function renderProgressionView(filteredPlayers) {
-      if (!filteredPlayers.length) {
+    function renderProgressionView(entities) {
+      if (!entities.length) {
         return `
           <div class="stats-category">
             <div class="stats-table">
@@ -3297,8 +3714,8 @@
                 <div class="stats-key">Progression</div>
                 <div class="stats-val">
                   ${detailsUseSpecificPlayers
-                    ? "Specific player filter is on but no visible players are selected. Click a player pill, use All Visible, or Reset."
-                    : "No players available for the current team scope."}
+                    ? "Specific player filter is on but no visible rows are selected."
+                    : "No rows available for the current scope."}
                 </div>
               </div>
             </div>
@@ -3308,7 +3725,7 @@
 
       return `
         <div class="progression-stack">
-          ${filteredPlayers.map(meta => renderProgressionCard(meta)).join("")}
+          ${entities.map(entity => renderProgressionCard(entity)).join("")}
         </div>
       `;
     }
@@ -3339,27 +3756,27 @@
     }
 
     function renderGlobalPlayerDetails() {
-      const filteredPlayers = getFilteredPlayerMetas();
+      const entities = getFilteredEntities();
       const fixedRoundIndices = getFixedRoundIndices();
-      const actualRoundIndices = getRoundIndicesForPlayerMetas(filteredPlayers);
+
+      const actualRoundSet = new Set();
+      for (const entity of entities) {
+        for (const idx of getEntityRoundIndices(entity)) actualRoundSet.add(idx);
+      }
+      const actualRoundIndices = [...actualRoundSet].sort((a, b) => a - b);
+
       const compareRoundIndices = detailsMode === "all"
         ? actualRoundIndices
         : (actualRoundIndices.length ? [actualRoundIndices[actualRoundIndices.length - 1]] : []);
 
       updateDetailsSummaryMeta(
-        filteredPlayers,
+        entities,
         detailsViewMode === "compare" ? compareRoundIndices : fixedRoundIndices
       );
 
-      if (detailsViewMode === "progression") {
-        return renderProgressionView(filteredPlayers);
-      }
-
-      if (detailsViewMode === "stacked") {
-        return renderStackedProgressView(filteredPlayers, fixedRoundIndices);
-      }
-
-      return renderCompareView(filteredPlayers, compareRoundIndices);
+      if (detailsViewMode === "progression") return renderProgressionView(entities);
+      if (detailsViewMode === "stacked") return renderStackedProgressView(entities, fixedRoundIndices);
+      return renderCompareView(entities, compareRoundIndices);
     }
 
     function renderDetailsPanel() {
@@ -3405,6 +3822,7 @@
       detailsMode = "latest";
       detailsViewMode = "progression";
       detailsMetricDensity = "compact";
+      detailsAggregateMode = "player";
       detailsTeamFilter = "both";
       detailsUseSpecificPlayers = false;
       detailsSelectedPlayerKeys = new Set();
@@ -3629,6 +4047,9 @@
     $("progressionViewBtn")?.addEventListener("click", () => setDetailsViewMode("progression"));
     $("stackedProgressBtn")?.addEventListener("click", () => setDetailsViewMode("stacked"));
     $("compareViewBtn")?.addEventListener("click", () => setDetailsViewMode("compare"));
+
+    $("aggregatePlayersBtn")?.addEventListener("click", () => setDetailsAggregateMode("player"));
+    $("aggregateTeamsBtn")?.addEventListener("click", () => setDetailsAggregateMode("team"));
 
     $("compactMetricsBtn")?.addEventListener("click", () => setDetailsMetricDensity("compact"));
     $("fullMetricsBtn")?.addEventListener("click", () => setDetailsMetricDensity("full"));
