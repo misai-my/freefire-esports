@@ -1084,7 +1084,6 @@
       overflow-wrap:anywhere;
     }
 
-    /* Keep 3 cards always */
     .counts-grid{
       display:grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1635,7 +1634,21 @@ function esc(s){
 }
 
 function getDesc(obj){
-  return (obj?.description || obj?.desc || obj?.details || obj?.notes || obj?.note || '').toString().trim();
+  if (!obj) return '';
+
+  const candidates = [
+    obj?.description,
+    obj?.desc,
+    obj?.details,
+    obj?.notes,
+    obj?.note
+  ];
+
+  for (const v of candidates) {
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+
+  return '';
 }
 
 function formatPetDesc(p){
@@ -1645,13 +1658,27 @@ function formatPetDesc(p){
 }
 
 function formatLoadoutDesc(l){
-  const d = getDesc(l);
-  if (d) return d;
+  if (!l) return '—';
 
-  if (l?.cs_description) return l.cs_description;
-  if (l?.br_description) return l.br_description;
-  if (l?.description?.cs) return l.description.cs;
-  if (l?.description?.br) return l.description.br;
+  if (typeof l?.description?.cs === 'string' && l.description.cs.trim()) {
+    return l.description.cs.trim();
+  }
+
+  if (typeof l?.cs_description === 'string' && l.cs_description.trim()) {
+    return l.cs_description.trim();
+  }
+
+  if (typeof l?.description?.br === 'string' && l.description.br.trim()) {
+    return l.description.br.trim();
+  }
+
+  if (typeof l?.br_description === 'string' && l.br_description.trim()) {
+    return l.br_description.trim();
+  }
+
+  if (typeof l?.description === 'string' && l.description.trim()) {
+    return l.description.trim();
+  }
 
   return '—';
 }
@@ -3129,4 +3156,3 @@ document.getElementById('tournamentFilter').addEventListener('change', (e) => {
 </script>
 </body>
 </html>
-
