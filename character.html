@@ -42,7 +42,7 @@
       --char-radius: 14px;
       --char-thumb-radius: 14px;
 
-      /* compact cards, but no column limit */
+      /* reverted compact card sizing */
       --card-max: 128px;
 
       color-scheme: dark;
@@ -554,10 +554,10 @@
       letter-spacing: 0;
     }
 
-    /* no column limit */
+    /* fixed compact grid */
     .grid{
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--card-max)), 1fr));
+      grid-template-columns: repeat(4, minmax(0, var(--card-max)));
       justify-content:start;
       gap: var(--char-gap);
       width:100%;
@@ -836,6 +836,21 @@
       .userchip{
         max-width:220px;
       }
+
+      .grid{
+        grid-template-columns: repeat(4, minmax(0, 120px));
+      }
+    }
+
+    @media (max-width: 1100px){
+      .grid{
+        grid-template-columns: repeat(4, minmax(0, 108px));
+      }
+
+      .userchip{
+        max-width:180px;
+      }
+      .usertext b{max-width:110px;}
     }
 
     @media (max-width: 980px){
@@ -916,6 +931,10 @@
       .meta-label.full{display:none;}
       .meta-label.short{display:inline;}
 
+      .grid{
+        grid-template-columns: repeat(3, minmax(0, 104px));
+      }
+
       .hero{height: 120px;}
       .hero-content{left:12px; right:12px; bottom:12px;}
       .hero-title h2{font-size: 1.18rem;}
@@ -956,6 +975,14 @@
       }
     }
 
+    @media (max-width: 700px){
+      .grid{
+        grid-template-columns: repeat(2, minmax(0, 120px));
+      }
+      .char-name{font-size:.76rem;}
+      .chip{font-size:.62rem;}
+    }
+
     @media (max-width: 560px){
       .topbar{
         grid-template-columns: 42px minmax(0,1fr);
@@ -994,6 +1021,10 @@
         text-indent:0;
         font-size:16px;
         color: rgba(244,246,255,.86);
+      }
+
+      .grid{
+        grid-template-columns: repeat(2, minmax(0, calc((100% - 8px) / 2)));
       }
 
       .modal-top{padding: 16px;}
@@ -1330,7 +1361,7 @@
   <script>
     const CFG = Object.freeze({
       SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
-      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6ImFub24iLCJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
       CHAR_URL: 'https://misai-my.github.io/freefire-esports/character.json',
       CACHE_KEY: 'ff_chars_cache_v2',
       CACHE_TTL_MS: 1000 * 60 * 60 * 6,
@@ -1498,7 +1529,8 @@
       metaTitleText.textContent = currentMergeMode === 'merged' ? 'All Characters' : 'Meta Characters';
       metaHint.textContent = isBR ? '(Battle Royale)' : '(Clash Squad)';
       nonMetaSectionTitle.style.display = currentMergeMode === 'merged' ? 'none' : '';
-      nonMetaGrid.style.display = currentMergeMode === 'merged' ? 'none' : 'grid';
+      nonMetaGrid.style.display = currentMergeMode === 'merged' ? 'grid' : 'grid';
+      if (currentMergeMode === 'merged') nonMetaGrid.style.display = 'none';
       metaSectionTitle.style.marginTop = '';
       mergeToggleBtn.textContent = currentMergeMode === 'merged' ? 'View: Merged' : 'View: Split';
     }
