@@ -1,5 +1,3 @@
-Here’s the full valid script with By Player / By Team aggregation included.
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1441,15 +1439,15 @@ Here’s the full valid script with By Player / By Team aggregation included.
         </div>
 
         <div class="actions" style="margin-top:0;">
-          <button id="progressionViewBtn" class="ghost mode-btn active" type="button">Progression View</button>
-          <button id="stackedProgressBtn" class="ghost mode-btn" type="button">Stacked Progress</button>
+          <button id="progressionViewBtn" class="ghost mode-btn" type="button">Progression View</button>
+          <button id="stackedProgressBtn" class="ghost mode-btn active" type="button">Stacked Progress</button>
           <button id="compareViewBtn" class="ghost mode-btn" type="button">Compare View</button>
 
           <button id="aggregatePlayersBtn" class="ghost mode-btn active" type="button">By Player</button>
           <button id="aggregateTeamsBtn" class="ghost mode-btn" type="button">By Team</button>
 
-          <button id="compactMetricsBtn" class="ghost mode-btn active" type="button">Compact Metrics</button>
-          <button id="fullMetricsBtn" class="ghost mode-btn" type="button">Full Metrics</button>
+          <button id="compactMetricsBtn" class="ghost mode-btn" type="button">Compact Metrics</button>
+          <button id="fullMetricsBtn" class="ghost mode-btn active" type="button">Full Metrics</button>
           <button id="latestModeBtn" class="ghost mode-btn active" type="button">Latest Round</button>
           <button id="allRoundsModeBtn" class="ghost mode-btn" type="button">All Rounds</button>
         </div>
@@ -1459,7 +1457,7 @@ Here’s the full valid script with By Player / By Team aggregation included.
         <div class="field">
           <label for="detailsTeamFilter">Team Scope</label>
           <select id="detailsTeamFilter" class="select-ui">
-            <option value="both">Both Teams</option>
+            <option value="">Both Teams</option>
           </select>
         </div>
 
@@ -1524,8 +1522,8 @@ Here’s the full valid script with By Player / By Team aggregation included.
     let matchApiLoaded = false;
     let assetsLoaded = false;
     let detailsMode = "latest";
-    let detailsViewMode = "progression";
-    let detailsMetricDensity = "compact";
+    let detailsViewMode = "stacked";
+    let detailsMetricDensity = "full";
     let detailsAggregateMode = "player";
     let detailsTeamFilter = "both";
     let detailsUseSpecificPlayers = false;
@@ -2573,17 +2571,6 @@ Here’s the full valid script with By Player / By Team aggregation included.
       renderDetailsPanel();
     }
 
-    function getStackedPlayerLabel(meta) {
-      return `${meta.playerName} - ${meta.teamName} - ${meta.teamIndex === 0 ? "A" : "B"}`;
-    }
-
-    function getEntityDisplayLabel(entity) {
-      if (entity.kind === "team") {
-        return `${entity.teamName} - Team - ${entity.teamIndex === 0 ? "A" : "B"}`;
-      }
-      return getStackedPlayerLabel(entity);
-    }
-
     function getFilteredEntities() {
       const metas = getFilteredPlayerMetas();
 
@@ -2608,6 +2595,13 @@ Here’s the full valid script with By Player / By Team aggregation included.
       }
 
       return [...grouped.values()].sort((a, b) => a.teamIndex - b.teamIndex);
+    }
+
+    function getEntityDisplayLabel(entity) {
+      if (entity.kind === "team") {
+        return `${entity.teamName} - Team - ${entity.teamIndex === 0 ? "A" : "B"}`;
+      }
+      return `${entity.playerName} - ${entity.teamName} - ${entity.teamIndex === 0 ? "A" : "B"}`;
     }
 
     function getEntityRoundIndices(entity) {
@@ -2980,178 +2974,6 @@ Here’s the full valid script with By Player / By Team aggregation included.
             : `<div class="empty-lite">No round data found for Round ${roundIndex + 1}.</div>`}
         </div>
       `;
-    }
-
-    function getFilteredEntities() {
-      const metas = getFilteredPlayerMetas();
-
-      if (detailsAggregateMode !== "team") {
-        return metas.map(meta => ({ ...meta, kind: "player" }));
-      }
-
-      const grouped = new Map();
-
-      for (const meta of metas) {
-        const key = `team-${meta.teamIndex}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, {
-            kind: "team",
-            key,
-            teamIndex: meta.teamIndex,
-            teamName: meta.teamName,
-            players: []
-          });
-        }
-        grouped.get(key).players.push(meta);
-      }
-
-      return [...grouped.values()].sort((a, b) => a.teamIndex - b.teamIndex);
-    }
-
-    function getEntityDisplayLabel(entity) {
-      if (entity.kind === "team") {
-        return `${entity.teamName} - Team - ${entity.teamIndex === 0 ? "A" : "B"}`;
-      }
-      return `${entity.playerName} - ${entity.teamName} - ${entity.teamIndex === 0 ? "A" : "B"}`;
-    }
-
-    function getEntityRoundIndices(entity) {
-      if (!entity) return [];
-      if (entity.kind !== "team") return getPlayerRoundIndices(entity.player);
-
-      const set = new Set();
-      for (const meta of entity.players) {
-        const rounds = getPlayerRoundIndices(meta.player);
-        for (const idx of rounds) set.add(idx);
-      }
-      return [...set].sort((a, b) => a - b);
-    }
-
-    function getAggregateRoundStat(entity, roundIndex) {
-      if (!entity || entity.kind !== "team") return null;
-
-      const rounds = entity.players
-        .map(meta => getRoundStatByIndex(meta.player, roundIndex))
-        .filter(Boolean);
-
-      if (!rounds.length) return null;
-
-      const sum = (key) => rounds.reduce((acc, r) => acc + toNum(r?.[key], 0), 0);
-
-      return {
-        round_index: roundIndex,
-        is_win: rounds.some(r => r?.is_win === true) ? true : (rounds.some(r => r?.is_win === false) ? false : null),
-        is_first_down: rounds.some(r => r?.is_first_down === true),
-        is_first_taken_down: rounds.some(r => r?.is_first_taken_down === true),
-
-        kill: sum("kill"),
-        assists: sum("assists"),
-        headshots: sum("headshots"),
-        real_damage: sum("real_damage"),
-        real_damage_taken: sum("real_damage_taken"),
-        knock_down: sum("knock_down"),
-
-        economy_spent_self: sum("economy_spent_self"),
-        economy_spent_on_teammates: sum("economy_spent_on_teammates"),
-        initial_item_value: sum("initial_item_value"),
-        airdrop_points: sum("airdrop_points"),
-
-        medkit_use: sum("medkit_use"),
-        grenade_use: sum("grenade_use"),
-        icewall_use: sum("icewall_use")
-      };
-    }
-
-    function aggregateCountEntries(lists) {
-      const map = new Map();
-
-      for (const list of lists || []) {
-        for (const item of (list || [])) {
-          const id = Number(item?.id);
-          const name = item?.name || "Unknown";
-          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
-
-          if (!map.has(key)) {
-            map.set(key, { id, name, count: 0 });
-          }
-
-          map.get(key).count += toNum(item?.count, 0);
-        }
-      }
-
-      return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    }
-
-    function getAggregateItemsForRound(entity, roundIndex) {
-      if (!entity || entity.kind !== "team") return [];
-      return aggregateCountEntries(entity.players.map(meta => getItemsForRound(meta.player, roundIndex)));
-    }
-
-    function getAggregatePurchasedItemsForRound(entity, roundIndex) {
-      if (!entity || entity.kind !== "team") return [];
-      return aggregateCountEntries(entity.players.map(meta => getPurchasedItemsForRound(meta.player, roundIndex)));
-    }
-
-    function getAggregateWeaponUsagesForRound(entity, roundIndex) {
-      if (!entity || entity.kind !== "team") return [];
-
-      const map = new Map();
-
-      for (const meta of entity.players) {
-        const usages = getWeaponUsagesForRound(meta.player, roundIndex);
-
-        for (const weapon of usages) {
-          const id = Number(weapon?.id);
-          const name = weapon?.name || `Weapon ID ${weapon?.id ?? "?"}`;
-          const key = Number.isFinite(id) ? `id-${id}` : `name-${name}`;
-
-          if (!map.has(key)) {
-            map.set(key, {
-              id,
-              name,
-              raw: {
-                weapon_id: id,
-                weapon_name: name
-              }
-            });
-          }
-
-          const entry = map.get(key);
-          for (const [k, v] of Object.entries(weapon.raw || {})) {
-            if (k === "weapon_id" || k === "weapon_name") continue;
-            const n = Number(v);
-            if (Number.isFinite(n)) {
-              entry.raw[k] = (entry.raw[k] || 0) + n;
-            }
-          }
-        }
-      }
-
-      return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    function getEntityRoundStat(entity, roundIndex) {
-      return entity?.kind === "team"
-        ? getAggregateRoundStat(entity, roundIndex)
-        : getRoundStatByIndex(entity.player, roundIndex);
-    }
-
-    function getEntityItemsForRound(entity, roundIndex) {
-      return entity?.kind === "team"
-        ? getAggregateItemsForRound(entity, roundIndex)
-        : getItemsForRound(entity.player, roundIndex);
-    }
-
-    function getEntityPurchasedItemsForRound(entity, roundIndex) {
-      return entity?.kind === "team"
-        ? getAggregatePurchasedItemsForRound(entity, roundIndex)
-        : getPurchasedItemsForRound(entity.player, roundIndex);
-    }
-
-    function getEntityWeaponUsagesForRound(entity, roundIndex) {
-      return entity?.kind === "team"
-        ? getAggregateWeaponUsagesForRound(entity, roundIndex)
-        : getWeaponUsagesForRound(entity.player, roundIndex);
     }
 
     function renderProgressionMatrix(entity, roundIndices) {
@@ -3809,8 +3631,8 @@ Here’s the full valid script with By Player / By Team aggregation included.
       CURRENT_PAYLOAD = null;
 
       detailsMode = "latest";
-      detailsViewMode = "progression";
-      detailsMetricDensity = "compact";
+      detailsViewMode = "stacked";
+      detailsMetricDensity = "full";
       detailsAggregateMode = "player";
       detailsTeamFilter = "both";
       detailsUseSpecificPlayers = false;
