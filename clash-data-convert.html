@@ -1601,6 +1601,10 @@
       return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "");
     }
 
+    function firstWord(value) {
+      return String(value ?? "").trim().split(/\s+/)[0] || "";
+    }
+
     function slugify(value) {
       return String(value ?? "")
         .trim()
@@ -1802,6 +1806,11 @@
           if (imageUrl && Number.isFinite(apiId)) ASSETS.charactersById.set(apiId, asset);
           if (row?.name) ASSETS.charactersByName.set(normalizeKey(row.name), asset);
           if (row?.skill) ASSETS.charactersByName.set(normalizeKey(row.skill), asset);
+
+          const shortName = firstWord(row?.name);
+          const shortSkill = firstWord(row?.skill);
+          if (shortName) ASSETS.charactersByName.set(normalizeKey(shortName), asset);
+          if (shortSkill) ASSETS.charactersByName.set(normalizeKey(shortSkill), asset);
         }
       }
 
@@ -1856,7 +1865,13 @@
     function getCharacterAsset(skillId, fallbackName = "") {
       const byId = ASSETS.charactersById.get(Number(skillId));
       if (byId) return byId;
-      if (fallbackName) return ASSETS.charactersByName.get(normalizeKey(fallbackName)) || null;
+
+      const full = normalizeKey(fallbackName);
+      if (full && ASSETS.charactersByName.has(full)) return ASSETS.charactersByName.get(full);
+
+      const short = normalizeKey(firstWord(fallbackName));
+      if (short && ASSETS.charactersByName.has(short)) return ASSETS.charactersByName.get(short);
+
       return null;
     }
 
@@ -1890,12 +1905,13 @@
       }
 
       const lookupName = getLookupName(2, activeId) || activeInfo?.skill_name || `Skill ID ${activeId}`;
-      const asset = getCharacterAsset(activeId, lookupName);
+      const lookupFirst = firstWord(lookupName);
+      const asset = getCharacterAsset(activeId, lookupFirst || lookupName);
 
       return {
         id: Number(activeId),
-        label: asset?.name || lookupName,
-        skill: asset?.skill || activeInfo?.skill_name || lookupName,
+        label: asset?.name || lookupFirst || lookupName,
+        skill: asset?.skill || lookupFirst || activeInfo?.skill_name || lookupName,
         description: asset?.description || "",
         image_url: asset?.image_url || "",
         slotType: "Active"
@@ -1909,11 +1925,12 @@
 
       return uniquePassiveIds.map(id => {
         const lookupName = getLookupName(2, id) || `Skill ID ${id}`;
-        const asset = getCharacterAsset(id, lookupName);
+        const lookupFirst = firstWord(lookupName);
+        const asset = getCharacterAsset(id, lookupFirst || lookupName);
         return {
           id: Number(id),
-          label: asset?.name || lookupName,
-          skill: asset?.skill || lookupName,
+          label: asset?.name || lookupFirst || lookupName,
+          skill: asset?.skill || lookupFirst || lookupName,
           description: asset?.description || "",
           image_url: asset?.image_url || "",
           slotType: "Passive"
