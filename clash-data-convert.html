@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1987,20 +1986,6 @@
       return [...set].sort((a, b) => a - b);
     }
 
-    function getRoundIndicesForPlayerMetas(playerMetas) {
-      const set = new Set();
-
-      for (const meta of playerMetas || []) {
-        const rounds = Array.isArray(meta?.player?.round_stats) ? meta.player.round_stats : [];
-        for (const round of rounds) {
-          const idx = toNum(round?.round_index, -1);
-          if (idx >= 0 && idx < MAX_DISPLAY_ROUNDS) set.add(idx);
-        }
-      }
-
-      return [...set].sort((a, b) => a - b);
-    }
-
     function getItemsForRound(player, roundIndex) {
       const round = getRoundStatByIndex(player, roundIndex);
       const items = Array.isArray(round?.item_nums) ? round.item_nums : [];
@@ -2892,6 +2877,11 @@
       return items.map(item => `${item.name} x${item.count}`).join(", ");
     }
 
+    function formatPurchasedItemsList(items, emptyText = "None") {
+      if (!items || !items.length) return emptyText;
+      return items.map(item => `, ${item.name} x${item.count}`).join("\n");
+    }
+
     function summarizeWeaponUsageLine(weapon) {
       const fields = Object.entries(weapon?.raw || {})
         .filter(([k, v]) => k !== "weapon_name" && k !== "weapon_id" && v !== null && v !== undefined && String(v) !== "")
@@ -3029,7 +3019,7 @@
 
           <div class="trail-block">
             <div class="trail-label">Purchased</div>
-            <div class="trail-body">${escapeHtml(formatItemsInline(purchased))}</div>
+            <div class="trail-body">${escapeHtmlWithBreaks(formatPurchasedItemsList(purchased))}</div>
           </div>
 
           ${compact ? "" : `
@@ -3281,7 +3271,7 @@
             "Round Trail",
             entities,
             roundIndices,
-            (entity, idx) => formatItemsInline(getEntityPurchasedItemsForRound(entity, idx), "None"),
+            (entity, idx) => formatPurchasedItemsList(getEntityPurchasedItemsForRound(entity, idx), "None"),
             "None"
           )}
 
