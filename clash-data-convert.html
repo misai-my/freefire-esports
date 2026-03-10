@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -999,6 +1000,7 @@
       color:#d8e4ff;
       line-height:1.35;
       word-break:break-word;
+      white-space:normal;
     }
 
     .stacked-stack{
@@ -2899,7 +2901,9 @@
 
     function formatWeaponsInline(usages) {
       if (!usages || !usages.length) return "None";
-      return usages.map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon) ? ` — ${summarizeWeaponUsageLine(weapon)}` : ""}`).join(" | ");
+      return usages
+        .map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon) ? ` — ${summarizeWeaponUsageLine(weapon)}` : ""}`)
+        .join("\n");
     }
 
     function renderMatrixCell(value, className = "", inlineStyle = "", asHtml = false) {
@@ -3037,7 +3041,7 @@
 
           <div class="trail-block">
             <div class="trail-label">Weapons</div>
-            <div class="trail-body">${escapeHtml(formatWeaponsInline(weapons))}</div>
+            <div class="trail-body">${escapeHtmlWithBreaks(formatWeaponsInline(weapons))}</div>
           </div>
         </div>
       `;
@@ -3235,7 +3239,7 @@
                       return `
                         <div class="wrap-round-card">
                           <div class="wrap-round-label">R${idx + 1}</div>
-                          <div class="wrap-round-body">${escapeHtml(text)}</div>
+                          <div class="wrap-round-body">${escapeHtmlWithBreaks(text)}</div>
                         </div>
                       `;
                     }).join("")}
