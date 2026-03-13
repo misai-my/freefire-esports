@@ -171,7 +171,6 @@
       border-color:transparent;
     }
 
-    /* ===== Row-based button colors ===== */
     .mode-btn{
       border:1px solid rgba(255,255,255,.10);
       transition:
@@ -182,7 +181,6 @@
         transform .18s ease;
     }
 
-    /* Row 1: Progression / Stacked / Compare */
     #progressionViewBtn,
     #stackedProgressBtn,
     #compareViewBtn{
@@ -206,7 +204,6 @@
       box-shadow:0 8px 20px rgba(45,175,255,.22);
     }
 
-    /* Row 2: By Player / By Team */
     #aggregatePlayersBtn,
     #aggregateTeamsBtn{
       background:rgba(255,127,50,.08);
@@ -227,7 +224,6 @@
       box-shadow:0 8px 20px rgba(255,127,50,.22);
     }
 
-    /* Row 3: Compact / Full Metrics */
     #compactMetricsBtn,
     #fullMetricsBtn{
       background:rgba(184,119,255,.08);
@@ -248,7 +244,6 @@
       box-shadow:0 8px 20px rgba(184,119,255,.22);
     }
 
-    /* Row 4: Latest Round / All Rounds */
     #latestModeBtn,
     #allRoundsModeBtn{
       background:rgba(124,255,158,.08);
@@ -1510,6 +1505,7 @@
 
       <div class="actions">
         <button id="renderBtn">Render</button>
+        <button id="uploadReportBtn" class="ghost" type="button">Upload Report Data</button>
         <button id="reloadLookupBtn" class="ghost" type="button">Reload Lookup + Images</button>
         <button id="clearBtn" class="ghost" type="button">Clear</button>
       </div>
@@ -1619,9 +1615,13 @@
     const CHARACTER_JSON_URL = 'https://misai-my.github.io/freefire-esports/character.json';
     const PET_JSON_URL = 'https://misai-my.github.io/freefire-esports/pet.json';
     const LOADOUT_JSON_URL = 'https://misai-my.github.io/freefire-esports/loadout.json';
+
     const SHARED_ROOM = 'global';
     const LOCAL_INPUT_KEY = 'cs_clash_local_json';
     const MAX_DISPLAY_ROUNDS = 11;
+
+    const REPORT_MATCHES_TABLE = 'cs_report_matches';
+    const REPORT_ROUNDS_TABLE = 'cs_report_player_rounds';
 
     const $ = (id) => document.getElementById(id);
 
@@ -2154,6 +2154,246 @@
         id: Number(weapon?.weapon_id),
         name: weapon?.weapon_name || `Weapon ID ${weapon?.weapon_id ?? "?"}`
       }));
+    }
+
+    function extractMatchId(payload) {
+      return (
+        payload?.match?.match_id ||
+        payload?.match_id ||
+        payload?.match?.id ||
+        null
+      );
+    }
+
+    function getActualRoundIndicesFromTeams(teams = []) {
+      const set = new Set();
+      for (const team of teams) {
+        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+        for (const player of players) {
+          const rounds = Array.isArray(player?.round_stats) ? player.round_stats : [];
+          for (const round of rounds) {
+            const idx = toNum(round?.round_index, -1);
+            if (idx >= 0 && idx < MAX_DISPLAY_ROUNDS) set.add(idx);
+          }
+        }
+      }
+      return [...set].sort((a, b) => a - b);
+    }
+
+    function deriveMatchKey(payload, teams) {
+      const rawMatchId = extractMatchId(payload);
+      if (rawMatchId) return `match_${rawMatchId}`;
+
+      const teamA = slugify(teams?.[0]?.team_name || 'team-a');
+      const teamB = slugify(teams?.[1]?.team_name || 'team-b');
+      const stampSource =
+        payload?.match?.start_time ||
+        payload?.match?.create_time ||
+        payload?.match?.game_time ||
+        new Date().toISOString();
+
+      const stamp = String(stampSource).replace(/[^0-9]/g, '').slice(0, 14) || String(Date.now());
+      return `adhoc_${teamA}_${teamB}_${stamp}`;
+    }
+
+    function chunkArray(arr, size = 500) {
+      const out = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    }
+
+    function buildMatchUploadRow(payload, teams, matchKey) {
+      const roundIndices = getActualRoundIndicesFromTeams(teams);
+      const teamAScore = computeTeamScore(teams[0]);
+      const teamBScore = computeTeamScore(teams[1]);
+
+      return {
+        match_key: matchKey,
+        match_id: extractMatchId(payload),
+        display_round: getDisplayRound(payload, teams),
+        total_rounds: roundIndices.length,
+        team_a_name: teams?.[0]?.team_name || 'Team A',
+        team_b_name: teams?.[1]?.team_name || 'Team B',
+        team_a_score: teamAScore,
+        team_b_score: teamBScore,
+        match_payload: payload,
+        uploaded_at: new Date().toISOString()
+      };
+    }
+
+    function buildReportUploadRows(payload, teams, matchKey) {
+      const matchId = extractMatchId(payload);
+      const teamScores = teams.map(team => computeTeamScore(team));
+      const rows = [];
+
+      teams.slice(0, 2).forEach((team, teamIndex) => {
+        const teamName = team?.team_name || `Team ${teamIndex === 0 ? "A" : "B"}`;
+        const opponent = teams[teamIndex === 0 ? 1 : 0];
+        const opponentName = opponent?.team_name || `Team ${teamIndex === 0 ? "B" : "A"}`;
+
+        const teamScore = teamScores[teamIndex] || 0;
+        const opponentScore = teamScores[teamIndex === 0 ? 1 : 0] || 0;
+
+        const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+
+        players.forEach((player, playerIndex) => {
+          const playerName = player?.nickname || player?.account_id || `Player ${playerIndex + 1}`;
+          const accountId = player?.account_id || null;
+
+          const activeSkill = getActiveSkillEntry(player);
+          const passiveSkills = getPassiveSkillEntries(player);
+          const pet = getPetEntry(player);
+          const loadout = getPlayerLoadoutEntry(player);
+
+          const skillIds = Array.isArray(player?.skill_ids) ? player.skill_ids : [];
+          const skillInfo = Array.isArray(player?.skill_info) ? player.skill_info : [];
+          const roundIndices = getPlayerRoundIndices(player);
+          const effectiveRoundIndices = roundIndices.length ? roundIndices : [null];
+
+          effectiveRoundIndices.forEach((roundIndex) => {
+            const round = Number.isInteger(roundIndex) ? getRoundStatByIndex(player, roundIndex) : null;
+            const isLatestRound = Number.isInteger(roundIndex) && roundIndex === getLatestRoundIndex(player);
+
+            const currentItems = Number.isInteger(roundIndex) ? getItemsForRound(player, roundIndex) : [];
+            const purchasedItems = Number.isInteger(roundIndex) ? getPurchasedItemsForRound(player, roundIndex) : [];
+            const weaponUsages = Number.isInteger(roundIndex) ? getWeaponUsagesForRound(player, roundIndex) : [];
+
+            rows.push({
+              match_key: matchKey,
+              match_id: matchId,
+
+              team_index: teamIndex,
+              team_side: teamIndex === 0 ? 'A' : 'B',
+              team_name: teamName,
+              opponent_team_name: opponentName,
+              team_score: teamScore,
+              opponent_score: opponentScore,
+
+              player_index: playerIndex,
+              player_name: playerName,
+              account_id: accountId,
+
+              active_skill_id: activeSkill?.id || null,
+              active_skill_name: activeSkill?.label || null,
+
+              passive_skill_ids: passiveSkills.map(s => s.id).filter(v => v !== null),
+              passive_skill_names: passiveSkills.map(s => s.label).filter(Boolean),
+
+              pet_id: pet?.id || null,
+              pet_name: pet?.label && pet.label !== '—' ? pet.label : null,
+
+              loadout_id: loadout?.loadout_id || null,
+              loadout_name: loadout?.name || null,
+
+              round_index: Number.isInteger(roundIndex) ? roundIndex : null,
+              round_label: Number.isInteger(roundIndex) ? `Round ${roundIndex + 1}` : null,
+              is_latest_round: !!isLatestRound,
+
+              is_win: round?.is_win ?? null,
+              is_first_down: round?.is_first_down ?? null,
+              is_first_taken_down: round?.is_first_taken_down ?? null,
+
+              kills: toFiniteNumberOrNull(round?.kill),
+              assists: toFiniteNumberOrNull(round?.assists),
+              headshots: toFiniteNumberOrNull(round?.headshots),
+              damage: toFiniteNumberOrNull(round?.real_damage),
+              damage_taken: toFiniteNumberOrNull(round?.real_damage_taken),
+              knock_down: toFiniteNumberOrNull(round?.knock_down),
+
+              economy_spent_self: toFiniteNumberOrNull(round?.economy_spent_self),
+              economy_spent_on_teammates: toFiniteNumberOrNull(round?.economy_spent_on_teammates),
+              initial_item_value: toFiniteNumberOrNull(round?.initial_item_value),
+              airdrop_points: toFiniteNumberOrNull(round?.airdrop_points),
+
+              medkit_use: toFiniteNumberOrNull(round?.medkit_use),
+              grenade_use: toFiniteNumberOrNull(round?.grenade_use),
+              icewall_use: toFiniteNumberOrNull(round?.icewall_use),
+
+              current_items: currentItems,
+              current_items_text: formatItemsInline(currentItems, 'None'),
+
+              purchased_items: purchasedItems,
+              purchased_items_text: purchasedItems.length
+                ? purchasedItems.map(item => `${item.name} x${item.count}`).join(', ')
+                : 'None',
+
+              weapon_usages: weaponUsages.map(w => ({
+                weapon_id: w.id,
+                weapon_name: w.name,
+                ...w.raw
+              })),
+              weapon_usages_text: weaponUsages.length
+                ? weaponUsages.map(w => `${w.name}${w.id ? ` [${w.id}]` : ''} — ${summarizeWeaponUsageLine(w)}`).join('\n')
+                : 'None',
+
+              player_skill_ids: skillIds,
+              player_skill_info: skillInfo,
+              raw_round: round || null,
+
+              uploaded_at: new Date().toISOString()
+            });
+          });
+        });
+      });
+
+      return rows;
+    }
+
+    async function uploadReportData() {
+      if (!CURRENT_PAYLOAD || !CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        setStatus('Render match JSON first before uploading report data.', true);
+        return;
+      }
+
+      const btn = $('uploadReportBtn');
+      if (btn) btn.disabled = true;
+
+      try {
+        const matchKey = deriveMatchKey(CURRENT_PAYLOAD, CURRENT_TEAMS);
+        const matchRow = buildMatchUploadRow(CURRENT_PAYLOAD, CURRENT_TEAMS, matchKey);
+        const roundRows = buildReportUploadRows(CURRENT_PAYLOAD, CURRENT_TEAMS, matchKey);
+
+        setStatus(
+          `Uploading report data...\n` +
+          `Match key: ${matchKey}\n` +
+          `Match rows: 1\n` +
+          `Player-round rows: ${roundRows.length}`
+        );
+
+        const { error: matchError } = await client
+          .from(REPORT_MATCHES_TABLE)
+          .upsert(matchRow, { onConflict: 'match_key' });
+
+        if (matchError) throw new Error(`Match upload failed: ${matchError.message}`);
+
+        const { error: deleteError } = await client
+          .from(REPORT_ROUNDS_TABLE)
+          .delete()
+          .eq('match_key', matchKey);
+
+        if (deleteError) throw new Error(`Old round cleanup failed: ${deleteError.message}`);
+
+        const chunks = chunkArray(roundRows, 500);
+        for (let i = 0; i < chunks.length; i++) {
+          const { error: insertError } = await client
+            .from(REPORT_ROUNDS_TABLE)
+            .insert(chunks[i]);
+
+          if (insertError) {
+            throw new Error(`Round row upload failed on batch ${i + 1}/${chunks.length}: ${insertError.message}`);
+          }
+        }
+
+        setStatus(
+          `Upload complete.\n` +
+          `Match key: ${matchKey}\n` +
+          `Uploaded 1 match row and ${roundRows.length} player-round rows.`
+        );
+      } catch (err) {
+        setStatus(`Upload failed:\n${err.message || err}`, true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     function getDisplayRound(payload, teams = []) {
@@ -3934,6 +4174,7 @@
 
     $("jsonInput")?.addEventListener("input", () => setLocalInput($("jsonInput").value || ""));
     $("renderBtn")?.addEventListener("click", () => renderJson());
+    $("uploadReportBtn")?.addEventListener("click", uploadReportData);
 
     $("reloadLookupBtn")?.addEventListener("click", async () => {
       matchApiLoaded = false;
