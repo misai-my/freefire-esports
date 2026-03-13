@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clash Squad Report</title>
+  <title>Clash Squad Matched Report</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -24,7 +24,6 @@
       --gold:#ffbd59;
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:22px;
-      --radius-sm:14px;
     }
 
     *{box-sizing:border-box}
@@ -49,8 +48,7 @@
       padding:18px 20px;
       border:1px solid var(--line);
       border-radius:var(--radius);
-      background:
-        linear-gradient(180deg, rgba(10,20,42,.94), rgba(7,14,30,.96));
+      background:linear-gradient(180deg, rgba(10,20,42,.94), rgba(7,14,30,.96));
       box-shadow:var(--shadow);
     }
 
@@ -77,7 +75,6 @@
     }
 
     .panel + .panel{ margin-top:16px; }
-
     .panel-inner{ padding:16px; }
 
     .section-title{
@@ -419,13 +416,6 @@
       line-height:1.35;
     }
 
-    .pill-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-bottom:12px;
-    }
-
     .hint{
       margin-top:10px;
       font-size:12px;
@@ -452,9 +442,9 @@
     <section class="hero">
       <h1 class="title">Clash Squad Matched Report</h1>
       <p class="sub">
-        This page first matches <strong>cs_report_matches</strong> to <strong>draft_records</strong> using
-        <strong>teams + exact score/result + active skill comp</strong>. After a row is matched, the page uses
-        <strong>draft_records</strong> as the source for tournament, map, bans, and player names.
+        Matching uses only <strong>team vs team</strong>, <strong>exact score/result</strong>, and
+        <strong>active skill comp</strong> using first-word normalization. It does <strong>not</strong> use created_at.
+        After a row is matched, tournament, map, bans, and player names come from <strong>draft_records</strong>.
       </p>
     </section>
 
@@ -537,7 +527,7 @@
   <script>
     const client = supabase.createClient(
       'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6ImFub24iLCJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
     );
 
     const TEAM_ALIAS = {
@@ -559,7 +549,6 @@
 
     const REPORT_SELECT = `
       *,
-      created_at,
       match_date,
       report_match_key,
       source_match_key
@@ -567,7 +556,6 @@
 
     const DRAFT_SELECT = `
       id,
-      created_at,
       match_date,
       game_number,
       team_left,
@@ -842,12 +830,12 @@
           reportMatch._scoreA === draftMatch._scoreRight &&
           reportMatch._scoreB === draftMatch._scoreLeft);
 
-      if (exactScore) {
-        score += 50;
-        reasons.push('score exact');
-      } else {
+      if (!exactScore) {
         return { score: -1, reversed, reasons: ['score mismatch'], aOverlap: 0, bOverlap: 0 };
       }
+
+      score += 50;
+      reasons.push('score exact');
 
       const expectedLeftSig = reversed ? draftMatch._rightActiveSig : draftMatch._leftActiveSig;
       const expectedRightSig = reversed ? draftMatch._leftActiveSig : draftMatch._rightActiveSig;
@@ -1035,22 +1023,15 @@
         .slice(0, topN);
     }
 
-    function summarizeActiveComp(row, side='left'){
-      return side === 'left' ? row._activeASig : row._activeBSig;
-    }
-
     function computeSummary(rows){
       const total = rows.length;
-      const leftWins = rows.filter(r => r._leftScore > r._rightScore).length;
-      const rightWins = rows.filter(r => r._rightScore > r._leftScore).length;
-
       const allMaps = summarizeByCount(rows.map(r => r._map), 8);
       const allTournaments = summarizeByCount(rows.map(r => r._tournament), 8);
       const allPlayers = summarizeByCount(rows.flatMap(r => r._playerCards || []), 12);
       const allBans = summarizeByCount(rows.flatMap(r => [r._leftBan, r._rightBan]), 12);
       const allActive = summarizeByCount(rows.flatMap(r => [r._activeASig, r._activeBSig]).filter(Boolean), 12);
 
-      return { total, leftWins, rightWins, allMaps, allTournaments, allPlayers, allBans, allActive };
+      return { total, allMaps, allTournaments, allPlayers, allBans, allActive };
     }
 
     function renderCountList(title, list, empty='No data'){
@@ -1114,14 +1095,14 @@
             <div class="mini-card">
               <h3 class="mini-title">Matching Logic</h3>
               <div class="mini-copy">
-                Team pair + exact score are required. Active comp first-word signature boosts confidence.
-                Tournament, map, bans, and player names are taken from the matched draft record.
+                Match only by team pair, exact score, and active comp signature. No created_at matching. After match,
+                use draft row for map, tournament, bans, and player names.
               </div>
               <div class="chips">
                 <span class="chip good">Teams</span>
-                <span class="chip good">Score</span>
+                <span class="chip good">Exact Score</span>
                 <span class="chip">Active Comp</span>
-                <span class="chip">Draft Enrichment</span>
+                <span class="chip">No created_at</span>
               </div>
             </div>
           </div>
@@ -1195,11 +1176,9 @@
         .map(t => ({
           ...t,
           mapTop: summarizeByCount(t.maps, 5),
-          tournTop: summarizeByCount(t.tournaments, 5),
           banTop: summarizeByCount(t.bans, 5),
           playerTop: summarizeByCount(t.players, 8),
-          activeTop: summarizeByCount(t.actives, 5),
-          oppTop: summarizeByCount(t.opponents, 5)
+          activeTop: summarizeByCount(t.actives, 5)
         }))
         .sort((a,b) => b.matches - a.matches || a.team.localeCompare(b.team));
     }
@@ -1239,10 +1218,6 @@
             </tbody>
           </table>
         </div>
-
-        <div class="hint">
-          Team report is built from matched rows only. Player names, maps, and bans come from draft records after matching.
-        </div>
       `;
     }
 
@@ -1256,14 +1231,13 @@
         leftPlayers.forEach(name => {
           if (!name) return;
           if (!players.has(name)){
-            players.set(name, { player:name, teams:[], maps:[], tournaments:[], bans:[], matches:0, wins:0, actives:[] });
+            players.set(name, { player:name, teams:[], maps:[], bans:[], matches:0, wins:0, actives:[] });
           }
           const p = players.get(name);
           p.matches += 1;
           if (row._leftScore > row._rightScore) p.wins += 1;
           p.teams.push(row._leftTeam);
           p.maps.push(row._map);
-          p.tournaments.push(row._tournament);
           if (row._leftBan) p.bans.push(row._leftBan);
           if (row._activeASig) p.actives.push(row._activeASig);
         });
@@ -1271,14 +1245,13 @@
         rightPlayers.forEach(name => {
           if (!name) return;
           if (!players.has(name)){
-            players.set(name, { player:name, teams:[], maps:[], tournaments:[], bans:[], matches:0, wins:0, actives:[] });
+            players.set(name, { player:name, teams:[], maps:[], bans:[], matches:0, wins:0, actives:[] });
           }
           const p = players.get(name);
           p.matches += 1;
           if (row._rightScore > row._leftScore) p.wins += 1;
           p.teams.push(row._rightTeam);
           p.maps.push(row._map);
-          p.tournaments.push(row._tournament);
           if (row._rightBan) p.bans.push(row._rightBan);
           if (row._activeBSig) p.actives.push(row._activeBSig);
         });
@@ -1289,7 +1262,6 @@
           ...p,
           teamTop: summarizeByCount(p.teams, 3),
           mapTop: summarizeByCount(p.maps, 5),
-          tournTop: summarizeByCount(p.tournaments, 5),
           banTop: summarizeByCount(p.bans, 5),
           activeTop: summarizeByCount(p.actives, 5)
         }))
@@ -1330,10 +1302,6 @@
               `).join('')}
             </tbody>
           </table>
-        </div>
-
-        <div class="hint">
-          Player names come from <strong>draft_records.state.playerCards</strong>.
         </div>
       `;
     }
@@ -1523,7 +1491,9 @@
           `cs_report_matches: ${reportRows.length}\n` +
           `draft_records (FFCM only): ${ffcmDrafts.length}\n` +
           `matched rows: ${STATE.allMatches.filter(x => x._matched).length}\n` +
-          `unmatched rows: ${STATE.allMatches.filter(x => !x._matched).length}`
+          `unmatched rows: ${STATE.allMatches.filter(x => !x._matched).length}\n` +
+          `Matching used: team pair + exact score + active comp\n` +
+          `Matching did NOT use created_at`
         );
       } catch(err){
         console.error(err);
