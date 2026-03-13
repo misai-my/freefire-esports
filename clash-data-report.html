@@ -24,7 +24,6 @@
       --gold:#ffbd59;
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:22px;
-      --radius-sm:14px;
       --max:1500px;
     }
 
@@ -242,10 +241,7 @@
       border-color:rgba(45,175,255,.42);
     }
 
-    .view{
-      display:none;
-      min-width:0;
-    }
+    .view{display:none; min-width:0;}
     .view.active{display:block}
 
     .grid-2{
@@ -327,9 +323,7 @@
       font-size:11px;
     }
 
-    tbody tr:hover td{
-      background:rgba(255,255,255,.025);
-    }
+    tbody tr:hover td{ background:rgba(255,255,255,.025); }
 
     .pill{
       display:inline-flex;
@@ -407,14 +401,9 @@
       color:#8fe6ff;
     }
 
-    .draft-strength{
-      font-weight:900;
-    }
+    .draft-strength{font-weight:900;}
 
-    .top-list{
-      display:grid;
-      gap:6px;
-    }
+    .top-list{display:grid; gap:6px;}
 
     .top-row{
       display:flex;
@@ -425,8 +414,6 @@
       background:rgba(255,255,255,.03);
       border:1px solid rgba(255,255,255,.05);
     }
-
-    .nowrap{white-space:nowrap}
 
     @media (max-width:1200px){
       .filters{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -651,9 +638,7 @@
   <script>
     const client = supabase.createClient(
       'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
-        .replace('eyJpc3MiOiJIUzI1NiIsInR5cCI6IkpXVCJ9','eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30')
-        + '.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
     );
 
     const $ = (id) => document.getElementById(id);
@@ -728,13 +713,6 @@
       return '';
     }
 
-    function getField(obj, keys, fallback = ''){
-      for (const key of keys){
-        if (obj && obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') return obj[key];
-      }
-      return fallback;
-    }
-
     function listToNameArray(v){
       if (!v) return [];
       if (Array.isArray(v)){
@@ -773,17 +751,27 @@
     }
 
     function deriveMatchKey(row){
-      return firstNonEmpty(
+      const direct = firstNonEmpty(
         row.match_key,
-        row.match_id,
         row.report_match_key,
-        row.source_match_key,
-        row.id
+        row.source_match_key
       );
+      if (direct) return String(direct);
+
+      const syntheticA = [
+        firstNonEmpty(row.match_date, row.created_at, '').slice(0,10),
+        firstNonEmpty(row.map, row.draft_map, row.match_map, row.map_name, ''),
+        firstNonEmpty(row.team_a_name, row.team_left, row.left_team_name, row.team1_name, ''),
+        firstNonEmpty(row.team_b_name, row.team_right, row.right_team_name, row.team2_name, ''),
+        firstNonEmpty(row.game_number, row.draft_game_number, row.game_no, '')
+      ].join('|');
+
+      if (syntheticA.replace(/\|/g,'').trim()) return syntheticA;
+      return String(firstNonEmpty(row.created_at, Math.random().toString(36).slice(2)));
     }
 
     function deriveMatchDate(row){
-      return firstNonEmpty(row.match_date, row.draft_match_date, row.created_at, '').slice(0,10);
+      return String(firstNonEmpty(row.match_date, row.draft_match_date, row.created_at, '')).slice(0,10);
     }
 
     function deriveGameNumber(row){
@@ -825,6 +813,7 @@
       const picks = Array.isArray(state.picks) ? state.picks : [];
       const passives = Array.isArray(state.passives) ? state.passives : [];
       const playerCards = Array.isArray(state.playerCards) ? state.playerCards : [];
+
       const leftActives = picks.slice(0,4).map(p => p?.name || '').filter(Boolean);
       const rightActives = picks.slice(4,8).map(p => p?.name || '').filter(Boolean);
       const leftBan = bans[0]?.name || '';
@@ -1046,19 +1035,49 @@
       };
     }
 
-    async function fetchAllRows(table, orderCol = 'id'){
+    async function fetchAllRows(table, orderCandidates = ['created_at']) {
+      let chosenOrder = null;
+
+      for (const col of orderCandidates) {
+        try {
+          const probe = await client
+            .from(table)
+            .select('*')
+            .order(col, { ascending: false })
+            .range(0, 0);
+
+          if (!probe.error) {
+            chosenOrder = col;
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (!chosenOrder) {
+        const fallback = await client.from(table).select('*');
+        if (fallback.error) throw fallback.error;
+        return fallback.data || [];
+      }
+
       let all = [];
       let from = 0;
       const size = 1000;
 
-      while (true){
-        const { data, error } = await client.from(table).select('*').order(orderCol, { ascending:false }).range(from, from + size - 1);
+      while (true) {
+        const { data, error } = await client
+          .from(table)
+          .select('*')
+          .order(chosenOrder, { ascending: false })
+          .range(from, from + size - 1);
+
         if (error) throw error;
+
         const rows = data || [];
         all = all.concat(rows);
         if (rows.length < size) break;
         from += size;
       }
+
       return all;
     }
 
@@ -1218,6 +1237,7 @@
 
         const keyA = `${m._matchKey}||${m._teamA}`;
         const keyB = `${m._matchKey}||${m._teamB}`;
+
         if (!matchSeen.has(keyA)){
           matchSeen.add(keyA);
           if (m._scoreA > m._scoreB) byTeam.get(m._teamA).wins++;
@@ -1270,7 +1290,6 @@
 
     function renderPlayerTable(){
       const byPlayer = new Map();
-      const matchTeamMap = new Map();
 
       for (const r of STATE.filteredRounds){
         const key = `${r._player}||${r._team}`;
@@ -1299,8 +1318,6 @@
         x.maps.set(r._map, (x.maps.get(r._map) || 0) + 1);
         if (r._active && r._active !== '—') x.actives.set(r._active, (x.actives.get(r._active) || 0) + 1);
         for (const p of r._passives || []) x.passives.set(p, (x.passives.get(p) || 0) + 1);
-
-        matchTeamMap.set(r._matchKey, true);
       }
 
       const rows = [...byPlayer.values()].sort((a,b) => b.matches.size - a.matches.size || b.kills - a.kills || a.player.localeCompare(b.player));
@@ -1520,9 +1537,25 @@
       setStatus('Loading report tables and draft records...');
       try {
         const [matchesRaw, roundsRaw, draftsRaw] = await Promise.all([
-          fetchAllRows('cs_report_matches', 'id'),
-          fetchAllRows('cs_report_player_rounds', 'id'),
-          fetchAllRows('draft_records', 'id')
+          fetchAllRows('cs_report_matches', [
+            'created_at',
+            'match_date',
+            'match_key',
+            'report_match_key',
+            'source_match_key'
+          ]),
+          fetchAllRows('cs_report_player_rounds', [
+            'created_at',
+            'match_key',
+            'report_match_key',
+            'source_match_key',
+            'round_index'
+          ]),
+          fetchAllRows('draft_records', [
+            'created_at',
+            'match_date',
+            'id'
+          ])
         ]);
 
         STATE.matchesRaw = matchesRaw;
