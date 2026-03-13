@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FFCM Clash Squad Report</title>
+  <title>Clash Squad Report</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root{
-      --bg:#060b18;
-      --bg2:#071122;
-      --panel:#081226;
-      --panel2:#0b1730;
+      --bg:#06101f;
+      --bg2:#08182b;
+      --panel:rgba(8,18,38,.92);
+      --panel2:rgba(10,24,48,.96);
       --line:rgba(124,172,255,.14);
       --line2:rgba(124,172,255,.08);
       --ink:#eef4ff;
       --muted:#9fb0d1;
-      --orange:#ff7f32;
       --cyan:#2dafff;
+      --orange:#ff7f32;
       --good:#7cff9e;
       --bad:#ff8f8f;
       --gold:#ffbd59;
       --shadow:0 24px 60px rgba(0,0,0,.45);
       --radius:22px;
-      --max:1540px;
+      --radius-sm:14px;
     }
 
     *{box-sizing:border-box}
@@ -38,42 +38,34 @@
         linear-gradient(180deg,#030814 0%,#071122 100%);
     }
 
-    .topbar{
-      position:sticky;
-      top:0;
-      z-index:20;
-      background:linear-gradient(180deg, rgba(3,8,20,.96), rgba(3,8,20,.82));
-      border-bottom:1px solid var(--line);
-      backdrop-filter:blur(16px);
-    }
-
-    .topbar-inner{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:14px 16px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .title-wrap h1{
-      margin:0;
-      font-size:clamp(22px, 2vw, 30px);
-      font-weight:900;
-      line-height:1.1;
-    }
-    .title-wrap p{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:13px;
-    }
-
     .app{
-      max-width:var(--max);
+      max-width:1480px;
       margin:0 auto;
-      padding:16px;
+      padding:18px;
+    }
+
+    .hero{
+      margin-bottom:16px;
+      padding:18px 20px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:
+        linear-gradient(180deg, rgba(10,20,42,.94), rgba(7,14,30,.96));
+      box-shadow:var(--shadow);
+    }
+
+    .title{
+      margin:0 0 6px;
+      font-size:28px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.45;
     }
 
     .panel{
@@ -84,52 +76,24 @@
       min-width:0;
     }
 
-    .hero{
-      padding:16px;
-      margin-bottom:14px;
-      background:
-        radial-gradient(circle at top left, rgba(45,175,255,.15), transparent 32%),
-        radial-gradient(circle at top right, rgba(255,127,50,.12), transparent 28%),
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-    }
+    .panel + .panel{ margin-top:16px; }
 
-    .hero-grid{
-      display:grid;
-      grid-template-columns:repeat(5,minmax(0,1fr));
-      gap:10px;
-    }
+    .panel-inner{ padding:16px; }
 
-    .kpi{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      background:rgba(255,255,255,.025);
-      min-width:0;
-    }
-    .kpi-label{
-      font-size:11px;
-      color:var(--muted);
+    .section-title{
+      margin:0 0 12px;
+      font-size:15px;
+      font-weight:900;
       text-transform:uppercase;
       letter-spacing:.08em;
-      margin-bottom:6px;
-    }
-    .kpi-value{
-      font-size:22px;
-      font-weight:900;
-      line-height:1;
+      color:#d9e8ff;
     }
 
-    .toolbar{
-      padding:14px;
+    .controls{
       display:grid;
-      gap:12px;
-      margin-bottom:14px;
-    }
-
-    .filters{
-      display:grid;
-      grid-template-columns:repeat(6,minmax(0,1fr));
+      grid-template-columns:repeat(6, minmax(0,1fr));
       gap:10px;
+      align-items:end;
     }
 
     .field{
@@ -138,72 +102,63 @@
       gap:6px;
       min-width:0;
     }
+
     .field label{
       font-size:11px;
       text-transform:uppercase;
-      letter-spacing:.08em;
+      letter-spacing:.12em;
       color:var(--muted);
       font-weight:800;
     }
 
-    .input,.select{
+    .select-ui,
+    .input-ui{
       width:100%;
-      min-height:42px;
+      min-height:40px;
       border-radius:12px;
       border:1px solid var(--line);
       background:#08111f;
       color:var(--ink);
       padding:10px 12px;
       outline:none;
-      font:600 13px/1.2 Inter,Segoe UI,Roboto,Arial,sans-serif;
+      font:600 12px/1.2 Inter,Segoe UI,Roboto,Arial,sans-serif;
     }
-    .input:focus,.select:focus{
+
+    .select-ui:focus,
+    .input-ui:focus{
       border-color:rgba(45,175,255,.45);
       box-shadow:0 0 0 3px rgba(45,175,255,.10);
     }
 
-    .btns{
+    .actions{
       display:flex;
-      gap:8px;
+      gap:10px;
       flex-wrap:wrap;
       align-items:center;
     }
-    .btn{
+
+    button{
       border:0;
       border-radius:12px;
-      padding:10px 14px;
+      padding:10px 16px;
       font-weight:800;
       cursor:pointer;
+      background:linear-gradient(90deg, var(--cyan), #68ffd7);
+      color:#08101d;
       font-size:12px;
       line-height:1;
       white-space:nowrap;
-      background:linear-gradient(90deg, var(--cyan), #68ffd7);
-      color:#08101d;
     }
-    .btn.ghost{
+
+    button.ghost{
       background:transparent;
       color:var(--ink);
       border:1px solid var(--line);
     }
 
-    .tabs{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .tab{
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);
-      color:var(--ink);
-      padding:10px 14px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .tab.active{
-      background:linear-gradient(90deg, rgba(45,175,255,.22), rgba(104,255,215,.18));
-      border-color:rgba(45,175,255,.42);
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
     }
 
     .status{
@@ -216,383 +171,365 @@
       font-size:13px;
       white-space:pre-wrap;
     }
+
     .status.error{
       color:#ffd7d7;
       border-color:rgba(255,123,123,.35);
       background:rgba(255,123,123,.08);
     }
 
-    .view{display:none}
-    .view.active{display:block}
-
-    .section{
-      padding:14px;
-      margin-bottom:14px;
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
     }
-    .section-title{
-      margin:0 0 12px;
-      font-size:14px;
+
+    .tab-btn{
+      padding:9px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+      color:#d9e6ff;
+      font-size:12px;
       font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.06em;
+      cursor:pointer;
     }
 
-    .cards{
+    .tab-btn.active{
+      background:linear-gradient(90deg, rgba(45,175,255,.24), rgba(104,255,215,.20));
+      color:#fff;
+      border-color:rgba(45,175,255,.45);
+    }
+
+    .tab-section{ display:none; }
+    .tab-section.active{ display:block; }
+
+    .kpi-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:12px;
+    }
+
+    .kpi-card{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.025);
+      padding:14px;
+      min-width:0;
+    }
+
+    .kpi-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--muted);
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .kpi-value{
+      font-size:28px;
+      line-height:1;
+      font-weight:900;
+      color:#fff;
+    }
+
+    .kpi-sub{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    .split-2{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:16px;
+    }
+
+    .card-list{
+      display:grid;
       gap:10px;
     }
 
     .mini-card{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.025);
+      border:1px solid var(--line2);
       border-radius:16px;
+      background:rgba(255,255,255,.025);
       padding:12px;
-      display:grid;
-      gap:8px;
       min-width:0;
     }
-    .mini-card h3{
-      margin:0;
-      font-size:15px;
-      color:var(--gold);
+
+    .mini-title{
+      font-size:13px;
+      font-weight:900;
+      color:#fff;
+      margin:0 0 6px;
+      line-height:1.25;
     }
 
-    .grid-2{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:14px;
+    .mini-copy{
+      font-size:12px;
+      color:#d4e2ff;
+      line-height:1.4;
+      word-break:break-word;
     }
 
-    .top-list{
-      display:grid;
-      gap:6px;
-    }
-    .top-row{
+    .chips{
       display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:8px 10px;
-      border-radius:12px;
-      background:rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.05);
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      min-height:26px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.14);
+      background:rgba(255,255,255,.04);
+      color:#eef4ff;
+      font-size:11px;
+      font-weight:800;
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    .chip.good{
+      color:#06210d;
+      background:linear-gradient(90deg, rgba(124,255,158,.95), rgba(104,255,215,.95));
+      border-color:rgba(124,255,158,.7);
+    }
+
+    .chip.bad{
+      color:#2a0909;
+      background:linear-gradient(90deg, rgba(255,143,143,.95), rgba(255,190,190,.95));
+      border-color:rgba(255,143,143,.7);
     }
 
     .table-wrap{
-      width:100%;
       overflow:auto;
-      border-radius:16px;
       border:1px solid var(--line);
-      background:rgba(0,0,0,.14);
+      border-radius:16px;
+      background:rgba(255,255,255,.02);
     }
+
     table{
       width:100%;
       min-width:980px;
       border-collapse:collapse;
     }
-    th,td{
-      border-bottom:1px solid var(--line2);
+
+    th, td{
       padding:10px 10px;
-      text-align:left;
+      border-bottom:1px solid rgba(124,172,255,.08);
       vertical-align:top;
-      font-size:13px;
+      text-align:left;
+      font-size:12px;
+      line-height:1.35;
     }
-    thead th{
+
+    th{
       position:sticky;
       top:0;
-      z-index:1;
-      background:#0a1527;
+      background:#0b1628;
       color:#eef4ff;
       font-weight:900;
       text-transform:uppercase;
       letter-spacing:.05em;
       font-size:11px;
-    }
-    tbody tr:hover td{ background:rgba(255,255,255,.025); }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      border-radius:999px;
-      padding:5px 10px;
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.08);
-      font-size:11px;
-      font-weight:800;
-      margin:2px 4px 2px 0;
+      z-index:1;
     }
 
-    .match-list{
-      display:grid;
-      gap:10px;
+    tr:hover td{
+      background:rgba(255,255,255,.02);
     }
+
+    .mono{
+      font-variant-numeric:tabular-nums;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+
+    .muted{ color:var(--muted); }
+    .good{ color:var(--good); }
+    .bad{ color:var(--bad); }
+    .gold{ color:var(--gold); }
+
     .match-card{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.025);
+      border:1px solid var(--line2);
       border-radius:18px;
+      background:rgba(255,255,255,.02);
       padding:14px;
       display:grid;
       gap:10px;
     }
+
     .match-head{
       display:flex;
       justify-content:space-between;
+      align-items:flex-start;
       gap:12px;
       flex-wrap:wrap;
-      align-items:flex-start;
     }
+
     .match-title{
-      font-size:16px;
+      font-size:15px;
       font-weight:900;
       color:#fff;
+      line-height:1.2;
     }
+
     .match-meta{
       font-size:12px;
       color:var(--muted);
-      line-height:1.45;
-    }
-    .match-score{
-      font-size:18px;
-      font-weight:900;
-      color:var(--gold);
-      white-space:nowrap;
+      line-height:1.35;
     }
 
-    .detail-grid{
+    .match-grid{
       display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
+      grid-template-columns:repeat(2, minmax(0,1fr));
       gap:10px;
     }
-    .detail-box{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.02);
+
+    .subbox{
+      border:1px solid var(--line2);
       border-radius:14px;
+      background:rgba(255,255,255,.02);
       padding:10px;
       min-width:0;
     }
-    .detail-box h4{
+
+    .subbox-title{
       margin:0 0 8px;
-      font-size:12px;
+      font-size:11px;
       text-transform:uppercase;
-      letter-spacing:.06em;
+      letter-spacing:.08em;
       color:#8fe6ff;
+      font-weight:900;
     }
 
-    .muted{color:var(--muted)}
-    .mono{font-variant-numeric:tabular-nums}
-    .good{color:var(--good)}
-    .bad{color:var(--bad)}
-
-    @media (max-width:1200px){
-      .filters{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .hero-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .grid-2,.detail-grid{grid-template-columns:1fr}
+    .line-list{
+      display:grid;
+      gap:5px;
+      font-size:12px;
+      color:#d6e3ff;
+      line-height:1.35;
     }
 
-    @media (max-width:760px){
-      .filters{grid-template-columns:1fr}
-      .hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .topbar{position:static}
-      table{min-width:840px}
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:12px;
     }
 
-    @media (max-width:560px){
-      .hero-grid{grid-template-columns:1fr}
+    .hint{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+
+    @media (max-width: 1200px){
+      .controls{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+      .kpi-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .split-2{ grid-template-columns:1fr; }
+    }
+
+    @media (max-width: 760px){
+      .app{ padding:12px; }
+      .controls{ grid-template-columns:1fr; }
+      .kpi-grid{ grid-template-columns:1fr; }
+      .match-grid{ grid-template-columns:1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="title-wrap">
-        <h1>FFCM Clash Squad Report</h1>
-        <p>FFCM only • team-vs + score + first-word active skill comp matching</p>
-      </div>
-      <div class="btns">
-        <button class="btn ghost" id="reloadBtn" type="button">Reload</button>
-        <button class="btn ghost" id="clearFiltersBtn" type="button">Clear Filters</button>
-      </div>
-    </div>
-  </div>
-
   <div class="app">
-    <section class="panel hero">
-      <div class="hero-grid">
-        <div class="kpi">
-          <div class="kpi-label">Matches</div>
-          <div class="kpi-value mono" id="kpiMatches">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Matched Drafts</div>
-          <div class="kpi-value mono" id="kpiMatched">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Unmatched Matches</div>
-          <div class="kpi-value mono" id="kpiUnmatched">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Teams</div>
-          <div class="kpi-value mono" id="kpiTeams">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Maps</div>
-          <div class="kpi-value mono" id="kpiMaps">0</div>
-        </div>
-      </div>
-      <div id="status" class="status">Ready.</div>
+    <section class="hero">
+      <h1 class="title">Clash Squad Matched Report</h1>
+      <p class="sub">
+        This page first matches <strong>cs_report_matches</strong> to <strong>draft_records</strong> using
+        <strong>teams + exact score/result + active skill comp</strong>. After a row is matched, the page uses
+        <strong>draft_records</strong> as the source for tournament, map, bans, and player names.
+      </p>
     </section>
 
-    <section class="panel toolbar">
-      <div class="filters">
-        <div class="field">
-          <label for="fMap">Map</label>
-          <select id="fMap" class="select"></select>
-        </div>
-        <div class="field">
-          <label for="fTeam">Team</label>
-          <select id="fTeam" class="select"></select>
-        </div>
-        <div class="field">
-          <label for="fPlayer">Player</label>
-          <select id="fPlayer" class="select"></select>
-        </div>
-        <div class="field">
-          <label for="fMatchStatus">Match Status</label>
-          <select id="fMatchStatus" class="select">
-            <option value="__ALL__">All</option>
-            <option value="Y">Matched only</option>
-            <option value="N">Unmatched only</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="fSearch">Search</label>
-          <input id="fSearch" class="input" placeholder="Search team / player / skill / ban..." />
-        </div>
-        <div class="field">
-          <label for="matchPicker">Direct Match</label>
-          <select id="matchPicker" class="select">
-            <option value="">Select a match…</option>
-          </select>
-        </div>
-      </div>
+    <section class="panel">
+      <div class="panel-inner">
+        <h2 class="section-title">Controls</h2>
 
-      <div class="btns">
-        <button class="tab active" data-view="summary">Summary</button>
-        <button class="tab" data-view="team">By Team</button>
-        <button class="tab" data-view="player">By Player</button>
-        <button class="tab" data-view="map">By Map</button>
-        <button class="tab" data-view="match">Match View</button>
-      </div>
-    </section>
+        <div class="controls">
+          <div class="field">
+            <label for="teamFilter">Team</label>
+            <select id="teamFilter" class="select-ui">
+              <option value="__ALL__">All teams</option>
+            </select>
+          </div>
 
-    <section class="view active" id="view-summary">
-      <div class="grid-2">
-        <div class="panel section">
-          <h2 class="section-title">Overview</h2>
-          <div id="summaryCards" class="cards"></div>
-        </div>
+          <div class="field">
+            <label for="mapFilter">Map</label>
+            <select id="mapFilter" class="select-ui">
+              <option value="__ALL__">All maps</option>
+            </select>
+          </div>
 
-        <div class="panel section">
-          <h2 class="section-title">Top Signals</h2>
-          <div class="cards">
-            <div class="mini-card">
-              <h3>Top Teams</h3>
-              <div id="topTeams" class="top-list"></div>
-            </div>
-            <div class="mini-card">
-              <h3>Top Players</h3>
-              <div id="topPlayers" class="top-list"></div>
-            </div>
-            <div class="mini-card">
-              <h3>Top Maps</h3>
-              <div id="topMaps" class="top-list"></div>
-            </div>
-            <div class="mini-card">
-              <h3>Top Actives</h3>
-              <div id="topActives" class="top-list"></div>
+          <div class="field">
+            <label for="playerFilter">Player</label>
+            <select id="playerFilter" class="select-ui">
+              <option value="__ALL__">All players</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="matchFilter">Direct match lookup</label>
+            <select id="matchFilter" class="select-ui">
+              <option value="__ALL__">All matched records</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="minScoreFilter">Min match score</label>
+            <select id="minScoreFilter" class="select-ui">
+              <option value="0">0+</option>
+              <option value="70">70+</option>
+              <option value="80">80+</option>
+              <option value="90" selected>90+</option>
+              <option value="100">100+</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Actions</label>
+            <div class="actions">
+              <button id="reloadBtn" type="button">Reload Report</button>
+              <button id="resetBtn" class="ghost" type="button">Reset Filters</button>
             </div>
           </div>
         </div>
+
+        <div id="status" class="status">Ready to load report data.</div>
       </div>
     </section>
 
-    <section class="view" id="view-team">
-      <div class="panel section">
-        <h2 class="section-title">Team Aggregates</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Team</th>
-                <th>Matches</th>
-                <th>Wins</th>
-                <th>Win %</th>
-                <th>Top Map</th>
-                <th>Top Actives</th>
-                <th>Top Players</th>
-                <th>Bans Faced</th>
-              </tr>
-            </thead>
-            <tbody id="teamBody"></tbody>
-          </table>
+    <section class="panel">
+      <div class="panel-inner">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="summary" type="button">Summary</button>
+          <button class="tab-btn" data-tab="teams" type="button">By Team</button>
+          <button class="tab-btn" data-tab="players" type="button">By Player</button>
+          <button class="tab-btn" data-tab="maps" type="button">By Map</button>
+          <button class="tab-btn" data-tab="matches" type="button">Matched Matches</button>
         </div>
-      </div>
-    </section>
 
-    <section class="view" id="view-player">
-      <div class="panel section">
-        <h2 class="section-title">Player Aggregates</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th>Matches</th>
-                <th>Rounds</th>
-                <th>Kills</th>
-                <th>Assists</th>
-                <th>Damage</th>
-                <th>Damage Taken</th>
-                <th>Top Active</th>
-                <th>Top Passives</th>
-                <th>Top Map</th>
-              </tr>
-            </thead>
-            <tbody id="playerBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" id="view-map">
-      <div class="panel section">
-        <h2 class="section-title">Map Aggregates</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Map</th>
-                <th>Matches</th>
-                <th>Teams</th>
-                <th>Players</th>
-                <th>Top Teams</th>
-                <th>Top Players</th>
-                <th>Top Actives</th>
-                <th>Top Bans</th>
-              </tr>
-            </thead>
-            <tbody id="mapBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" id="view-match">
-      <div class="panel section">
-        <h2 class="section-title">Match View</h2>
-        <div id="matchList" class="match-list"></div>
+        <div id="tab-summary" class="tab-section active"></div>
+        <div id="tab-teams" class="tab-section"></div>
+        <div id="tab-players" class="tab-section"></div>
+        <div id="tab-maps" class="tab-section"></div>
+        <div id="tab-matches" class="tab-section"></div>
       </div>
     </section>
   </div>
@@ -602,8 +539,6 @@
       'https://ooutjrewmwsixghbouxi.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
     );
-
-    const $ = (id) => document.getElementById(id);
 
     const TEAM_ALIAS = {
       AG: 'AG',
@@ -622,36 +557,43 @@
       PE: 'PE'
     };
 
+    const REPORT_SELECT = `
+      *,
+      created_at,
+      match_date,
+      report_match_key,
+      source_match_key
+    `;
+
+    const DRAFT_SELECT = `
+      id,
+      created_at,
+      match_date,
+      game_number,
+      team_left,
+      team_right,
+      team_left_score,
+      team_right_score,
+      map,
+      tournament_name,
+      state
+    `;
+
     const STATE = {
-      reportMatchesRaw: [],
-      draftRecordsRaw: [],
+      reportRows: [],
+      draftRows: [],
       allMatches: [],
       filteredMatches: [],
-      currentView: 'summary'
+      currentTab: 'summary'
     };
+
+    const $ = (id) => document.getElementById(id);
 
     function setStatus(message, isError = false){
       const el = $('status');
+      if (!el) return;
       el.textContent = message;
       el.className = isError ? 'status error' : 'status';
-    }
-
-    function esc(v){
-      return String(v ?? '')
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;')
-        .replace(/'/g,'&#039;');
-    }
-
-    function toNum(v, fallback = 0){
-      const n = Number(v);
-      return Number.isFinite(n) ? n : fallback;
-    }
-
-    function uniq(arr){
-      return [...new Set(arr)];
     }
 
     function normalizeText(v){
@@ -667,12 +609,18 @@
       return TEAM_ALIAS[raw] || raw;
     }
 
-    function fmtPct(num, den){
-      return den ? ((num / den) * 100).toFixed(1) + '%' : '—';
+    function firstWord(v){
+      return String(v || '').trim().split(/\s+/)[0] || '';
     }
 
-    function fmtNum(n){
-      return Number.isFinite(n) ? n.toLocaleString() : '—';
+    function normalizeSkillWord(v){
+      return normalizeText(firstWord(v));
+    }
+
+    function parseJson(v, fallback = null){
+      if (v == null) return fallback;
+      if (typeof v === 'object') return v;
+      try { return JSON.parse(v); } catch { return fallback; }
     }
 
     function firstNonEmpty(...vals){
@@ -682,18 +630,13 @@
       return '';
     }
 
-    function parseJson(v, fallback = null){
-      if (v == null) return fallback;
-      if (typeof v === 'object') return v;
-      try { return JSON.parse(v); } catch { return fallback; }
+    function toNum(v, fallback = 0){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
     }
 
-    function firstWord(v){
-      return String(v || '').trim().split(/\s+/)[0] || '';
-    }
-
-    function normalizeSkillWord(v){
-      return normalizeText(firstWord(v));
+    function uniq(arr){
+      return [...new Set(arr)];
     }
 
     function normalizeSkillArray(arr){
@@ -725,67 +668,94 @@
       return count;
     }
 
-    async function fetchAllRows(table, orderCandidates = ['created_at']) {
-      let chosenOrder = null;
+    function fmtPct(n, d){
+      if (!d) return '—';
+      return ((n / d) * 100).toFixed(1) + '%';
+    }
 
-      for (const col of orderCandidates) {
-        try {
-          const probe = await client
-            .from(table)
-            .select('*')
-            .order(col, { ascending: false })
-            .range(0, 0);
+    function safe(v, fallback='—'){
+      const s = String(v ?? '').trim();
+      return s || fallback;
+    }
 
-          if (!probe.error) {
-            chosenOrder = col;
-            break;
-          }
-        } catch (_) {}
-      }
+    function escapeHtml(value){
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
-      if (!chosenOrder) {
-        const fallback = await client.from(table).select('*');
-        if (fallback.error) throw fallback.error;
-        return fallback.data || [];
-      }
-
-      let all = [];
+    async function fetchAllRows(table, selectString){
+      const limit = 1000;
       let from = 0;
-      const size = 1000;
+      let done = false;
+      let all = [];
 
-      while (true) {
+      while (!done) {
         const { data, error } = await client
           .from(table)
-          .select('*')
-          .order(chosenOrder, { ascending: false })
-          .range(from, from + size - 1);
+          .select(selectString)
+          .range(from, from + limit - 1);
 
         if (error) throw error;
 
         const rows = data || [];
         all = all.concat(rows);
-        if (rows.length < size) break;
-        from += size;
+
+        if (rows.length < limit) done = true;
+        from += limit;
       }
 
       return all;
     }
 
     function extractReportMatch(row){
-      const teamA = normalizeTeam(firstNonEmpty(row.team_a_name, row.team_left, row.left_team_name, row.team1_name));
-      const teamB = normalizeTeam(firstNonEmpty(row.team_b_name, row.team_right, row.right_team_name, row.team2_name));
-      const scoreA = toNum(firstNonEmpty(row.team_a_score, row.team_left_score, row.left_score, row.score_a), 0);
-      const scoreB = toNum(firstNonEmpty(row.team_b_score, row.team_right_score, row.right_score, row.score_b), 0);
-      const map = firstNonEmpty(row.map, row.match_map, row.map_name, '—');
-      const tournament = firstNonEmpty(row.tournament_name, row.tournament, '—');
-      const matchDate = String(firstNonEmpty(row.match_date, row.created_at, '')).slice(0,10);
+      const teamA = normalizeTeam(firstNonEmpty(
+        row.team_a_name,
+        row.team_left,
+        row.left_team_name,
+        row.team1_name,
+        row.team_a,
+        row.left_team,
+        row.side_a_team
+      ));
+
+      const teamB = normalizeTeam(firstNonEmpty(
+        row.team_b_name,
+        row.team_right,
+        row.right_team_name,
+        row.team2_name,
+        row.team_b,
+        row.right_team,
+        row.side_b_team
+      ));
+
+      const scoreA = toNum(firstNonEmpty(
+        row.team_a_score,
+        row.team_left_score,
+        row.left_score,
+        row.score_a,
+        row.score_left
+      ), 0);
+
+      const scoreB = toNum(firstNonEmpty(
+        row.team_b_score,
+        row.team_right_score,
+        row.right_score,
+        row.score_b,
+        row.score_right
+      ), 0);
 
       const activeA = signature(firstNonEmpty(
         row.active_comp_team_a,
         row.team_a_active_comp,
         row.active_team_a,
         row.team_a_actives,
-        row.active_signature_team_a
+        row.left_active_comp,
+        row.team_a_skills,
+        row.team_a_active_skills
       ));
 
       const activeB = signature(firstNonEmpty(
@@ -793,7 +763,9 @@
         row.team_b_active_comp,
         row.active_team_b,
         row.team_b_actives,
-        row.active_signature_team_b
+        row.right_active_comp,
+        row.team_b_skills,
+        row.team_b_active_skills
       ));
 
       return {
@@ -802,20 +774,8 @@
         _teamB: teamB,
         _scoreA: scoreA,
         _scoreB: scoreB,
-        _map: map,
-        _tournament: tournament,
-        _matchDate: matchDate,
         _activeASig: activeA,
-        _activeBSig: activeB,
-        _matchKey: [
-          matchDate,
-          map,
-          teamA,
-          teamB,
-          scoreA,
-          scoreB,
-          firstNonEmpty(row.game_number, row.game_no, '')
-        ].join('|')
+        _activeBSig: activeB
       };
     }
 
@@ -828,14 +788,12 @@
 
       const teamLeft = normalizeTeam(firstNonEmpty(row.team_left, row.team_a_name, row.left_team_name));
       const teamRight = normalizeTeam(firstNonEmpty(row.team_right, row.team_b_name, row.right_team_name));
+
       const scoreLeft = toNum(firstNonEmpty(row.team_left_score, row.team_a_score, row.left_score), 0);
       const scoreRight = toNum(firstNonEmpty(row.team_right_score, row.team_b_score, row.right_score), 0);
-      const map = firstNonEmpty(row.map, row.match_map, row.map_name, '—');
-      const tournament = firstNonEmpty(row.tournament_name, row.tournament, '—');
-      const matchDate = String(firstNonEmpty(row.match_date, row.created_at, '')).slice(0,10);
 
-      const leftActives = picks.slice(0,4).map(x => x?.name || '');
-      const rightActives = picks.slice(4,8).map(x => x?.name || '');
+      const leftActives = picks.slice(0, 4).map(x => x?.name || '');
+      const rightActives = picks.slice(4, 8).map(x => x?.name || '');
 
       return {
         ...row,
@@ -844,11 +802,10 @@
         _teamRight: teamRight,
         _scoreLeft: scoreLeft,
         _scoreRight: scoreRight,
-        _map: map,
-        _tournament: tournament,
-        _matchDate: matchDate,
         _leftActiveSig: signature(leftActives),
         _rightActiveSig: signature(rightActives),
+        _map: firstNonEmpty(row.map, row.match_map, row.map_name, '—'),
+        _tournament: firstNonEmpty(row.tournament_name, row.tournament, '—'),
         _leftBan: bans[0]?.name || '',
         _rightBan: bans[1]?.name || '',
         _playerCards: playerCards,
@@ -856,60 +813,53 @@
       };
     }
 
-    function isFFCMTournament(name){
-      const t = normalizeText(name);
-      return t.includes('FFCM');
-    }
-
     function scoreMatch(reportMatch, draftMatch){
       let score = 0;
       let reversed = false;
       const reasons = [];
 
-      const normalTeams = reportMatch._teamA === draftMatch._teamLeft && reportMatch._teamB === draftMatch._teamRight;
-      const reverseTeams = reportMatch._teamA === draftMatch._teamRight && reportMatch._teamB === draftMatch._teamLeft;
+      const normalTeams =
+        reportMatch._teamA === draftMatch._teamLeft &&
+        reportMatch._teamB === draftMatch._teamRight;
+
+      const reverseTeams =
+        reportMatch._teamA === draftMatch._teamRight &&
+        reportMatch._teamB === draftMatch._teamLeft;
 
       if (!normalTeams && !reverseTeams) {
-        return { score: -1, reversed: false, reasons: ['team mismatch'] };
+        return { score: -1, reversed: false, reasons: ['team mismatch'], aOverlap: 0, bOverlap: 0 };
       }
 
-      if (normalTeams) {
+      reversed = reverseTeams;
+      score += 70;
+      reasons.push(reversed ? 'team pair reversed' : 'team pair');
+
+      const exactScore =
+        (!reversed &&
+          reportMatch._scoreA === draftMatch._scoreLeft &&
+          reportMatch._scoreB === draftMatch._scoreRight) ||
+        (reversed &&
+          reportMatch._scoreA === draftMatch._scoreRight &&
+          reportMatch._scoreB === draftMatch._scoreLeft);
+
+      if (exactScore) {
         score += 50;
-        reasons.push('team pair');
-      }
-      if (reverseTeams) {
-        score += 50;
-        reversed = true;
-        reasons.push('team pair reversed');
+        reasons.push('score exact');
+      } else {
+        return { score: -1, reversed, reasons: ['score mismatch'], aOverlap: 0, bOverlap: 0 };
       }
 
-      if (!reversed && reportMatch._scoreA === draftMatch._scoreLeft && reportMatch._scoreB === draftMatch._scoreRight) {
-        score += 30;
-        reasons.push('score');
-      }
-      if (reversed && reportMatch._scoreA === draftMatch._scoreRight && reportMatch._scoreB === draftMatch._scoreLeft) {
-        score += 30;
-        reasons.push('score reversed');
-      }
+      const expectedLeftSig = reversed ? draftMatch._rightActiveSig : draftMatch._leftActiveSig;
+      const expectedRightSig = reversed ? draftMatch._leftActiveSig : draftMatch._rightActiveSig;
 
-      if (normalizeText(reportMatch._map) === normalizeText(draftMatch._map)) {
-        score += 10;
-        reasons.push('map');
-      }
+      const aOverlap = signatureOverlap(reportMatch._activeASig, expectedLeftSig);
+      const bOverlap = signatureOverlap(reportMatch._activeBSig, expectedRightSig);
 
-      const aOverlap = !reversed
-        ? signatureOverlap(reportMatch._activeASig, draftMatch._leftActiveSig)
-        : signatureOverlap(reportMatch._activeASig, draftMatch._rightActiveSig);
+      score += (aOverlap * 6);
+      score += (bOverlap * 6);
 
-      const bOverlap = !reversed
-        ? signatureOverlap(reportMatch._activeBSig, draftMatch._rightActiveSig)
-        : signatureOverlap(reportMatch._activeBSig, draftMatch._leftActiveSig);
-
-      score += aOverlap * 5;
-      score += bOverlap * 5;
-
-      if (aOverlap) reasons.push(`A active ${aOverlap}/4`);
-      if (bOverlap) reasons.push(`B active ${bOverlap}/4`);
+      reasons.push(`A active ${aOverlap}/4`);
+      reasons.push(`B active ${bOverlap}/4`);
 
       return { score, reversed, reasons, aOverlap, bOverlap };
     }
@@ -917,11 +867,12 @@
     function attachBestDraftMatches(reportMatches, draftMatches){
       const usedDraftIds = new Set();
 
-      const enriched = reportMatches.map(reportMatch => {
+      return reportMatches.map(reportMatch => {
         let best = null;
 
         for (const draftMatch of draftMatches){
           if (usedDraftIds.has(draftMatch.id)) continue;
+
           const result = scoreMatch(reportMatch, draftMatch);
           if (result.score < 0) continue;
 
@@ -932,530 +883,687 @@
 
         if (best && best.score >= 90){
           usedDraftIds.add(best.draft.id);
+
+          const leftTeam = best.reversed ? best.draft._teamRight : best.draft._teamLeft;
+          const rightTeam = best.reversed ? best.draft._teamLeft : best.draft._teamRight;
+          const leftScore = best.reversed ? best.draft._scoreRight : best.draft._scoreLeft;
+          const rightScore = best.reversed ? best.draft._scoreLeft : best.draft._scoreRight;
+          const leftBan = best.reversed ? best.draft._rightBan : best.draft._leftBan;
+          const rightBan = best.reversed ? best.draft._leftBan : best.draft._rightBan;
+          const players = best.draft._playerCards || [];
+          const leftPlayers = best.reversed ? players.slice(4,8) : players.slice(0,4);
+          const rightPlayers = best.reversed ? players.slice(0,4) : players.slice(4,8);
+
           return {
             ...reportMatch,
             _matched: true,
             _matchScore: best.score,
             _matchReasons: best.reasons,
             _matchReversed: best.reversed,
-            _draft: best.draft
+            _draft: best.draft,
+            _map: best.draft._map,
+            _tournament: best.draft._tournament,
+            _leftTeam: leftTeam,
+            _rightTeam: rightTeam,
+            _leftScore: leftScore,
+            _rightScore: rightScore,
+            _leftBan: leftBan,
+            _rightBan: rightBan,
+            _leftPlayers: leftPlayers,
+            _rightPlayers: rightPlayers,
+            _playerCards: players,
+            _passives: best.draft._passives
           };
         }
 
         return {
           ...reportMatch,
           _matched: false,
-          _matchScore: best?.score || 0,
-          _matchReasons: best?.reasons || [],
-          _matchReversed: best?.reversed || false,
-          _draft: null
+          _matchScore: 0,
+          _matchReasons: [],
+          _matchReversed: false,
+          _draft: null,
+          _map: '—',
+          _tournament: '—',
+          _leftTeam: reportMatch._teamA,
+          _rightTeam: reportMatch._teamB,
+          _leftScore: reportMatch._scoreA,
+          _rightScore: reportMatch._scoreB,
+          _leftBan: '',
+          _rightBan: '',
+          _leftPlayers: [],
+          _rightPlayers: [],
+          _playerCards: [],
+          _passives: []
         };
       });
-
-      return enriched;
     }
 
-    function buildRoundRowsFromMatchedMatch(matchRow){
-      const rounds = [];
-      if (!matchRow._draft) return rounds;
-
-      const state = matchRow._draft._state || {};
-      const picks = Array.isArray(state.picks) ? state.picks : [];
-      const passives = Array.isArray(state.passives) ? state.passives : [];
-      const playerCards = Array.isArray(state.playerCards) ? state.playerCards : [];
-
-      const leftTeam = matchRow._draft._teamLeft;
-      const rightTeam = matchRow._draft._teamRight;
-
-      const leftIndexes = [0,1,2,3];
-      const rightIndexes = [4,5,6,7];
-
-      leftIndexes.forEach((idx, i) => {
-        rounds.push({
-          _matchKey: matchRow._matchKey,
-          _team: leftTeam,
-          _player: playerCards[idx] || `P${i+1}`,
-          _map: matchRow._map,
-          _kills: 0,
-          _assists: 0,
-          _damage: 0,
-          _damageTaken: 0,
-          _active: firstWord(picks[idx]?.name || ''),
-          _passives: (Array.isArray(passives[idx]) ? passives[idx] : []).map(x => firstWord(x?.name || '')).filter(Boolean)
-        });
-      });
-
-      rightIndexes.forEach((idx, i) => {
-        rounds.push({
-          _matchKey: matchRow._matchKey,
-          _team: rightTeam,
-          _player: playerCards[idx] || `P${i+1}`,
-          _map: matchRow._map,
-          _kills: 0,
-          _assists: 0,
-          _damage: 0,
-          _damageTaken: 0,
-          _active: firstWord(picks[idx]?.name || ''),
-          _passives: (Array.isArray(passives[idx]) ? passives[idx] : []).map(x => firstWord(x?.name || '')).filter(Boolean)
-        });
-      });
-
-      return rounds;
+    function buildMatchLabel(row){
+      return [
+        `${safe(row._leftTeam)} vs ${safe(row._rightTeam)}`,
+        `${row._leftScore}-${row._rightScore}`,
+        safe(row._map),
+        safe(row._tournament)
+      ].join(' • ');
     }
 
-    function topListHtml(items){
-      if (!items.length) return `<div class="muted">No data.</div>`;
-      return items.slice(0,6).map(item => `
-        <div class="top-row">
-          <div>${esc(item.name)}</div>
-          <div class="mono">${esc(item.value)}</div>
-        </div>
-      `).join('');
+    function getTeamList(matches){
+      return uniq(matches.flatMap(r => [r._leftTeam, r._rightTeam]).filter(Boolean)).sort();
     }
 
-    function countMapToPills(mapLike, max = 3){
-      const arr = [...mapLike.entries()].sort((a,b) => b[1]-a[1] || String(a[0]).localeCompare(String(b[0])));
-      if (!arr.length) return '—';
-      return arr.slice(0, max).map(([name, count]) => `<span class="pill">${esc(name)} <span class="mono">${count}</span></span>`).join('');
+    function getPlayerList(matches){
+      return uniq(matches.flatMap(r => r._playerCards || []).filter(Boolean)).sort();
     }
 
-    function fillSelect(el, values, allLabel){
-      el.innerHTML = `<option value="__ALL__">${allLabel}</option>` +
-        values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    function getMapList(matches){
+      return uniq(matches.map(r => r._map).filter(Boolean)).sort();
     }
 
-    function buildLookups(){
-      const maps = uniq(STATE.allMatches.map(x => x._map).filter(Boolean)).sort();
-      const teams = uniq(STATE.allMatches.flatMap(x => [x._teamA, x._teamB]).filter(Boolean)).sort();
+    function populateFilters(){
+      const matches = STATE.allMatches.filter(r => r._matched);
 
-      const players = uniq(
-        STATE.allMatches
-          .flatMap(m => buildRoundRowsFromMatchedMatch(m))
-          .map(r => r._player)
-          .filter(Boolean)
-      ).sort();
+      const teamSel = $('teamFilter');
+      const mapSel = $('mapFilter');
+      const playerSel = $('playerFilter');
+      const matchSel = $('matchFilter');
 
-      fillSelect($('fMap'), maps, 'All maps');
-      fillSelect($('fTeam'), teams, 'All teams');
-      fillSelect($('fPlayer'), players, 'All players');
+      const currentTeam = teamSel.value || '__ALL__';
+      const currentMap = mapSel.value || '__ALL__';
+      const currentPlayer = playerSel.value || '__ALL__';
+      const currentMatch = matchSel.value || '__ALL__';
 
-      $('matchPicker').innerHTML =
-        `<option value="">Select a match…</option>` +
-        STATE.allMatches.map(m => `
-          <option value="${esc(m._matchKey)}">
-            ${esc(`${m._teamA} vs ${m._teamB} • ${m._scoreA}-${m._scoreB} • ${m._map}`)}
-          </option>
-        `).join('');
+      teamSel.innerHTML = `<option value="__ALL__">All teams</option>` +
+        getTeamList(matches).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+      mapSel.innerHTML = `<option value="__ALL__">All maps</option>` +
+        getMapList(matches).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+      playerSel.innerHTML = `<option value="__ALL__">All players</option>` +
+        getPlayerList(matches).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+      matchSel.innerHTML = `<option value="__ALL__">All matched records</option>` +
+        matches.map((row, idx) => {
+          const value = String(row._draft?.id || row.id || idx);
+          return `<option value="${escapeHtml(value)}">${escapeHtml(buildMatchLabel(row))}</option>`;
+        }).join('');
+
+      if ([...teamSel.options].some(o => o.value === currentTeam)) teamSel.value = currentTeam;
+      if ([...mapSel.options].some(o => o.value === currentMap)) mapSel.value = currentMap;
+      if ([...playerSel.options].some(o => o.value === currentPlayer)) playerSel.value = currentPlayer;
+      if ([...matchSel.options].some(o => o.value === currentMatch)) matchSel.value = currentMatch;
     }
 
     function applyFilters(){
-      const fMap = $('fMap').value;
-      const fTeam = $('fTeam').value;
-      const fPlayer = $('fPlayer').value;
-      const fMatchStatus = $('fMatchStatus').value;
-      const q = ($('fSearch').value || '').trim().toLowerCase();
+      const team = $('teamFilter').value || '__ALL__';
+      const map = $('mapFilter').value || '__ALL__';
+      const player = $('playerFilter').value || '__ALL__';
+      const directMatch = $('matchFilter').value || '__ALL__';
+      const minScore = toNum($('minScoreFilter').value, 0);
 
-      STATE.filteredMatches = STATE.allMatches.filter(m => {
-        if (fMap !== '__ALL__' && m._map !== fMap) return false;
-        if (fTeam !== '__ALL__' && m._teamA !== fTeam && m._teamB !== fTeam) return false;
-        if (fMatchStatus === 'Y' && !m._matched) return false;
-        if (fMatchStatus === 'N' && m._matched) return false;
+      let rows = STATE.allMatches.filter(r => r._matched);
 
-        if (fPlayer !== '__ALL__') {
-          const players = buildRoundRowsFromMatchedMatch(m).map(x => x._player);
-          if (!players.includes(fPlayer)) return false;
-        }
+      rows = rows.filter(r => r._matchScore >= minScore);
 
-        if (q){
-          const hay = [
-            m._teamA, m._teamB, m._map,
-            ...(m._draft?._playerCards || []),
-            m._draft?._leftBan || '',
-            m._draft?._rightBan || '',
-            ...(m._activeASig ? m._activeASig.split('|') : []),
-            ...(m._activeBSig ? m._activeBSig.split('|') : [])
-          ].join(' ').toLowerCase();
-
-          if (!hay.includes(q)) return false;
-        }
-
-        return true;
-      });
-    }
-
-    function updateKPIs(){
-      const teams = uniq(STATE.filteredMatches.flatMap(x => [x._teamA, x._teamB]).filter(Boolean));
-      const maps = uniq(STATE.filteredMatches.map(x => x._map).filter(Boolean));
-
-      $('kpiMatches').textContent = fmtNum(STATE.filteredMatches.length);
-      $('kpiMatched').textContent = fmtNum(STATE.filteredMatches.filter(x => x._matched).length);
-      $('kpiUnmatched').textContent = fmtNum(STATE.filteredMatches.filter(x => !x._matched).length);
-      $('kpiTeams').textContent = fmtNum(teams.length);
-      $('kpiMaps').textContent = fmtNum(maps.length);
-    }
-
-    function renderSummary(){
-      const teamMap = new Map();
-      const mapMap = new Map();
-      const activeMap = new Map();
-      const playerMap = new Map();
-
-      for (const m of STATE.filteredMatches){
-        teamMap.set(m._teamA, (teamMap.get(m._teamA) || 0) + 1);
-        teamMap.set(m._teamB, (teamMap.get(m._teamB) || 0) + 1);
-        mapMap.set(m._map, (mapMap.get(m._map) || 0) + 1);
-
-        const roundRows = buildRoundRowsFromMatchedMatch(m);
-        for (const r of roundRows){
-          playerMap.set(r._player, (playerMap.get(r._player) || 0) + 1);
-          if (r._active) activeMap.set(r._active, (activeMap.get(r._active) || 0) + 1);
-        }
+      if (team !== '__ALL__'){
+        rows = rows.filter(r => r._leftTeam === team || r._rightTeam === team);
       }
 
-      $('summaryCards').innerHTML = `
+      if (map !== '__ALL__'){
+        rows = rows.filter(r => safe(r._map) === map);
+      }
+
+      if (player !== '__ALL__'){
+        rows = rows.filter(r => (r._playerCards || []).includes(player));
+      }
+
+      if (directMatch !== '__ALL__'){
+        rows = rows.filter((r, idx) => String(r._draft?.id || r.id || idx) === directMatch);
+      }
+
+      STATE.filteredMatches = rows;
+      renderActiveTab();
+    }
+
+    function summarizeByCount(items, topN = 10){
+      const map = new Map();
+      for (const item of items.filter(Boolean)){
+        map.set(item, (map.get(item) || 0) + 1);
+      }
+      return [...map.entries()]
+        .sort((a,b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+        .slice(0, topN);
+    }
+
+    function summarizeActiveComp(row, side='left'){
+      return side === 'left' ? row._activeASig : row._activeBSig;
+    }
+
+    function computeSummary(rows){
+      const total = rows.length;
+      const leftWins = rows.filter(r => r._leftScore > r._rightScore).length;
+      const rightWins = rows.filter(r => r._rightScore > r._leftScore).length;
+
+      const allMaps = summarizeByCount(rows.map(r => r._map), 8);
+      const allTournaments = summarizeByCount(rows.map(r => r._tournament), 8);
+      const allPlayers = summarizeByCount(rows.flatMap(r => r._playerCards || []), 12);
+      const allBans = summarizeByCount(rows.flatMap(r => [r._leftBan, r._rightBan]), 12);
+      const allActive = summarizeByCount(rows.flatMap(r => [r._activeASig, r._activeBSig]).filter(Boolean), 12);
+
+      return { total, leftWins, rightWins, allMaps, allTournaments, allPlayers, allBans, allActive };
+    }
+
+    function renderCountList(title, list, empty='No data'){
+      return `
         <div class="mini-card">
-          <h3>Matching Logic</h3>
-          <div class="muted">Tournament: <b>FFCM only</b></div>
-          <div class="muted">Teams: <b>alias matched</b></div>
-          <div class="muted">Skills: <b>first word only</b></div>
-        </div>
-        <div class="mini-card">
-          <h3>Report Scope</h3>
-          <div class="muted">Filtered Matches: <b>${fmtNum(STATE.filteredMatches.length)}</b></div>
-          <div class="muted">Matched: <b>${fmtNum(STATE.filteredMatches.filter(x => x._matched).length)}</b></div>
-          <div class="muted">Unmatched: <b>${fmtNum(STATE.filteredMatches.filter(x => !x._matched).length)}</b></div>
-        </div>
-        <div class="mini-card">
-          <h3>Team Coverage</h3>
-          <div class="muted">Teams Seen: <b>${fmtNum(uniq(STATE.filteredMatches.flatMap(x => [x._teamA, x._teamB])).length)}</b></div>
-          <div class="muted">Maps Seen: <b>${fmtNum(uniq(STATE.filteredMatches.map(x => x._map)).length)}</b></div>
+          <h3 class="mini-title">${escapeHtml(title)}</h3>
+          ${list.length ? `
+            <div class="card-list">
+              ${list.map(([name, count]) => `
+                <div class="mini-copy">
+                  <strong>${escapeHtml(name || '—')}</strong> <span class="muted">• ${count}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : `<div class="mini-copy muted">${escapeHtml(empty)}</div>`}
         </div>
       `;
-
-      const toTop = map => [...map.entries()].map(([name,value]) => ({ name, value })).sort((a,b) => b.value-a.value || a.name.localeCompare(b.name));
-      $('topTeams').innerHTML = topListHtml(toTop(teamMap));
-      $('topPlayers').innerHTML = topListHtml(toTop(playerMap));
-      $('topMaps').innerHTML = topListHtml(toTop(mapMap));
-      $('topActives').innerHTML = topListHtml(toTop(activeMap));
     }
 
-    function renderTeamTable(){
-      const byTeam = new Map();
+    function renderSummaryTab(){
+      const rows = STATE.filteredMatches;
+      const s = computeSummary(rows);
 
-      for (const m of STATE.filteredMatches){
-        for (const team of [m._teamA, m._teamB]){
-          if (!byTeam.has(team)){
-            byTeam.set(team, {
-              name: team,
-              matches: 0,
-              wins: 0,
-              maps: new Map(),
-              actives: new Map(),
-              players: new Map(),
-              bans: new Map()
-            });
-          }
-        }
+      $('tab-summary').innerHTML = `
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Matched Records</div>
+            <div class="kpi-value mono">${s.total}</div>
+            <div class="kpi-sub">Current filtered matched report rows.</div>
+          </div>
 
-        byTeam.get(m._teamA).matches++;
-        byTeam.get(m._teamB).matches++;
+          <div class="kpi-card">
+            <div class="kpi-label">Unique Teams</div>
+            <div class="kpi-value mono">${getTeamList(rows).length}</div>
+            <div class="kpi-sub">Teams appearing in the matched filtered report.</div>
+          </div>
 
-        if (m._scoreA > m._scoreB) byTeam.get(m._teamA).wins++;
-        if (m._scoreB > m._scoreA) byTeam.get(m._teamB).wins++;
+          <div class="kpi-card">
+            <div class="kpi-label">Unique Players</div>
+            <div class="kpi-value mono">${getPlayerList(rows).length}</div>
+            <div class="kpi-sub">Real player names pulled from draft records.</div>
+          </div>
 
-        byTeam.get(m._teamA).maps.set(m._map, (byTeam.get(m._teamA).maps.get(m._map) || 0) + 1);
-        byTeam.get(m._teamB).maps.set(m._map, (byTeam.get(m._teamB).maps.get(m._map) || 0) + 1);
+          <div class="kpi-card">
+            <div class="kpi-label">Unique Maps</div>
+            <div class="kpi-value mono">${getMapList(rows).length}</div>
+            <div class="kpi-sub">Maps coming from matched draft records.</div>
+          </div>
+        </div>
 
-        if (m._draft){
-          if (m._draft._rightBan) byTeam.get(m._teamA).bans.set(m._draft._rightBan, (byTeam.get(m._teamA).bans.get(m._draft._rightBan) || 0) + 1);
-          if (m._draft._leftBan) byTeam.get(m._teamB).bans.set(m._draft._leftBan, (byTeam.get(m._teamB).bans.get(m._draft._leftBan) || 0) + 1);
+        <div class="split-2" style="margin-top:16px;">
+          <div class="card-list">
+            ${renderCountList('Top Maps', s.allMaps)}
+            ${renderCountList('Top Tournaments', s.allTournaments)}
+            ${renderCountList('Top Bans', s.allBans)}
+          </div>
 
-          const rows = buildRoundRowsFromMatchedMatch(m);
-          rows.forEach(r => {
-            const x = byTeam.get(r._team);
-            x.players.set(r._player, (x.players.get(r._player) || 0) + 1);
-            if (r._active) x.actives.set(r._active, (x.actives.get(r._active) || 0) + 1);
-          });
-        }
-      }
-
-      const rows = [...byTeam.values()].sort((a,b) => b.matches - a.matches || b.wins - a.wins || a.name.localeCompare(b.name));
-
-      $('teamBody').innerHTML = rows.map(x => `
-        <tr>
-          <td><b>${esc(x.name)}</b></td>
-          <td class="mono">${fmtNum(x.matches)}</td>
-          <td class="mono">${fmtNum(x.wins)}</td>
-          <td class="mono">${fmtPct(x.wins, x.matches)}</td>
-          <td>${countMapToPills(x.maps)}</td>
-          <td>${countMapToPills(x.actives)}</td>
-          <td>${countMapToPills(x.players)}</td>
-          <td>${countMapToPills(x.bans)}</td>
-        </tr>
-      `).join('') || `<tr><td colspan="8" class="muted">No team data.</td></tr>`;
-    }
-
-    function renderPlayerTable(){
-      const byPlayer = new Map();
-
-      for (const m of STATE.filteredMatches){
-        const rows = buildRoundRowsFromMatchedMatch(m);
-        for (const r of rows){
-          const key = `${r._player}||${r._team}`;
-          if (!byPlayer.has(key)){
-            byPlayer.set(key, {
-              player: r._player,
-              team: r._team,
-              matches: new Set(),
-              rounds: 0,
-              kills: 0,
-              assists: 0,
-              damage: 0,
-              damageTaken: 0,
-              actives: new Map(),
-              passives: new Map(),
-              maps: new Map()
-            });
-          }
-          const x = byPlayer.get(key);
-          x.matches.add(r._matchKey);
-          x.rounds++;
-          x.kills += r._kills;
-          x.assists += r._assists;
-          x.damage += r._damage;
-          x.damageTaken += r._damageTaken;
-          x.maps.set(r._map, (x.maps.get(r._map) || 0) + 1);
-          if (r._active) x.actives.set(r._active, (x.actives.get(r._active) || 0) + 1);
-          (r._passives || []).forEach(p => x.passives.set(p, (x.passives.get(p) || 0) + 1));
-        }
-      }
-
-      const rows = [...byPlayer.values()].sort((a,b) => b.matches.size - a.matches.size || b.rounds - a.rounds || a.player.localeCompare(b.player));
-
-      $('playerBody').innerHTML = rows.map(x => `
-        <tr>
-          <td><b>${esc(x.player)}</b></td>
-          <td>${esc(x.team)}</td>
-          <td class="mono">${fmtNum(x.matches.size)}</td>
-          <td class="mono">${fmtNum(x.rounds)}</td>
-          <td class="mono">${fmtNum(x.kills)}</td>
-          <td class="mono">${fmtNum(x.assists)}</td>
-          <td class="mono">${fmtNum(x.damage)}</td>
-          <td class="mono">${fmtNum(x.damageTaken)}</td>
-          <td>${countMapToPills(x.actives, 1)}</td>
-          <td>${countMapToPills(x.passives)}</td>
-          <td>${countMapToPills(x.maps, 1)}</td>
-        </tr>
-      `).join('') || `<tr><td colspan="11" class="muted">No player data.</td></tr>`;
-    }
-
-    function renderMapTable(){
-      const byMap = new Map();
-
-      for (const m of STATE.filteredMatches){
-        if (!byMap.has(m._map)){
-          byMap.set(m._map, {
-            name: m._map,
-            matches: 0,
-            teams: new Map(),
-            players: new Map(),
-            actives: new Map(),
-            bans: new Map()
-          });
-        }
-
-        const x = byMap.get(m._map);
-        x.matches++;
-        x.teams.set(m._teamA, (x.teams.get(m._teamA) || 0) + 1);
-        x.teams.set(m._teamB, (x.teams.get(m._teamB) || 0) + 1);
-
-        if (m._draft){
-          if (m._draft._leftBan) x.bans.set(m._draft._leftBan, (x.bans.get(m._draft._leftBan) || 0) + 1);
-          if (m._draft._rightBan) x.bans.set(m._draft._rightBan, (x.bans.get(m._draft._rightBan) || 0) + 1);
-
-          const rows = buildRoundRowsFromMatchedMatch(m);
-          rows.forEach(r => {
-            x.players.set(r._player, (x.players.get(r._player) || 0) + 1);
-            if (r._active) x.actives.set(r._active, (x.actives.get(r._active) || 0) + 1);
-          });
-        }
-      }
-
-      const rows = [...byMap.values()].sort((a,b) => b.matches - a.matches || a.name.localeCompare(b.name));
-
-      $('mapBody').innerHTML = rows.map(x => `
-        <tr>
-          <td><b>${esc(x.name)}</b></td>
-          <td class="mono">${fmtNum(x.matches)}</td>
-          <td class="mono">${fmtNum(x.teams.size)}</td>
-          <td class="mono">${fmtNum(x.players.size)}</td>
-          <td>${countMapToPills(x.teams)}</td>
-          <td>${countMapToPills(x.players)}</td>
-          <td>${countMapToPills(x.actives)}</td>
-          <td>${countMapToPills(x.bans)}</td>
-        </tr>
-      `).join('') || `<tr><td colspan="8" class="muted">No map data.</td></tr>`;
-    }
-
-    function matchConfidenceLabel(m){
-      if (!m._matched) return `<span class="bad">Unmatched</span>`;
-      if (m._matchScore >= 120) return `<span class="good">Very High</span>`;
-      if (m._matchScore >= 100) return `<span class="good">High</span>`;
-      return `<span>Medium</span>`;
-    }
-
-    function renderMatchView(){
-      const selected = $('matchPicker').value;
-      const rows = selected
-        ? STATE.filteredMatches.filter(x => x._matchKey === selected)
-        : STATE.filteredMatches;
-
-      $('matchList').innerHTML = rows.slice(0, selected ? rows.length : 40).map(m => {
-        const matchRows = buildRoundRowsFromMatchedMatch(m);
-
-        const leftRows = matchRows.filter(x => x._team === m._teamA);
-        const rightRows = matchRows.filter(x => x._team === m._teamB);
-
-        const leftPlayers = leftRows.map(x => `<span class="pill">${esc(x._player)}</span>`).join('') || '—';
-        const rightPlayers = rightRows.map(x => `<span class="pill">${esc(x._player)}</span>`).join('') || '—';
-
-        const leftActives = [...new Set(leftRows.map(x => x._active).filter(Boolean))].map(x => `<span class="pill">${esc(x)}</span>`).join('') || '—';
-        const rightActives = [...new Set(rightRows.map(x => x._active).filter(Boolean))].map(x => `<span class="pill">${esc(x)}</span>`).join('') || '—';
-
-        return `
-          <div class="match-card">
-            <div class="match-head">
-              <div>
-                <div class="match-title">${esc(m._teamA)} vs ${esc(m._teamB)}</div>
-                <div class="match-meta">
-                  ${esc(m._map)} • ${esc(m._tournament)} • ${esc(m._matchDate || '—')}<br>
-                  Match Quality: ${matchConfidenceLabel(m)} • Score Value: <span class="mono">${fmtNum(m._matchScore)}</span><br>
-                  Reasons: ${esc((m._matchReasons || []).join(' • ') || '—')}
-                </div>
+          <div class="card-list">
+            ${renderCountList('Top Active Comps', s.allActive)}
+            ${renderCountList('Top Players', s.allPlayers)}
+            <div class="mini-card">
+              <h3 class="mini-title">Matching Logic</h3>
+              <div class="mini-copy">
+                Team pair + exact score are required. Active comp first-word signature boosts confidence.
+                Tournament, map, bans, and player names are taken from the matched draft record.
               </div>
-              <div class="match-score mono">${fmtNum(m._scoreA)} - ${fmtNum(m._scoreB)}</div>
-            </div>
-
-            <div class="detail-grid">
-              <div class="detail-box">
-                <h4>${esc(m._teamA)}</h4>
-                <div><b>Players:</b> ${leftPlayers}</div>
-                <div><b>Actives:</b> ${leftActives}</div>
-                <div><b>Enemy Ban Faced:</b> ${esc(m._draft?._rightBan || '—')}</div>
-              </div>
-
-              <div class="detail-box">
-                <h4>${esc(m._teamB)}</h4>
-                <div><b>Players:</b> ${rightPlayers}</div>
-                <div><b>Actives:</b> ${rightActives}</div>
-                <div><b>Enemy Ban Faced:</b> ${esc(m._draft?._leftBan || '—')}</div>
-              </div>
-
-              <div class="detail-box">
-                <h4>Report Active Signature</h4>
-                <div><b>Team A:</b> ${esc(m._activeASig || '—')}</div>
-                <div><b>Team B:</b> ${esc(m._activeBSig || '—')}</div>
-              </div>
-
-              <div class="detail-box">
-                <h4>Draft Active Signature</h4>
-                <div><b>Left:</b> ${esc(m._draft?._leftActiveSig || '—')}</div>
-                <div><b>Right:</b> ${esc(m._draft?._rightActiveSig || '—')}</div>
+              <div class="chips">
+                <span class="chip good">Teams</span>
+                <span class="chip good">Score</span>
+                <span class="chip">Active Comp</span>
+                <span class="chip">Draft Enrichment</span>
               </div>
             </div>
           </div>
-        `;
-      }).join('') || `<div class="muted">No matches found for current filters.</div>`;
+        </div>
+
+        <div class="hint">
+          Showing <strong>${rows.length}</strong> matched rows after current filters.
+        </div>
+      `;
     }
 
-    function renderAll(){
-      applyFilters();
-      updateKPIs();
-      renderSummary();
-      renderTeamTable();
-      renderPlayerTable();
-      renderMapTable();
-      renderMatchView();
+    function computeTeamAggregates(rows){
+      const teams = new Map();
 
-      setStatus(
-        `FFCM filter applied.\n` +
-        `Loaded ${STATE.allMatches.length} report matches.\n` +
-        `Showing ${STATE.filteredMatches.length} match(es).`
-      );
+      for (const row of rows){
+        const sides = [
+          {
+            team: row._leftTeam,
+            opp: row._rightTeam,
+            score: row._leftScore,
+            oppScore: row._rightScore,
+            ban: row._leftBan,
+            players: row._leftPlayers || [],
+            activeSig: row._activeASig,
+            map: row._map,
+            tournament: row._tournament
+          },
+          {
+            team: row._rightTeam,
+            opp: row._leftTeam,
+            score: row._rightScore,
+            oppScore: row._leftScore,
+            ban: row._rightBan,
+            players: row._rightPlayers || [],
+            activeSig: row._activeBSig,
+            map: row._map,
+            tournament: row._tournament
+          }
+        ];
+
+        for (const side of sides){
+          if (!side.team) continue;
+
+          if (!teams.has(side.team)){
+            teams.set(side.team, {
+              team: side.team,
+              matches: 0,
+              wins: 0,
+              maps: [],
+              tournaments: [],
+              bans: [],
+              players: [],
+              actives: [],
+              opponents: []
+            });
+          }
+
+          const t = teams.get(side.team);
+          t.matches += 1;
+          if (side.score > side.oppScore) t.wins += 1;
+          t.maps.push(side.map);
+          t.tournaments.push(side.tournament);
+          if (side.ban) t.bans.push(side.ban);
+          t.players.push(...side.players.filter(Boolean));
+          if (side.activeSig) t.actives.push(side.activeSig);
+          if (side.opp) t.opponents.push(side.opp);
+        }
+      }
+
+      return [...teams.values()]
+        .map(t => ({
+          ...t,
+          mapTop: summarizeByCount(t.maps, 5),
+          tournTop: summarizeByCount(t.tournaments, 5),
+          banTop: summarizeByCount(t.bans, 5),
+          playerTop: summarizeByCount(t.players, 8),
+          activeTop: summarizeByCount(t.actives, 5),
+          oppTop: summarizeByCount(t.opponents, 5)
+        }))
+        .sort((a,b) => b.matches - a.matches || a.team.localeCompare(b.team));
     }
 
-    function clearFilters(){
-      $('fMap').value = '__ALL__';
-      $('fTeam').value = '__ALL__';
-      $('fPlayer').value = '__ALL__';
-      $('fMatchStatus').value = '__ALL__';
-      $('fSearch').value = '';
-      $('matchPicker').value = '';
-      renderAll();
+    function renderTeamsTab(){
+      const rows = STATE.filteredMatches;
+      const agg = computeTeamAggregates(rows);
+
+      $('tab-teams').innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Matches</th>
+                <th>Wins</th>
+                <th>Win %</th>
+                <th>Top Maps</th>
+                <th>Top Players</th>
+                <th>Top Bans</th>
+                <th>Top Active Comps</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agg.map(t => `
+                <tr>
+                  <td><strong>${escapeHtml(t.team)}</strong></td>
+                  <td class="mono">${t.matches}</td>
+                  <td class="mono">${t.wins}</td>
+                  <td class="mono">${fmtPct(t.wins, t.matches)}</td>
+                  <td>${t.mapTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${t.playerTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${t.banTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${t.activeTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hint">
+          Team report is built from matched rows only. Player names, maps, and bans come from draft records after matching.
+        </div>
+      `;
     }
 
-    function setView(view){
-      STATE.currentView = view;
-      document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
-      document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
-      if (view === 'match') renderMatchView();
+    function computePlayerAggregates(rows){
+      const players = new Map();
+
+      for (const row of rows){
+        const leftPlayers = row._leftPlayers || [];
+        const rightPlayers = row._rightPlayers || [];
+
+        leftPlayers.forEach(name => {
+          if (!name) return;
+          if (!players.has(name)){
+            players.set(name, { player:name, teams:[], maps:[], tournaments:[], bans:[], matches:0, wins:0, actives:[] });
+          }
+          const p = players.get(name);
+          p.matches += 1;
+          if (row._leftScore > row._rightScore) p.wins += 1;
+          p.teams.push(row._leftTeam);
+          p.maps.push(row._map);
+          p.tournaments.push(row._tournament);
+          if (row._leftBan) p.bans.push(row._leftBan);
+          if (row._activeASig) p.actives.push(row._activeASig);
+        });
+
+        rightPlayers.forEach(name => {
+          if (!name) return;
+          if (!players.has(name)){
+            players.set(name, { player:name, teams:[], maps:[], tournaments:[], bans:[], matches:0, wins:0, actives:[] });
+          }
+          const p = players.get(name);
+          p.matches += 1;
+          if (row._rightScore > row._leftScore) p.wins += 1;
+          p.teams.push(row._rightTeam);
+          p.maps.push(row._map);
+          p.tournaments.push(row._tournament);
+          if (row._rightBan) p.bans.push(row._rightBan);
+          if (row._activeBSig) p.actives.push(row._activeBSig);
+        });
+      }
+
+      return [...players.values()]
+        .map(p => ({
+          ...p,
+          teamTop: summarizeByCount(p.teams, 3),
+          mapTop: summarizeByCount(p.maps, 5),
+          tournTop: summarizeByCount(p.tournaments, 5),
+          banTop: summarizeByCount(p.bans, 5),
+          activeTop: summarizeByCount(p.actives, 5)
+        }))
+        .sort((a,b) => b.matches - a.matches || a.player.localeCompare(b.player));
+    }
+
+    function renderPlayersTab(){
+      const rows = STATE.filteredMatches;
+      const agg = computePlayerAggregates(rows);
+
+      $('tab-players').innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Matches</th>
+                <th>Wins</th>
+                <th>Win %</th>
+                <th>Main Team</th>
+                <th>Top Maps</th>
+                <th>Top Active Comps</th>
+                <th>Linked Bans</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agg.map(p => `
+                <tr>
+                  <td><strong>${escapeHtml(p.player)}</strong></td>
+                  <td class="mono">${p.matches}</td>
+                  <td class="mono">${p.wins}</td>
+                  <td class="mono">${fmtPct(p.wins, p.matches)}</td>
+                  <td>${p.teamTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${p.mapTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${p.activeTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${p.banTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hint">
+          Player names come from <strong>draft_records.state.playerCards</strong>.
+        </div>
+      `;
+    }
+
+    function computeMapAggregates(rows){
+      const maps = new Map();
+
+      for (const row of rows){
+        const map = safe(row._map);
+        if (!maps.has(map)){
+          maps.set(map, {
+            map,
+            matches: 0,
+            teams: [],
+            players: [],
+            bans: [],
+            actives: [],
+            tournaments: []
+          });
+        }
+
+        const m = maps.get(map);
+        m.matches += 1;
+        m.teams.push(row._leftTeam, row._rightTeam);
+        m.players.push(...(row._playerCards || []).filter(Boolean));
+        if (row._leftBan) m.bans.push(row._leftBan);
+        if (row._rightBan) m.bans.push(row._rightBan);
+        if (row._activeASig) m.actives.push(row._activeASig);
+        if (row._activeBSig) m.actives.push(row._activeBSig);
+        m.tournaments.push(row._tournament);
+      }
+
+      return [...maps.values()]
+        .map(m => ({
+          ...m,
+          teamTop: summarizeByCount(m.teams, 8),
+          playerTop: summarizeByCount(m.players, 10),
+          banTop: summarizeByCount(m.bans, 8),
+          activeTop: summarizeByCount(m.actives, 8),
+          tournTop: summarizeByCount(m.tournaments, 5)
+        }))
+        .sort((a,b) => b.matches - a.matches || a.map.localeCompare(b.map));
+    }
+
+    function renderMapsTab(){
+      const rows = STATE.filteredMatches;
+      const agg = computeMapAggregates(rows);
+
+      $('tab-maps').innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Map</th>
+                <th>Matches</th>
+                <th>Top Teams</th>
+                <th>Top Players</th>
+                <th>Top Bans</th>
+                <th>Top Active Comps</th>
+                <th>Tournaments</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agg.map(m => `
+                <tr>
+                  <td><strong>${escapeHtml(m.map)}</strong></td>
+                  <td class="mono">${m.matches}</td>
+                  <td>${m.teamTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${m.playerTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${m.banTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${m.activeTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                  <td>${m.tournTop.map(([n,c]) => `${escapeHtml(n)} (${c})`).join('<br>') || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderMatchesTab(){
+      const rows = STATE.filteredMatches;
+
+      $('tab-matches').innerHTML = rows.length ? `
+        <div class="card-list">
+          ${rows.map((row, idx) => `
+            <div class="match-card">
+              <div class="match-head">
+                <div>
+                  <div class="match-title">
+                    ${escapeHtml(row._leftTeam)} <span class="gold mono">${row._leftScore}</span>
+                    vs
+                    <span class="gold mono">${row._rightScore}</span> ${escapeHtml(row._rightTeam)}
+                  </div>
+                  <div class="match-meta">
+                    ${escapeHtml(safe(row._tournament))} • ${escapeHtml(safe(row._map))}
+                    ${row._draft?.match_date ? ` • ${escapeHtml(String(row._draft.match_date).slice(0,10))}` : ''}
+                  </div>
+                </div>
+
+                <div class="chips">
+                  <span class="chip">Match Score ${row._matchScore}</span>
+                  <span class="chip">${escapeHtml((row._matchReasons || []).join(' • '))}</span>
+                </div>
+              </div>
+
+              <div class="match-grid">
+                <div class="subbox">
+                  <h3 class="subbox-title">Left Side</h3>
+                  <div class="line-list">
+                    <div><strong>Team:</strong> ${escapeHtml(row._leftTeam)}</div>
+                    <div><strong>Ban:</strong> ${escapeHtml(safe(row._leftBan))}</div>
+                    <div><strong>Players:</strong> ${escapeHtml((row._leftPlayers || []).join(', ') || '—')}</div>
+                    <div><strong>Active Comp:</strong> <span class="mono">${escapeHtml(row._activeASig || '—')}</span></div>
+                  </div>
+                </div>
+
+                <div class="subbox">
+                  <h3 class="subbox-title">Right Side</h3>
+                  <div class="line-list">
+                    <div><strong>Team:</strong> ${escapeHtml(row._rightTeam)}</div>
+                    <div><strong>Ban:</strong> ${escapeHtml(safe(row._rightBan))}</div>
+                    <div><strong>Players:</strong> ${escapeHtml((row._rightPlayers || []).join(', ') || '—')}</div>
+                    <div><strong>Active Comp:</strong> <span class="mono">${escapeHtml(row._activeBSig || '—')}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="subbox">
+                <h3 class="subbox-title">Reference</h3>
+                <div class="line-list">
+                  <div><strong>Draft Record ID:</strong> <span class="mono">${escapeHtml(String(row._draft?.id || '—'))}</span></div>
+                  <div><strong>Report Row ID:</strong> <span class="mono">${escapeHtml(String(row.id || '—'))}</span></div>
+                  <div><strong>Reversed Match:</strong> ${row._matchReversed ? 'Yes' : 'No'}</div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div class="mini-card">
+          <h3 class="mini-title">No matched rows</h3>
+          <div class="mini-copy muted">No matched records are available for the current filters.</div>
+        </div>
+      `;
+    }
+
+    function renderActiveTab(){
+      renderSummaryTab();
+      renderTeamsTab();
+      renderPlayersTab();
+      renderMapsTab();
+      renderMatchesTab();
     }
 
     async function loadData(){
-      setStatus('Loading cs_report_matches and draft_records...');
-      try {
+      try{
+        setStatus('Loading cs_report_matches and draft_records...');
+
         const [reportRows, draftRows] = await Promise.all([
-          fetchAllRows('cs_report_matches', [
-            'created_at',
-            'match_date',
-            'match_key',
-            'report_match_key',
-            'source_match_key'
-          ]),
-          fetchAllRows('draft_records', [
-            'created_at',
-            'match_date',
-            'id'
-          ])
+          fetchAllRows('cs_report_matches', REPORT_SELECT),
+          fetchAllRows('draft_records', DRAFT_SELECT)
         ]);
 
-        STATE.reportMatchesRaw = reportRows;
-        STATE.draftRecordsRaw = draftRows;
+        STATE.reportRows = reportRows;
+        STATE.draftRows = draftRows;
 
-        const ffcmReport = reportRows
-          .map(extractReportMatch)
-          .filter(row => isFFCMTournament(row._tournament));
+        const reportPrepared = reportRows.map(extractReportMatch);
 
         const ffcmDrafts = draftRows
           .map(extractDraftRecord)
-          .filter(row => isFFCMTournament(row._tournament));
+          .filter(row => normalizeText(row._tournament).includes('FFCM'));
 
-        STATE.allMatches = attachBestDraftMatches(ffcmReport, ffcmDrafts);
-        buildLookups();
-        renderAll();
-      } catch (err){
+        STATE.allMatches = attachBestDraftMatches(reportPrepared, ffcmDrafts);
+
+        console.log('reportPrepared', reportPrepared.length);
+        console.log('ffcmDrafts', ffcmDrafts.length);
+        console.log('matched', STATE.allMatches.filter(x => x._matched).length);
+        console.log('unmatched', STATE.allMatches.filter(x => !x._matched).length);
+        console.log('sample unmatched', STATE.allMatches.filter(x => !x._matched).slice(0, 5));
+
+        populateFilters();
+        applyFilters();
+
+        setStatus(
+          `Loaded.\n` +
+          `cs_report_matches: ${reportRows.length}\n` +
+          `draft_records (FFCM only): ${ffcmDrafts.length}\n` +
+          `matched rows: ${STATE.allMatches.filter(x => x._matched).length}\n` +
+          `unmatched rows: ${STATE.allMatches.filter(x => !x._matched).length}`
+        );
+      } catch(err){
         console.error(err);
         setStatus(`Load failed:\n${err.message || err}`, true);
       }
     }
 
-    document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => setView(btn.dataset.view));
-    });
+    function resetFilters(){
+      $('teamFilter').value = '__ALL__';
+      $('mapFilter').value = '__ALL__';
+      $('playerFilter').value = '__ALL__';
+      $('matchFilter').value = '__ALL__';
+      $('minScoreFilter').value = '90';
+      applyFilters();
+    }
 
-    ['fMap','fTeam','fPlayer','fMatchStatus'].forEach(id => {
-      $(id).addEventListener('change', renderAll);
-    });
+    function initTabs(){
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          STATE.currentTab = tab;
 
-    $('fSearch').addEventListener('input', renderAll);
-    $('matchPicker').addEventListener('change', () => {
-      setView('match');
-      renderMatchView();
-    });
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
+          $('tab-' + tab).classList.add('active');
+        });
+      });
+    }
 
     $('reloadBtn').addEventListener('click', loadData);
-    $('clearFiltersBtn').addEventListener('click', clearFilters);
+    $('resetBtn').addEventListener('click', resetFilters);
+    $('teamFilter').addEventListener('change', applyFilters);
+    $('mapFilter').addEventListener('change', applyFilters);
+    $('playerFilter').addEventListener('change', applyFilters);
+    $('matchFilter').addEventListener('change', applyFilters);
+    $('minScoreFilter').addEventListener('change', applyFilters);
 
+    initTabs();
     loadData();
   </script>
 </body>
