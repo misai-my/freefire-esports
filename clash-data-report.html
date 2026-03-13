@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clash Squad Report Page</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --bg:#060b18;
+      --panel:#081226;
+      --line:rgba(124,172,255,.14);
+      --line-2:rgba(124,172,255,.08);
+      --ink:#eef4ff;
+      --muted:#9fb0d1;
+      --orange:#ff7f32;
+      --cyan:#2dafff;
+      --good:#7cff9e;
+      --bad:#ff8f8f;
+      --gold:#ffcf66;
+      --shadow:0 24px 60px rgba(0,0,0,.45);
+      --radius:24px;
+      --radius-sm:16px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; }
+    body{
+      font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 0% 10%, rgba(0,180,255,.12), transparent 20%),
+        radial-gradient(circle at 100% 10%, rgba(255,90,0,.10), transparent 20%),
+        linear-gradient(180deg,#030814 0%,#071122 100%);
+    }
+
+    .app{
+      max-width:1600px;
+      margin:0 auto;
+      padding:18px;
+      display:grid;
+      gap:14px;
+    }
+
+    .title{
+      margin:0;
+      font-size:28px;
+      font-weight:900;
+      line-height:1.1;
+    }
+
+    .sub{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.45;
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(10,20,42,.94), rgba(7,14,30,.96));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      min-width:0;
+    }
+
+    .panel-inner{
+      padding:14px;
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns:repeat(6, minmax(0,1fr));
+      gap:10px;
+      align-items:end;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+
+    .field label{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .select-ui,
+    .text-ui,
+    textarea{
+      width:100%;
+      min-height:42px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#08111f;
+      color:var(--ink);
+      padding:10px 12px;
+      outline:none;
+      font:600 12px/1.2 Inter,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    textarea{
+      min-height:220px;
+      resize:vertical;
+      font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+
+    .select-ui:focus,
+    .text-ui:focus,
+    textarea:focus{
+      border-color:rgba(45,175,255,.45);
+      box-shadow:0 0 0 3px rgba(45,175,255,.10);
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    button{
+      border:0;
+      border-radius:12px;
+      padding:10px 16px;
+      font-weight:800;
+      cursor:pointer;
+      background:linear-gradient(90deg, var(--cyan), #68ffd7);
+      color:#08101d;
+      font-size:12px;
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    button.ghost{
+      background:transparent;
+      color:var(--ink);
+      border:1px solid var(--line);
+    }
+
+    button.orange{
+      background:linear-gradient(90deg, #ff7f32, #ffb15c);
+      color:#1a0c05;
+    }
+
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
+    .status{
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:13px;
+      white-space:pre-wrap;
+    }
+
+    .status.error{
+      color:#ffd7d7;
+      border-color:rgba(255,123,123,.35);
+      background:rgba(255,123,123,.08);
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+      gap:12px;
+      align-items:center;
+      padding:16px;
+    }
+
+    .team-name{
+      font-size:22px;
+      font-weight:900;
+      color:var(--orange);
+      text-transform:uppercase;
+      line-height:1.1;
+      word-break:break-word;
+    }
+
+    .team-name.right{
+      text-align:right;
+    }
+
+    .score-box{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border-radius:16px;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(3,12,28,.72);
+      font-weight:900;
+    }
+
+    .score-pill{
+      min-width:42px;
+      height:30px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(255,255,255,.05);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:15px;
+    }
+
+    .round-label{
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:#fff;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(6, minmax(0,1fr));
+      gap:10px;
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:12px;
+      background:rgba(255,255,255,.025);
+      min-width:0;
+    }
+
+    .card-kicker{
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.10em;
+      font-size:10px;
+      font-weight:800;
+      margin-bottom:6px;
+    }
+
+    .card-value{
+      font-size:24px;
+      font-weight:900;
+      color:#fff;
+      line-height:1.1;
+    }
+
+    .card-sub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .section-title{
+      margin:0;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:#eef4ff;
+    }
+
+    .section-sub{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+
+    .two-col{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:14px;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.14);
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:920px;
+    }
+
+    th, td{
+      border-bottom:1px solid var(--line-2);
+      padding:10px 10px;
+      text-align:left;
+      vertical-align:top;
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    th{
+      position:sticky;
+      top:0;
+      background:#0a1527;
+      color:#eef4ff;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      z-index:1;
+    }
+
+    tbody tr:hover td{
+      background:rgba(255,255,255,.025);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:24px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.16);
+      background:rgba(255,255,255,.04);
+      font-size:10px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .pill.good{ color:var(--good); }
+    .pill.bad{ color:var(--bad); }
+    .pill.gold{ color:var(--gold); }
+
+    .split{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 380px;
+      gap:14px;
+    }
+
+    .prompt-box{
+      min-height:220px;
+      background:#07101f;
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    .empty{
+      padding:18px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    @media (max-width: 1300px){
+      .filters{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+      .cards{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+      .split{ grid-template-columns:1fr; }
+      .two-col{ grid-template-columns:1fr; }
+    }
+
+    @media (max-width: 820px){
+      .app{ padding:10px; }
+      .filters{ grid-template-columns:1fr; }
+      .cards{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .hero{ grid-template-columns:1fr; }
+      .team-name.right{ text-align:left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div>
+      <h1 class="title">Clash Squad Report Page</h1>
+      <p class="sub">Reads from <b>cs_report_matches</b> and <b>cs_report_player_rounds</b>, then gives you match, team, player, and round level report views.</p>
+    </div>
+
+    <section class="panel">
+      <div class="panel-inner">
+        <div class="filters">
+          <div class="field">
+            <label for="matchSelect">Match</label>
+            <select id="matchSelect" class="select-ui"></select>
+          </div>
+
+          <div class="field">
+            <label for="teamFilter">Team</label>
+            <select id="teamFilter" class="select-ui">
+              <option value="all">All Teams</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="playerFilter">Player</label>
+            <select id="playerFilter" class="select-ui">
+              <option value="all">All Players</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="roundFilter">Round</label>
+            <select id="roundFilter" class="select-ui">
+              <option value="all">All Rounds</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="viewMode">View Mode</label>
+            <select id="viewMode" class="select-ui">
+              <option value="all">All Uploaded Rows</option>
+              <option value="latest">Latest Round Only</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>&nbsp;</label>
+            <div class="actions">
+              <button id="reloadBtn" type="button">Reload</button>
+              <button id="exportCsvBtn" class="ghost" type="button">Export CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:10px"></div>
+        <div id="status" class="status">Loading report data…</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="hero">
+        <div id="heroTeamA" class="team-name">—</div>
+        <div class="score-box">
+          <span id="heroScoreA" class="score-pill">—</span>
+          <span id="heroRound" class="round-label">Round —</span>
+          <span id="heroScoreB" class="score-pill">—</span>
+        </div>
+        <div id="heroTeamB" class="team-name right">—</div>
+      </div>
+    </section>
+
+    <section class="cards" id="summaryCards"></section>
+
+    <section class="two-col">
+      <div class="panel">
+        <div class="panel-inner">
+          <h2 class="section-title">Team Comparison</h2>
+          <p class="section-sub">Aggregated from the currently visible rows.</p>
+          <div class="table-wrap">
+            <table id="teamTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-inner">
+          <h2 class="section-title">Top Players Snapshot</h2>
+          <p class="section-sub">Current filter state ranking by kills, damage, assists, and efficiency.</p>
+          <div class="table-wrap">
+            <table id="topPlayersTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="split">
+      <div class="panel">
+        <div class="panel-inner">
+          <h2 class="section-title">Player Summary Table</h2>
+          <p class="section-sub">This is the main analyst table built from your uploaded report rows.</p>
+          <div class="table-wrap">
+            <table id="playerSummaryTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-inner">
+          <div class="actions" style="justify-content:space-between;">
+            <div>
+              <h2 class="section-title">AI Report Prompt</h2>
+              <p class="section-sub">Built from the active match and filters.</p>
+            </div>
+            <button id="copyPromptBtn" class="ghost" type="button">Copy Prompt</button>
+          </div>
+          <textarea id="promptOutput" class="prompt-box" readonly placeholder="Select a match to build the prompt..."></textarea>
+          <div id="copyNote" class="section-sub">Ready for analyst desk, casting notes, or coaching review.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-inner">
+        <h2 class="section-title">Round Detail Table</h2>
+        <p class="section-sub">Each row is one uploaded player-round entry.</p>
+        <div class="table-wrap">
+          <table id="roundDetailTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+    );
+
+    const MATCH_TABLE = 'cs_report_matches';
+    const ROUND_TABLE = 'cs_report_player_rounds';
+
+    const $ = (id) => document.getElementById(id);
+
+    let MATCHES = [];
+    let CURRENT_MATCH = null;
+    let ROUND_ROWS = [];
+
+    function setStatus(message, isError = false){
+      const el = $('status');
+      el.textContent = message;
+      el.className = isError ? 'status error' : 'status';
+    }
+
+    function escapeHtml(value){
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function toNum(value, fallback = 0){
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function formatNum(value, digits = 0){
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '—';
+      return digits ? n.toFixed(digits) : String(Math.round(n));
+    }
+
+    function uniqueSorted(values){
+      return [...new Set(values.filter(v => v !== null && v !== undefined && v !== ''))].sort((a,b) => {
+        const na = Number(a), nb = Number(b);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        return String(a).localeCompare(String(b));
+      });
+    }
+
+    function sum(rows, key){
+      return rows.reduce((acc, row) => acc + toNum(row?.[key], 0), 0);
+    }
+
+    function avg(rows, key){
+      if (!rows.length) return 0;
+      return sum(rows, key) / rows.length;
+    }
+
+    function downloadTextFile(filename, text, type = 'text/plain;charset=utf-8'){
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyText(text){
+      try{
+        if (navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch{}
+
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+
+      let ok = false;
+      try{ ok = document.execCommand('copy'); }catch{}
+      ta.remove();
+      return ok;
+    }
+
+    async function loadMatches(){
+      setStatus('Loading match list...');
+      const { data, error } = await client
+        .from(MATCH_TABLE)
+        .select('match_key, match_id, display_round, total_rounds, team_a_name, team_b_name, team_a_score, team_b_score, uploaded_at')
+        .order('uploaded_at', { ascending: false });
+
+      if (error) throw error;
+      MATCHES = data || [];
+      renderMatchOptions();
+    }
+
+    function renderMatchOptions(){
+      const select = $('matchSelect');
+
+      if (!MATCHES.length){
+        select.innerHTML = `<option value="">No uploaded matches found</option>`;
+        return;
+      }
+
+      select.innerHTML = MATCHES.map(match => {
+        const label = `${match.team_a_name || 'Team A'} vs ${match.team_b_name || 'Team B'} • ${match.team_a_score ?? 0}-${match.team_b_score ?? 0} • ${match.display_round || 'Round —'} • ${match.match_key}`;
+        return `<option value="${escapeHtml(match.match_key)}">${escapeHtml(label)}</option>`;
+      }).join('');
+    }
+
+    async function loadMatchRows(matchKey){
+      if (!matchKey){
+        CURRENT_MATCH = null;
+        ROUND_ROWS = [];
+        renderAll();
+        return;
+      }
+
+      CURRENT_MATCH = MATCHES.find(m => m.match_key === matchKey) || null;
+
+      setStatus(`Loading rows for ${matchKey}...`);
+
+      const { data, error } = await client
+        .from(ROUND_TABLE)
+        .select('*')
+        .eq('match_key', matchKey)
+        .order('round_index', { ascending: true })
+        .order('team_index', { ascending: true })
+        .order('player_index', { ascending: true });
+
+      if (error) throw error;
+
+      ROUND_ROWS = data || [];
+      renderFiltersFromRows();
+      renderAll();
+
+      setStatus(
+        `Loaded match ${matchKey}\n` +
+        `Visible source rows: ${ROUND_ROWS.length}`
+      );
+    }
+
+    function renderFiltersFromRows(){
+      const teamFilter = $('teamFilter');
+      const playerFilter = $('playerFilter');
+      const roundFilter = $('roundFilter');
+
+      const teams = uniqueSorted(ROUND_ROWS.map(r => r.team_name));
+      const players = uniqueSorted(ROUND_ROWS.map(r => r.player_name));
+      const rounds = uniqueSorted(ROUND_ROWS.map(r => r.round_index).filter(v => Number.isInteger(v)));
+
+      const prevTeam = teamFilter.value || 'all';
+      const prevPlayer = playerFilter.value || 'all';
+      const prevRound = roundFilter.value || 'all';
+
+      teamFilter.innerHTML = `<option value="all">All Teams</option>` +
+        teams.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+      playerFilter.innerHTML = `<option value="all">All Players</option>` +
+        players.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+      roundFilter.innerHTML = `<option value="all">All Rounds</option>` +
+        rounds.map(v => `<option value="${v}">Round ${Number(v) + 1}</option>`).join('');
+
+      if ([...teamFilter.options].some(o => o.value === prevTeam)) teamFilter.value = prevTeam;
+      if ([...playerFilter.options].some(o => o.value === prevPlayer)) playerFilter.value = prevPlayer;
+      if ([...roundFilter.options].some(o => o.value === prevRound)) roundFilter.value = prevRound;
+    }
+
+    function getFilteredRows(){
+      let rows = [...ROUND_ROWS];
+
+      const teamValue = $('teamFilter').value;
+      const playerValue = $('playerFilter').value;
+      const roundValue = $('roundFilter').value;
+      const viewMode = $('viewMode').value;
+
+      if (teamValue !== 'all') rows = rows.filter(r => String(r.team_name) === teamValue);
+      if (playerValue !== 'all') rows = rows.filter(r => String(r.player_name) === playerValue);
+      if (roundValue !== 'all') rows = rows.filter(r => String(r.round_index) === roundValue);
+      if (viewMode === 'latest') rows = rows.filter(r => r.is_latest_round === true);
+
+      return rows;
+    }
+
+    function renderHero(){
+      $('heroTeamA').textContent = CURRENT_MATCH?.team_a_name || '—';
+      $('heroTeamB').textContent = CURRENT_MATCH?.team_b_name || '—';
+      $('heroScoreA').textContent = CURRENT_MATCH?.team_a_score ?? '—';
+      $('heroScoreB').textContent = CURRENT_MATCH?.team_b_score ?? '—';
+      $('heroRound').textContent = CURRENT_MATCH?.display_round || 'Round —';
+    }
+
+    function renderSummaryCards(rows){
+      const wrap = $('summaryCards');
+
+      if (!CURRENT_MATCH){
+        wrap.innerHTML = '';
+        return;
+      }
+
+      const teams = uniqueSorted(rows.map(r => r.team_name));
+      const players = uniqueSorted(rows.map(r => r.player_name));
+      const rounds = uniqueSorted(rows.map(r => r.round_index).filter(v => Number.isInteger(v)));
+
+      const totalKills = sum(rows, 'kills');
+      const totalDamage = sum(rows, 'damage');
+      const totalAssists = sum(rows, 'assists');
+      const totalHeadshots = sum(rows, 'headshots');
+      const totalKnockDowns = sum(rows, 'knock_down');
+      const avgDamage = rows.length ? totalDamage / rows.length : 0;
+
+      const cards = [
+        { kicker:'Visible Rows', value: rows.length, sub:'Filtered report entries' },
+        { kicker:'Teams', value: teams.length, sub:'Teams in current view' },
+        { kicker:'Players', value: players.length, sub:'Players in current view' },
+        { kicker:'Rounds', value: rounds.length, sub:'Distinct rounds visible' },
+        { kicker:'Total Kills', value: totalKills, sub:'Sum of visible rows' },
+        { kicker:'Total Damage', value: formatNum(totalDamage), sub:`Avg/row ${formatNum(avgDamage)}` },
+        { kicker:'Assists', value: totalAssists, sub:'Sum of visible rows' },
+        { kicker:'Headshots', value: totalHeadshots, sub:'Precision output' },
+        { kicker:'Knock Downs', value: totalKnockDowns, sub:'Fight conversion pressure' },
+        { kicker:'Team A', value: CURRENT_MATCH.team_a_score ?? 0, sub: CURRENT_MATCH.team_a_name || 'Team A' },
+        { kicker:'Team B', value: CURRENT_MATCH.team_b_score ?? 0, sub: CURRENT_MATCH.team_b_name || 'Team B' },
+        { kicker:'Display Round', value: CURRENT_MATCH.display_round || '—', sub: CURRENT_MATCH.match_key || '' }
+      ];
+
+      wrap.innerHTML = cards.map(card => `
+        <div class="card">
+          <div class="card-kicker">${escapeHtml(card.kicker)}</div>
+          <div class="card-value">${escapeHtml(card.value)}</div>
+          <div class="card-sub">${escapeHtml(card.sub)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderTeamTable(rows){
+      const table = $('teamTable');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+
+      const teams = uniqueSorted(rows.map(r => r.team_name));
+      const grouped = teams.map(teamName => {
+        const group = rows.filter(r => r.team_name === teamName);
+        const rowCount = group.length;
+        const players = uniqueSorted(group.map(r => r.player_name)).length;
+        const rounds = uniqueSorted(group.map(r => r.round_index).filter(v => Number.isInteger(v))).length;
+        const kills = sum(group, 'kills');
+        const assists = sum(group, 'assists');
+        const damage = sum(group, 'damage');
+        const damageTaken = sum(group, 'damage_taken');
+        const headshots = sum(group, 'headshots');
+        const knockDown = sum(group, 'knock_down');
+        const grenade = sum(group, 'grenade_use');
+        const icewall = sum(group, 'icewall_use');
+        const spent = sum(group, 'economy_spent_self');
+        const wins = group.filter(r => r.is_win === true).length;
+
+        return {
+          teamName, rowCount, players, rounds, kills, assists, damage, damageTaken,
+          headshots, knockDown, grenade, icewall, spent, wins,
+          kd: damageTaken > 0 ? (damage / damageTaken) : damage
+        };
+      });
+
+      thead.innerHTML = `
+        <tr>
+          <th>Team</th>
+          <th>Rows</th>
+          <th>Players</th>
+          <th>Rounds</th>
+          <th>Kills</th>
+          <th>Assists</th>
+          <th>Damage</th>
+          <th>Damage Taken</th>
+          <th>Headshots</th>
+          <th>Knock Down</th>
+          <th>Grenade</th>
+          <th>Icewall</th>
+          <th>Spent Self</th>
+          <th>Win Rows</th>
+          <th>Dmg / Taken</th>
+        </tr>
+      `;
+
+      if (!grouped.length){
+        tbody.innerHTML = `<tr><td colspan="15" class="empty">No team data.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = grouped.map(g => `
+        <tr>
+          <td><b>${escapeHtml(g.teamName)}</b></td>
+          <td>${g.rowCount}</td>
+          <td>${g.players}</td>
+          <td>${g.rounds}</td>
+          <td>${g.kills}</td>
+          <td>${g.assists}</td>
+          <td>${formatNum(g.damage)}</td>
+          <td>${formatNum(g.damageTaken)}</td>
+          <td>${g.headshots}</td>
+          <td>${g.knockDown}</td>
+          <td>${g.grenade}</td>
+          <td>${g.icewall}</td>
+          <td>${formatNum(g.spent)}</td>
+          <td>${g.wins}</td>
+          <td>${formatNum(g.kd, 2)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTopPlayersTable(rows){
+      const table = $('topPlayersTable');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+
+      const playerNames = uniqueSorted(rows.map(r => `${r.team_name}|||${r.player_name}`));
+
+      const grouped = playerNames.map(key => {
+        const [teamName, playerName] = key.split('|||');
+        const group = rows.filter(r => r.team_name === teamName && r.player_name === playerName);
+
+        const kills = sum(group, 'kills');
+        const assists = sum(group, 'assists');
+        const damage = sum(group, 'damage');
+        const damageTaken = sum(group, 'damage_taken');
+        const hs = sum(group, 'headshots');
+        const wins = group.filter(r => r.is_win === true).length;
+        const rounds = uniqueSorted(group.map(r => r.round_index).filter(v => Number.isInteger(v))).length;
+
+        return {
+          teamName, playerName, kills, assists, damage, damageTaken, hs, wins, rounds,
+          efficiency: damageTaken > 0 ? damage / damageTaken : damage
+        };
+      }).sort((a,b) =>
+        (b.kills - a.kills) ||
+        (b.damage - a.damage) ||
+        (b.assists - a.assists)
+      ).slice(0, 12);
+
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Team</th>
+          <th>Kills</th>
+          <th>Assists</th>
+          <th>Damage</th>
+          <th>Damage Taken</th>
+          <th>HS</th>
+          <th>Wins</th>
+          <th>Rounds</th>
+          <th>Efficiency</th>
+        </tr>
+      `;
+
+      if (!grouped.length){
+        tbody.innerHTML = `<tr><td colspan="11" class="empty">No player data.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = grouped.map((g, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><b>${escapeHtml(g.playerName)}</b></td>
+          <td>${escapeHtml(g.teamName)}</td>
+          <td>${g.kills}</td>
+          <td>${g.assists}</td>
+          <td>${formatNum(g.damage)}</td>
+          <td>${formatNum(g.damageTaken)}</td>
+          <td>${g.hs}</td>
+          <td>${g.wins}</td>
+          <td>${g.rounds}</td>
+          <td>${formatNum(g.efficiency, 2)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderPlayerSummaryTable(rows){
+      const table = $('playerSummaryTable');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+
+      const playerKeys = uniqueSorted(rows.map(r => `${r.team_name}|||${r.player_name}`));
+
+      const grouped = playerKeys.map(key => {
+        const [teamName, playerName] = key.split('|||');
+        const group = rows.filter(r => r.team_name === teamName && r.player_name === playerName);
+
+        const sample = group[0] || {};
+        const kills = sum(group, 'kills');
+        const assists = sum(group, 'assists');
+        const damage = sum(group, 'damage');
+        const damageTaken = sum(group, 'damage_taken');
+        const headshots = sum(group, 'headshots');
+        const knockDown = sum(group, 'knock_down');
+        const grenade = sum(group, 'grenade_use');
+        const icewall = sum(group, 'icewall_use');
+        const medkit = sum(group, 'medkit_use');
+        const spentSelf = sum(group, 'economy_spent_self');
+        const rounds = uniqueSorted(group.map(r => r.round_index).filter(v => Number.isInteger(v))).length;
+        const wins = group.filter(r => r.is_win === true).length;
+
+        return {
+          teamName,
+          playerName,
+          activeSkill: sample.active_skill_name || '—',
+          pet: sample.pet_name || '—',
+          loadout: sample.loadout_name || '—',
+          kills, assists, damage, damageTaken, headshots, knockDown,
+          grenade, icewall, medkit, spentSelf, rounds, wins
+        };
+      }).sort((a,b) =>
+        (b.kills - a.kills) ||
+        (b.damage - a.damage)
+      );
+
+      thead.innerHTML = `
+        <tr>
+          <th>Player</th>
+          <th>Team</th>
+          <th>Active</th>
+          <th>Pet</th>
+          <th>Loadout</th>
+          <th>Rounds</th>
+          <th>Wins</th>
+          <th>Kills</th>
+          <th>Assists</th>
+          <th>Damage</th>
+          <th>Damage Taken</th>
+          <th>Headshots</th>
+          <th>Knock Down</th>
+          <th>Grenade</th>
+          <th>Icewall</th>
+          <th>Medkit</th>
+          <th>Spent Self</th>
+        </tr>
+      `;
+
+      if (!grouped.length){
+        tbody.innerHTML = `<tr><td colspan="17" class="empty">No player summary data.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = grouped.map(g => `
+        <tr>
+          <td><b>${escapeHtml(g.playerName)}</b></td>
+          <td>${escapeHtml(g.teamName)}</td>
+          <td>${escapeHtml(g.activeSkill)}</td>
+          <td>${escapeHtml(g.pet)}</td>
+          <td>${escapeHtml(g.loadout)}</td>
+          <td>${g.rounds}</td>
+          <td>${g.wins}</td>
+          <td>${g.kills}</td>
+          <td>${g.assists}</td>
+          <td>${formatNum(g.damage)}</td>
+          <td>${formatNum(g.damageTaken)}</td>
+          <td>${g.headshots}</td>
+          <td>${g.knockDown}</td>
+          <td>${g.grenade}</td>
+          <td>${g.icewall}</td>
+          <td>${g.medkit}</td>
+          <td>${formatNum(g.spentSelf)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderRoundDetailTable(rows){
+      const table = $('roundDetailTable');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+
+      thead.innerHTML = `
+        <tr>
+          <th>Round</th>
+          <th>Team</th>
+          <th>Player</th>
+          <th>Win</th>
+          <th>FB / FD</th>
+          <th>Kills</th>
+          <th>Assists</th>
+          <th>Damage</th>
+          <th>Damage Taken</th>
+          <th>HS</th>
+          <th>KD</th>
+          <th>Spent</th>
+          <th>Utility</th>
+          <th>Items</th>
+          <th>Purchased</th>
+          <th>Weapons</th>
+        </tr>
+      `;
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="16" class="empty">No round detail rows.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const winHtml = r.is_win === true
+          ? `<span class="pill good">Win</span>`
+          : r.is_win === false
+            ? `<span class="pill bad">Loss</span>`
+            : `<span class="pill">—</span>`;
+
+        const fbfd = [
+          r.is_first_down === true ? 'FB' : '',
+          r.is_first_taken_down === true ? 'FD' : ''
+        ].filter(Boolean).join(' / ') || '—';
+
+        const items = Array.isArray(r.current_items)
+          ? r.current_items.map(x => `${x.name} x${x.count}`).join(', ')
+          : (r.current_items_text || '—');
+
+        const purchased = Array.isArray(r.purchased_items)
+          ? r.purchased_items.map(x => `${x.name} x${x.count}`).join(', ')
+          : (r.purchased_items_text || '—');
+
+        const weapons = Array.isArray(r.weapon_usages)
+          ? r.weapon_usages.map(w => w.weapon_name || `Weapon ${w.weapon_id || '?'}`).join(', ')
+          : (r.weapon_usages_text || '—');
+
+        return `
+          <tr>
+            <td>${r.round_index !== null && r.round_index !== undefined ? `R${Number(r.round_index) + 1}` : '—'}</td>
+            <td>${escapeHtml(r.team_name || '—')}</td>
+            <td><b>${escapeHtml(r.player_name || '—')}</b></td>
+            <td>${winHtml}</td>
+            <td>${escapeHtml(fbfd)}</td>
+            <td>${formatNum(r.kills)}</td>
+            <td>${formatNum(r.assists)}</td>
+            <td>${formatNum(r.damage)}</td>
+            <td>${formatNum(r.damage_taken)}</td>
+            <td>${formatNum(r.headshots)}</td>
+            <td>${formatNum(r.knock_down)}</td>
+            <td>${formatNum(r.economy_spent_self)}</td>
+            <td>
+              G:${formatNum(r.grenade_use)} /
+              I:${formatNum(r.icewall_use)} /
+              M:${formatNum(r.medkit_use)}
+            </td>
+            <td>${escapeHtml(items || '—')}</td>
+            <td>${escapeHtml(purchased || '—')}</td>
+            <td>${escapeHtml(weapons || '—')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function buildPrompt(rows){
+      if (!CURRENT_MATCH) return '';
+
+      const teams = uniqueSorted(rows.map(r => r.team_name));
+      const players = uniqueSorted(rows.map(r => r.player_name));
+      const rounds = uniqueSorted(rows.map(r => r.round_index).filter(v => Number.isInteger(v))).map(v => `Round ${Number(v)+1}`);
+
+      const teamSummaries = teams.map(teamName => {
+        const teamRows = rows.filter(r => r.team_name === teamName);
+        const playerKeys = uniqueSorted(teamRows.map(r => r.player_name));
+
+        const playersText = playerKeys.map(playerName => {
+          const group = teamRows.filter(r => r.player_name === playerName);
+          const sample = group[0] || {};
+          return `- ${playerName}: Active ${sample.active_skill_name || '—'}, Pet ${sample.pet_name || '—'}, Loadout ${sample.loadout_name || '—'}, Kills ${sum(group,'kills')}, Assists ${sum(group,'assists')}, Damage ${sum(group,'damage')}`;
+        }).join('\n');
+
+        return [
+          `=== ${teamName} ===`,
+          `Rows: ${teamRows.length}`,
+          `Kills: ${sum(teamRows,'kills')}`,
+          `Assists: ${sum(teamRows,'assists')}`,
+          `Damage: ${sum(teamRows,'damage')}`,
+          `Damage Taken: ${sum(teamRows,'damage_taken')}`,
+          `Headshots: ${sum(teamRows,'headshots')}`,
+          `Players:`,
+          playersText
+        ].join('\n');
+      }).join('\n\n');
+
+      return [
+        `You are reviewing a Free Fire Clash Squad report page snapshot.`,
+        ``,
+        `Provide:`,
+        `1. Caster-ready storylines.`,
+        `2. Team comparison and win conditions.`,
+        `3. Player-by-player standout notes.`,
+        `4. Economy / utility observations.`,
+        `5. Coaching adjustments.`,
+        ``,
+        `Match: ${CURRENT_MATCH.team_a_name || 'Team A'} vs ${CURRENT_MATCH.team_b_name || 'Team B'}`,
+        `Score: ${CURRENT_MATCH.team_a_score ?? 0} - ${CURRENT_MATCH.team_b_score ?? 0}`,
+        `Display Round: ${CURRENT_MATCH.display_round || 'Round —'}`,
+        `Filter Scope:`,
+        `- Teams visible: ${teams.join(', ') || 'None'}`,
+        `- Players visible: ${players.join(', ') || 'None'}`,
+        `- Rounds visible: ${rounds.join(', ') || 'None'}`,
+        `- Visible rows: ${rows.length}`,
+        ``,
+        teamSummaries
+      ].join('\n');
+    }
+
+    function renderPrompt(rows){
+      $('promptOutput').value = buildPrompt(rows);
+    }
+
+    function renderAll(){
+      renderHero();
+
+      const rows = getFilteredRows();
+
+      renderSummaryCards(rows);
+      renderTeamTable(rows);
+      renderTopPlayersTable(rows);
+      renderPlayerSummaryTable(rows);
+      renderRoundDetailTable(rows);
+      renderPrompt(rows);
+    }
+
+    function exportVisibleCsv(){
+      const rows = getFilteredRows();
+      if (!rows.length){
+        setStatus('No visible rows to export.', true);
+        return;
+      }
+
+      const headers = [
+        'match_key','team_name','player_name','round_index','is_latest_round','is_win',
+        'is_first_down','is_first_taken_down','active_skill_name','pet_name','loadout_name',
+        'kills','assists','headshots','damage','damage_taken','knock_down',
+        'economy_spent_self','grenade_use','icewall_use','medkit_use',
+        'current_items_text','purchased_items_text','weapon_usages_text'
+      ];
+
+      const csv = [
+        headers.join(','),
+        ...rows.map(row => headers.map(h => {
+          const value = row?.[h] ?? '';
+          const safe = String(value).replace(/"/g, '""').replace(/\n/g, ' ');
+          return `"${safe}"`;
+        }).join(','))
+      ].join('\n');
+
+      const matchKey = CURRENT_MATCH?.match_key || 'report';
+      downloadTextFile(`${matchKey}_visible_rows.csv`, csv, 'text/csv;charset=utf-8');
+    }
+
+    $('reloadBtn').addEventListener('click', async () => {
+      try{
+        await loadMatches();
+        const matchKey = $('matchSelect').value || MATCHES[0]?.match_key || '';
+        if (matchKey){
+          $('matchSelect').value = matchKey;
+          await loadMatchRows(matchKey);
+        } else {
+          CURRENT_MATCH = null;
+          ROUND_ROWS = [];
+          renderAll();
+          setStatus('No uploaded matches found.');
+        }
+      }catch(err){
+        setStatus(`Reload failed:\n${err.message || err}`, true);
+      }
+    });
+
+    $('matchSelect').addEventListener('change', async (e) => {
+      try{
+        await loadMatchRows(e.target.value);
+      }catch(err){
+        setStatus(`Match load failed:\n${err.message || err}`, true);
+      }
+    });
+
+    ['teamFilter','playerFilter','roundFilter','viewMode'].forEach(id => {
+      $(id).addEventListener('change', renderAll);
+    });
+
+    $('exportCsvBtn').addEventListener('click', exportVisibleCsv);
+
+    $('copyPromptBtn').addEventListener('click', async () => {
+      const ok = await copyText($('promptOutput').value || '');
+      $('copyNote').textContent = ok
+        ? 'Prompt copied to clipboard.'
+        : 'Copy failed. You can still manually select and copy.';
+    });
+
+    (async function init(){
+      try{
+        await loadMatches();
+
+        const first = MATCHES[0]?.match_key || '';
+        if (!first){
+          setStatus(
+            `No uploaded matches found.\n\n` +
+            `Expected source tables:\n` +
+            `- ${MATCH_TABLE}\n` +
+            `- ${ROUND_TABLE}\n\n` +
+            `Upload data first from your uploader page.`
+          );
+          renderAll();
+          return;
+        }
+
+        $('matchSelect').value = first;
+        await loadMatchRows(first);
+      }catch(err){
+        setStatus(`Init failed:\n${err.message || err}`, true);
+      }
+    })();
+  </script>
+</body>
+</html>
