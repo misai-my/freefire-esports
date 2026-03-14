@@ -1129,6 +1129,28 @@
       color: var(--muted);
     }
 
+    /* Counter panel: tighter title/name */
+    .counter-panel .skilldex-row{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap:6px;
+      align-items:center;
+      padding:7px 8px;
+      border-radius:12px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.07);
+    }
+    .counter-panel .skilldex-row-main b{
+      display:block;
+      font-size:.78rem;
+      line-height:1rem;
+      color: rgba(244,246,255,.92);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:140px;
+    }
+
     .skilldex-recent{
       display:flex;
       flex-direction:column;
@@ -1849,7 +1871,7 @@
               </div>
 
               <div class="skilldex-grid">
-                <div class="skilldex-panel">
+                <div class="skilldex-panel counter-panel">
                   <div class="skilldex-panel-title">Counter Skills</div>
                   <div id="skillDexCounters" class="skilldex-list">
                     <div class="skilldex-empty">No counter data yet.</div>
@@ -2369,7 +2391,6 @@
     function getCounterEntryForSkill(skillName){
       const key = slimKey(skillName);
       if (!key || !Array.isArray(COUNTERDEX.raw)) return null;
-
       return COUNTERDEX.raw.find(row => slimKey(row?.name) === key) || null;
     }
 
