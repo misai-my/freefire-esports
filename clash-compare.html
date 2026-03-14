@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -483,6 +484,14 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .pPet{
+      margin-top:2px;
+      font-size:10px;
+      color:rgba(170,177,197,.88);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
     .pPass{display:flex;gap:6px;align-items:center}
     .pPass img{
       width:16px;height:16px;border-radius:5px;
@@ -563,7 +572,7 @@
   <section class="hero">
     <h1>Team Compare Dashboard</h1>
     <div class="sub muted">
-      Analyze two Clash Squad teams side by side using match history, skill usage, map win rates, active impact, passive trios, ban impact, and opponent series.
+      Analyze two Clash Squad teams side by side using match history, skill usage, map win rates, active impact, passive trios, pet skill trends, ban impact, and opponent series.
     </div>
   </section>
 
@@ -624,7 +633,7 @@
 
   <!-- MATCHES -->
   <details class="accordion">
-    <summary>Matches (Active + 3× Passive per player)</summary>
+    <summary>Matches (Active + 3× Passive + Pet per player)</summary>
     <div class="accordion-body">
       <div class="grid2">
         <div class="card"><h3 id="labelMatchesA">Team A</h3><div id="matchesA">Loading…</div></div>
@@ -691,6 +700,17 @@
       <div class="grid2">
         <div class="card"><h3 id="labelPSA_Pas">Team A</h3><div id="psAPas">Loading…</div></div>
         <div class="card"><h3 id="labelPSB_Pas">Team B</h3><div id="psBPas">Loading…</div></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- PER-SKILL — PET -->
+  <details class="accordion">
+    <summary>Per-Skill — Pet</summary>
+    <div class="accordion-body">
+      <div class="grid2">
+        <div class="card"><h3 id="labelPSA_Pet">Team A</h3><div id="psAPet">Loading…</div></div>
+        <div class="card"><h3 id="labelPSB_Pet">Team B</h3><div id="psBPet">Loading…</div></div>
       </div>
     </div>
   </details>
@@ -782,6 +802,22 @@ const pct = (num, den) => den ? fmtPct(num/den) : '—';
 const uniq = (arr) => [...new Set(arr)];
 function parseState(val){ if (!val) return {}; if (typeof val==='object') return val; try { return JSON.parse(val); } catch(e){ return {}; } }
 function safe(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function normalizeSkillEntry(entry){
+  if (!entry) return { name:'', img:PLACEHOLDER };
+  if (typeof entry === 'string') return { name: entry.trim(), img: PLACEHOLDER };
+  return {
+    name: entry.name || entry.skill_name || entry.pet_name || entry.pet || entry.title || '',
+    img: entry.image_url || entry.img || entry.icon || entry.pet_image || entry.image || PLACEHOLDER
+  };
+}
+function extractPetsArray(state){
+  if (Array.isArray(state?.pets)) return state.pets;
+  if (Array.isArray(state?.petSkills)) return state.petSkills;
+  if (Array.isArray(state?.pet_skill)) return state.pet_skill;
+  if (Array.isArray(state?.petskills)) return state.petskills;
+  if (Array.isArray(state?.pet)) return state.pet;
+  return [];
+}
 
 /* ========= Filters init ========= */
 function initFilters(){
@@ -857,6 +893,7 @@ function explodeRecordToRows(rec){
   const passives = Array.isArray(s.passives)    ? s.passives    : [];
   const bans     = Array.isArray(s.bans)        ? s.bans        : [];
   const names    = Array.isArray(s.playerCards) ? s.playerCards : [];
+  const pets     = extractPetsArray(s);
 
   const leftWin  = (rec.team_left_score ?? 0) > (rec.team_right_score ?? 0);
   const rightWin = (rec.team_right_score ?? 0) > (rec.team_left_score ?? 0);
@@ -885,6 +922,11 @@ function explodeRecordToRows(rec){
       while (trioObjs.length<3) trioObjs.push({name:'', img: PLACEHOLDER});
       return { player, trio: trioObjs.slice(0,3) };
     });
+    const petLines = idx.map((i,k)=>{
+      const player = (names[i] && String(names[i]).trim()) ? names[i].trim() : `P${k+1}`;
+      const petObj = normalizeSkillEntry(pets[i]);
+      return { player, pet: petObj };
+    });
 
     return {
       rec_id:rec.id,
@@ -894,7 +936,9 @@ function explodeRecordToRows(rec){
       map:rec.map,
       team, opponent:opp, team_score:ts, opp_score:os, result:res,
       banName:ban, banImg,
-      actives, passives:passiveLines
+      actives,
+      passives:passiveLines,
+      pets:petLines
     };
   }
   return [sideRow('L'), sideRow('R')];
@@ -931,6 +975,14 @@ function buildTeamBucket(rows, teamName, kind){
           S.occ += 1; S.appear += 1; if (r.result==='W') S.appearWins += 1;
           B.skills.set(nm, S);
         });
+      });
+    } else if (kind==='pet'){
+      r.pets.forEach(p=>{
+        const nm = p?.pet?.name || '';
+        if (!nm) return;
+        const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
+        S.occ += 1; S.appear += 1; if (r.result==='W') S.appearWins += 1;
+        B.skills.set(nm, S);
       });
     } else { // bans
       const nm = r.banName; if (!nm) return;
@@ -1106,6 +1158,51 @@ function perSkillPassiveCompressed(rows, limit=12){
         <td class="right">${r.wins}</td>
         <td class="right">${r.win_rate===null?'—':fmtPct(r.win_rate)}</td>
         <td class="right">${fmtPct(r.pick_rate)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function perSkillPetCompressedData(rows, limit=12){
+  if (!rows.length) return [];
+  const map = new Map();
+  rows.forEach(r=>{
+    (r.pets || []).forEach(p=>{
+      const nm = p?.pet?.name || '';
+      if (!nm) return;
+      const obj = map.get(nm) || {p:0,w:0,players:new Map()};
+      obj.p += 1;
+      if (r.result==='W') obj.w += 1;
+      if (p.player) obj.players.set(p.player, (obj.players.get(p.player) || 0) + 1);
+      map.set(nm, obj);
+    });
+  });
+  const den = rows.length * 4;
+  return [...map.entries()].map(([name,v])=>{
+    return {
+      skill:name,
+      picks:v.p,
+      wins:v.w,
+      win_rate: v.p ? v.w / v.p : null,
+      pick_rate: den ? v.p / den : 0,
+      players:[...v.players.entries()].sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]))
+    };
+  }).sort((a,b)=> b.pick_rate - a.pick_rate || (b.win_rate||0)-(a.win_rate||0) || a.skill.localeCompare(b.skill))
+    .slice(0, limit);
+}
+function perSkillPetCompressed(rows, limit=12){
+  const list = perSkillPetCompressedData(rows, limit);
+  if (!list.length) return `<div class="muted">No pet skills.</div>`;
+  return `<div class="tableWrap"><table>
+    <thead><tr><th>Skill</th><th class="right">Picks</th><th class="right">Wins</th><th class="right">Win %</th><th class="right">Pick %</th><th>Players</th></tr></thead>
+    <tbody>
+      ${list.map(r=>`<tr>
+        <td>${r.skill}</td>
+        <td class="right">${r.picks}</td>
+        <td class="right">${r.wins}</td>
+        <td class="right">${r.win_rate===null?'—':fmtPct(r.win_rate)}</td>
+        <td class="right">${fmtPct(r.pick_rate)}</td>
+        <td>${r.players.length ? r.players.slice(0,4).map(([name,count]) => `${name}${count>1?` (${count})`:''}`).join(', ') : '—'}</td>
       </tr>`).join('')}
     </tbody>
   </table></div>`;
@@ -1411,10 +1508,11 @@ function opponentSeriesTable(rows, limit=30){
 }
 
 /* KPIs */
-function kpiCard(bucket, kindActive, kindPassive, kindBan){
+function kpiCard(bucket, kindActive, kindPassive, kindPet, kindBan){
   if (!bucket || !bucket.matches) return `<div class="muted">No data for selection.</div>`;
   const subjA = [...kindActive.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
   const subjP = [...kindPassive.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
+  const subjPet = [...kindPet.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
   const subjB = [...kindBan.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
   return `
     <div class="kpis">
@@ -1422,6 +1520,7 @@ function kpiCard(bucket, kindActive, kindPassive, kindBan){
       <div class="kpi">Wins <strong>${bucket.wins}</strong> <span class="muted">(${pct(bucket.wins,bucket.matches)})</span></div>
       <div class="kpi">Active picks <strong>${subjA.appear}</strong> <span class="muted">(${pct(subjA.appear,bucket.matches)})</span></div>
       <div class="kpi">Passive picks <strong>${subjP.appear}</strong> <span class="muted">(${pct(subjP.appear,bucket.matches)})</span></div>
+      <div class="kpi">Pet picks <strong>${subjPet.appear}</strong> <span class="muted">(${pct(subjPet.appear,bucket.matches)})</span></div>
       <div class="kpi">Bans <strong>${subjB.appear}</strong> <span class="muted">(${pct(subjB.appear,bucket.matches)})</span></div>
     </div>`;
 }
@@ -1453,7 +1552,7 @@ Instructions:
 1) Summarize overall performance for each team (matches, wins, win%).
 2) Highlight strongest/weakest maps (use win% and volume).
 3) Analyze Active Skill Impact (Win/Loss) — call out skills with the largest positive/negative Δ vs team baseline.
-4) Mention rivals driving losses for key skills (logos/opponents listed in the data).
+4) Mention pet skill tendencies and whether they align with the team’s active/passive identity.
 5) Note top combos/pairs and passive trios; comment on reliability (win% + picks).
 6) Identify impactful bans (largest Δ win% vs not banned).
 7) Surface opponent-series patterns (sweeps, close scores, repeat bans).
@@ -1483,26 +1582,30 @@ async function copyTextToClipboard(text){
 }
 
 /* Matches rendering */
-function playerBadge(active, trio){
+function playerBadge(active, trio, petLine){
   const ico = (ps)=>`<img src="${ps.img||PLACEHOLDER}" alt="${safe(ps.name||'')}" title="${safe(ps.name||'')}">`;
   const p0 = trio?.[0] || {}, p1 = trio?.[1] || {}, p2 = trio?.[2] || {};
+  const pet = petLine?.pet || { name:'', img:PLACEHOLDER };
   const aName = safe(active.hero||'');
   const pName = safe(active.player||'');
+  const petName = safe(pet.name||'');
+  const petIcon = pet.name ? `<img src="${pet.img||PLACEHOLDER}" alt="${petName}" title="Pet: ${petName}">` : '';
   return `
-    <div class="pBadge" title="${pName}${aName?(' — '+aName):''}">
+    <div class="pBadge" title="${pName}${aName?(' — '+aName):''}${petName?(' — Pet: '+petName):''}">
       <img class="pAct" src="${active.heroImg||PLACEHOLDER}" alt="${aName}">
       <div class="pMeta">
         <div class="pName">${pName}</div>
         <div class="pHero">${aName||'—'}</div>
+        <div class="pPet">${petName ? `Pet: ${petName}` : ''}</div>
       </div>
-      <div class="pPass">${ico(p0)}${ico(p1)}${ico(p2)}</div>
+      <div class="pPass">${ico(p0)}${ico(p1)}${ico(p2)}${petIcon}</div>
     </div>`;
 }
 
 function matchCard(r){
   const score = `${r.team_score} - ${r.opp_score}`;
   const g = r.game_number ? `Game ${r.game_number}` : '—';
-  const players = r.actives.map((a,i)=>playerBadge(a, (r.passives[i]||{}).trio)).join('');
+  const players = r.actives.map((a,i)=>playerBadge(a, (r.passives[i]||{}).trio, r.pets[i])).join('');
   return `
     <div class="matchCard">
       <div class="mInfo">
@@ -1534,7 +1637,7 @@ function renderAll(){
   const a = el('cmpTeamA').value, b = el('cmpTeamB').value;
   if (!a || !b || a===b){
     el('meta').textContent = 'Pick two different teams.';
-    ['kpiA','kpiB','activeA','activeB','passiveA','passiveB','bansA','bansB','tmA','tmB','psAAct','psBAct','impactA','impactB','psAPas','psBPas','combosA','combosB','pairsA','pairsB','triosA','triosB','biA','biB','oppSeriesA','oppSeriesB','matchesA','matchesB']
+    ['kpiA','kpiB','activeA','activeB','passiveA','passiveB','bansA','bansB','tmA','tmB','psAAct','psBAct','impactA','impactB','psAPas','psBPas','psAPet','psBPet','combosA','combosB','pairsA','pairsB','triosA','triosB','biA','biB','oppSeriesA','oppSeriesB','matchesA','matchesB']
       .forEach(id=>{ if(el(id)) el(id).innerHTML = '<div class="muted">—</div>'; });
     const ta = el('aiPrompt'); if (ta) ta.value = 'Pick two different teams.';
     return;
@@ -1549,13 +1652,15 @@ function renderAll(){
 
   const bA = buildTeamBucket(rowsA, a, 'active');
   const bP_A = buildTeamBucket(rowsA, a, 'passive');
+  const bPet_A = buildTeamBucket(rowsA, a, 'pet');
   const bBan_A = buildTeamBucket(rowsA, a, 'ban');
   const bB = buildTeamBucket(rowsB, b, 'active');
   const bP_B = buildTeamBucket(rowsB, b, 'passive');
+  const bPet_B = buildTeamBucket(rowsB, b, 'pet');
   const bBan_B = buildTeamBucket(rowsB, b, 'ban');
 
-  el('kpiA').innerHTML = `<h3>${a}</h3>${kpiCard(bA, bA, bP_A, bBan_A)}`;
-  el('kpiB').innerHTML = `<h3>${b}</h3>${kpiCard(bB, bB, bP_B, bBan_B)}`;
+  el('kpiA').innerHTML = `<h3>${a}</h3>${kpiCard(bA, bA, bP_A, bPet_A, bBan_A)}`;
+  el('kpiB').innerHTML = `<h3>${b}</h3>${kpiCard(bB, bB, bP_B, bPet_B, bBan_B)}`;
 
   el('labelMatchesA').textContent = a;
   el('labelMatchesB').textContent = b;
@@ -1597,6 +1702,11 @@ function renderAll(){
   el('psAPas').innerHTML = perSkillPassiveCompressed(rowsA, 12);
   el('psBPas').innerHTML = perSkillPassiveCompressed(rowsB, 12);
 
+  el('labelPSA_Pet').textContent = a;
+  el('labelPSB_Pet').textContent = b;
+  el('psAPet').innerHTML = perSkillPetCompressed(rowsA, 12);
+  el('psBPet').innerHTML = perSkillPetCompressed(rowsB, 12);
+
   el('labelCombosA').textContent = `${a} — 4× Active`;
   el('labelCombosB').textContent = `${b} — 4× Active`;
   el('combosA').innerHTML = tableCombos(buildCombos(rowsA), 'Combo', 5);
@@ -1633,8 +1743,10 @@ function renderAll(){
       active_skill_impact: activeSkillImpactData(rowsA, 12),
       per_skill_active: perSkillActiveCompressedData(rowsA, 12),
       per_skill_passive: perSkillPassiveCompressedData(rowsA, 12),
+      per_skill_pet: perSkillPetCompressedData(rowsA, 12),
       top_active_by_rate: topSkillsData(bA, 10),
       top_passive_by_rate: topSkillsData(bP_A, 10),
+      top_pet_by_rate: topSkillsData(bPet_A, 10),
       top_bans_by_rate: topSkillsData(bBan_A, 10),
       combos: buildCombos(rowsA).sort((a,b)=> b.picks-a.picks || b.winpct-a.winpct).slice(0,5),
       pairs: buildPairs(rowsA).sort((a,b)=> b.picks-a.picks || b.winpct-a.winpct).slice(0,5),
@@ -1648,8 +1760,10 @@ function renderAll(){
       active_skill_impact: activeSkillImpactData(rowsB, 12),
       per_skill_active: perSkillActiveCompressedData(rowsB, 12),
       per_skill_passive: perSkillPassiveCompressedData(rowsB, 12),
+      per_skill_pet: perSkillPetCompressedData(rowsB, 12),
       top_active_by_rate: topSkillsData(bB, 10),
       top_passive_by_rate: topSkillsData(bP_B, 10),
+      top_pet_by_rate: topSkillsData(bPet_B, 10),
       top_bans_by_rate: topSkillsData(bBan_B, 10),
       combos: buildCombos(rowsB).sort((a,b)=> b.picks-a.picks || b.winpct-a.winpct).slice(0,5),
       pairs: buildPairs(rowsB).sort((a,b)=> b.picks-a.picks || b.winpct-a.winpct).slice(0,5),
@@ -1659,6 +1773,7 @@ function renderAll(){
     }
   };
   const exportClean = stripLinksDeep(exportObj);
+  LATEST_EXPORT = exportClean;
   el('aiPrompt').value = buildAIPrompt(exportClean);
 }
 
