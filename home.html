@@ -1009,6 +1009,8 @@
       line-height:1.34rem;
       white-space:normal;
       word-break:break-word;
+      overflow:visible;
+      display:block;
     }
 
     .skilldex-extra{
@@ -1129,7 +1131,6 @@
       color: var(--muted);
     }
 
-    /* Counter panel: wrap title/name */
     .counter-panel .skilldex-row{
       display:grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -2167,6 +2168,47 @@
       loadout:   { url:'https://misai-my.github.io/freefire-esports/loadout.json',   items:[], selected:0 },
     };
 
+    const SELECTION_KEYS = {
+      character: 'ff_home_selected_character_v1',
+      pet: 'ff_home_selected_pet_v1',
+      weapon: 'ff_home_selected_weapon_v1',
+      loadout: 'ff_home_selected_loadout_v1'
+    };
+
+    function getItemStableName(type, item){
+      return safeText(item?.name || '').trim();
+    }
+
+    function saveSelection(type){
+      const state = DATA[type];
+      if (!state || !Array.isArray(state.items)) return;
+      const item = state.items[state.selected] || state.items[0];
+      if (!item) return;
+
+      try{
+        localStorage.setItem(SELECTION_KEYS[type], getItemStableName(type, item));
+      }catch{}
+    }
+
+    function restoreSelection(type){
+      const state = DATA[type];
+      if (!state || !Array.isArray(state.items) || !state.items.length) return;
+
+      let restored = false;
+      try{
+        const savedName = localStorage.getItem(SELECTION_KEYS[type]);
+        if (savedName){
+          const idx = state.items.findIndex(it => getItemStableName(type, it) === savedName);
+          if (idx >= 0){
+            state.selected = idx;
+            restored = true;
+          }
+        }
+      }catch{}
+
+      if (!restored) state.selected = 0;
+    }
+
     const FILTER_STATE = {
       character: 'all',
       pet: 'all',
@@ -2687,12 +2729,14 @@
       const teamsEl = document.getElementById('skillDexTeams');
       const mapsEl = document.getElementById('skillDexMaps');
       const recentEl = document.getElementById('skillDexRecent');
+      const extra = document.getElementById('skillDexExtra');
 
       if (!item){
         thumb.src = 'https://i.imgur.com/qXFpizS.jpg';
         nameEl.textContent = '—';
         skillEl.textContent = '—';
         descEl.textContent = 'No character selected.';
+        extra.innerHTML = '';
         setSkilldexStats({ uses:'—', winRate:'—', bans:'—', banRate:'—', teams:'—', players:'—' });
         playersEl.innerHTML = `<div class="skilldex-empty">No data.</div>`;
         teamsEl.innerHTML = `<div class="skilldex-empty">No data.</div>`;
@@ -2704,19 +2748,20 @@
 
       const charName = safeText(tField(item, 'name') || item.name || '—');
       const skillName = safeText(tField(item, 'skill') || item.skill || '—');
-      const desc = safeText(tField(item, 'description') || item.description || '—');
-
+      const fullDesc = safeText(tField(item, 'description') || item.description || '—');
       const counterEntry = getCounterEntryForSkill(charName);
-      const counterDesc = counterEntry?.description ? safeText(counterEntry.description) : '';
-      const mergedDesc = counterDesc || desc || '—';
 
       thumb.src = pickImg(item);
       nameEl.textContent = charName;
       skillEl.textContent = skillName || '—';
-      descEl.textContent = mergedDesc;
+      descEl.textContent = fullDesc || '—';
+
+      const chips = [];
+      if (counterEntry?.role) chips.push(`<span class="skilldex-chip">Role: ${safeText(counterEntry.role)}</span>`);
+      if (counterEntry?.counter_category) chips.push(`<span class="skilldex-chip">Counter Angle: ${safeText(counterEntry.counter_category)}</span>`);
+      extra.innerHTML = chips.join('');
 
       if (isPassiveCharacter(item)){
-        descEl.textContent = `${mergedDesc || '—'} Selected character is passive. Choose an active skill character to load draft reference data.`;
         setSkilldexStats({ uses:'—', winRate:'—', bans:'—', banRate:'—', teams:'—', players:'—' });
         playersEl.innerHTML = `<div class="skilldex-empty">This card only tracks active skill usage from draft records.</div>`;
         teamsEl.innerHTML = `<div class="skilldex-empty">Choose an active skill character.</div>`;
@@ -2865,19 +2910,23 @@
         document.getElementById('charThumb').src = img;
         document.getElementById('charName').textContent = name;
         document.getElementById('charDesc').textContent = desc || '—';
+        saveSelection(type);
         renderSkillReference();
       } else if (type === 'pet'){
         document.getElementById('petThumb').src = img;
         document.getElementById('petName').textContent = name;
         document.getElementById('petDesc').textContent = desc || '—';
+        saveSelection(type);
       } else if (type === 'weapon'){
         document.getElementById('weaponThumb').src = img;
         document.getElementById('weaponName').textContent = name;
         document.getElementById('weaponDesc').textContent = desc || '—';
+        saveSelection(type);
       } else if (type === 'loadout'){
         document.getElementById('loadoutThumb').src = img;
         document.getElementById('loadoutName').textContent = name;
         document.getElementById('loadoutDesc').textContent = desc || '—';
+        saveSelection(type);
       }
     }
 
@@ -3629,13 +3678,13 @@
         const sel = document.getElementById("langSelect");
         if (sel) sel.value = LANG.current;
 
+        restoreSelection('character');
+        restoreSelection('pet');
+        restoreSelection('weapon');
+        restoreSelection('loadout');
+
         buildHeroCarousel();
         setCounts();
-
-        DATA.character.selected = 0;
-        DATA.pet.selected = 0;
-        DATA.weapon.selected = 0;
-        DATA.loadout.selected = 0;
 
         applyQuickView('character');
         applyQuickView('pet');
