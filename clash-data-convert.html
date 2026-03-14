@@ -1752,6 +1752,43 @@
       return String(value);
     }
 
+    function formatCompactNumber(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return String(value ?? "—");
+
+      const abs = Math.abs(n);
+      const sign = n < 0 ? "-" : "";
+
+      if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(abs >= 1e13 ? 0 : 1).replace(/\.0$/, "")}T`;
+      if (abs >= 1e9)  return `${sign}${(abs / 1e9).toFixed(abs >= 1e10 ? 0 : 1).replace(/\.0$/, "")}B`;
+      if (abs >= 1e6)  return `${sign}${(abs / 1e6).toFixed(abs >= 1e7 ? 0 : 1).replace(/\.0$/, "")}M`;
+      if (abs >= 1e3)  return `${sign}${(abs / 1e3).toFixed(abs >= 1e4 ? 0 : 1).replace(/\.0$/, "")}K`;
+
+      return String(n);
+    }
+
+    function formatDisplayValue(value) {
+      if (value === null || value === undefined) return "—";
+      if (typeof value === "boolean") return value ? "Yes" : "No";
+
+      if (typeof value === "number") {
+        return formatCompactNumber(value);
+      }
+
+      if (Array.isArray(value)) {
+        if (!value.length) return "0";
+        const allPrimitive = value.every(v => v === null || ["string", "number", "boolean"].includes(typeof v));
+        return allPrimitive ? value.map(formatDisplayValue).join(", ") : `${value.length} entries`;
+      }
+
+      if (typeof value === "object") {
+        try { return JSON.stringify(value); }
+        catch { return "[object]"; }
+      }
+
+      return String(value);
+    }
+
     function getFixedRoundIndices() {
       return Array.from({ length: MAX_DISPLAY_ROUNDS }, (_, i) => i);
     }
@@ -2590,6 +2627,13 @@
       return useful.map(r => `Round ${r.roundIndex + 1}: ${r.items.map(item => `${item.name} x${item.count}`).join(", ")}`).join("\n      - ");
     }
 
+    function summarizeWeaponUsageLine(weapon, compact = false) {
+      const fields = Object.entries(weapon?.raw || {})
+        .filter(([k, v]) => k !== "weapon_name" && k !== "weapon_id" && v !== null && v !== undefined && String(v) !== "")
+        .map(([k, v]) => `${humanizeKey(k)}: ${compact ? formatDisplayValue(v) : formatGenericValue(v)}`);
+      return fields.length ? fields.join(" • ") : "No weapon usage fields found.";
+    }
+
     function summarizeWeaponsForPrompt(usages) {
       if (!usages || !usages.length) return "None";
       return usages.map(weapon => {
@@ -3234,34 +3278,27 @@
       metaEl.textContent = `${getTeamScopeLabel()} • ${aggregateLabel} • ${selectionLabel} • ${modeLabel}`;
     }
 
-    function formatItemsInline(items, emptyText = "None") {
+    function formatItemsInline(items, emptyText = "None", compact = false) {
       if (!items || !items.length) return emptyText;
-      return items.map(item => `${item.name} x${item.count}`).join(", ");
+      return items.map(item => `${item.name} x${compact ? formatCompactNumber(item.count) : item.count}`).join(", ");
     }
 
-    function formatPurchasedItemsList(items, emptyText = "None") {
+    function formatPurchasedItemsList(items, emptyText = "None", compact = false) {
       if (!items || !items.length) return emptyText;
-      return items.map(item => `, ${item.name} x${item.count}`).join("\n");
+      return items.map(item => `, ${item.name} x${compact ? formatCompactNumber(item.count) : item.count}`).join("\n");
     }
 
-    function summarizeWeaponUsageLine(weapon) {
-      const fields = Object.entries(weapon?.raw || {})
-        .filter(([k, v]) => k !== "weapon_name" && k !== "weapon_id" && v !== null && v !== undefined && String(v) !== "")
-        .map(([k, v]) => `${humanizeKey(k)}: ${formatGenericValue(v)}`);
-      return fields.length ? fields.join(" • ") : "No weapon usage fields found.";
-    }
-
-    function formatWeaponsInline(usages) {
+    function formatWeaponsInline(usages, compact = false) {
       if (!usages || !usages.length) return "None";
       return usages
-        .map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon) ? ` — ${summarizeWeaponUsageLine(weapon)}` : ""}`)
+        .map(weapon => `${weapon.name}${weapon.id ? ` [${weapon.id}]` : ""}${summarizeWeaponUsageLine(weapon, compact) ? ` — ${summarizeWeaponUsageLine(weapon, compact)}` : ""}`)
         .join("\n");
     }
 
     function renderMatrixCell(value, className = "", inlineStyle = "", asHtml = false) {
       const safeClass = className ? ` ${className}` : "";
       const styleAttr = inlineStyle ? ` style="${inlineStyle}"` : "";
-      const content = asHtml ? String(value ?? "—") : escapeHtml(formatGenericValue(value));
+      const content = asHtml ? String(value ?? "—") : escapeHtml(formatDisplayValue(value));
       return `<td class="matrix-cell${safeClass}"${styleAttr}>${content}</td>`;
     }
 
@@ -3381,19 +3418,19 @@
 
           <div class="trail-block">
             <div class="trail-label">Purchased</div>
-            <div class="trail-body">${escapeHtmlWithBreaks(formatPurchasedItemsList(purchased))}</div>
+            <div class="trail-body">${escapeHtmlWithBreaks(formatPurchasedItemsList(purchased, "None", true))}</div>
           </div>
 
           ${compact ? "" : `
             <div class="trail-block">
               <div class="trail-label">Inventory</div>
-              <div class="trail-body">${escapeHtml(formatItemsInline(items))}</div>
+              <div class="trail-body">${escapeHtml(formatItemsInline(items, "None", true))}</div>
             </div>
           `}
 
           <div class="trail-block">
             <div class="trail-label">Weapons</div>
-            <div class="trail-body">${escapeHtmlWithBreaks(formatWeaponsInline(weapons))}</div>
+            <div class="trail-body">${escapeHtmlWithBreaks(formatWeaponsInline(weapons, true))}</div>
           </div>
         </div>
       `;
@@ -3448,8 +3485,8 @@
 
             <div class="progression-head-right">
               <span class="mini-badge">Rounds ${actualRoundIndices.length}</span>
-              <span class="mini-badge">Kills ${totalKills}</span>
-              <span class="mini-badge">Damage ${totalDamage}</span>
+              <span class="mini-badge">Kills ${formatCompactNumber(totalKills)}</span>
+              <span class="mini-badge">Damage ${formatCompactNumber(totalDamage)}</span>
               <span class="mini-badge">Latest R${latestRound ? toNum(latestRound.round_index, 0) + 1 : "—"}</span>
             </div>
           </div>
@@ -3633,7 +3670,7 @@
             "Round Trail",
             entities,
             roundIndices,
-            (entity, idx) => formatPurchasedItemsList(getEntityPurchasedItemsForRound(entity, idx), "None"),
+            (entity, idx) => formatPurchasedItemsList(getEntityPurchasedItemsForRound(entity, idx), "None", true),
             "None"
           )}
 
@@ -3642,7 +3679,7 @@
             "Round Trail",
             entities,
             roundIndices,
-            (entity, idx) => formatWeaponsInline(getEntityWeaponUsagesForRound(entity, idx)),
+            (entity, idx) => formatWeaponsInline(getEntityWeaponUsagesForRound(entity, idx), true),
             "None"
           )}
         </div>
@@ -3710,7 +3747,7 @@
               ? rows.map(([label, value]) => `
                   <div class="stats-row">
                     <div class="stats-key">${escapeHtml(label)}</div>
-                    <div class="stats-val">${escapeHtml(formatGenericValue(value))}</div>
+                    <div class="stats-val">${escapeHtml(formatDisplayValue(value))}</div>
                   </div>
                 `).join("")
               : `
@@ -3733,7 +3770,7 @@
               ? items.map(item => `
                   <div class="stats-row">
                     <div class="stats-key">${escapeHtml(item.name)}</div>
-                    <div class="stats-val">${purchased ? `Purchased x${item.count}` : `Count: ${item.count}`}</div>
+                    <div class="stats-val">${purchased ? `Purchased x${formatCompactNumber(item.count)}` : `Count: ${formatCompactNumber(item.count)}`}</div>
                   </div>
                 `).join("")
               : `
@@ -3756,7 +3793,7 @@
               ? usages.map(weapon => `
                   <div class="stats-row">
                     <div class="stats-key">${escapeHtml(weapon.name)}</div>
-                    <div class="stats-val">${escapeHtml(summarizeWeaponUsageLine(weapon))}</div>
+                    <div class="stats-val">${escapeHtml(summarizeWeaponUsageLine(weapon, true))}</div>
                   </div>
                 `).join("")
               : `
