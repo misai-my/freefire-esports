@@ -1236,6 +1236,90 @@
       background: rgba(255,107,107,.10);
     }
 
+    .skilldex-group-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .skilldex-group{
+      padding:9px;
+      border-radius:12px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.07);
+    }
+
+    .skilldex-group-head{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:8px;
+      align-items:start;
+    }
+
+    .skilldex-group-main{
+      min-width:0;
+    }
+
+    .skilldex-group-main b{
+      display:block;
+      font-size:.84rem;
+      color: rgba(244,246,255,.92);
+      white-space:normal;
+      overflow:visible;
+      text-overflow:unset;
+      word-break:break-word;
+      line-height:1.05rem;
+    }
+
+    .skilldex-group-main span{
+      display:block;
+      margin-top:2px;
+      font-size:.74rem;
+      color: var(--muted);
+      white-space:normal;
+      overflow:visible;
+      text-overflow:unset;
+      word-break:break-word;
+      line-height:1.15rem;
+    }
+
+    .skilldex-group-meta{
+      text-align:right;
+      flex:0 0 auto;
+    }
+
+    .skilldex-group-meta strong{
+      display:block;
+      font-size:.86rem;
+      color: rgba(244,246,255,.94);
+    }
+
+    .skilldex-group-meta small{
+      display:block;
+      margin-top:2px;
+      font-size:.72rem;
+      color: var(--muted);
+    }
+
+    .skilldex-sublist{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:8px;
+    }
+
+    .skilldex-subchip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      font-size:.72rem;
+      color: rgba(244,246,255,.88);
+    }
+
     .skilldex-empty{
       color: var(--muted);
       font-size:.82rem;
@@ -1912,21 +1996,21 @@
                 </div>
 
                 <div class="skilldex-panel">
-                  <div class="skilldex-panel-title">Top Players</div>
+                  <div class="skilldex-panel-title">All Players</div>
                   <div id="skillDexPlayers" class="skilldex-list">
                     <div class="skilldex-empty">No data yet.</div>
                   </div>
                 </div>
 
                 <div class="skilldex-panel">
-                  <div class="skilldex-panel-title">Top Teams</div>
+                  <div class="skilldex-panel-title">Grouped by Team</div>
                   <div id="skillDexTeams" class="skilldex-list">
                     <div class="skilldex-empty">No data yet.</div>
                   </div>
                 </div>
 
                 <div class="skilldex-panel">
-                  <div class="skilldex-panel-title">Top Maps</div>
+                  <div class="skilldex-panel-title">Grouped by Map</div>
                   <div id="skillDexMaps" class="skilldex-list">
                     <div class="skilldex-empty">No data yet.</div>
                   </div>
@@ -2485,6 +2569,40 @@
       `).join('');
     }
 
+    function skilldexGroupedHTML(groups, noun){
+      if (!groups.length) return `<div class="skilldex-empty">No ${noun.toLowerCase()} data.</div>`;
+
+      return `
+        <div class="skilldex-group-list">
+          ${groups.map(group => `
+            <div class="skilldex-group">
+              <div class="skilldex-group-head">
+                <div class="skilldex-group-main">
+                  <b>${group.label}</b>
+                  <span>${group.sub}</span>
+                </div>
+                <div class="skilldex-group-meta">
+                  <strong>${group.count}</strong>
+                  <small>${group.rate}</small>
+                </div>
+              </div>
+              ${
+                Array.isArray(group.children) && group.children.length
+                  ? `
+                    <div class="skilldex-sublist">
+                      ${group.children.map(child => `
+                        <span class="skilldex-subchip">${child.label} ×${child.count}</span>
+                      `).join('')}
+                    </div>
+                  `
+                  : ''
+              }
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
     function skilldexRecentHTML(list){
       if (!list.length) return `<div class="skilldex-empty">No recent usage found.</div>`;
 
@@ -2588,64 +2706,93 @@
         }
       }
 
-      const summarize = (rows, keyGetter, subGetter) => {
-        const m = new Map();
-        rows.forEach(row => {
-          const key = keyGetter(row);
-          if (!key) return;
-          const cur = m.get(key) || { count:0, wins:0, sub:'' };
-          cur.count += 1;
-          if (row.result === 'W') cur.wins += 1;
-          cur.sub = subGetter ? subGetter(row, cur) : '';
-          m.set(key, cur);
-        });
+      const playerAgg = new Map();
+      const teamAgg = new Map();
+      const mapAgg = new Map();
 
-        return [...m.entries()]
-          .map(([label, v]) => ({
-            label,
-            count: v.count,
-            winRate: v.count ? v.wins / v.count : 0,
-            sub: v.sub || `${v.wins}W • ${v.count - v.wins}L`
-          }))
-          .sort((a,b) => b.count - a.count || b.winRate - a.winRate || a.label.localeCompare(b.label));
-      };
+      for (const row of usageRows){
+        const p = playerAgg.get(row.player) || {
+          label: row.player,
+          count: 0,
+          wins: 0,
+          teams: new Set(),
+          maps: new Set()
+        };
+        p.count += 1;
+        if (row.result === 'W') p.wins += 1;
+        p.teams.add(row.team);
+        p.maps.add(row.map);
+        playerAgg.set(row.player, p);
 
-      const topPlayers = summarize(
-        usageRows,
-        row => row.player,
-        row => `${row.team}`
-      ).slice(0, 5).map(r => ({
-        label: r.label,
-        sub: r.sub,
-        count: `${r.count}x`,
-        rate: fmtPctNum(r.winRate)
-      }));
+        const t = teamAgg.get(row.team) || {
+          label: row.team,
+          count: 0,
+          wins: 0,
+          players: new Set(),
+          maps: new Map()
+        };
+        t.count += 1;
+        if (row.result === 'W') t.wins += 1;
+        t.players.add(row.player);
+        t.maps.set(row.map, (t.maps.get(row.map) || 0) + 1);
+        teamAgg.set(row.team, t);
 
-      const topTeams = summarize(
-        usageRows,
-        row => row.team,
-        () => `Team usage`
-      ).slice(0, 5).map(r => ({
-        label: r.label,
-        sub: r.sub,
-        count: `${r.count}x`,
-        rate: fmtPctNum(r.winRate)
-      }));
+        const m = mapAgg.get(row.map) || {
+          label: row.map,
+          count: 0,
+          wins: 0,
+          teams: new Map(),
+          players: new Set()
+        };
+        m.count += 1;
+        if (row.result === 'W') m.wins += 1;
+        m.teams.set(row.team, (m.teams.get(row.team) || 0) + 1);
+        m.players.add(row.player);
+        mapAgg.set(row.map, m);
+      }
 
-      const topMaps = summarize(
-        usageRows,
-        row => row.map,
-        () => `Map usage`
-      ).slice(0, 5).map(r => ({
-        label: r.label,
-        sub: r.sub,
-        count: `${r.count}x`,
-        rate: fmtPctNum(r.winRate)
-      }));
+      const allPlayers = [...playerAgg.values()]
+        .map(v => ({
+          label: v.label,
+          count: `${v.count}x`,
+          rate: fmtPctNum(v.count ? v.wins / v.count : 0),
+          countRaw: v.count,
+          winRate: v.count ? v.wins / v.count : 0,
+          sub: `${v.teams.size} team${v.teams.size === 1 ? '' : 's'} • ${v.maps.size} map${v.maps.size === 1 ? '' : 's'}`
+        }))
+        .sort((a, b) => b.countRaw - a.countRaw || b.winRate - a.winRate || a.label.localeCompare(b.label));
+
+      const teamGroups = [...teamAgg.values()]
+        .map(v => ({
+          label: v.label,
+          count: `${v.count}x`,
+          rate: fmtPctNum(v.count ? v.wins / v.count : 0),
+          countRaw: v.count,
+          winRate: v.count ? v.wins / v.count : 0,
+          sub: `${v.wins}W • ${v.count - v.wins}L • ${v.players.size} player${v.players.size === 1 ? '' : 's'} • ${v.maps.size} map${v.maps.size === 1 ? '' : 's'}`,
+          children: [...v.maps.entries()]
+            .map(([label, count]) => ({ label, count }))
+            .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+        }))
+        .sort((a, b) => b.countRaw - a.countRaw || b.winRate - a.winRate || a.label.localeCompare(b.label));
+
+      const mapGroups = [...mapAgg.values()]
+        .map(v => ({
+          label: v.label,
+          count: `${v.count}x`,
+          rate: fmtPctNum(v.count ? v.wins / v.count : 0),
+          countRaw: v.count,
+          winRate: v.count ? v.wins / v.count : 0,
+          sub: `${v.wins}W • ${v.count - v.wins}L • ${v.teams.size} team${v.teams.size === 1 ? '' : 's'} • ${v.players.size} player${v.players.size === 1 ? '' : 's'}`,
+          children: [...v.teams.entries()]
+            .map(([label, count]) => ({ label, count }))
+            .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+        }))
+        .sort((a, b) => b.countRaw - a.countRaw || b.winRate - a.winRate || a.label.localeCompare(b.label));
 
       const recent = [...usageRows]
-        .sort((a,b) => b.stamp - a.stamp)
-        .slice(0, 6);
+        .sort((a, b) => b.stamp - a.stamp)
+        .slice(0, 10);
 
       const uniqueTeams = new Set(usageRows.map(r => r.team).filter(Boolean)).size;
       const uniquePlayers = new Set(usageRows.map(r => r.player).filter(Boolean)).size;
@@ -2665,9 +2812,9 @@
         banRate: filteredSideCount ? banRows.length / filteredSideCount : 0,
         teams: uniqueTeams,
         players: uniquePlayers,
-        topPlayers,
-        topTeams,
-        topMaps,
+        allPlayers,
+        teamGroups,
+        mapGroups,
         recent
       };
     }
@@ -2832,9 +2979,9 @@
         players: report.players.toLocaleString()
       });
 
-      playersEl.innerHTML = skilldexListHTML(report.topPlayers, 'Player');
-      teamsEl.innerHTML = skilldexListHTML(report.topTeams, 'Team');
-      mapsEl.innerHTML = skilldexListHTML(report.topMaps, 'Map');
+      playersEl.innerHTML = skilldexListHTML(report.allPlayers, 'Player');
+      teamsEl.innerHTML = skilldexGroupedHTML(report.teamGroups, 'Team');
+      mapsEl.innerHTML = skilldexGroupedHTML(report.mapGroups, 'Map');
       recentEl.innerHTML = skilldexRecentHTML(report.recent);
 
       if (!report.uses && !report.bans){
