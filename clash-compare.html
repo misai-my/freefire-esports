@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -582,9 +581,12 @@
         <label>Map
           <select id="fMap">
             <option value="__ALL__">All maps</option>
-            <option value="Bermuda">Bermuda</option><option value="Kalahari">Kalahari</option>
-            <option value="Purgatory">Purgatory</option><option value="Alpine">Alpine</option>
-            <option value="Nexterra">Nexterra</option><option value="Solara">Solara</option>
+            <option value="Bermuda">Bermuda</option>
+            <option value="Kalahari">Kalahari</option>
+            <option value="Purgatory">Purgatory</option>
+            <option value="Alpine">Alpine</option>
+            <option value="Nexterra">Nexterra</option>
+            <option value="Solara">Solara</option>
           </select>
         </label>
         <label>Tournament <select id="fTourn"></select></label>
@@ -596,7 +598,6 @@
           </select>
         </label>
       </div>
-      <button class="btn btn-primary" id="applyBtn">Apply</button>
     </div>
   </div>
 
@@ -789,6 +790,7 @@ const client = supabase.createClient(
   const ui = document.getElementById('user-info');
   if (ui && session.user?.email) ui.textContent = `Logged in as: ${session.user.email}`;
 })();
+
 document.getElementById('logoutBtn').onclick = async () => {
   await client.auth.signOut();
   window.location.href = "index.html";
@@ -797,11 +799,26 @@ document.getElementById('logoutBtn').onclick = async () => {
 /* ========= Utilities ========= */
 const PLACEHOLDER = 'https://imgur.com/AdvPwAO.png';
 const el = (id) => document.getElementById(id);
-const fmtPct = (x) => isFinite(x) ? (x*100).toFixed(1)+'%' : '—';
-const pct = (num, den) => den ? fmtPct(num/den) : '—';
+const fmtPct = (x) => isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
+const pct = (num, den) => den ? fmtPct(num / den) : '—';
 const uniq = (arr) => [...new Set(arr)];
-function parseState(val){ if (!val) return {}; if (typeof val==='object') return val; try { return JSON.parse(val); } catch(e){ return {}; } }
-function safe(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+function parseState(val){
+  if (!val) return {};
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch(e){ return {}; }
+}
+
+function safe(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[c]));
+}
+
 function normalizeSkillEntry(entry){
   if (!entry) return { name:'', img:PLACEHOLDER };
   if (typeof entry === 'string') return { name: entry.trim(), img: PLACEHOLDER };
@@ -810,6 +827,7 @@ function normalizeSkillEntry(entry){
     img: entry.image_url || entry.img || entry.icon || entry.pet_image || entry.image || PLACEHOLDER
   };
 }
+
 function extractPetsArray(state){
   if (Array.isArray(state?.pets)) return state.pets;
   if (Array.isArray(state?.petSkills)) return state.petSkills;
@@ -821,8 +839,8 @@ function extractPetsArray(state){
 
 /* ========= Filters init ========= */
 function initFilters(){
-  el('fMap').value='__ALL__';
-  el('fWL').value='__ALL__';
+  el('fMap').value = '__ALL__';
+  el('fWL').value = '__ALL__';
   el('fTourn').innerHTML = `<option value="__ALL__">All tournaments</option>`;
 }
 initFilters();
@@ -830,33 +848,38 @@ initFilters();
 /* ========= State ========= */
 let RAW_RECORDS = [];
 let FIRST_LOAD_TOURN = true;
-let TEAM_LOGO = {}; // name -> url
+let TEAM_LOGO = {};
 let LATEST_EXPORT = null;
 
 /* ========= Fetch ========= */
-async function fetchRecords(){
-  const map   = el('fMap').value;
-  const tourn = el('fTourn').value || '__ALL__';
-
+async function fetchRecords({ map = el('fMap').value, tourn = el('fTourn').value || '__ALL__' } = {}){
   let q = client
     .from('draft_records')
     .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state');
 
-  if (map!=='__ALL__') q = q.eq('map', map);
-  if (tourn!=='__ALL__') q = q.eq('tournament_name', tourn);
+  if (map !== '__ALL__') q = q.eq('map', map);
+  if (tourn !== '__ALL__') q = q.eq('tournament_name', tourn);
 
   q = q.order('match_date', { ascending:false }).order('id', { ascending:false });
 
   const { data, error } = await q;
-  if (error){ console.error(error); alert('Failed to load records: '+error.message); return []; }
+  if (error){
+    console.error(error);
+    alert('Failed to load records: ' + error.message);
+    return [];
+  }
   return data || [];
 }
 
 async function fetchTeamLogos(){
   const { data, error } = await client.from('team_logos').select('*');
-  if (error){ console.warn('team_logos fetch error:', error.message); TEAM_LOGO={}; return; }
+  if (error){
+    console.warn('team_logos fetch error:', error.message);
+    TEAM_LOGO = {};
+    return;
+  }
   const map = {};
-  (data||[]).forEach(r=>{
+  (data || []).forEach(r => {
     const name = r.team || r.team_name || r.TEAM || r.name || '';
     const url  = r.image_url || r.image_link || r['Image Link'] || r.link || '';
     if (name && url) map[String(name).trim()] = url;
@@ -865,33 +888,56 @@ async function fetchTeamLogos(){
 }
 
 function populateTeamDropdowns(records){
-  const teams = [...new Set(records.flatMap(r=>[r.team_left, r.team_right]).filter(Boolean))].sort();
-  const A = el('cmpTeamA'), B = el('cmpTeamB');
-  const prevA = A.value, prevB = B.value;
-  const opts = teams.map(t=>`<option value="${t}">${t}</option>`).join('');
-  A.innerHTML = opts; B.innerHTML = opts;
+  const teams = [...new Set(records.flatMap(r => [r.team_left, r.team_right]).filter(Boolean))].sort();
+  const A = el('cmpTeamA');
+  const B = el('cmpTeamB');
+  const prevA = A.value;
+  const prevB = B.value;
+
+  const opts = teams.map(t => `<option value="${t}">${t}</option>`).join('');
+  A.innerHTML = opts;
+  B.innerHTML = opts;
+
   A.value = teams.includes(prevA) ? prevA : (teams[0] || '');
   B.value = teams.includes(prevB) ? prevB : (teams[1] || teams[0] || '');
 }
 
 async function populateTournamentDropdown(records){
-  const dd = el('fTourn'); const prior = dd.value || '__ALL__';
-  const tourns = new Set(); let latest=null;
+  const dd = el('fTourn');
+  const prior = dd.value || '__ALL__';
+
+  const tourns = new Set();
+  let latest = null;
+
   records.forEach(r => {
-    const tn = r.tournament_name; if (!tn) return;
+    const tn = r.tournament_name;
+    if (!tn) return;
     tourns.add(tn);
-    if (!latest || (String(r.match_date) > String(latest?.date))) latest = { name: tn, date: r.match_date };
+    if (!latest || String(r.match_date) > String(latest.date)) {
+      latest = { name: tn, date: r.match_date };
+    }
   });
-  dd.innerHTML = `<option value="__ALL__">All tournaments</option>` + [...tourns].sort().map(t=>`<option value="${t}">${t}</option>`).join('');
-  if (FIRST_LOAD_TOURN && latest && (prior==='__ALL__' || !prior)){ dd.value = latest.name; FIRST_LOAD_TOURN=false; } else { dd.value = prior; }
+
+  dd.innerHTML =
+    `<option value="__ALL__">All tournaments</option>` +
+    [...tourns].sort().map(t => `<option value="${t}">${t}</option>`).join('');
+
+  const validValues = [...dd.options].map(o => o.value);
+
+  if (FIRST_LOAD_TOURN && latest && (prior === '__ALL__' || !prior)) {
+    dd.value = latest.name;
+    FIRST_LOAD_TOURN = false;
+  } else {
+    dd.value = validValues.includes(prior) ? prior : '__ALL__';
+  }
 }
 
 /* ========= Transform ========= */
 function explodeRecordToRows(rec){
   const s = parseState(rec.state);
-  const picks    = Array.isArray(s.picks)       ? s.picks       : [];
-  const passives = Array.isArray(s.passives)    ? s.passives    : [];
-  const bans     = Array.isArray(s.bans)        ? s.bans        : [];
+  const picks    = Array.isArray(s.picks) ? s.picks : [];
+  const passives = Array.isArray(s.passives) ? s.passives : [];
+  const bans     = Array.isArray(s.bans) ? s.bans : [];
   const names    = Array.isArray(s.playerCards) ? s.playerCards : [];
   const pets     = extractPetsArray(s);
 
@@ -899,123 +945,161 @@ function explodeRecordToRows(rec){
   const rightWin = (rec.team_right_score ?? 0) > (rec.team_left_score ?? 0);
 
   function sideRow(side){
-    const isL = side==='L';
+    const isL = side === 'L';
     const team = isL ? rec.team_left : rec.team_right;
     const opp  = isL ? rec.team_right : rec.team_left;
     const ts   = isL ? (rec.team_left_score ?? 0) : (rec.team_right_score ?? 0);
     const os   = isL ? (rec.team_right_score ?? 0) : (rec.team_left_score ?? 0);
     const res  = (isL ? leftWin : rightWin) ? 'W' : 'L';
-    const banObj = bans[ isL ? 0 : 1 ] || {};
+    const banObj = bans[isL ? 0 : 1] || {};
     const ban    = banObj?.name || '';
     const banImg = banObj?.image_url || PLACEHOLDER;
 
     const idx = isL ? [0,1,2,3] : [7,6,5,4];
-    const actives = idx.map((i,k)=>{
+
+    const actives = idx.map((i, k) => {
       const player = (names[i] && String(names[i]).trim()) ? names[i].trim() : `P${k+1}`;
-      const heroObj = (picks[i] && typeof picks[i]==='object') ? picks[i] : null;
-      return { player, hero: heroObj?.name || '', heroImg: heroObj?.image_url || PLACEHOLDER };
+      const heroObj = (picks[i] && typeof picks[i] === 'object') ? picks[i] : null;
+      return {
+        player,
+        hero: heroObj?.name || '',
+        heroImg: heroObj?.image_url || PLACEHOLDER
+      };
     });
-    const passiveLines = idx.map((i,k)=>{
+
+    const passiveLines = idx.map((i, k) => {
       const player = (names[i] && String(names[i]).trim()) ? names[i].trim() : `P${k+1}`;
       const trioRaw = Array.isArray(passives[i]) ? passives[i] : [];
-      const trioObjs = trioRaw.filter(Boolean).map(ps=>({name: ps?.name || '', img: ps?.image_url || PLACEHOLDER}));
-      while (trioObjs.length<3) trioObjs.push({name:'', img: PLACEHOLDER});
-      return { player, trio: trioObjs.slice(0,3) };
+      const trioObjs = trioRaw.filter(Boolean).map(ps => ({
+        name: ps?.name || '',
+        img: ps?.image_url || PLACEHOLDER
+      }));
+      while (trioObjs.length < 3) trioObjs.push({ name:'', img: PLACEHOLDER });
+      return { player, trio: trioObjs.slice(0, 3) };
     });
-    const petLines = idx.map((i,k)=>{
+
+    const petLines = idx.map((i, k) => {
       const player = (names[i] && String(names[i]).trim()) ? names[i].trim() : `P${k+1}`;
       const petObj = normalizeSkillEntry(pets[i]);
       return { player, pet: petObj };
     });
 
     return {
-      rec_id:rec.id,
+      rec_id: rec.id,
       tournament: rec.tournament_name || '—',
-      match_date:rec.match_date,
-      game_number:rec.game_number ?? 0,
-      map:rec.map,
-      team, opponent:opp, team_score:ts, opp_score:os, result:res,
-      banName:ban, banImg,
+      match_date: rec.match_date,
+      game_number: rec.game_number ?? 0,
+      map: rec.map,
+      team,
+      opponent: opp,
+      team_score: ts,
+      opp_score: os,
+      result: res,
+      banName: ban,
+      banImg,
       actives,
-      passives:passiveLines,
-      pets:petLines
+      passives: passiveLines,
+      pets: petLines
     };
   }
+
   return [sideRow('L'), sideRow('R')];
 }
 
 function applyWL(rows){
   const wl = el('fWL').value;
-  if (wl==='__ALL__') return rows;
+  if (wl === '__ALL__') return rows;
   return rows.filter(r => r.result === wl);
 }
 
 function rowsForTeam(team){
-  const rows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r=>r.team===team);
+  const rows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r => r.team === team);
   return applyWL(rows);
 }
 
 /* ========= Aggregations / Data helpers ========= */
 function buildTeamBucket(rows, teamName, kind){
   const B = { name: teamName, matches:0, wins:0, skills:new Map() };
-  rows.forEach(r=>{
-    B.matches += 1; if (r.result==='W') B.wins += 1;
-    if (kind==='active'){
-      r.actives.forEach(a=>{
-        const nm = a.hero; if (!nm) return;
+
+  rows.forEach(r => {
+    B.matches += 1;
+    if (r.result === 'W') B.wins += 1;
+
+    if (kind === 'active'){
+      r.actives.forEach(a => {
+        const nm = a.hero;
+        if (!nm) return;
         const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-        S.occ += 1; S.appear += 1; if (r.result==='W') S.appearWins += 1;
+        S.occ += 1;
+        S.appear += 1;
+        if (r.result === 'W') S.appearWins += 1;
         B.skills.set(nm, S);
       });
-    } else if (kind==='passive'){
-      r.passives.forEach(p=>{
-        (p.trio||[]).forEach(x=>{
-          const nm = x?.name || ''; if (!nm) return;
+    } else if (kind === 'passive'){
+      r.passives.forEach(p => {
+        (p.trio || []).forEach(x => {
+          const nm = x?.name || '';
+          if (!nm) return;
           const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-          S.occ += 1; S.appear += 1; if (r.result==='W') S.appearWins += 1;
+          S.occ += 1;
+          S.appear += 1;
+          if (r.result === 'W') S.appearWins += 1;
           B.skills.set(nm, S);
         });
       });
-    } else if (kind==='pet'){
-      r.pets.forEach(p=>{
+    } else if (kind === 'pet'){
+      r.pets.forEach(p => {
         const nm = p?.pet?.name || '';
         if (!nm) return;
         const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-        S.occ += 1; S.appear += 1; if (r.result==='W') S.appearWins += 1;
+        S.occ += 1;
+        S.appear += 1;
+        if (r.result === 'W') S.appearWins += 1;
         B.skills.set(nm, S);
       });
-    } else { // bans
-      const nm = r.banName; if (!nm) return;
+    } else {
+      const nm = r.banName;
+      if (!nm) return;
       const S = B.skills.get(nm) || { occ:0, appear:0, appearWins:0 };
-      S.occ += 1; S.appear += 1; if (r.result==='W') S.appearWins += 1;
+      S.occ += 1;
+      S.appear += 1;
+      if (r.result === 'W') S.appearWins += 1;
       B.skills.set(nm, S);
     }
   });
+
   return B;
 }
+
 function topSkillsData(bucket, limit=10){
   if (!bucket || !bucket.matches) return [];
-  return [...bucket.skills.entries()].map(([name, s])=>{
-    return {
-      skill: name,
-      count: s.occ,
-      appear: s.appear,
-      pick_rate: bucket.matches ? s.appear/bucket.matches : 0,
-      win_rate: s.appear ? s.appearWins/s.appear : 0
-    };
-  }).sort((a,b)=> b.pick_rate - a.pick_rate || a.skill.localeCompare(b.skill)).slice(0,limit);
+  return [...bucket.skills.entries()].map(([name, s]) => ({
+    skill: name,
+    count: s.occ,
+    appear: s.appear,
+    pick_rate: bucket.matches ? s.appear / bucket.matches : 0,
+    win_rate: s.appear ? s.appearWins / s.appear : 0
+  }))
+  .sort((a, b) => b.pick_rate - a.pick_rate || a.skill.localeCompare(b.skill))
+  .slice(0, limit);
 }
+
 function topSkillsTable(bucket, kind, limit=10){
   const skills = topSkillsData(bucket, limit);
-  const rateLabel = (kind==='ban') ? 'Ban Rate' : 'Pick Rate';
+  const rateLabel = (kind === 'ban') ? 'Ban Rate' : 'Pick Rate';
   if (!skills.length) return `<div class="muted">No ${kind} data.</div>`;
   return `
     <div class="tableWrap">
       <table>
         <thead><tr><th>Skill</th><th class="right">Count</th><th class="right">${rateLabel}</th><th class="right">Win Rate</th></tr></thead>
         <tbody>
-          ${skills.map(s=>`
-            <tr><td>${s.skill}</td><td class="right">${s.count}</td><td class="right">${fmtPct(s.pick_rate)}</td><td class="right">${fmtPct(s.win_rate)}</td></tr>
+          ${skills.map(s => `
+            <tr>
+              <td>${s.skill}</td>
+              <td class="right">${s.count}</td>
+              <td class="right">${fmtPct(s.pick_rate)}</td>
+              <td class="right">${fmtPct(s.win_rate)}</td>
+            </tr>
           `).join('')}
         </tbody>
       </table>
@@ -1024,14 +1108,18 @@ function topSkillsTable(bucket, kind, limit=10){
 
 function teamMapStatsData(rows){
   const agg = new Map();
-  rows.forEach(r=>{
+  rows.forEach(r => {
     const m = r.map || '—';
     if (!agg.has(m)) agg.set(m, { map:m, matches:0, wins:0 });
-    const A = agg.get(m); A.matches += 1; if (r.result==='W') A.wins += 1;
+    const A = agg.get(m);
+    A.matches += 1;
+    if (r.result === 'W') A.wins += 1;
   });
-  return [...agg.values()].map(x=>({ ...x, winpct: x.matches? x.wins/x.matches : 0 }))
-               .sort((a,b)=> b.matches - a.matches || b.winpct - a.winpct || a.map.localeCompare(b.map));
+  return [...agg.values()]
+    .map(x => ({ ...x, winpct: x.matches ? x.wins / x.matches : 0 }))
+    .sort((a,b) => b.matches - a.matches || b.winpct - a.winpct || a.map.localeCompare(b.map));
 }
+
 function teamMapStats(rows){
   const list = teamMapStatsData(rows);
   if (!list.length) return `<div class="muted">No team×map rows.</div>`;
@@ -1040,7 +1128,14 @@ function teamMapStats(rows){
       <table>
         <thead><tr><th>Map</th><th class="right">Matches</th><th class="right">Wins</th><th class="right">Win %</th></tr></thead>
         <tbody>
-          ${list.map(r=>`<tr><td>${r.map}</td><td class="right">${r.matches}</td><td class="right">${r.wins}</td><td class="right">${fmtPct(r.winpct)}</td></tr>`).join('')}
+          ${list.map(r => `
+            <tr>
+              <td>${r.map}</td>
+              <td class="right">${r.matches}</td>
+              <td class="right">${r.wins}</td>
+              <td class="right">${fmtPct(r.winpct)}</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     </div>`;
@@ -1051,8 +1146,8 @@ function perSkillActiveCompressedData(rows, limit=12){
   if (!rows.length) return [];
 
   const map = new Map();
-  rows.forEach(r=>{
-    r.actives.forEach(a=>{
+  rows.forEach(r => {
+    r.actives.forEach(a => {
       if (!a.hero) return;
 
       const skillName  = a.hero;
@@ -1071,9 +1166,9 @@ function perSkillActiveCompressedData(rows, limit=12){
 
   const den = rows.length * 4;
 
-  return [...map.entries()].map(([name, v])=>{
+  return [...map.entries()].map(([name, v]) => {
     const playerList = [...v.players.entries()]
-      .sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]));
+      .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
     return {
       skill: name,
@@ -1083,11 +1178,9 @@ function perSkillActiveCompressedData(rows, limit=12){
       pick_rate: den ? v.p / den : 0,
       players: playerList
     };
-  }).sort((a,b)=>
-    b.pick_rate - a.pick_rate ||
-    (b.win_rate || 0) - (a.win_rate || 0) ||
-    a.skill.localeCompare(b.skill)
-  ).slice(0, limit);
+  })
+  .sort((a,b) => b.pick_rate - a.pick_rate || (b.win_rate || 0) - (a.win_rate || 0) || a.skill.localeCompare(b.skill))
+  .slice(0, limit);
 }
 
 function perSkillActiveCompressed(rows, limit=12){
@@ -1106,12 +1199,9 @@ function perSkillActiveCompressed(rows, limit=12){
       </tr>
     </thead>
     <tbody>
-      ${list.map(r=>{
+      ${list.map(r => {
         const playersCell = (r.players && r.players.length)
-          ? r.players
-              .slice(0, 4)
-              .map(([name, count]) => `${name}${count > 1 ? ` (${count})` : ''}`)
-              .join(', ')
+          ? r.players.slice(0, 4).map(([name, count]) => `${name}${count > 1 ? ` (${count})` : ''}`).join(', ')
           : '—';
 
         return `<tr>
@@ -1130,33 +1220,43 @@ function perSkillActiveCompressed(rows, limit=12){
 function perSkillPassiveCompressedData(rows, limit=12){
   if (!rows.length) return [];
   const map = new Map();
-  rows.forEach(r=>{
-    r.passives.forEach(p=>{
-      (p.trio||[]).forEach(ps=>{
+
+  rows.forEach(r => {
+    r.passives.forEach(p => {
+      (p.trio || []).forEach(ps => {
         if (!ps?.name) return;
-        const obj = map.get(ps.name) || {p:0,w:0};
-        obj.p += 1; if (r.result==='W') obj.w += 1;
+        const obj = map.get(ps.name) || { p:0, w:0 };
+        obj.p += 1;
+        if (r.result === 'W') obj.w += 1;
         map.set(ps.name, obj);
       });
     });
   });
+
   const den = rows.length * 12;
-  return [...map.entries()].map(([name,v])=>{
-    return { skill:name, picks:v.p, wins:v.w, win_rate: v.p? v.w/v.p : null, pick_rate: den? v.p/den : 0 };
-  }).sort((a,b)=> b.pick_rate - a.pick_rate || (b.win_rate||0)-(a.win_rate||0) || a.skill.localeCompare(b.skill))
-    .slice(0, limit);
+
+  return [...map.entries()].map(([name, v]) => ({
+    skill: name,
+    picks: v.p,
+    wins: v.w,
+    win_rate: v.p ? v.w / v.p : null,
+    pick_rate: den ? v.p / den : 0
+  }))
+  .sort((a,b) => b.pick_rate - a.pick_rate || (b.win_rate || 0) - (a.win_rate || 0) || a.skill.localeCompare(b.skill))
+  .slice(0, limit);
 }
+
 function perSkillPassiveCompressed(rows, limit=12){
   const list = perSkillPassiveCompressedData(rows, limit);
   if (!list.length) return `<div class="muted">No passive skills.</div>`;
   return `<div class="tableWrap"><table>
     <thead><tr><th>Skill</th><th class="right">Picks</th><th class="right">Wins</th><th class="right">Win %</th><th class="right">Pick %</th></tr></thead>
     <tbody>
-      ${list.map(r=>`<tr>
+      ${list.map(r => `<tr>
         <td>${r.skill}</td>
         <td class="right">${r.picks}</td>
         <td class="right">${r.wins}</td>
-        <td class="right">${r.win_rate===null?'—':fmtPct(r.win_rate)}</td>
+        <td class="right">${r.win_rate===null ? '—' : fmtPct(r.win_rate)}</td>
         <td class="right">${fmtPct(r.pick_rate)}</td>
       </tr>`).join('')}
     </tbody>
@@ -1166,43 +1266,46 @@ function perSkillPassiveCompressed(rows, limit=12){
 function perSkillPetCompressedData(rows, limit=12){
   if (!rows.length) return [];
   const map = new Map();
-  rows.forEach(r=>{
-    (r.pets || []).forEach(p=>{
+
+  rows.forEach(r => {
+    (r.pets || []).forEach(p => {
       const nm = p?.pet?.name || '';
       if (!nm) return;
-      const obj = map.get(nm) || {p:0,w:0,players:new Map()};
+      const obj = map.get(nm) || { p:0, w:0, players:new Map() };
       obj.p += 1;
-      if (r.result==='W') obj.w += 1;
+      if (r.result === 'W') obj.w += 1;
       if (p.player) obj.players.set(p.player, (obj.players.get(p.player) || 0) + 1);
       map.set(nm, obj);
     });
   });
+
   const den = rows.length * 4;
-  return [...map.entries()].map(([name,v])=>{
-    return {
-      skill:name,
-      picks:v.p,
-      wins:v.w,
-      win_rate: v.p ? v.w / v.p : null,
-      pick_rate: den ? v.p / den : 0,
-      players:[...v.players.entries()].sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]))
-    };
-  }).sort((a,b)=> b.pick_rate - a.pick_rate || (b.win_rate||0)-(a.win_rate||0) || a.skill.localeCompare(b.skill))
-    .slice(0, limit);
+
+  return [...map.entries()].map(([name, v]) => ({
+    skill: name,
+    picks: v.p,
+    wins: v.w,
+    win_rate: v.p ? v.w / v.p : null,
+    pick_rate: den ? v.p / den : 0,
+    players: [...v.players.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]))
+  }))
+  .sort((a,b) => b.pick_rate - a.pick_rate || (b.win_rate || 0) - (a.win_rate || 0) || a.skill.localeCompare(b.skill))
+  .slice(0, limit);
 }
+
 function perSkillPetCompressed(rows, limit=12){
   const list = perSkillPetCompressedData(rows, limit);
   if (!list.length) return `<div class="muted">No pet skills.</div>`;
   return `<div class="tableWrap"><table>
     <thead><tr><th>Skill</th><th class="right">Picks</th><th class="right">Wins</th><th class="right">Win %</th><th class="right">Pick %</th><th>Players</th></tr></thead>
     <tbody>
-      ${list.map(r=>`<tr>
+      ${list.map(r => `<tr>
         <td>${r.skill}</td>
         <td class="right">${r.picks}</td>
         <td class="right">${r.wins}</td>
-        <td class="right">${r.win_rate===null?'—':fmtPct(r.win_rate)}</td>
+        <td class="right">${r.win_rate===null ? '—' : fmtPct(r.win_rate)}</td>
         <td class="right">${fmtPct(r.pick_rate)}</td>
-        <td>${r.players.length ? r.players.slice(0,4).map(([name,count]) => `${name}${count>1?` (${count})`:''}`).join(', ') : '—'}</td>
+        <td>${r.players.length ? r.players.slice(0,4).map(([name,count]) => `${name}${count>1 ? ` (${count})` : ''}`).join(', ') : '—'}</td>
       </tr>`).join('')}
     </tbody>
   </table></div>`;
@@ -1212,43 +1315,54 @@ function perSkillPetCompressed(rows, limit=12){
 function activeSkillImpactData(rows, limit=12){
   if (!rows.length) return [];
   const matches = rows.length;
-  const winsOverall = rows.filter(r=>r.result==='W').length;
+  const winsOverall = rows.filter(r => r.result === 'W').length;
   const baseline = matches ? winsOverall / matches : 0;
 
   const map = new Map();
-  rows.forEach(r=>{
-    r.actives.forEach(a=>{
-      if(!a.hero) return;
-      const o = map.get(a.hero) || {p:0,w:0,lossOpp:new Map()};
-      o.p += 1; if (r.result==='W') o.w += 1;
-      if (r.result==='L'){
-        const c = o.lossOpp.get(r.opponent)||0;
-        o.lossOpp.set(r.opponent, c+1);
+  rows.forEach(r => {
+    r.actives.forEach(a => {
+      if (!a.hero) return;
+      const o = map.get(a.hero) || { p:0, w:0, lossOpp:new Map() };
+      o.p += 1;
+      if (r.result === 'W') o.w += 1;
+      if (r.result === 'L'){
+        const c = o.lossOpp.get(r.opponent) || 0;
+        o.lossOpp.set(r.opponent, c + 1);
       }
       map.set(a.hero, o);
     });
   });
 
-  return [...map.entries()].map(([name, v])=>{
+  return [...map.entries()].map(([name, v]) => {
     const winRate = v.p ? v.w / v.p : 0;
     const lossRate = v.p ? 1 - winRate : 0;
     const delta = winRate - baseline;
     const losses_by_opponent = [...v.lossOpp.entries()]
-      .sort((a,b)=>b[1]-a[1])
-      .map(([opp,count])=>({ opponent:opp, count, logo: TEAM_LOGO[opp] || null }))
+      .sort((a,b) => b[1] - a[1])
+      .map(([opp, count]) => ({ opponent:opp, count, logo: TEAM_LOGO[opp] || null }))
       .slice(0,3);
-    return { skill:name, picks:v.p, win_rate:winRate, loss_rate:lossRate, delta_vs_team:delta, losses_by_opponent };
-  }).sort((a,b)=> b.delta_vs_team - a.delta_vs_team || b.picks - a.picks || a.skill.localeCompare(b.skill))
-    .slice(0, limit);
+
+    return {
+      skill: name,
+      picks: v.p,
+      win_rate: winRate,
+      loss_rate: lossRate,
+      delta_vs_team: delta,
+      losses_by_opponent
+    };
+  })
+  .sort((a,b) => b.delta_vs_team - a.delta_vs_team || b.picks - a.picks || a.skill.localeCompare(b.skill))
+  .slice(0, limit);
 }
+
 function activeSkillImpactTable(rows, limit=12){
   const list = activeSkillImpactData(rows, limit);
-  if(!list.length) return `<div class="muted">No active skills.</div>`;
+  if (!list.length) return `<div class="muted">No active skills.</div>`;
 
-  const logoSpan = (lossOppList)=>{
-    const entries = (lossOppList||[]).slice(0,3);
+  const logoSpan = (lossOppList) => {
+    const entries = (lossOppList || []).slice(0,3);
     if (!entries.length) return '';
-    const imgs = entries.map(({opponent, count, logo})=>{
+    const imgs = entries.map(({opponent, count, logo}) => {
       const src = logo || PLACEHOLDER;
       const badge = count > 1 ? `<span class="cnt">×${count}</span>` : '';
       return `<span class="logo-wrap" title="${opponent} ×${count}">
@@ -1272,9 +1386,9 @@ function activeSkillImpactTable(rows, limit=12){
           </tr>
         </thead>
         <tbody>
-          ${list.map(r=>{
-            const dClass = r.delta_vs_team>0 ? 'delta-pos' : (r.delta_vs_team<0 ? 'delta-neg' : '');
-            const dText = (r.delta_vs_team>=0?'+':'') + fmtPct(r.delta_vs_team);
+          ${list.map(r => {
+            const dClass = r.delta_vs_team > 0 ? 'delta-pos' : (r.delta_vs_team < 0 ? 'delta-neg' : '');
+            const dText = (r.delta_vs_team >= 0 ? '+' : '') + fmtPct(r.delta_vs_team);
             return `<tr>
               <td>${r.skill}</td>
               <td class="right mono">${r.picks}</td>
@@ -1292,23 +1406,26 @@ function activeSkillImpactTable(rows, limit=12){
 /* Combos, Pairs, Trios */
 function buildCombos(rows){
   const combos = new Map();
-  rows.forEach(r=>{
-    const heroes = r.actives.map(a=>a.hero).filter(Boolean);
-    if (heroes.length!==4) return;
-    const key = [...heroes].sort((x,y)=>x.localeCompare(y)).join('|');
+  rows.forEach(r => {
+    const heroes = r.actives.map(a => a.hero).filter(Boolean);
+    if (heroes.length !== 4) return;
+    const key = [...heroes].sort((x,y) => x.localeCompare(y)).join('|');
     if (!combos.has(key)) combos.set(key, { heroes:[...new Set(heroes)].sort((x,y)=>x.localeCompare(y)), picks:0, wins:0 });
-    const C = combos.get(key); C.picks += 1; if (r.result==='W') C.wins += 1;
+    const C = combos.get(key);
+    C.picks += 1;
+    if (r.result === 'W') C.wins += 1;
   });
-  return [...combos.values()].map(c=>({ ...c, winpct: c.picks? c.wins/c.picks : 0 }));
+  return [...combos.values()].map(c => ({ ...c, winpct: c.picks ? c.wins / c.picks : 0 }));
 }
+
 function buildPairs(rows){
   const pairs = new Map();
-  rows.forEach(r=>{
-    const names = r.actives.map(a=>a.hero).filter(Boolean);
-    for (let i=0;i<names.length;i++){
-      for (let j=i+1;j<names.length;j++){
-        const [A,B] = [names[i],names[j]].sort((x,y)=>x.localeCompare(y));
-        const key = A+'|'+B;
+  rows.forEach(r => {
+    const names = r.actives.map(a => a.hero).filter(Boolean);
+    for (let i=0; i<names.length; i++){
+      for (let j=i+1; j<names.length; j++){
+        const [A,B] = [names[i], names[j]].sort((x,y)=>x.localeCompare(y));
+        const key = A + '|' + B;
         if (!pairs.has(key)) pairs.set(key, { heroes:[A,B], picks:0, wins:0 });
         const P = pairs.get(key);
         P.picks += 1;
@@ -1316,18 +1433,28 @@ function buildPairs(rows){
       }
     }
   });
-  return [...pairs.values()].map(p=>({ ...p, winpct: p.picks ? p.wins / p.picks : 0 }));
+  return [...pairs.values()].map(p => ({ ...p, winpct: p.picks ? p.wins / p.picks : 0 }));
 }
 
 function tableCombos(list, title, limit=5){
-  const rows = [...list].sort((a,b)=> b.picks - a.picks || b.winpct - a.winpct || a.heroes.join(',').localeCompare(b.heroes.join(','))).slice(0,limit);
+  const rows = [...list]
+    .sort((a,b) => b.picks - a.picks || b.winpct - a.winpct || a.heroes.join(',').localeCompare(b.heroes.join(',')))
+    .slice(0, limit);
+
   if (!rows.length) return `<div class="muted">No ${title}.</div>`;
   return `
     <div class="tableWrap">
       <table>
         <thead><tr><th>${title}</th><th class="right">Picks</th><th class="right">Wins</th><th class="right">Win %</th></tr></thead>
         <tbody>
-          ${rows.map(r=>`<tr><td>${r.heroes.join(' · ')}</td><td class="right">${r.picks}</td><td class="right">${r.wins}</td><td class="right">${fmtPct(r.winpct)}</td></tr>`).join('')}
+          ${rows.map(r => `
+            <tr>
+              <td>${r.heroes.join(' · ')}</td>
+              <td class="right">${r.picks}</td>
+              <td class="right">${r.wins}</td>
+              <td class="right">${fmtPct(r.winpct)}</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     </div>`;
@@ -1335,26 +1462,39 @@ function tableCombos(list, title, limit=5){
 
 function buildTrios(rows){
   const tri = new Map();
-  rows.forEach(r=>{
-    r.passives.forEach(p=>{
-      const names = (p.trio||[]).map(x=>x?.name).filter(Boolean);
-      if (names.length!==3) return;
+  rows.forEach(r => {
+    r.passives.forEach(p => {
+      const names = (p.trio || []).map(x => x?.name).filter(Boolean);
+      if (names.length !== 3) return;
       const key = [...names].sort((x,y)=>x.localeCompare(y)).join('|');
       if (!tri.has(key)) tri.set(key, { names:[...names].sort((a,b)=>a.localeCompare(b)), picks:0, wins:0 });
-      const T = tri.get(key); T.picks += 1; if (r.result==='W') T.wins += 1;
+      const T = tri.get(key);
+      T.picks += 1;
+      if (r.result === 'W') T.wins += 1;
     });
   });
-  return [...tri.values()].map(t=>({ ...t, winpct: t.picks? t.wins/t.picks : 0 }));
+  return [...tri.values()].map(t => ({ ...t, winpct: t.picks ? t.wins / t.picks : 0 }));
 }
+
 function tableTrios(list, limit=5){
-  const rows = [...list].sort((a,b)=> b.picks - a.picks || b.winpct - a.winpct || a.names.join(',').localeCompare(b.names.join(','))).slice(0,limit);
+  const rows = [...list]
+    .sort((a,b) => b.picks - a.picks || b.winpct - a.winpct || a.names.join(',').localeCompare(b.names.join(',')))
+    .slice(0, limit);
+
   if (!rows.length) return `<div class="muted">No passive trios.</div>`;
   return `
     <div class="tableWrap">
       <table>
         <thead><tr><th>Trio</th><th class="right">Picks</th><th class="right">Wins</th><th class="right">Win %</th></tr></thead>
         <tbody>
-          ${rows.map(r=>`<tr><td>${r.names.join(' · ')}</td><td class="right">${r.picks}</td><td class="right">${r.wins}</td><td class="right">${fmtPct(r.winpct)}</td></tr>`).join('')}
+          ${rows.map(r => `
+            <tr>
+              <td>${r.names.join(' · ')}</td>
+              <td class="right">${r.picks}</td>
+              <td class="right">${r.wins}</td>
+              <td class="right">${fmtPct(r.winpct)}</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     </div>`;
@@ -1364,53 +1504,86 @@ function tableTrios(list, limit=5){
 function rowsForTeamIgnoringWL(team){
   const mapSel = el('fMap').value;
   const tournSel = el('fTourn').value || '__ALL__';
-  const allRows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r=>r.team===team);
+
+  const allRows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r => r.team === team);
   let rows = allRows;
-  if (mapSel !== '__ALL__') rows = rows.filter(r=>r.map===mapSel);
-  if (tournSel !== '__ALL__') rows = rows.filter(r=>{
-    const rec = RAW_RECORDS.find(x=>x.id===r.rec_id);
-    return rec?.tournament_name === tournSel;
-  });
+
+  if (mapSel !== '__ALL__') rows = rows.filter(r => r.map === mapSel);
+  if (tournSel !== '__ALL__') {
+    rows = rows.filter(r => {
+      const rec = RAW_RECORDS.find(x => x.id === r.rec_id);
+      return rec?.tournament_name === tournSel;
+    });
+  }
+
   return rows;
 }
+
 function banImpactData(rows, limit=10){
   const skills = new Map();
-  rows.forEach(r=>{
+
+  rows.forEach(r => {
     const banned = r.banName || '';
     if (banned){
       if (!skills.has(banned)) skills.set(banned, { name:banned, ban:{n:0,w:0}, noban:{n:0,w:0} });
-      const S = skills.get(banned); S.ban.n += 1; if (r.result==='W') S.ban.w += 1;
+      const S = skills.get(banned);
+      S.ban.n += 1;
+      if (r.result === 'W') S.ban.w += 1;
     }
   });
-  const rowsBySkill = Object.fromEntries([...skills.keys()].map(k=>[k,{n:0,w:0}]));
-  rows.forEach(r=>{
-    const win = r.result==='W' ? 1 : 0;
+
+  const rowsBySkill = Object.fromEntries([...skills.keys()].map(k => [k, {n:0,w:0}]));
+
+  rows.forEach(r => {
+    const win = r.result === 'W' ? 1 : 0;
     for (const k in rowsBySkill){
-      if ((r.banName||'') !== k){ rowsBySkill[k].n += 1; rowsBySkill[k].w += win; }
+      if ((r.banName || '') !== k){
+        rowsBySkill[k].n += 1;
+        rowsBySkill[k].w += win;
+      }
     }
   });
-  for (const [name,S] of skills.entries()){ S.noban = rowsBySkill[name] || {n:0,w:0}; }
 
-  const list = [...skills.values()].map(S=>{
-    const bN=S.ban.n, bW=S.ban.w, nN=S.noban.n, nW=S.noban.w;
-    const winBan = bN? bW/bN : 0; const winNot = nN? nW/nN : 0;
-    return { skill:S.name, banned:bN, win_rate_banned:winBan, other:nN, win_rate_not_banned:winNot, delta:winBan-winNot };
-  }).filter(r=>r.banned>=1).sort((a,b)=> b.delta - a.delta || b.banned - a.banned).slice(0,limit);
+  for (const [name, S] of skills.entries()){
+    S.noban = rowsBySkill[name] || {n:0,w:0};
+  }
 
-  return list;
+  return [...skills.values()].map(S => {
+    const bN = S.ban.n, bW = S.ban.w, nN = S.noban.n, nW = S.noban.w;
+    const winBan = bN ? bW / bN : 0;
+    const winNot = nN ? nW / nN : 0;
+    return {
+      skill: S.name,
+      banned: bN,
+      win_rate_banned: winBan,
+      other: nN,
+      win_rate_not_banned: winNot,
+      delta: winBan - winNot
+    };
+  })
+  .filter(r => r.banned >= 1)
+  .sort((a,b) => b.delta - a.delta || b.banned - a.banned)
+  .slice(0, limit);
 }
+
 function banImpactTable(rows, limit=10){
   const list = banImpactData(rows, limit);
   if (!list.length) return `<div class="muted">No ban data.</div>`;
   return `
     <div class="tableWrap">
       <table>
-        <thead><tr>
-          <th>Skill</th><th class="right">Banned</th><th class="right">Win % (banned)</th>
-          <th class="right">Other</th><th class="right">Win % (not banned)</th><th class="right">Δ Win %</th>
-        </tr></thead>
+        <thead>
+          <tr>
+            <th>Skill</th>
+            <th class="right">Banned</th>
+            <th class="right">Win % (banned)</th>
+            <th class="right">Other</th>
+            <th class="right">Win % (not banned)</th>
+            <th class="right">Δ Win %</th>
+          </tr>
+        </thead>
         <tbody>
-          ${list.map(r=>`
+          ${list.map(r => `
             <tr>
               <td>${r.skill}</td>
               <td class="right">${r.banned}</td>
@@ -1426,18 +1599,20 @@ function banImpactTable(rows, limit=10){
 
 /* Opponent Series */
 function buildOpponentSeriesRows(rows){
-  if(!rows.length) return [];
-  const keyOf = (r)=>{
+  if (!rows.length) return [];
+
+  const keyOf = (r) => {
     const d = new Date(r.match_date);
     const day = d.toISOString().slice(0,10);
     return `${r.tournament}|${r.opponent}|${day}`;
   };
+
   const series = new Map();
 
-  rows.forEach(r=>{
+  rows.forEach(r => {
     const k = keyOf(r);
-    if(!series.has(k)){
-      series.set(k, { opponent:r.opponent, tournament:r.tournament||'—', date:new Date(r.match_date), games:[] });
+    if (!series.has(k)){
+      series.set(k, { opponent:r.opponent, tournament:r.tournament || '—', date:new Date(r.match_date), games:[] });
     }
     series.get(k).games.push({
       game_number: r.game_number ?? 0,
@@ -1450,12 +1625,13 @@ function buildOpponentSeriesRows(rows){
   });
 
   const flat = [];
-  for(const s of series.values()){
-    s.games.sort((a,b)=>(a.game_number)-(b.game_number));
-    const w = s.games.filter(g=>g.result==='W').length;
+  for (const s of series.values()){
+    s.games.sort((a,b) => (a.game_number) - (b.game_number));
+    const w = s.games.filter(g => g.result === 'W').length;
     const l = s.games.length - w;
     const seriesScore = `${w}-${l}`;
-    s.games.forEach(g=>{
+
+    s.games.forEach(g => {
       flat.push({
         opponent: s.opponent,
         seriesScore,
@@ -1468,11 +1644,13 @@ function buildOpponentSeriesRows(rows){
       });
     });
   }
-  return flat.sort((a,b)=> b.date - a.date);
+
+  return flat.sort((a,b) => b.date - a.date);
 }
+
 function opponentSeriesTable(rows, limit=30){
   const list = buildOpponentSeriesRows(rows).slice(0, limit);
-  if(!list.length) return `<div class="muted">No opponent series for selection.</div>`;
+  if (!list.length) return `<div class="muted">No opponent series for selection.</div>`;
   return `
     <div class="tableWrap">
       <table>
@@ -1487,17 +1665,17 @@ function opponentSeriesTable(rows, limit=30){
           </tr>
         </thead>
         <tbody>
-          ${list.map(r=>`
+          ${list.map(r => `
             <tr>
               <td>${r.opponent}</td>
               <td class="right mono">${r.seriesScore}</td>
-              <td>${r.map||'—'}</td>
-              <td class="right mono">${r.mapScore||'—'}</td>
+              <td>${r.map || '—'}</td>
+              <td class="right mono">${r.mapScore || '—'}</td>
               <td class="right"><span class="wl ${r.result}">${r.result}</span></td>
               <td>
                 <div class="icons">
-                  <img src="${r.banImg||PLACEHOLDER}" alt="${safe(r.banName||'')}" title="${safe(r.banName||'')}">
-                  <span class="muted tight">${safe(r.banName||'—')}</span>
+                  <img src="${r.banImg || PLACEHOLDER}" alt="${safe(r.banName || '')}" title="${safe(r.banName || '')}">
+                  <span class="muted tight">${safe(r.banName || '—')}</span>
                 </div>
               </td>
             </tr>
@@ -1510,10 +1688,12 @@ function opponentSeriesTable(rows, limit=30){
 /* KPIs */
 function kpiCard(bucket, kindActive, kindPassive, kindPet, kindBan){
   if (!bucket || !bucket.matches) return `<div class="muted">No data for selection.</div>`;
-  const subjA = [...kindActive.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
-  const subjP = [...kindPassive.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
-  const subjPet = [...kindPet.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
-  const subjB = [...kindBan.skills.values()].reduce((a,s)=>(a.appear+=s.appear,a),{appear:0});
+
+  const subjA = [...kindActive.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
+  const subjP = [...kindPassive.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
+  const subjPet = [...kindPet.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
+  const subjB = [...kindBan.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
+
   return `
     <div class="kpis">
       <div class="kpi">Matches <strong>${bucket.matches}</strong></div>
@@ -1570,12 +1750,16 @@ async function copyTextToClipboard(text){
       return true;
     }
   }catch{}
+
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.style.position='fixed'; ta.style.left='-9999px';
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
   document.body.appendChild(ta);
-  ta.focus(); ta.select();
-  let ok=false;
+  ta.focus();
+  ta.select();
+
+  let ok = false;
   try{ ok = document.execCommand('copy'); }catch{}
   ta.remove();
   return ok;
@@ -1583,19 +1767,22 @@ async function copyTextToClipboard(text){
 
 /* Matches rendering */
 function playerBadge(active, trio, petLine){
-  const ico = (ps)=>`<img src="${ps.img||PLACEHOLDER}" alt="${safe(ps.name||'')}" title="${safe(ps.name||'')}">`;
-  const p0 = trio?.[0] || {}, p1 = trio?.[1] || {}, p2 = trio?.[2] || {};
+  const ico = (ps) => `<img src="${ps.img || PLACEHOLDER}" alt="${safe(ps.name || '')}" title="${safe(ps.name || '')}">`;
+  const p0 = trio?.[0] || {};
+  const p1 = trio?.[1] || {};
+  const p2 = trio?.[2] || {};
   const pet = petLine?.pet || { name:'', img:PLACEHOLDER };
-  const aName = safe(active.hero||'');
-  const pName = safe(active.player||'');
-  const petName = safe(pet.name||'');
-  const petIcon = pet.name ? `<img src="${pet.img||PLACEHOLDER}" alt="${petName}" title="Pet: ${petName}">` : '';
+  const aName = safe(active.hero || '');
+  const pName = safe(active.player || '');
+  const petName = safe(pet.name || '');
+  const petIcon = pet.name ? `<img src="${pet.img || PLACEHOLDER}" alt="${petName}" title="Pet: ${petName}">` : '';
+
   return `
-    <div class="pBadge" title="${pName}${aName?(' — '+aName):''}${petName?(' — Pet: '+petName):''}">
-      <img class="pAct" src="${active.heroImg||PLACEHOLDER}" alt="${aName}">
+    <div class="pBadge" title="${pName}${aName ? (' — ' + aName) : ''}${petName ? (' — Pet: ' + petName) : ''}">
+      <img class="pAct" src="${active.heroImg || PLACEHOLDER}" alt="${aName}">
       <div class="pMeta">
         <div class="pName">${pName}</div>
-        <div class="pHero">${aName||'—'}</div>
+        <div class="pHero">${aName || '—'}</div>
         <div class="pPet">${petName ? `Pet: ${petName}` : ''}</div>
       </div>
       <div class="pPass">${ico(p0)}${ico(p1)}${ico(p2)}${petIcon}</div>
@@ -1605,17 +1792,18 @@ function playerBadge(active, trio, petLine){
 function matchCard(r){
   const score = `${r.team_score} - ${r.opp_score}`;
   const g = r.game_number ? `Game ${r.game_number}` : '—';
-  const players = r.actives.map((a,i)=>playerBadge(a, (r.passives[i]||{}).trio, r.pets[i])).join('');
+  const players = r.actives.map((a, i) => playerBadge(a, (r.passives[i] || {}).trio, r.pets[i])).join('');
+
   return `
     <div class="matchCard">
       <div class="mInfo">
-        <div class="mRow"><div class="mKey">Date</div><div class="mVal mono">${String(r.match_date||'').slice(0,10)}</div></div>
+        <div class="mRow"><div class="mKey">Date</div><div class="mVal mono">${String(r.match_date || '').slice(0,10)}</div></div>
         <div class="mRow"><div class="mKey">Game</div><div class="mVal">${g}</div></div>
-        <div class="mRow"><div class="mKey">Map</div><div class="mVal">${r.map||'—'}</div></div>
-        <div class="mRow"><div class="mKey">Team</div><div class="mVal">${r.team||'—'}<div class="muted" style="line-height:1.1">vs ${r.opponent||'—'}</div></div></div>
+        <div class="mRow"><div class="mKey">Map</div><div class="mVal">${r.map || '—'}</div></div>
+        <div class="mRow"><div class="mKey">Team</div><div class="mVal">${r.team || '—'}<div class="muted" style="line-height:1.1">vs ${r.opponent || '—'}</div></div></div>
         <div class="mRow"><div class="mKey">Score</div><div class="mVal mono">${score}</div></div>
         <div class="mRow"><div class="mKey">Result</div><div class="mVal"><span class="wl ${r.result}">${r.result}</span></div></div>
-        <div class="mRow"><div class="mKey">Ban</div><div class="mVal banBox"><img src="${r.banImg||PLACEHOLDER}" alt="${safe(r.banName||'')}" title="${safe(r.banName||'')}"><span class="muted">${safe(r.banName||'—')}</span></div></div>
+        <div class="mRow"><div class="mKey">Ban</div><div class="mVal banBox"><img src="${r.banImg || PLACEHOLDER}" alt="${safe(r.banName || '')}" title="${safe(r.banName || '')}"><span class="muted">${safe(r.banName || '—')}</span></div></div>
       </div>
       <div class="mPlayers">
         ${players}
@@ -1624,36 +1812,47 @@ function matchCard(r){
 }
 
 function matchesCards(rows){
-  if(!rows.length) return `<div class="muted">No matches for selection.</div>`;
-  const sorted = [...rows].sort((a,b)=>{
+  if (!rows.length) return `<div class="muted">No matches for selection.</div>`;
+  const sorted = [...rows].sort((a,b) => {
     const da = new Date(a.match_date), db = new Date(b.match_date);
-    return db - da || (a.game_number||0) - (b.game_number||0) || a.rec_id - b.rec_id;
+    return db - da || (a.game_number || 0) - (b.game_number || 0) || a.rec_id - b.rec_id;
   });
   return sorted.map(matchCard).join('');
 }
 
 /* Render */
 function renderAll(){
-  const a = el('cmpTeamA').value, b = el('cmpTeamB').value;
-  if (!a || !b || a===b){
+  const a = el('cmpTeamA').value;
+  const b = el('cmpTeamB').value;
+
+  if (!a || !b || a === b){
     el('meta').textContent = 'Pick two different teams.';
-    ['kpiA','kpiB','activeA','activeB','passiveA','passiveB','bansA','bansB','tmA','tmB','psAAct','psBAct','impactA','impactB','psAPas','psBPas','psAPet','psBPet','combosA','combosB','pairsA','pairsB','triosA','triosB','biA','biB','oppSeriesA','oppSeriesB','matchesA','matchesB']
-      .forEach(id=>{ if(el(id)) el(id).innerHTML = '<div class="muted">—</div>'; });
-    const ta = el('aiPrompt'); if (ta) ta.value = 'Pick two different teams.';
+    [
+      'kpiA','kpiB','activeA','activeB','passiveA','passiveB','bansA','bansB',
+      'tmA','tmB','psAAct','psBAct','impactA','impactB','psAPas','psBPas',
+      'psAPet','psBPet','combosA','combosB','pairsA','pairsB','triosA','triosB',
+      'biA','biB','oppSeriesA','oppSeriesB','matchesA','matchesB'
+    ].forEach(id => {
+      if (el(id)) el(id).innerHTML = '<div class="muted">—</div>';
+    });
+    const ta = el('aiPrompt');
+    if (ta) ta.value = 'Pick two different teams.';
     return;
   }
 
-  const mapLabel   = (el('fMap').value==='__ALL__')?'All maps':el('fMap').value;
-  const tournLabel = (el('fTourn').value==='__ALL__')?'All tournaments':el('fTourn').value;
-  const wlLabel    = (el('fWL').value==='__ALL__')?'All outcomes':(el('fWL').value==='W'?'Wins only':'Losses only');
+  const mapLabel   = (el('fMap').value === '__ALL__') ? 'All maps' : el('fMap').value;
+  const tournLabel = (el('fTourn').value === '__ALL__') ? 'All tournaments' : el('fTourn').value;
+  const wlLabel    = (el('fWL').value === '__ALL__') ? 'All outcomes' : (el('fWL').value === 'W' ? 'Wins only' : 'Losses only');
   el('meta').textContent = `${a} vs ${b} • ${mapLabel} • ${tournLabel} • ${wlLabel}`;
 
-  const rowsA = rowsForTeam(a), rowsB = rowsForTeam(b);
+  const rowsA = rowsForTeam(a);
+  const rowsB = rowsForTeam(b);
 
   const bA = buildTeamBucket(rowsA, a, 'active');
   const bP_A = buildTeamBucket(rowsA, a, 'passive');
   const bPet_A = buildTeamBucket(rowsA, a, 'pet');
   const bBan_A = buildTeamBucket(rowsA, a, 'ban');
+
   const bB = buildTeamBucket(rowsB, b, 'active');
   const bP_B = buildTeamBucket(rowsB, b, 'passive');
   const bPet_B = buildTeamBucket(rowsB, b, 'pet');
@@ -1669,18 +1868,18 @@ function renderAll(){
 
   el('labelActiveA').textContent = `${a} — Active`;
   el('labelActiveB').textContent = `${b} — Active`;
-  el('activeA').innerHTML = topSkillsTable(bA,'active',10);
-  el('activeB').innerHTML = topSkillsTable(bB,'active',10);
+  el('activeA').innerHTML = topSkillsTable(bA, 'active', 10);
+  el('activeB').innerHTML = topSkillsTable(bB, 'active', 10);
 
   el('labelPassiveA').textContent = `${a} — Passive`;
   el('labelPassiveB').textContent = `${b} — Passive`;
-  el('passiveA').innerHTML = topSkillsTable(bP_A,'passive',10);
-  el('passiveB').innerHTML = topSkillsTable(bP_B,'passive',10);
+  el('passiveA').innerHTML = topSkillsTable(bP_A, 'passive', 10);
+  el('passiveB').innerHTML = topSkillsTable(bP_B, 'passive', 10);
 
   el('labelBansA').textContent = `${a} — Bans`;
   el('labelBansB').textContent = `${b} — Bans`;
-  el('bansA').innerHTML = topSkillsTable(bBan_A,'ban',10);
-  el('bansB').innerHTML = topSkillsTable(bBan_B,'ban',10);
+  el('bansA').innerHTML = topSkillsTable(bBan_A, 'ban', 10);
+  el('bansB').innerHTML = topSkillsTable(bBan_B, 'ban', 10);
 
   el('labelTMA').textContent = a;
   el('labelTMB').textContent = b;
@@ -1719,13 +1918,15 @@ function renderAll(){
 
   el('labelTriosA').textContent = a;
   el('labelTriosB').textContent = b;
-  const triA = buildTrios(rowsA), triB = buildTrios(rowsB);
+  const triA = buildTrios(rowsA);
+  const triB = buildTrios(rowsB);
   el('triosA').innerHTML = tableTrios(triA, 5);
   el('triosB').innerHTML = tableTrios(triB, 5);
 
   el('labelBIA').textContent = a;
   el('labelBIB').textContent = b;
-  const biA_rows = rowsForTeamIgnoringWL(a), biB_rows = rowsForTeamIgnoringWL(b);
+  const biA_rows = rowsForTeamIgnoringWL(a);
+  const biB_rows = rowsForTeamIgnoringWL(b);
   el('biA').innerHTML = banImpactTable(biA_rows, 10);
   el('biB').innerHTML = banImpactTable(biB_rows, 10);
 
@@ -1734,11 +1935,18 @@ function renderAll(){
   el('oppSeriesA').innerHTML = opponentSeriesTable(rowsA, 30);
   el('oppSeriesB').innerHTML = opponentSeriesTable(rowsB, 30);
 
-  const meta = { teamA:a, teamB:b, mapLabel, tournamentLabel: tournLabel, wlLabel };
+  const meta = {
+    teamA: a,
+    teamB: b,
+    mapLabel,
+    tournamentLabel: tournLabel,
+    wlLabel
+  };
+
   const exportObj = {
     meta,
     teamA:{
-      kpis:{ matches:bA.matches, wins:bA.wins, win_rate: bA.matches? bA.wins/bA.matches : 0 },
+      kpis:{ matches:bA.matches, wins:bA.wins, win_rate: bA.matches ? bA.wins / bA.matches : 0 },
       team_map: teamMapStatsData(rowsA),
       active_skill_impact: activeSkillImpactData(rowsA, 12),
       per_skill_active: perSkillActiveCompressedData(rowsA, 12),
@@ -1755,7 +1963,7 @@ function renderAll(){
       opponent_series: buildOpponentSeriesRows(rowsA).slice(0,30)
     },
     teamB:{
-      kpis:{ matches:bB.matches, wins:bB.wins, win_rate: bB.matches? bB.wins/bB.matches : 0 },
+      kpis:{ matches:bB.matches, wins:bB.wins, win_rate: bB.matches ? bB.wins / bB.matches : 0 },
       team_map: teamMapStatsData(rowsB),
       active_skill_impact: activeSkillImpactData(rowsB, 12),
       per_skill_active: perSkillActiveCompressedData(rowsB, 12),
@@ -1772,6 +1980,7 @@ function renderAll(){
       opponent_series: buildOpponentSeriesRows(rowsB).slice(0,30)
     }
   };
+
   const exportClean = stripLinksDeep(exportObj);
   LATEST_EXPORT = exportClean;
   el('aiPrompt').value = buildAIPrompt(exportClean);
@@ -1779,21 +1988,39 @@ function renderAll(){
 
 /* Refresh flow */
 async function refresh(){
-  [RAW_RECORDS] = await Promise.all([fetchRecords()]);
-  await Promise.all([fetchTeamLogos()]);
-  await populateTournamentDropdown(RAW_RECORDS);
+  const currentMap = el('fMap').value;
+
+  await fetchTeamLogos();
+
+  const tournamentSource = await fetchRecords({
+    map: currentMap,
+    tourn: '__ALL__'
+  });
+
+  await populateTournamentDropdown(tournamentSource);
+
+  RAW_RECORDS = await fetchRecords({
+    map: currentMap,
+    tourn: el('fTourn').value || '__ALL__'
+  });
+
   populateTeamDropdowns(RAW_RECORDS);
   renderAll();
 }
 
 /* Quick helpers */
 function setSelectToTeam(selectEl, name){
-  if(!selectEl) return false;
+  if (!selectEl) return false;
   const opts = [...selectEl.options];
-  const target = String(name||'').trim().toLowerCase();
+  const target = String(name || '').trim().toLowerCase();
+
   const match = opts.find(o => o.value === name)
-    || opts.find(o => (o.text||'').trim().toLowerCase() === target);
-  if (match){ selectEl.value = match.value; return true; }
+    || opts.find(o => (o.text || '').trim().toLowerCase() === target);
+
+  if (match){
+    selectEl.value = match.value;
+    return true;
+  }
   return false;
 }
 
@@ -1808,14 +2035,25 @@ async function quickPick(team){
   const target = el('quickTarget')?.value || 'A';
   const selectEl = target === 'A' ? el('cmpTeamA') : el('cmpTeamB');
 
-  if (setSelectToTeam(selectEl, team)){ renderAll(); return; }
+  if (setSelectToTeam(selectEl, team)){
+    renderAll();
+    return;
+  }
+
   await widenFiltersAndReload();
-  if (setSelectToTeam(selectEl, team)){ renderAll(); return; }
+
+  if (setSelectToTeam(selectEl, team)){
+    renderAll();
+    return;
+  }
+
   alert(`No matches found for "${team}" in the current database.`);
 }
 
 async function quickPair(aTeam, bTeam){
-  const A = el('cmpTeamA'), B = el('cmpTeamB');
+  const A = el('cmpTeamA');
+  const B = el('cmpTeamB');
+
   let okA = setSelectToTeam(A, aTeam);
   let okB = setSelectToTeam(B, bTeam);
 
@@ -1824,7 +2062,11 @@ async function quickPair(aTeam, bTeam){
     okA = setSelectToTeam(A, aTeam);
     okB = setSelectToTeam(B, bTeam);
   }
-  if (okA && okB){ renderAll(); return; }
+
+  if (okA && okB){
+    renderAll();
+    return;
+  }
 
   const miss = [];
   if (!okA) miss.push(aTeam);
@@ -1833,25 +2075,38 @@ async function quickPair(aTeam, bTeam){
 }
 
 /* Events */
-el('applyBtn').onclick = refresh;
-['cmpTeamA','cmpTeamB'].forEach(id=> el(id).addEventListener('change', renderAll));
-el('cmpSwap').addEventListener('click', ()=>{
-  const A = el('cmpTeamA'), B = el('cmpTeamB');
-  const t = A.value; A.value = B.value; B.value = t;
+['fMap', 'fTourn'].forEach(id => {
+  el(id).addEventListener('change', refresh);
+});
+
+['fWL', 'cmpTeamA', 'cmpTeamB'].forEach(id => {
+  el(id).addEventListener('change', renderAll);
+});
+
+el('cmpSwap').addEventListener('click', () => {
+  const A = el('cmpTeamA');
+  const B = el('cmpTeamB');
+  const t = A.value;
+  A.value = B.value;
+  B.value = t;
   renderAll();
 });
-el('copyPromptBtn').addEventListener('click', async ()=>{
+
+el('copyPromptBtn').addEventListener('click', async () => {
   const ta = el('aiPrompt');
   const ok = await copyTextToClipboard(ta.value || '');
   const btn = el('copyPromptBtn');
   const orig = btn.textContent;
   btn.textContent = ok ? 'Copied!' : 'Copy failed';
-  setTimeout(()=> btn.textContent = orig, 1200);
+  setTimeout(() => btn.textContent = orig, 1200);
 });
 
-document.addEventListener('click', (e)=>{
+document.addEventListener('click', (e) => {
   const chip = e.target.closest('.chipbtn[data-team]');
-  if (chip){ quickPick(chip.dataset.team); return; }
+  if (chip){
+    quickPick(chip.dataset.team);
+    return;
+  }
 
   const pair = e.target.closest('.pairbtn[data-pair]');
   if (pair){
