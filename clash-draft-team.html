@@ -617,6 +617,107 @@
       font-size:clamp(16px, 1.35vw, 20px);
     }
 
+    .compact-passive-wrap{
+      width: var(--pageW);
+      margin: 14px auto 0;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap:18px;
+      padding:0 14px;
+    }
+
+    .compact-passive-panel{
+      padding:12px;
+      border-radius: var(--radius-lg);
+      background: rgba(20,26,38,.48);
+      border:1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      min-width:0;
+    }
+
+    .compact-passive-title{
+      text-align:center;
+      font-family:'Orbitron',sans-serif;
+      color: var(--brand);
+      letter-spacing:.4px;
+      font-size:clamp(14px, 1.2vw, 18px);
+      line-height:1.15;
+    }
+
+    .compact-passive-meta{
+      margin-top:6px;
+      text-align:center;
+      color: rgba(244,246,255,.68);
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .compact-passive-list{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap:8px;
+    }
+
+    .compact-passive-chip{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+      padding:7px 8px;
+      border-radius:14px;
+      background: rgba(14,18,28,.35);
+      border:1px solid rgba(255,255,255,.10);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.30);
+    }
+
+    .compact-passive-chip img{
+      width:20px;
+      height:20px;
+      border-radius:7px;
+      object-fit:cover;
+      flex:0 0 auto;
+    }
+
+    .compact-passive-copy{
+      min-width:0;
+      flex:1 1 auto;
+    }
+
+    .compact-passive-name{
+      font-size:10px;
+      font-weight:950;
+      color: rgba(244,246,255,.90);
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .compact-passive-count{
+      font-size:10px;
+      font-weight:950;
+      color:#12131a;
+      background: linear-gradient(180deg, rgba(255,189,89,.98), rgba(255,119,51,.92));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+      padding:3px 7px;
+      white-space:nowrap;
+      box-shadow: 0 8px 18px rgba(0,0,0,.22);
+    }
+
+    .compact-passive-empty{
+      text-align:center;
+      color: rgba(244,246,255,.58);
+      font-size:11px;
+      font-weight:800;
+      padding:8px 4px;
+    }
+
     .sum-section-title{
       text-align:center;
       font-weight:950;
@@ -1273,6 +1374,9 @@
       .summary-wrapper{
         padding-inline:10px;
       }
+      .compact-passive-wrap{
+        padding-inline:10px;
+      }
       .sum-players{
         grid-template-columns:1fr;
       }
@@ -1380,6 +1484,13 @@
       details.glassy,
       #pbFilterBar{
         width:min(96%, 1400px);
+      }
+      .compact-passive-panel{
+        padding:10px;
+      }
+      .compact-passive-list{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap:6px;
       }
       .counts-grid{
         gap:5px;
@@ -1519,6 +1630,20 @@
   <div class="summary-wrapper">
     <div><div class="summary-team" id="summaryLeft"></div></div>
     <div><div class="summary-team" id="summaryRight"></div></div>
+  </div>
+
+  <div class="compact-passive-wrap">
+    <div class="compact-passive-panel">
+      <div class="compact-passive-title" id="passiveSummaryLeftTitle">TEAM LEFT • Passives</div>
+      <div class="compact-passive-meta" id="passiveSummaryLeftMeta">0 selected • 0 unique</div>
+      <div class="compact-passive-list" id="passiveSummaryLeft"></div>
+    </div>
+
+    <div class="compact-passive-panel">
+      <div class="compact-passive-title" id="passiveSummaryRightTitle">TEAM RIGHT • Passives</div>
+      <div class="compact-passive-meta" id="passiveSummaryRightMeta">0 selected • 0 unique</div>
+      <div class="compact-passive-list" id="passiveSummaryRight"></div>
+    </div>
   </div>
 
   <div class="modal" id="heroModal">
@@ -1993,6 +2118,7 @@ function drawDraft(){
   document.getElementById('teamNameRight').value = draftState.teamNames[1];
 
   updateSummary();
+  renderCompactPassiveSummary();
   updateResponsiveTeamSizing();
 }
 
@@ -2420,6 +2546,89 @@ function updateSummary() {
 
   left.innerHTML = renderTeam(draftState.teamNames[0] || 'TEAM LEFT', 0, [0,1,2,3], 'L');
   right.innerHTML = renderTeam(draftState.teamNames[1] || 'TEAM RIGHT', 1, [4,5,6,7], 'R');
+}
+
+function getDraftPassiveSummary(indexes){
+  const counts = new Map();
+  let totalSelected = 0;
+
+  (indexes || []).forEach(i => {
+    const arr = draftState.passives?.[i] || [];
+    arr.forEach(ps => {
+      if (!ps?.name) return;
+
+      totalSelected += 1;
+
+      const key = normalizeKey(ps.name || ps.skill || 'passive');
+      if (!counts.has(key)) {
+        counts.set(key, {
+          name: ps.name || ps.skill || 'Passive',
+          image_url: ps.image_url || 'https://imgur.com/AdvPwAO.png',
+          count: 0
+        });
+      }
+
+      counts.get(key).count += 1;
+    });
+  });
+
+  const list = [...counts.values()].sort((a,b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    totalSelected,
+    uniqueCount: list.length,
+    list
+  };
+}
+
+function renderCompactPassiveSummary(){
+  const leftTitle = document.getElementById('passiveSummaryLeftTitle');
+  const rightTitle = document.getElementById('passiveSummaryRightTitle');
+  const leftMeta = document.getElementById('passiveSummaryLeftMeta');
+  const rightMeta = document.getElementById('passiveSummaryRightMeta');
+  const leftBox = document.getElementById('passiveSummaryLeft');
+  const rightBox = document.getElementById('passiveSummaryRight');
+
+  if (!leftBox || !rightBox) return;
+
+  const leftTeam = draftState.teamNames?.[0] || 'TEAM LEFT';
+  const rightTeam = draftState.teamNames?.[1] || 'TEAM RIGHT';
+
+  const left = getDraftPassiveSummary([0,1,2,3]);
+  const right = getDraftPassiveSummary([4,5,6,7]);
+
+  if (leftTitle) leftTitle.textContent = `${leftTeam} • Passives`;
+  if (rightTitle) rightTitle.textContent = `${rightTeam} • Passives`;
+
+  if (leftMeta) leftMeta.textContent = `${left.totalSelected} selected • ${left.uniqueCount} unique`;
+  if (rightMeta) rightMeta.textContent = `${right.totalSelected} selected • ${right.uniqueCount} unique`;
+
+  leftBox.innerHTML = left.list.length
+    ? left.list.map(item => `
+        <div class="compact-passive-chip">
+          <img src="${esc(item.image_url || 'https://imgur.com/AdvPwAO.png')}" alt="${esc(item.name)}">
+          <div class="compact-passive-copy">
+            <div class="compact-passive-name">${esc(item.name)}</div>
+          </div>
+          <div class="compact-passive-count">x${esc(item.count)}</div>
+        </div>
+      `).join('')
+    : `<div class="compact-passive-empty">No passives selected.</div>`;
+
+  rightBox.innerHTML = right.list.length
+    ? right.list.map(item => `
+        <div class="compact-passive-chip">
+          <img src="${esc(item.image_url || 'https://imgur.com/AdvPwAO.png')}" alt="${esc(item.name)}">
+          <div class="compact-passive-copy">
+            <div class="compact-passive-name">${esc(item.name)}</div>
+          </div>
+          <div class="compact-passive-count">x${esc(item.count)}</div>
+        </div>
+      `).join('')
+    : `<div class="compact-passive-empty">No passives selected.</div>`;
 }
 
 function resetDraft() {
