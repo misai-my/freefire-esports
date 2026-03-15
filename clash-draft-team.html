@@ -9,7 +9,7 @@
   <script>
     const client = supabase.createClient(
       'https://ooutjrewmwsixghbouxi.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6ImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
     );
 
     function logout() {
@@ -588,35 +588,6 @@
 
     .disabled{ opacity:.35; pointer-events:none; filter:grayscale(.35); }
 
-    .summary-wrapper{
-      width: var(--pageW);
-      margin: 14px auto 0;
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap:18px;
-      font-size:12px;
-      color: rgba(244,246,255,.78);
-      padding:10px 14px;
-    }
-    .summary-wrapper > div{
-      min-width:0;
-      padding:12px;
-      border-radius: var(--radius-lg);
-      background:rgba(20,26,38,.48);
-      border:1px solid var(--line);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      backdrop-filter: blur(14px) saturate(140%);
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-    }
-    .summary-wrapper h3{
-      margin: 6px 0 12px;
-      text-align:center;
-      font-family:'Orbitron',sans-serif;
-      color: var(--brand);
-      letter-spacing:.5px;
-      font-size:clamp(16px, 1.35vw, 20px);
-    }
-
     .compact-passive-wrap{
       width: var(--pageW);
       margin: 14px auto 0;
@@ -663,7 +634,7 @@
 
     .compact-passive-chip{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       gap:8px;
       min-width:0;
       padding:7px 8px;
@@ -676,16 +647,18 @@
     }
 
     .compact-passive-chip img{
-      width:20px;
-      height:20px;
+      width:22px;
+      height:22px;
       border-radius:7px;
       object-fit:cover;
       flex:0 0 auto;
+      margin-top:1px;
     }
 
     .compact-passive-copy{
       min-width:0;
       flex:1 1 auto;
+      padding-top:1px;
     }
 
     .compact-passive-name{
@@ -708,6 +681,7 @@
       padding:3px 7px;
       white-space:nowrap;
       box-shadow: 0 8px 18px rgba(0,0,0,.22);
+      margin-top:1px;
     }
 
     .compact-passive-empty{
@@ -716,6 +690,35 @@
       font-size:11px;
       font-weight:800;
       padding:8px 4px;
+    }
+
+    .summary-wrapper{
+      width: var(--pageW);
+      margin: 14px auto 0;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap:18px;
+      font-size:12px;
+      color: rgba(244,246,255,.78);
+      padding:10px 14px;
+    }
+    .summary-wrapper > div{
+      min-width:0;
+      padding:12px;
+      border-radius: var(--radius-lg);
+      background:rgba(20,26,38,.48);
+      border:1px solid var(--line);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    .summary-wrapper h3{
+      margin: 6px 0 12px;
+      text-align:center;
+      font-family:'Orbitron',sans-serif;
+      color: var(--brand);
+      letter-spacing:.5px;
+      font-size:clamp(16px, 1.35vw, 20px);
     }
 
     .sum-section-title{
@@ -1629,6 +1632,20 @@
 
   <div class="compact-passive-wrap">
     <div class="compact-passive-panel">
+      <div class="compact-passive-title" id="petSummaryLeftTitle">TEAM LEFT • Pets</div>
+      <div class="compact-passive-meta" id="petSummaryLeftMeta">0 selected • 0 unique</div>
+      <div class="compact-passive-list" id="petSummaryLeft"></div>
+    </div>
+
+    <div class="compact-passive-panel">
+      <div class="compact-passive-title" id="petSummaryRightTitle">TEAM RIGHT • Pets</div>
+      <div class="compact-passive-meta" id="petSummaryRightMeta">0 selected • 0 unique</div>
+      <div class="compact-passive-list" id="petSummaryRight"></div>
+    </div>
+  </div>
+
+  <div class="compact-passive-wrap">
+    <div class="compact-passive-panel">
       <div class="compact-passive-title" id="passiveSummaryLeftTitle">TEAM LEFT • Passives</div>
       <div class="compact-passive-meta" id="passiveSummaryLeftMeta">0 selected • 0 unique</div>
       <div class="compact-passive-list" id="passiveSummaryLeft"></div>
@@ -2118,6 +2135,7 @@ function drawDraft(){
   document.getElementById('teamNameRight').value = draftState.teamNames[1];
 
   updateSummary();
+  renderCompactPetSummary();
   renderCompactPassiveSummary();
   updateResponsiveTeamSizing();
 }
@@ -2546,6 +2564,87 @@ function updateSummary() {
 
   left.innerHTML = renderTeam(draftState.teamNames[0] || 'TEAM LEFT', 0, [0,1,2,3], 'L');
   right.innerHTML = renderTeam(draftState.teamNames[1] || 'TEAM RIGHT', 1, [4,5,6,7], 'R');
+}
+
+function getDraftPetSummary(indexes){
+  const counts = new Map();
+  let totalSelected = 0;
+
+  (indexes || []).forEach(i => {
+    const pet = draftState.pets?.[i];
+    if (!pet?.name) return;
+
+    totalSelected += 1;
+
+    const key = normalizeKey(pet.name || 'pet');
+    if (!counts.has(key)) {
+      counts.set(key, {
+        name: pet.name || 'Pet',
+        image_url: pet.image_url || 'https://imgur.com/AdvPwAO.png',
+        count: 0
+      });
+    }
+
+    counts.get(key).count += 1;
+  });
+
+  const list = [...counts.values()].sort((a,b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    totalSelected,
+    uniqueCount: list.length,
+    list
+  };
+}
+
+function renderCompactPetSummary(){
+  const leftTitle = document.getElementById('petSummaryLeftTitle');
+  const rightTitle = document.getElementById('petSummaryRightTitle');
+  const leftMeta = document.getElementById('petSummaryLeftMeta');
+  const rightMeta = document.getElementById('petSummaryRightMeta');
+  const leftBox = document.getElementById('petSummaryLeft');
+  const rightBox = document.getElementById('petSummaryRight');
+
+  if (!leftBox || !rightBox) return;
+
+  const leftTeam = draftState.teamNames?.[0] || 'TEAM LEFT';
+  const rightTeam = draftState.teamNames?.[1] || 'TEAM RIGHT';
+
+  const left = getDraftPetSummary([0,1,2,3]);
+  const right = getDraftPetSummary([4,5,6,7]);
+
+  if (leftTitle) leftTitle.textContent = `${leftTeam} • Pets`;
+  if (rightTitle) rightTitle.textContent = `${rightTeam} • Pets`;
+
+  if (leftMeta) leftMeta.textContent = `${left.totalSelected} selected • ${left.uniqueCount} unique`;
+  if (rightMeta) rightMeta.textContent = `${right.totalSelected} selected • ${right.uniqueCount} unique`;
+
+  leftBox.innerHTML = left.list.length
+    ? left.list.map(item => `
+        <div class="compact-passive-chip">
+          <img src="${esc(item.image_url || 'https://imgur.com/AdvPwAO.png')}" alt="${esc(item.name)}">
+          <div class="compact-passive-copy">
+            <div class="compact-passive-name">${esc(item.name)}</div>
+          </div>
+          <div class="compact-passive-count">x${esc(item.count)}</div>
+        </div>
+      `).join('')
+    : `<div class="compact-passive-empty">No pets selected.</div>`;
+
+  rightBox.innerHTML = right.list.length
+    ? right.list.map(item => `
+        <div class="compact-passive-chip">
+          <img src="${esc(item.image_url || 'https://imgur.com/AdvPwAO.png')}" alt="${esc(item.name)}">
+          <div class="compact-passive-copy">
+            <div class="compact-passive-name">${esc(item.name)}</div>
+          </div>
+          <div class="compact-passive-count">x${esc(item.count)}</div>
+        </div>
+      `).join('')
+    : `<div class="compact-passive-empty">No pets selected.</div>`;
 }
 
 function getDraftPassiveSummary(indexes){
