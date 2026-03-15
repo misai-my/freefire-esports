@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -741,6 +740,87 @@
       word-break:break-word;
     }
 
+    .passive-summary-panel{
+      margin-top:var(--gap-main);
+      padding:14px;
+    }
+
+    .passive-summary-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:12px;
+      min-width:0;
+    }
+
+    .passive-team-box{
+      border-radius:16px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.025);
+      padding:10px;
+      display:grid;
+      gap:10px;
+      min-width:0;
+    }
+
+    .passive-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .passive-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px;
+      border-radius:12px;
+      border:1px solid rgba(124,172,255,.10);
+      background:rgba(255,255,255,.03);
+      min-width:0;
+    }
+
+    .passive-row .card-thumb{
+      width:36px;
+      height:36px;
+      border-radius:10px;
+    }
+
+    .passive-copy{
+      min-width:0;
+      flex:1 1 auto;
+      display:grid;
+      gap:2px;
+    }
+
+    .passive-name{
+      font-size:11px;
+      font-weight:800;
+      color:#eef4ff;
+      line-height:1.2;
+      word-break:break-word;
+    }
+
+    .passive-meta{
+      font-size:10px;
+      color:var(--muted);
+      line-height:1.2;
+    }
+
+    .passive-count{
+      flex:0 0 auto;
+      min-width:34px;
+      height:28px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(124,172,255,.18);
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      font-size:11px;
+      font-weight:900;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
     .details-panel{
       margin-top:var(--gap-main);
       padding:14px;
@@ -1480,7 +1560,8 @@
       }
 
       .round-player-grid,
-      .detail-block-grid{
+      .detail-block-grid,
+      .passive-summary-grid{
         grid-template-columns:1fr;
       }
     }
@@ -1547,6 +1628,29 @@
       </section>
     </div>
 
+    <div class="panel passive-summary-panel">
+      <div class="details-head" style="margin-bottom:12px;">
+        <div>
+          <div class="details-panel-title">Passive Skill Counts</div>
+          <div class="details-subline">
+            Counts all passive skills currently used by each team based on the loaded match JSON.
+          </div>
+        </div>
+      </div>
+
+      <div class="passive-summary-grid">
+        <section class="passive-team-box">
+          <div class="section-title">Team A Passives</div>
+          <div id="teamAPassiveSummary"></div>
+        </section>
+
+        <section class="passive-team-box">
+          <div class="section-title">Team B Passives</div>
+          <div id="teamBPassiveSummary"></div>
+        </section>
+      </div>
+    </div>
+
     <div class="panel details-panel" id="detailsPanelAnchor">
       <div class="details-head">
         <div>
@@ -1561,8 +1665,8 @@
           <button id="stackedProgressBtn" class="ghost mode-btn active" type="button">Stacked Progress</button>
           <button id="compareViewBtn" class="ghost mode-btn" type="button">Compare View</button>
 
-          <button id="aggregatePlayersBtn" class="ghost mode-btn" type="button">By Player</button>
-          <button id="aggregateTeamsBtn" class="ghost mode-btn active" type="button">By Team</button>
+          <button id="aggregatePlayersBtn" class="ghost mode-btn active" type="button">By Player</button>
+          <button id="aggregateTeamsBtn" class="ghost mode-btn" type="button">By Team</button>
 
           <button id="compactMetricsBtn" class="ghost mode-btn" type="button">Compact Metrics</button>
           <button id="fullMetricsBtn" class="ghost mode-btn active" type="button">Full Metrics</button>
@@ -2565,6 +2669,87 @@
           ${desc ? renderPopup(title, "Loadout", desc) : ""}
         </div>
       `;
+    }
+
+    function getTeamPassiveCounts(team) {
+      const players = Array.isArray(team?.player_stats) ? team.player_stats : [];
+      const map = new Map();
+
+      for (const player of players) {
+        const passiveSkills = getPassiveSkillEntries(player);
+
+        for (const skill of passiveSkills) {
+          const key = skill?.id != null ? `id-${skill.id}` : `name-${normalizeKey(skill?.label || "")}`;
+          if (!skill?.label || !key) continue;
+
+          if (!map.has(key)) {
+            map.set(key, {
+              id: skill.id ?? null,
+              label: skill.label || "Unknown Passive",
+              skill: skill.skill || skill.label || "Unknown Passive",
+              description: skill.description || "",
+              image_url: skill.image_url || "",
+              slotType: "Passive",
+              count: 0
+            });
+          }
+
+          map.get(key).count += 1;
+        }
+      }
+
+      return [...map.values()].sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return String(a.label || "").localeCompare(String(b.label || ""));
+      });
+    }
+
+    function renderPassiveSummaryList(entries) {
+      if (!entries.length) {
+        return `<div class="empty-lite">No passive skills found.</div>`;
+      }
+
+      return `
+        <div class="passive-list">
+          ${entries.map(entry => `
+            <div class="passive-row hover-wrap" tabindex="0">
+              <div class="card-thumb">
+                ${entry.image_url
+                  ? `<img src="${escapeHtml(entry.image_url)}" alt="${escapeHtml(entry.label)}" loading="lazy">`
+                  : `<span class="icon-fallback">N/A</span>`
+                }
+              </div>
+
+              <div class="passive-copy">
+                <div class="passive-name">${escapeHtml(entry.label)}</div>
+                <div class="passive-meta">${escapeHtml(entry.skill || "Passive")}</div>
+              </div>
+
+              <div class="passive-count">${entry.count}</div>
+
+              ${renderTooltip(entry)}
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderPassiveSummaryPanels() {
+      const teamAEl = $("teamAPassiveSummary");
+      const teamBEl = $("teamBPassiveSummary");
+      if (!teamAEl || !teamBEl) return;
+
+      if (!CURRENT_TEAMS || CURRENT_TEAMS.length < 2) {
+        teamAEl.innerHTML = `<div class="empty-lite">No data rendered yet.</div>`;
+        teamBEl.innerHTML = `<div class="empty-lite">No data rendered yet.</div>`;
+        return;
+      }
+
+      const teamAPassives = getTeamPassiveCounts(CURRENT_TEAMS[0]);
+      const teamBPassives = getTeamPassiveCounts(CURRENT_TEAMS[1]);
+
+      teamAEl.innerHTML = renderPassiveSummaryList(teamAPassives);
+      teamBEl.innerHTML = renderPassiveSummaryList(teamBPassives);
     }
 
     function renderPlayerSummaryCard(player) {
@@ -4008,6 +4193,7 @@
         updateSpecificPlayersButton();
         updateViewButtons();
         populateJumpOptions();
+        renderPassiveSummaryPanels();
         return;
       }
 
@@ -4016,6 +4202,7 @@
       updateSpecificPlayersButton();
       updateViewButtons();
       populateJumpOptions();
+      renderPassiveSummaryPanels();
     }
 
     async function setDetailsMode(mode) {
@@ -4035,6 +4222,8 @@
       $("detailsSummaryMeta").textContent = "No data rendered yet.";
       $("aiPromptOutput").value = "";
       $("jumpToMetricSelect").innerHTML = `<option value="">Select section…</option>`;
+      if ($("teamAPassiveSummary")) $("teamAPassiveSummary").innerHTML = "";
+      if ($("teamBPassiveSummary")) $("teamBPassiveSummary").innerHTML = "";
 
       CURRENT_TEAMS = null;
       CURRENT_PAYLOAD = null;
@@ -4050,6 +4239,7 @@
       renderDetailsTeamFilterOptions();
       updateSpecificPlayersButton();
       updateViewButtons();
+      renderPassiveSummaryPanels();
       setCopyPromptStatus("The generated prompt is built for an esports commentator / analyst / coach perspective.");
     }
 
@@ -4095,6 +4285,7 @@
         renderDetailsTeamFilterOptions();
         updateSpecificPlayersButton();
         populateJumpOptions();
+        renderPassiveSummaryPanels();
         return;
       }
 
@@ -4207,6 +4398,7 @@
 
         $("teamAContent").innerHTML = renderTeamContent(CURRENT_TEAMS[0]);
         $("teamBContent").innerHTML = renderTeamContent(CURRENT_TEAMS[1]);
+        renderPassiveSummaryPanels();
 
         syncDetailFilterState();
         renderDetailsPanel();
@@ -4239,6 +4431,7 @@
           const teamBScore = computeTeamScore(CURRENT_TEAMS[1]);
           setTeamHeader("teamAName", CURRENT_TEAMS[0]?.team_name || "—", teamAScore, "left");
           setTeamHeader("teamBName", CURRENT_TEAMS[1]?.team_name || "—", teamBScore, "right");
+          renderPassiveSummaryPanels();
           renderDetailsPanel();
         }
       } catch (err) {
@@ -4350,6 +4543,7 @@
     updateSpecificPlayersButton();
     populateJumpOptions();
     updateJumpTopButton();
+    renderPassiveSummaryPanels();
 
     (async () => {
       $("jsonInput").value = getLocalInput();
@@ -4360,5 +4554,3 @@
   </script>
 </body>
 </html>
-
-The only functional change is the JSON textarea and note. If you want, I can also make it even more aggressive against password managers by adding hidden dummy autofill traps above the textarea.
