@@ -76,11 +76,9 @@
       border-color: rgba(255,107,107,.35);
       background: linear-gradient(180deg, rgba(255,107,107,.16), rgba(255,107,107,.08));
     }
-
     main{max-width:1280px;margin:0 auto;padding:16px}
-    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:14px}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
     .card{
       background: linear-gradient(180deg, var(--panel), var(--panel2));
       border:1px solid var(--line);
@@ -95,13 +93,10 @@
     }
     .card .hd h2{font-size:14px;margin:0;letter-spacing:.25px}
     .card .bd{padding:14px}
-
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .row + .row{margin-top:10px}
-
     .field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
     label{font-size:12px;color:var(--muted)}
-
     input[type="text"], input[type="password"], input[type="url"], select, textarea{
       width:100%;
       border:1px solid rgba(255,255,255,.10);
@@ -111,7 +106,6 @@
       padding:10px 10px;
       outline:none;
     }
-
     select{
       color-scheme: dark;
       background: rgba(0,0,0,.25);
@@ -121,7 +115,6 @@
       background-color: #0b1020;
       color: var(--ink);
     }
-
     textarea{
       font-family: var(--mono);
       min-height: 260px;
@@ -132,7 +125,7 @@
       border-color: rgba(77,211,255,.45);
       box-shadow: 0 0 0 3px rgba(77,211,255,.12);
     }
-    .hint{font-size:12px;color:var(--muted);line-height:1.3}
+    .hint{font-size:12px;color:var(--muted);line-height:1.35}
     .pill{
       font-size:12px; padding:6px 10px; border-radius:999px;
       border:1px solid rgba(255,255,255,.12);
@@ -144,19 +137,17 @@
     .dot.good{background:var(--good)}
     .dot.bad{background:var(--bad)}
     .dot.neutral{background:var(--accent)}
-
-    .split{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
-    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
-
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:980px){ .split{grid-template-columns:1fr} }
     .tablewrap{
       border:1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
+      border-radius:14px;
       overflow:hidden;
       background: rgba(0,0,0,.22);
     }
     table{width:100%;border-collapse:collapse;font-size:12px}
     thead th{
-      position: sticky; top: 0;
+      position: sticky; top:0;
       background: rgba(7,9,15,.92);
       border-bottom:1px solid rgba(255,255,255,.10);
       padding:10px 10px;
@@ -168,12 +159,11 @@
       border-top:1px solid rgba(255,255,255,.06);
       padding:8px 10px;
       vertical-align:top;
-      max-width: 380px;
-      word-break: break-word;
+      max-width:380px;
+      word-break:break-word;
       color: rgba(244,246,255,.92);
     }
     tbody tr:hover td{background: rgba(255,255,255,.03)}
-
     .small{font-size:11px;color:var(--muted)}
     .kbd{
       font-family:var(--mono);
@@ -183,7 +173,6 @@
       background: rgba(0,0,0,.25);
       color: rgba(244,246,255,.88);
     }
-
     .colbox{
       border:1px solid rgba(255,255,255,.10);
       border-radius:14px;
@@ -198,10 +187,10 @@
       gap:10px;
       flex-wrap:wrap;
     }
-    .colbox .colbd{max-height: 260px;overflow:auto}
+    .colbox .colbd{max-height: 320px;overflow:auto}
     .colrow{
       display:grid;
-      grid-template-columns: 26px 1fr 1fr;
+      grid-template-columns:26px 1fr 1fr;
       gap:10px;
       padding:8px 12px;
       border-top:1px solid rgba(255,255,255,.06);
@@ -234,7 +223,6 @@
       background: linear-gradient(90deg, rgba(77,211,255,.75), rgba(255,189,89,.72), rgba(255,119,51,.72));
       transition: width .2s ease;
     }
-
     .checkrow{
       display:flex; gap:10px; align-items:center; flex-wrap:wrap;
       padding:10px 12px;
@@ -243,8 +231,6 @@
       background: rgba(0,0,0,.18);
     }
     .checkrow input{width:auto}
-
-    /* auth area */
     .auth-body{padding:12px}
     .auth-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .auth-meta{display:flex;flex-direction:column;gap:4px}
@@ -277,7 +263,6 @@
 <main>
   <div class="grid">
 
-    <!-- LEFT -->
     <section class="card">
       <div class="hd">
         <h2>1) JSON Input</h2>
@@ -289,7 +274,8 @@
             <label>Paste JSON</label>
             <textarea id="jsonText" placeholder='Paste JSON here (array or object)…'></textarea>
             <div class="hint">
-              If your JSON is a big object, set <span class="kbd">Records array path</span> to where the rows live (example: <span class="kbd">data.matches</span>).
+              For your match payload, leave records path blank and keep explode paths as
+              <span class="kbd">team_stats,team_stats.player_stats</span>.
             </div>
           </div>
         </div>
@@ -298,7 +284,7 @@
           <div class="field" style="min-width:260px;flex:1.2">
             <label>Records array path (optional)</label>
             <input id="pathText" type="text" placeholder="e.g. data.matches"/>
-            <div class="hint">Leave blank to auto-detect the first array of objects.</div>
+            <div class="hint">Leave blank for root array or root object with <span class="kbd">match + team_stats</span>.</div>
           </div>
           <div class="field" style="min-width:160px;flex:.6">
             <label>Max preview rows</label>
@@ -316,29 +302,23 @@
             <label>Flatten arrays of objects</label>
             <select id="arrMode">
               <option value="keep" selected>Keep as JSON</option>
-              <option value="index">Explode to columns with [index] (teams[0].tag)</option>
+              <option value="index">Explode to indexed columns</option>
             </select>
-            <div class="hint">Index mode is good for small fixed arrays. For stats tables, use “Explode dataset”.</div>
           </div>
 
           <div class="field" style="min-width:260px;flex:1.2">
-            <label>Explode paths (editable, comma-separated)</label>
-            <input id="explodePaths" type="text" value="team_stats,team_stats.player_stats" placeholder="e.g. team_stats,team_stats.player_stats"/>
-            <div class="hint">For <span class="kbd">ff_player_stats_raw</span>, this is the recommended default.</div>
+            <label>Explode paths (comma-separated)</label>
+            <input id="explodePaths" type="text" value="team_stats,team_stats.player_stats"/>
           </div>
         </div>
 
         <div class="row">
           <div class="field" style="min-width:220px;flex:1">
-            <label>Explode dataset (recommended)</label>
+            <label>Explode dataset</label>
             <select id="explodePick">
               <option value="">(No explode) Base records</option>
-              <option value="__input__" selected>Use explode paths input (sequential; may multiply rows)</option>
+              <option value="__input__" selected>Use explode paths input</option>
             </select>
-            <div class="hint">
-              Pick one explode path to generate a clean table (player_stats, circle_info, spector_info, etc).
-              <br/>Sequential explode can multiply rows if you select multiple arrays.
-            </div>
           </div>
 
           <div class="field" style="min-width:220px;flex:1">
@@ -347,70 +327,63 @@
               <input id="autoExplode" type="checkbox" />
               <div>
                 <div style="font-size:12px">Detect arrays-of-objects and auto-fill explode paths</div>
-                <div class="small">If unchecked, we use your explode paths input as the dropdown choices.</div>
+                <div class="small">Off is recommended for your match payload.</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Default columns -->
         <div class="row">
           <div class="field">
-            <label>Default Mode column value</label>
+            <label>Default Mode</label>
             <select id="defMode">
               <option value="BR" selected>BR</option>
               <option value="CS">CS</option>
             </select>
           </div>
           <div class="field">
-            <label>Default Tournament column value</label>
-            <input id="defTournament" type="text" placeholder="e.g. FFWS Global Finals 2025"/>
+            <label>Default Tournament</label>
+            <input id="defTournament" type="text" placeholder="e.g. FFWS SEA Spring 2026"/>
           </div>
         </div>
+
         <div class="row">
           <div class="field">
-            <label>Default Stage column value</label>
-            <input id="defStage" type="text" placeholder="e.g. Finals / Group Stage"/>
+            <label>Default Stage</label>
+            <input id="defStage" type="text" placeholder="e.g. Knockout Stage"/>
           </div>
           <div class="field">
-            <label>Default Year column value</label>
+            <label>Default Year</label>
             <input id="defYear" type="text" placeholder="e.g. 2026"/>
           </div>
         </div>
 
         <div class="row">
           <div class="field">
-            <label>Default Week column value</label>
-            <input id="defWeek" type="text" placeholder="e.g. W1 / Week 1 / 1"/>
+            <label>Default Week</label>
+            <input id="defWeek" type="text" placeholder="e.g. W1"/>
           </div>
           <div class="field">
-            <label>Default Day column value</label>
-            <input id="defDay" type="text" placeholder="e.g. D1 / Day 1 / 1"/>
+            <label>Default Day</label>
+            <input id="defDay" type="text" placeholder="e.g. D1"/>
           </div>
         </div>
 
         <div class="row">
           <div class="field">
-            <label>Default Match Number column value</label>
+            <label>Default MatchNumber</label>
             <input id="defMatchNumber" type="text" placeholder="e.g. 1"/>
           </div>
           <div class="field">
-            <label>Default match_id column value</label>
-            <input id="defMatchId" type="text" placeholder="e.g. 1725487677733611520"/>
+            <label>Default match_id</label>
+            <input id="defMatchId" type="text" placeholder="e.g. 2012171594614190080"/>
           </div>
         </div>
 
         <div class="hint">
-          Default columns apply to every row: <span class="kbd">Mode</span>, <span class="kbd">Tournament</span>, <span class="kbd">Stage</span>, <span class="kbd">Year</span>, <span class="kbd">Week</span>, <span class="kbd">Day</span>, <span class="kbd">MatchNumber</span>, <span class="kbd">match_id</span>.
-          <br/><br/>
-          <b>Auto-rename for DB is ON:</b> keys like <span class="kbd">player_stats.account_id</span> become <span class="kbd">player_stats_account_id</span>.
-          <br/>
-          <b>skill_ids breakdown is ON:</b> arrays named <span class="kbd">skill_ids</span> become separate columns (skill_ids[0], skill_ids[1], …).
-          <br/><br/>
-          <b>Alignment fix (important):</b> When exploding <span class="kbd">team_stats</span> + <span class="kbd">team_stats.player_stats</span>, we auto-promote:
-          <span class="kbd">team_stats.* → team_id/team_name/booyah/...</span> and
-          <span class="kbd">team_stats.player_stats → player_stats.*</span>
-          to match <span class="kbd">ff_player_stats_raw</span>.
+          This page forces your requested preview/output order and ensures these columns exist even when they are null.
+          Arrays such as <span class="kbd">player_stats_kill_info</span> and
+          <span class="kbd">player_stats_weapon_usages</span> are kept as JSON strings when uploaded.
         </div>
 
         <div class="row">
@@ -424,7 +397,6 @@
               <input id="fetchUrl" type="url" placeholder="https://example.com/data.json"/>
               <button class="btn" id="btnFetch">Fetch</button>
             </div>
-            <div class="hint">CORS must allow the browser to fetch. If it fails, fetch server-side (proxy/Edge Function).</div>
           </div>
         </div>
 
@@ -436,7 +408,6 @@
       </div>
     </section>
 
-    <!-- RIGHT -->
     <section class="card">
       <div class="hd">
         <h2>2) Preview & Upload</h2>
@@ -449,7 +420,7 @@
             <div class="colhd">
               <div style="display:flex;flex-direction:column;gap:2px">
                 <div style="font-size:12px">Columns</div>
-                <div class="small">Include/rename before upload</div>
+                <div class="small">Include / rename before upload</div>
               </div>
               <div style="display:flex;gap:8px">
                 <button class="btn" id="btnAll">All</button>
@@ -472,16 +443,14 @@
               <div class="field">
                 <label>Supabase anon key</label>
                 <input id="sbKey" type="password" placeholder="anon public key"/>
-                <div class="hint">Don’t put a Service Role key in frontend. Use an Edge Function if you need private writes.</div>
               </div>
             </div>
 
-            <!-- ✅ AUTH IDENTITY BOX -->
             <div class="colbox" style="margin:10px 0 0">
               <div class="colhd">
                 <div class="auth-meta">
                   <div style="font-size:12px">Auth identity</div>
-                  <div class="small">Sign in so your inserts/upserts can pass RLS (if enabled).</div>
+                  <div class="small">Optional, but useful when RLS requires authentication.</div>
                 </div>
                 <div class="pill" id="authPill">
                   <span class="dot neutral"></span><span id="authText">Anon</span>
@@ -489,7 +458,6 @@
               </div>
               <div class="auth-body">
                 <div class="small" id="authMeta">Enter URL + anon key to load session.</div>
-
                 <div class="row" style="margin-top:10px;align-items:flex-end">
                   <div class="field" style="min-width:220px">
                     <label>Email</label>
@@ -511,21 +479,16 @@
                 <div class="row" style="margin-top:10px">
                   <div class="field">
                     <label>Attach signed-in user id to column (optional)</label>
-                    <input id="authUserCol" type="text" placeholder="e.g. created_by (leave blank to disable)"/>
-                    <div class="small">
-                      If set and you are signed in, uploader will set that column on every row = your auth user id.
-                      <br/>If Schema Guard is ON for <span class="kbd">ff_player_stats_raw</span>, this column must exist in that table schema (or disable Schema Guard).
-                    </div>
+                    <input id="authUserCol" type="text" placeholder="e.g. created_by"/>
                   </div>
                 </div>
               </div>
             </div>
-            <!-- /AUTH -->
 
             <div class="row">
               <div class="field" style="flex:1">
                 <label>Table name</label>
-                <input id="sbTable" type="text" placeholder='e.g. ff_player_stats_raw'/>
+                <input id="sbTable" type="text" placeholder="e.g. ff_player_stats_raw"/>
               </div>
               <div class="field" style="flex:.8">
                 <label>Mode</label>
@@ -538,12 +501,12 @@
 
             <div class="row">
               <div class="field">
-                <label>Schema guard (recommended)</label>
+                <label>Schema guard</label>
                 <div class="checkrow">
                   <input id="schemaGuard" type="checkbox" checked />
                   <div>
-                    <div style="font-size:12px">If table is <span class="kbd">ff_player_stats_raw</span>, only include columns that exist in that schema.</div>
-                    <div class="small">Prevents 400 Bad Request from extra/unknown columns.</div>
+                    <div style="font-size:12px">Only include columns from the exact requested list + timestamps.</div>
+                    <div class="small">Useful for ff_player_stats_raw.</div>
                   </div>
                 </div>
               </div>
@@ -552,11 +515,7 @@
             <div class="row">
               <div class="field">
                 <label>On conflict (Upsert only)</label>
-                <input id="sbConflict" type="text" value="match_id,team_id,player_stats_account_id" placeholder="e.g. match_id,team_id,player_stats_account_id"/>
-                <div class="hint">
-                  Recommended for player stats: <span class="kbd">match_id,team_id,player_stats_account_id</span><br/>
-                  <b>Important:</b> Upsert needs a UNIQUE constraint/index on the same column set in Postgres.
-                </div>
+                <input id="sbConflict" type="text" value="match_id,team_id,player_stats_account_id"/>
               </div>
             </div>
 
@@ -585,8 +544,7 @@
                 <div class="checkrow">
                   <input id="autoTimestamps" type="checkbox" checked />
                   <div>
-                    <div style="font-size:12px">Add <span class="kbd">created_at</span> & <span class="kbd">updated_at</span> on upload</div>
-                    <div class="small">If your table doesn’t have these columns, uncheck this.</div>
+                    <div style="font-size:12px">Add created_at and updated_at on upload</div>
                   </div>
                 </div>
               </div>
@@ -624,6 +582,56 @@
 <script>
   const $ = (id) => document.getElementById(id);
 
+  const REQUESTED_OUTPUT_COLS = [
+    "match_id","MatchNumber","Mode","Tournament","Stage","Year","Week","Day",
+    "booyah","eliminated_team_name","final","is_double_kill_score","is_eliminated","is_focus",
+    "kill_count","killing_score",
+    "player_stats_account_id","player_stats_alok_heal_hP","player_stats_assists","player_stats_avatar_id",
+    "player_stats_bag_inv","player_stats_be_killed_time","player_stats_chrono_block_damage",
+    "player_stats_clothes_skin_headwear","player_stats_clothes_skin_pants","player_stats_clothes_skin_shoes","player_stats_clothes_skin_top",
+    "player_stats_coordinate_info_x_coordinate","player_stats_coordinate_info_y_coordinate",
+    "player_stats_damage","player_stats_dragon_grenade_kill","player_stats_enable_emulator_check",
+    "player_stats_grenade_kill","player_stats_grenade_use","player_stats_headshot_killtimes","player_stats_headshots",
+    "player_stats_helmet_inv","player_stats_hits","player_stats_hp_added",
+    "player_stats_hp_info_current_hp","player_stats_hp_info_current_shield_hp","player_stats_hp_info_total_hp","player_stats_hp_info_total_shield_hp",
+    "player_stats_ice_grenade_kill","player_stats_icewall_destroyed_times","player_stats_icewall_use",
+    "player_stats_is_in_bomb_zone","player_stats_is_in_safe_zone","player_stats_kill_distance","player_stats_kill_info",
+    "player_stats_kills","player_stats_knock_down","player_stats_knock_down_damage_info","player_stats_knockdown_real_damage",
+    "player_stats_leg_hits","player_stats_loadouts","player_stats_medkit_use","player_stats_moving_distance",
+    "player_stats_nb_skill_usages","player_stats_nickname","player_stats_oil_kill","player_stats_pet_skill_id",
+    "player_stats_pet_skill_name","player_stats_player_state","player_stats_rescue_times","player_stats_revive_teammate_nums",
+    "player_stats_revive_teammate_times","player_stats_revived_times","player_stats_shoots","player_stats_skill_autoflightbomb_hit_num",
+    "player_stats_skill_clu_scan_nums","player_stats_skill_dimitri_revived_nums",
+    "player_stats_skill_ids_0","player_stats_skill_ids_1","player_stats_skill_ids_2","player_stats_skill_ids_3",
+    "player_stats_skill_info","player_stats_skill_kenta_reduce_damage","player_stats_skill_markicewall_damage",
+    "player_stats_skill_resist_exploded_num","player_stats_skill_silence_num","player_stats_skill_sonia_fatal_revival_nums",
+    "player_stats_skill_villain_damage","player_stats_skill_villain_recover","player_stats_skyler_ice_wall_destroy",
+    "player_stats_survival_time","player_stats_torso_hits","player_stats_vehicle_kill","player_stats_vehicle_move_distance",
+    "player_stats_vest_inv","player_stats_weapon_skin_ids","player_stats_weapon_usages",
+    "ranking_score","team_id","team_name","win_rate"
+  ];
+
+  const REQUESTED_OUTPUT_COL_SET = new Set(REQUESTED_OUTPUT_COLS);
+
+  const FF_PLAYER_STATS_RAW_SCHEMA = new Set([
+    "id",
+    ...REQUESTED_OUTPUT_COLS,
+    "created_at",
+    "updated_at"
+  ]);
+
+  let RAW = null;
+  let BASE_RECORDS = [];
+  let DETECTED_PATHS = [];
+  let ROWS = [];
+  let COLS = [];
+  let COLCFG = {};
+
+  let SB = null;
+  let SB_URL = "";
+  let SB_KEY = "";
+  let SB_SUB = null;
+
   function setPill(state, text){
     const pill = $("pillState");
     const dot = pill.querySelector(".dot");
@@ -641,6 +649,10 @@
     $("authMeta").textContent = meta || "";
   }
 
+  function setStatus(id, msg){
+    $(id).textContent = msg;
+  }
+
   function safeString(v){
     if (v === null || v === undefined) return "";
     if (typeof v === "string") return v;
@@ -650,6 +662,14 @@
 
   function isPlainObject(x){
     return x && typeof x === "object" && !Array.isArray(x);
+  }
+
+  function isPrimitive(x){
+    return x === null || x === undefined || ["string","number","boolean"].includes(typeof x);
+  }
+
+  function looksLikeRootMatchPayload(v){
+    return !!(v && typeof v === "object" && !Array.isArray(v) && v.match && Array.isArray(v.team_stats));
   }
 
   function parseYearMaybe(v){
@@ -675,10 +695,6 @@
     if(/^\d/.test(s)) s = "c_" + s;
     if(!s) s = "col";
     return s;
-  }
-
-  function isPrimitive(x){
-    return x === null || x === undefined || ["string","number","boolean"].includes(typeof x);
   }
 
   function shouldExplodePrimitiveArrayKey(key){
@@ -718,13 +734,42 @@
       if(cur == null || typeof cur !== "object") return;
       cur = cur[p];
     }
-    if(cur && typeof cur === "object"){
-      delete cur[parts[parts.length-1]];
-    }
+    if(cur && typeof cur === "object") delete cur[parts[parts.length-1]];
   }
 
   function deepCloneJSON(x){
     return JSON.parse(JSON.stringify(x));
+  }
+
+  function getUtcDatePartsFromUnixSeconds(sec){
+    if(!sec && sec !== 0) return null;
+    const d = new Date(Number(sec) * 1000);
+    if (Number.isNaN(d.getTime())) return null;
+    const year = d.getUTCFullYear();
+    const start = new Date(Date.UTC(year, 0, 1));
+    const dayOfYear = Math.floor((d - start) / 86400000) + 1;
+    const week = Math.ceil(dayOfYear / 7);
+    return {
+      year,
+      week,
+      day: `D${d.getUTCDay() === 0 ? 7 : d.getUTCDay()}`
+    };
+  }
+
+  function inferMatchIdFromRaw(raw){
+    if(!raw) return null;
+    if(raw.match_id) return String(raw.match_id);
+    if(raw.matchId) return String(raw.matchId);
+    const m1 = getByPath(raw, "match.match_id"); if(m1) return String(m1);
+    const m2 = getByPath(raw, "match.matchId"); if(m2) return String(m2);
+    return null;
+  }
+
+  function inferMatchIdFromRecord(rec){
+    if(!rec || typeof rec !== "object") return null;
+    if(rec.match_id) return String(rec.match_id);
+    const a = getByPath(rec, "match.match_id"); if(a) return String(a);
+    return null;
   }
 
   function findFirstArrayOfObjects(root){
@@ -766,24 +811,19 @@
       if(node == null || typeof node !== "object") return;
 
       if(Array.isArray(node)){
-        for(let i=0;i<Math.min(node.length, 3);i++){
-          visit(node[i], path, depth+1);
-        }
+        for(let i=0;i<Math.min(node.length, 3);i++) visit(node[i], path, depth+1);
         return;
       }
 
       for(const [k, v] of Object.entries(node)){
         const nextPath = path ? `${path}.${k}` : k;
-
         if(Array.isArray(v)){
           const firstObj = v.find(isPlainObject);
           if(firstObj){
             paths.add(nextPath);
             visit(firstObj, nextPath, depth+1);
           } else {
-            for(let i=0;i<Math.min(v.length, 3);i++){
-              visit(v[i], nextPath, depth+1);
-            }
+            for(let i=0;i<Math.min(v.length, 3);i++) visit(v[i], nextPath, depth+1);
           }
         } else if(isPlainObject(v)){
           visit(v, nextPath, depth+1);
@@ -803,6 +843,57 @@
     return out;
   }
 
+  function explodePathsInputList(){
+    return ($("explodePaths").value || "").split(",").map(s => s.trim()).filter(Boolean);
+  }
+
+  function renderExplodePickOptions(paths){
+    const sel = $("explodePick");
+    const current = sel.value;
+    while(sel.options.length > 2) sel.remove(2);
+    for(const p of (paths || [])){
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = `Explode: ${p}`;
+      sel.appendChild(opt);
+    }
+    const values = new Set(Array.from(sel.options).map(o => o.value));
+    sel.value = values.has(current) ? current : "__input__";
+  }
+
+  function explodeObjects(records, explodePaths){
+    let current = records;
+    for(const rawP of explodePaths){
+      const p = rawP.trim();
+      if(!p) continue;
+      const next = [];
+      for(const rec of current){
+        if(!isPlainObject(rec)){
+          next.push(rec);
+          continue;
+        }
+        const arr = getByPath(rec, p);
+        if(!Array.isArray(arr) || !arr.length){
+          next.push(rec);
+          continue;
+        }
+        const objectsOnly = arr.filter(isPlainObject);
+        if(!objectsOnly.length){
+          next.push(rec);
+          continue;
+        }
+        for(const item of objectsOnly){
+          const cloned = deepCloneJSON(rec);
+          deleteByPath(cloned, p);
+          setByPath(cloned, p, item);
+          next.push(cloned);
+        }
+      }
+      current = next;
+    }
+    return current;
+  }
+
   function flattenObject(obj, prefix="", out={}, arrMode="keep"){
     for(const [k, v] of Object.entries(obj || {})){
       const key = prefix ? `${prefix}.${k}` : k;
@@ -815,19 +906,13 @@
         } else if (v.every(isPrimitive)){
           if(shouldExplodePrimitiveArrayKey(key)){
             const cap = 50;
-            v.slice(0, cap).forEach((item, idx) => {
-              out[`${key}[${idx}]`] = item;
-            });
-            if(v.length > cap){
-              out[`${key}_truncated`] = v.length;
-            }
+            v.slice(0, cap).forEach((item, idx) => out[`${key}[${idx}]`] = item);
+            if(v.length > cap) out[`${key}_truncated`] = v.length;
           } else {
-            out[key] = v.map(x => x==null ? "" : String(x)).join(" | ");
+            out[key] = v;
           }
         } else if (v.every(isPlainObject) && arrMode === "index"){
-          v.forEach((item, idx)=>{
-            flattenObject(item, `${key}[${idx}]`, out, arrMode);
-          });
+          v.forEach((item, idx)=> flattenObject(item, `${key}[${idx}]`, out, arrMode));
         } else {
           out[key] = v;
         }
@@ -840,286 +925,29 @@
     return out;
   }
 
-  function explodeObjects(records, explodePaths){
-    let current = records;
-    for(const rawP of explodePaths){
-      const p = rawP.trim();
-      if(!p) continue;
-
-      const next = [];
-      for(const rec of current){
-        if(!isPlainObject(rec)){
-          next.push(rec);
-          continue;
-        }
-        const arr = getByPath(rec, p);
-        if(!Array.isArray(arr) || !arr.length){
-          next.push(rec);
-          continue;
-        }
-
-        const firstObj = arr.find(isPlainObject);
-        if(!firstObj){
-          next.push(rec);
-          continue;
-        }
-
-        for(const item of arr.filter(isPlainObject)){
-          const cloned = deepCloneJSON(rec);
-          deleteByPath(cloned, p);
-          setByPath(cloned, p, item);
-          next.push(cloned);
-        }
+  function ensureRequestedColumns(rows){
+    return rows.map(row => {
+      const out = {};
+      for (const col of REQUESTED_OUTPUT_COLS) {
+        out[col] = Object.prototype.hasOwnProperty.call(row, col) ? row[col] : null;
       }
-      current = next;
-    }
-    return current;
-  }
-
-  function toCSV(rows, cols){
-    const esc = (s) => {
-      const str = s == null ? "" : String(s);
-      if(/[",\n\r]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
-      return str;
-    };
-    const header = cols.map(esc).join(",");
-    const lines = rows.map(r => cols.map(c => esc(r[c])).join(","));
-    return [header, ...lines].join("\n");
-  }
-
-  function downloadText(filename, content, mime="text/plain"){
-    const blob = new Blob([content], {type:mime});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 800);
-  }
-
-  function inferMatchIdFromRaw(raw){
-    if(!raw) return null;
-    if(raw.match_id) return String(raw.match_id);
-    if(raw.matchId)  return String(raw.matchId);
-    const m1 = getByPath(raw, "match.match_id"); if(m1) return String(m1);
-    const m2 = getByPath(raw, "match.matchId");  if(m2) return String(m2);
-    const v1 = getByPath(raw, "data.match_id");  if(v1) return String(v1);
-    const v2 = getByPath(raw, "data.matchId");   if(v2) return String(v2);
-    const v3 = getByPath(raw, "data.matches[0].match_id"); if(v3) return String(v3);
-    const v4 = getByPath(raw, "data.matches[0].matchId");  if(v4) return String(v4);
-    return null;
-  }
-
-  function inferMatchIdFromRecord(rec){
-    if(!rec || typeof rec !== "object") return null;
-    if(rec.match_id) return String(rec.match_id);
-    if(rec.matchId) return String(rec.matchId);
-    const a = getByPath(rec, "match.match_id"); if(a) return String(a);
-    const b = getByPath(rec, "match.matchId");  if(b) return String(b);
-    return null;
-  }
-
-  function explodePathsInputList(){
-    return ($("explodePaths").value || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-  }
-
-  /* -----------------------------
-     ✅ Better Supabase error formatting
-     ----------------------------- */
-  function formatSupabaseError(err, fallbackPrefix="Supabase error"){
-    if(!err) return `${fallbackPrefix}: (unknown)`;
-    const parts = [];
-    const read = (k) => {
-      try { return err?.[k]; } catch { return undefined; }
-    };
-    const msg = read("message");
-    const code = read("code");
-    const details = read("details");
-    const hint = read("hint");
-
-    if(msg) parts.push(`message: ${msg}`);
-    if(code) parts.push(`code: ${code}`);
-    if(details) parts.push(`details: ${details}`);
-    if(hint) parts.push(`hint: ${hint}`);
-
-    // if SupabaseError has non-enumerable props, JSON.stringify -> {}
-    if(!parts.length){
-      try { parts.push(String(err)); } catch {}
-      try {
-        const json = JSON.stringify(err, null, 2);
-        if(json && json !== "{}") parts.push(json);
-      } catch {}
-    }
-
-    return parts.join("\n");
-  }
-
-  /* -----------------------------
-     ✅ Supabase client (cached) + Auth UI
-     ----------------------------- */
-  let SB = null;
-  let SB_URL = "";
-  let SB_KEY = "";
-  let SB_SUB = null;
-
-  function getSbClient(){
-    const url = ($("sbUrl").value || "").trim();
-    const key = ($("sbKey").value || "").trim();
-    if(!url || !key) return null;
-
-    if(SB && SB_URL === url && SB_KEY === key) return SB;
-
-    SB_URL = url;
-    SB_KEY = key;
-
-    SB = supabase.createClient(url, key, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      for (const [k, v] of Object.entries(row || {})) {
+        if (!Object.prototype.hasOwnProperty.call(out, k)) out[k] = v;
+      }
+      return out;
     });
-
-    try{
-      if(SB_SUB?.unsubscribe) SB_SUB.unsubscribe();
-      const { data } = SB.auth.onAuthStateChange((_event, _session) => {
-        refreshAuthUI().catch(()=>{});
-      });
-      SB_SUB = data?.subscription || null;
-    }catch(_e){}
-
-    return SB;
   }
 
-  async function refreshAuthUI(){
-    const sb = getSbClient();
-    if(!sb){
-      setAuthPill("neutral", "Anon", "Enter URL + anon key to load session.");
-      return;
+  function orderedColumnsFromRows(rows){
+    const extras = new Set();
+    for (const row of rows) {
+      for (const key of Object.keys(row || {})) {
+        if (!REQUESTED_OUTPUT_COL_SET.has(key)) extras.add(key);
+      }
     }
-    const { data, error } = await sb.auth.getSession();
-    if(error){
-      setAuthPill("bad", "Auth error", formatSupabaseError(error, "Auth error"));
-      return;
-    }
-    const session = data?.session || null;
-    const user = session?.user || null;
-
-    if(user){
-      const role = user.role || "authenticated";
-      const email = user.email || "(no email)";
-      setAuthPill("good", "Signed in", `${email} • ${role}\nuid: ${user.id}`);
-    }else{
-      setAuthPill("neutral", "Anon", "No active session (writes may fail if RLS requires auth).");
-    }
+    return [...REQUESTED_OUTPUT_COLS, ...Array.from(extras).sort((a,b) => a.localeCompare(b))];
   }
 
-  async function authSignIn(){
-    const sb = getSbClient();
-    if(!sb){
-      setAuthPill("bad", "No client", "Fill Supabase URL + anon key first.");
-      return;
-    }
-    const email = ($("authEmail").value || "").trim();
-    const password = ($("authPass").value || "").trim();
-    if(!email || !password){
-      setAuthPill("bad", "Missing", "Enter email + password.");
-      return;
-    }
-    setAuthPill("neutral", "Signing in…", "Please wait.");
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if(error){
-      setAuthPill("bad", "Sign-in failed", formatSupabaseError(error, "Sign-in failed"));
-      return;
-    }
-    await refreshAuthUI();
-  }
-
-  async function authSignUp(){
-    const sb = getSbClient();
-    if(!sb){
-      setAuthPill("bad", "No client", "Fill Supabase URL + anon key first.");
-      return;
-    }
-    const email = ($("authEmail").value || "").trim();
-    const password = ($("authPass").value || "").trim();
-    if(!email || !password){
-      setAuthPill("bad", "Missing", "Enter email + password.");
-      return;
-    }
-    setAuthPill("neutral", "Signing up…", "If email confirmation is enabled, check your inbox.");
-    const { error } = await sb.auth.signUp({ email, password });
-    if(error){
-      setAuthPill("bad", "Sign-up failed", formatSupabaseError(error, "Sign-up failed"));
-      return;
-    }
-    await refreshAuthUI();
-  }
-
-  async function authSignOut(){
-    const sb = getSbClient();
-    if(!sb){
-      setAuthPill("neutral", "Anon", "No Supabase client.");
-      return;
-    }
-    setAuthPill("neutral", "Signing out…", "");
-    const { error } = await sb.auth.signOut();
-    if(error){
-      setAuthPill("bad", "Sign-out failed", formatSupabaseError(error, "Sign-out failed"));
-      return;
-    }
-    await refreshAuthUI();
-  }
-
-  // -----------------------------
-  // Schema guard for ff_player_stats_raw
-  // -----------------------------
-  const FF_PLAYER_STATS_RAW_SCHEMA = new Set([
-    "id","match_id","Mode","Tournament","Stage","Year","Week","Day","MatchNumber",
-    "booyah","eliminated_team_name","final","is_double_kill_score","is_eliminated","is_focus",
-    "kill_count","killing_score","player_stats_account_id","player_stats_alok_heal_hP",
-    "player_stats_assists","player_stats_avatar_id","player_stats_bag_inv","player_stats_be_killed_time",
-    "player_stats_chrono_block_damage","player_stats_clothes_skin_headwear","player_stats_clothes_skin_pants",
-    "player_stats_clothes_skin_shoes","player_stats_clothes_skin_top",
-    "player_stats_coordinate_info_x_coordinate","player_stats_coordinate_info_y_coordinate",
-    "player_stats_damage","player_stats_dragon_grenade_kill","player_stats_enable_emulator_check",
-    "player_stats_grenade_kill","player_stats_grenade_use","player_stats_headshot_killtimes",
-    "player_stats_headshots","player_stats_helmet_inv","player_stats_hits","player_stats_hp_added",
-    "player_stats_hp_info_current_hp","player_stats_hp_info_current_shield_hp",
-    "player_stats_hp_info_total_hp","player_stats_hp_info_total_shield_hp",
-    "player_stats_ice_grenade_kill","player_stats_icewall_destroyed_times","player_stats_icewall_use",
-    "player_stats_is_in_bomb_zone","player_stats_is_in_safe_zone","player_stats_kill_distance",
-    "player_stats_kill_info","player_stats_kill_info_kill_distance","player_stats_kill_info_kill_timestamp",
-    "player_stats_kill_info_killer_id","player_stats_kill_info_player_killed_id","player_stats_kill_info_weapon_used_id",
-    "player_stats_kills","player_stats_knock_down","player_stats_knock_down_damage_info",
-    "player_stats_knock_down_damage_info_account_id","player_stats_knock_down_damage_info_damage",
-    "player_stats_knock_down_damage_info_damage_type","player_stats_knock_down_damage_info_nickname",
-    "player_stats_knock_down_damage_info_time_ms","player_stats_knockdown_real_damage","player_stats_leg_hits",
-    "player_stats_loadouts","player_stats_medkit_use","player_stats_moving_distance","player_stats_nb_skill_usages",
-    "player_stats_nickname","player_stats_oil_kill","player_stats_pet_skill_id","player_stats_pet_skill_name",
-    "player_stats_player_state","player_stats_rescue_times","player_stats_revive_teammate_nums",
-    "player_stats_revive_teammate_times","player_stats_revived_times","player_stats_shoots",
-    "player_stats_skill_autoflightbomb_hit_num","player_stats_skill_clu_scan_nums","player_stats_skill_dimitri_revived_nums",
-    "player_stats_skill_ids_0","player_stats_skill_ids_1","player_stats_skill_ids_2","player_stats_skill_ids_3",
-    "player_stats_skill_info_active_count","player_stats_skill_info_skill_active","player_stats_skill_info_skill_id",
-    "player_stats_skill_info_skill_name","player_stats_skill_kenta_reduce_damage","player_stats_skill_markicewall_damage",
-    "player_stats_skill_resist_exploded_num","player_stats_skill_silence_num","player_stats_skill_sonia_fatal_revival_nums",
-    "player_stats_skill_villain_damage","player_stats_skill_villain_recover","player_stats_skyler_ice_wall_destroy",
-    "player_stats_survival_time","player_stats_torso_hits","player_stats_vehicle_kill","player_stats_vehicle_move_distance",
-    "player_stats_vest_inv","player_stats_weapon_skin_ids","player_stats_weapon_usages","player_stats_weapon_usages_damage",
-    "player_stats_weapon_usages_headshots","player_stats_weapon_usages_hits","player_stats_weapon_usages_kills",
-    "player_stats_weapon_usages_shoots","player_stats_weapon_usages_weapon_id","player_stats_weapon_usages_weapon_name",
-    "ranking_score","team_id","team_name","win_rate","created_at","updated_at"
-  ]);
-
-  function isSchemaGuardActive(){
-    const t = ($("sbTable").value || "").trim().toLowerCase();
-    return $("schemaGuard").checked && t === "ff_player_stats_raw";
-  }
-
-  // -----------------------------
-  // Promotion to align exploded data with ff_player_stats_raw
-  // -----------------------------
   function promoteTeamStatsForFFPlayerStatsRaw(rec){
     if(!isPlainObject(rec)) return rec;
 
@@ -1129,25 +957,148 @@
         rec.player_stats = ts.player_stats;
       }
       if("player_stats" in ts) delete ts.player_stats;
-
       for(const [k,v] of Object.entries(ts)){
         if(!(k in rec)) rec[k] = v;
       }
       delete rec.team_stats;
     }
+
+    const ps = rec.player_stats;
+    if(isPlainObject(ps)){
+      if (Object.prototype.hasOwnProperty.call(ps, "account_id")) rec.player_stats_account_id = ps.account_id;
+      if (Object.prototype.hasOwnProperty.call(ps, "alok_heal_hP")) rec.player_stats_alok_heal_hP = ps.alok_heal_hP;
+      if (Object.prototype.hasOwnProperty.call(ps, "assists")) rec.player_stats_assists = ps.assists;
+      if (Object.prototype.hasOwnProperty.call(ps, "avatar_id")) rec.player_stats_avatar_id = ps.avatar_id;
+      if (Object.prototype.hasOwnProperty.call(ps, "bag_inv")) rec.player_stats_bag_inv = ps.bag_inv;
+      if (Object.prototype.hasOwnProperty.call(ps, "be_killed_time")) rec.player_stats_be_killed_time = ps.be_killed_time;
+      if (Object.prototype.hasOwnProperty.call(ps, "chrono_block_damage")) rec.player_stats_chrono_block_damage = ps.chrono_block_damage;
+      if (Object.prototype.hasOwnProperty.call(ps, "damage")) rec.player_stats_damage = ps.damage;
+      if (Object.prototype.hasOwnProperty.call(ps, "dragon_grenade_kill")) rec.player_stats_dragon_grenade_kill = ps.dragon_grenade_kill;
+      if (Object.prototype.hasOwnProperty.call(ps, "enable_emulator_check")) rec.player_stats_enable_emulator_check = ps.enable_emulator_check;
+      if (Object.prototype.hasOwnProperty.call(ps, "grenade_kill")) rec.player_stats_grenade_kill = ps.grenade_kill;
+      if (Object.prototype.hasOwnProperty.call(ps, "grenade_use")) rec.player_stats_grenade_use = ps.grenade_use;
+      if (Object.prototype.hasOwnProperty.call(ps, "headshot_killtimes")) rec.player_stats_headshot_killtimes = ps.headshot_killtimes;
+      if (Object.prototype.hasOwnProperty.call(ps, "headshots")) rec.player_stats_headshots = ps.headshots;
+      if (Object.prototype.hasOwnProperty.call(ps, "helmet_inv")) rec.player_stats_helmet_inv = ps.helmet_inv;
+      if (Object.prototype.hasOwnProperty.call(ps, "hits")) rec.player_stats_hits = ps.hits;
+      if (Object.prototype.hasOwnProperty.call(ps, "hp_added")) rec.player_stats_hp_added = ps.hp_added;
+      if (Object.prototype.hasOwnProperty.call(ps, "ice_grenade_kill")) rec.player_stats_ice_grenade_kill = ps.ice_grenade_kill;
+      if (Object.prototype.hasOwnProperty.call(ps, "icewall_destroyed_times")) rec.player_stats_icewall_destroyed_times = ps.icewall_destroyed_times;
+      if (Object.prototype.hasOwnProperty.call(ps, "icewall_use")) rec.player_stats_icewall_use = ps.icewall_use;
+      if (Object.prototype.hasOwnProperty.call(ps, "is_in_bomb_zone")) rec.player_stats_is_in_bomb_zone = ps.is_in_bomb_zone;
+      if (Object.prototype.hasOwnProperty.call(ps, "is_in_safe_zone")) rec.player_stats_is_in_safe_zone = ps.is_in_safe_zone;
+      if (Object.prototype.hasOwnProperty.call(ps, "kill_distance")) rec.player_stats_kill_distance = ps.kill_distance;
+      if (Object.prototype.hasOwnProperty.call(ps, "kill_info")) rec.player_stats_kill_info = ps.kill_info;
+      if (Object.prototype.hasOwnProperty.call(ps, "kills")) rec.player_stats_kills = ps.kills;
+      if (Object.prototype.hasOwnProperty.call(ps, "knock_down")) rec.player_stats_knock_down = ps.knock_down;
+      if (Object.prototype.hasOwnProperty.call(ps, "knock_down_damage_info")) rec.player_stats_knock_down_damage_info = ps.knock_down_damage_info;
+      if (Object.prototype.hasOwnProperty.call(ps, "knockdown_real_damage")) rec.player_stats_knockdown_real_damage = ps.knockdown_real_damage;
+      if (Object.prototype.hasOwnProperty.call(ps, "leg_hits")) rec.player_stats_leg_hits = ps.leg_hits;
+      if (Object.prototype.hasOwnProperty.call(ps, "loadouts")) rec.player_stats_loadouts = ps.loadouts;
+      if (Object.prototype.hasOwnProperty.call(ps, "medkit_use")) rec.player_stats_medkit_use = ps.medkit_use;
+      if (Object.prototype.hasOwnProperty.call(ps, "moving_distance")) rec.player_stats_moving_distance = ps.moving_distance;
+      if (Object.prototype.hasOwnProperty.call(ps, "nb_skill_usages")) rec.player_stats_nb_skill_usages = ps.nb_skill_usages;
+      if (Object.prototype.hasOwnProperty.call(ps, "nickname")) rec.player_stats_nickname = ps.nickname;
+      if (Object.prototype.hasOwnProperty.call(ps, "oil_kill")) rec.player_stats_oil_kill = ps.oil_kill;
+      if (Object.prototype.hasOwnProperty.call(ps, "pet_skill_id")) rec.player_stats_pet_skill_id = ps.pet_skill_id;
+      if (Object.prototype.hasOwnProperty.call(ps, "pet_skill_name")) rec.player_stats_pet_skill_name = ps.pet_skill_name;
+      if (Object.prototype.hasOwnProperty.call(ps, "player_state")) rec.player_stats_player_state = ps.player_state;
+      if (Object.prototype.hasOwnProperty.call(ps, "rescue_times")) rec.player_stats_rescue_times = ps.rescue_times;
+      if (Object.prototype.hasOwnProperty.call(ps, "revive_teammate_nums")) rec.player_stats_revive_teammate_nums = ps.revive_teammate_nums;
+      if (Object.prototype.hasOwnProperty.call(ps, "revive_teammate_times")) rec.player_stats_revive_teammate_times = ps.revive_teammate_times;
+      if (Object.prototype.hasOwnProperty.call(ps, "revived_times")) rec.player_stats_revived_times = ps.revived_times;
+      if (Object.prototype.hasOwnProperty.call(ps, "shoots")) rec.player_stats_shoots = ps.shoots;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_autoflightbomb_hit_num")) rec.player_stats_skill_autoflightbomb_hit_num = ps.skill_autoflightbomb_hit_num;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_clu_scan_nums")) rec.player_stats_skill_clu_scan_nums = ps.skill_clu_scan_nums;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_dimitri_revived_nums")) rec.player_stats_skill_dimitri_revived_nums = ps.skill_dimitri_revived_nums;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_info")) rec.player_stats_skill_info = ps.skill_info;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_kenta_reduce_damage")) rec.player_stats_skill_kenta_reduce_damage = ps.skill_kenta_reduce_damage;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_markicewall_damage")) rec.player_stats_skill_markicewall_damage = ps.skill_markicewall_damage;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_resist_exploded_num")) rec.player_stats_skill_resist_exploded_num = ps.skill_resist_exploded_num;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_silence_num")) rec.player_stats_skill_silence_num = ps.skill_silence_num;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_sonia_fatal_revival_nums")) rec.player_stats_skill_sonia_fatal_revival_nums = ps.skill_sonia_fatal_revival_nums;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_villain_damage")) rec.player_stats_skill_villain_damage = ps.skill_villain_damage;
+      if (Object.prototype.hasOwnProperty.call(ps, "skill_villain_recover")) rec.player_stats_skill_villain_recover = ps.skill_villain_recover;
+      if (Object.prototype.hasOwnProperty.call(ps, "skyler_ice_wall_destroy")) rec.player_stats_skyler_ice_wall_destroy = ps.skyler_ice_wall_destroy;
+      if (Object.prototype.hasOwnProperty.call(ps, "survival_time")) rec.player_stats_survival_time = ps.survival_time;
+      if (Object.prototype.hasOwnProperty.call(ps, "torso_hits")) rec.player_stats_torso_hits = ps.torso_hits;
+      if (Object.prototype.hasOwnProperty.call(ps, "vehicle_kill")) rec.player_stats_vehicle_kill = ps.vehicle_kill;
+      if (Object.prototype.hasOwnProperty.call(ps, "vehicle_move_distance")) rec.player_stats_vehicle_move_distance = ps.vehicle_move_distance;
+      if (Object.prototype.hasOwnProperty.call(ps, "vest_inv")) rec.player_stats_vest_inv = ps.vest_inv;
+      if (Object.prototype.hasOwnProperty.call(ps, "weapon_skin_ids")) rec.player_stats_weapon_skin_ids = ps.weapon_skin_ids;
+      if (Object.prototype.hasOwnProperty.call(ps, "weapon_usages")) rec.player_stats_weapon_usages = ps.weapon_usages;
+
+      if (Array.isArray(ps.skill_ids)) {
+        rec.player_stats_skill_ids_0 = ps.skill_ids[0] ?? null;
+        rec.player_stats_skill_ids_1 = ps.skill_ids[1] ?? null;
+        rec.player_stats_skill_ids_2 = ps.skill_ids[2] ?? null;
+        rec.player_stats_skill_ids_3 = ps.skill_ids[3] ?? null;
+      }
+
+      if (isPlainObject(ps.clothes_skin)) {
+        rec.player_stats_clothes_skin_headwear = ps.clothes_skin.headwear ?? null;
+        rec.player_stats_clothes_skin_pants = ps.clothes_skin.pants ?? null;
+        rec.player_stats_clothes_skin_shoes = ps.clothes_skin.shoes ?? null;
+        rec.player_stats_clothes_skin_top = ps.clothes_skin.top ?? null;
+      }
+
+      if (isPlainObject(ps.coordinate_info)) {
+        rec.player_stats_coordinate_info_x_coordinate = ps.coordinate_info.x_coordinate ?? null;
+        rec.player_stats_coordinate_info_y_coordinate = ps.coordinate_info.y_coordinate ?? null;
+      }
+
+      if (isPlainObject(ps.hp_info)) {
+        rec.player_stats_hp_info_current_hp = ps.hp_info.current_hp ?? null;
+        rec.player_stats_hp_info_current_shield_hp = ps.hp_info.current_shield_hp ?? null;
+        rec.player_stats_hp_info_total_hp = ps.hp_info.total_hp ?? null;
+        rec.player_stats_hp_info_total_shield_hp = ps.hp_info.total_shield_hp ?? null;
+      }
+    }
+
     return rec;
   }
 
-  // -----------------------------
-  // App state
-  // -----------------------------
-  let RAW = null;
-  let BASE_RECORDS = [];
-  let DETECTED_PATHS = [];
+  function normalizeValueForPreviewAndUpload(v){
+    if (v === undefined) return null;
+    if (v === null) return null;
+    if (Array.isArray(v) || isPlainObject(v)) return JSON.stringify(v);
+    return v;
+  }
 
-  let ROWS = [];
-  let COLS = [];
-  let COLCFG = {};
+  function injectDefaultsIntoRecords(records){
+    const modeVal = ($("defMode").value ?? "").trim();
+    const tVal = ($("defTournament").value ?? "").trim();
+    const sVal = ($("defStage").value ?? "").trim();
+    let yVal = parseYearMaybe($("defYear").value);
+    let wVal = ($("defWeek").value ?? "").trim();
+    let dVal = ($("defDay").value ?? "").trim();
+    const mnVal = parseIntMaybe($("defMatchNumber").value);
+    const midVal = ($("defMatchId").value ?? "").trim();
+
+    return records.map(r => {
+      if(!isPlainObject(r)) return r;
+
+      const inferredId = inferMatchIdFromRecord(r);
+      if(!("match_id" in r) || r.match_id == null || r.match_id === "") r.match_id = inferredId || midVal || null;
+
+      const rawTs = getByPath(r, "match.create_time");
+      const derived = getUtcDatePartsFromUnixSeconds(rawTs);
+
+      if (!yVal && derived?.year) yVal = derived.year;
+      if (!wVal && derived?.week) wVal = `W${derived.week}`;
+      if (!dVal && derived?.day) dVal = derived.day;
+
+      if(!("Mode" in r)) r.Mode = modeVal || null;
+      if(!("Tournament" in r)) r.Tournament = tVal || null;
+      if(!("Stage" in r)) r.Stage = sVal || null;
+      if(!("Year" in r)) r.Year = yVal ?? null;
+      if(!("Week" in r)) r.Week = wVal || null;
+      if(!("Day" in r)) r.Day = dVal || null;
+      if(!("MatchNumber" in r)) r.MatchNumber = mnVal ?? null;
+
+      return r;
+    });
+  }
 
   function updateMeta(){
     $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`;
@@ -1166,29 +1117,29 @@
     return {keys, names};
   }
 
+  function isSchemaGuardActive(){
+    return $("schemaGuard").checked;
+  }
+
   function applySchemaGuardToColCfg(){
     if(!COLS.length) return;
     if(!isSchemaGuardActive()) return;
-
     for(const c of COLS){
       const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name: toDbSafeKey(c) });
       const db = cfg.name || toDbSafeKey(c);
-      cfg.include = (db !== "id") && FF_PLAYER_STATS_RAW_SCHEMA.has(db);
+      cfg.include = db !== "id" && FF_PLAYER_STATS_RAW_SCHEMA.has(db);
     }
   }
 
   function renderColList(){
     const box = $("colList");
     box.innerHTML = "";
-
     if(!COLS.length){
       box.innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
       return;
     }
-
     for(const c of COLS){
       const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name: toDbSafeKey(c) });
-
       const row = document.createElement("div");
       row.className = "colrow";
       row.innerHTML = `
@@ -1196,7 +1147,6 @@
         <div class="k" title="${c}">${c}</div>
         <input type="text" value="${cfg.name}" aria-label="rename"/>
       `;
-
       const cb = row.querySelector('input[type="checkbox"]');
       const inp = row.querySelector('input[type="text"]');
 
@@ -1223,12 +1173,11 @@
     const {keys, names} = getSelectedCols();
     const max = parseInt($("maxRows").value,10);
     const previewRows = ROWS.slice(0, max);
-
     const thRow = $("theadRow");
     const tb = $("tbody");
 
     if(!keys.length){
-      thRow.innerHTML = `<th style="color:rgba(244,246,255,.65)">(No columns selected)</th>`;
+      thRow.innerHTML = `<th>(No columns selected)</th>`;
       tb.innerHTML = "";
       return;
     }
@@ -1252,67 +1201,6 @@
     }
   }
 
-  function setStatus(el, msg, isError=false){
-    $(el).textContent = msg;
-    if(el === "upStatus"){
-      $(el).style.borderColor = isError ? "rgba(255,107,107,.35)" : "rgba(255,255,255,.10)";
-    }
-  }
-
-  function injectDefaultsIntoRecords(records){
-    const modeVal = ($("defMode").value ?? "").trim();
-    const tVal = ($("defTournament").value ?? "").trim();
-    const sVal = ($("defStage").value ?? "").trim();
-    const yVal = parseYearMaybe($("defYear").value);
-
-    const wVal = ($("defWeek").value ?? "").trim();
-    const dVal = ($("defDay").value ?? "").trim();
-    const mnVal = parseIntMaybe($("defMatchNumber").value);
-
-    const midVal = ($("defMatchId").value ?? "").trim();
-
-    return records.map(r=>{
-      if(!isPlainObject(r)) return r;
-
-      if(!("Mode" in r)) r.Mode = modeVal || null;
-      if(!("Tournament" in r)) r.Tournament = tVal || null;
-      if(!("Stage" in r)) r.Stage = sVal || null;
-      if(!("Year" in r)) r.Year = yVal;
-
-      if(!("Week" in r)) r.Week = wVal || null;
-      if(!("Day" in r)) r.Day = dVal || null;
-      if(!("MatchNumber" in r)) r.MatchNumber = mnVal;
-
-      if(!("match_id" in r) || r.match_id == null || r.match_id === ""){
-        const inferred = inferMatchIdFromRecord(r);
-        r.match_id = inferred || midVal || null;
-      }
-
-      return r;
-    });
-  }
-
-  function renderExplodePickOptions(paths){
-    const sel = $("explodePick");
-    const current = sel.value;
-
-    while(sel.options.length > 2) sel.remove(2);
-
-    for(const p of (paths || [])){
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = `Explode: ${p}`;
-      sel.appendChild(opt);
-    }
-
-    const values = new Set(Array.from(sel.options).map(o => o.value));
-    if(values.has(current)){
-      sel.value = current;
-      return;
-    }
-    sel.value = "__input__";
-  }
-
   function rebuildDataset(){
     if(!BASE_RECORDS || !BASE_RECORDS.length){
       ROWS = []; COLS = []; COLCFG = {};
@@ -1326,13 +1214,9 @@
     const pick = $("explodePick").value || "";
     let explodePaths = [];
 
-    if(pick === "__input__"){
-      explodePaths = explodePathsInputList();
-    } else if(pick){
-      explodePaths = [pick];
-    } else {
-      explodePaths = [];
-    }
+    if(pick === "__input__") explodePaths = explodePathsInputList();
+    else if(pick) explodePaths = [pick];
+    else explodePaths = [];
 
     let shaped = BASE_RECORDS;
     if(explodePaths.length){
@@ -1340,48 +1224,39 @@
         shaped = explodeObjects(BASE_RECORDS, explodePaths);
       }catch(err){
         setPill("bad","Explode failed");
-        setStatus("parseStatus", `Explode error:\n${err.message}`, true);
+        setStatus("parseStatus", `Explode error:\n${err.message}`);
         return;
       }
     }
 
     shaped = shaped.map(promoteTeamStatsForFFPlayerStatsRaw);
 
-    const flat = [];
+    let flat = [];
     for(const rec of shaped){
       if(isPlainObject(rec)){
-        flat.push(flattenObject(rec, "", {}, arrMode));
+        const f = flattenObject(rec, "", {}, arrMode);
+        const norm = {};
+        for (const [k,v] of Object.entries(f)) norm[toDbSafeKey(k)] = normalizeValueForPreviewAndUpload(v);
+        flat.push(norm);
       }else{
-        flat.push({value: rec});
+        flat.push({value: normalizeValueForPreviewAndUpload(rec)});
       }
     }
 
-    const colSet = new Set();
-    for(const r of flat) Object.keys(r).forEach(k => colSet.add(k));
-    ["match_id","Mode","Tournament","Stage","Year","Week","Day","MatchNumber"].forEach(k => colSet.add(k));
-
-    const cols = Array.from(colSet);
-    const common = ["match_id","Mode","Tournament","Stage","Year","Week","Day","MatchNumber"];
-    cols.sort((a,b)=>{
-      const ia = common.indexOf(a), ib = common.indexOf(b);
-      if(ia !== -1 || ib !== -1){
-        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      }
-      return a.localeCompare(b);
-    });
-
+    flat = ensureRequestedColumns(flat);
     ROWS = flat;
-    COLS = cols;
+    COLS = orderedColumnsFromRows(flat);
 
     COLCFG = {};
     for(const c of COLS){
-      COLCFG[c] = { include:true, name: toDbSafeKey(c) };
+      COLCFG[c] = {
+        include: REQUESTED_OUTPUT_COL_SET.has(c),
+        name: toDbSafeKey(c)
+      };
     }
-
     if(COLCFG["id"]) COLCFG["id"].include = false;
 
     applySchemaGuardToColCfg();
-
     updateMeta();
     renderColList();
     renderTable();
@@ -1397,16 +1272,16 @@ Explode choices: ${DETECTED_PATHS.length ? DETECTED_PATHS.join(", ") : "(none)"}
 Preview shows up to ${$("maxRows").value} rows.
 
 Alignment:
-- Promoted team_stats.* → root (team_id, team_name, booyah, ...)
-- Promoted team_stats.player_stats → player_stats.*`
-    );
+- Promoted team_stats.* → root
+- Promoted team_stats.player_stats → player_stats.*
+- Forced requested output columns and order.`);
   }
 
   function buildFromJSON(){
     const txt = $("jsonText").value.trim();
     if(!txt){
       setPill("bad", "No JSON");
-      setStatus("parseStatus", "Paste JSON first.", true);
+      setStatus("parseStatus", "Paste JSON first.");
       return;
     }
 
@@ -1414,14 +1289,12 @@ Alignment:
       RAW = JSON.parse(txt);
     }catch(e){
       setPill("bad", "Invalid JSON");
-      setStatus("parseStatus", "JSON parse error:\n" + e.message, true);
+      setStatus("parseStatus", "JSON parse error:\n" + e.message);
       return;
     }
 
     const inferred = inferMatchIdFromRaw(RAW);
-    if(inferred && !$("defMatchId").value.trim()){
-      $("defMatchId").value = inferred;
-    }
+    if(inferred && !$("defMatchId").value.trim()) $("defMatchId").value = inferred;
 
     const path = $("pathText").value.trim();
     let records = null;
@@ -1431,14 +1304,19 @@ Alignment:
       const v = getByPath(RAW, path);
       if(!Array.isArray(v)){
         setPill("bad", "Path not array");
-        setStatus("parseStatus", `Path "${path}" did not resolve to an array.\nTip: use dot paths like data.matches`, true);
+        setStatus("parseStatus", `Path "${path}" did not resolve to an array.`);
         return;
       }
       records = v;
       usedPath = path;
     }else{
-      if(Array.isArray(RAW)) { records = RAW; usedPath = "(root array)"; }
-      else{
+      if(Array.isArray(RAW)){
+        records = RAW;
+        usedPath = "(root array)";
+      } else if (looksLikeRootMatchPayload(RAW)) {
+        records = [RAW];
+        usedPath = "(root object: match + team_stats)";
+      } else {
         const found = findFirstArrayOfObjects(RAW);
         records = found.arr;
         usedPath = found.path || "(none)";
@@ -1447,7 +1325,7 @@ Alignment:
 
     if(!records || !records.length){
       setPill("bad", "No records");
-      setStatus("parseStatus", `Could not find rows to tabulate.\nTry setting Records array path.\nAuto-detected: ${usedPath}`, true);
+      setStatus("parseStatus", `Could not find rows to tabulate.\nAuto-detected: ${usedPath}`);
       return;
     }
 
@@ -1455,9 +1333,7 @@ Alignment:
 
     if($("autoExplode").checked){
       DETECTED_PATHS = detectArrayObjectPaths(BASE_RECORDS, {maxDepth: 7, maxPaths: 80, sampleN: 10});
-      if(DETECTED_PATHS.length){
-        $("explodePaths").value = DETECTED_PATHS.join(", ");
-      }
+      if(DETECTED_PATHS.length) $("explodePaths").value = DETECTED_PATHS.join(", ");
       renderExplodePickOptions(DETECTED_PATHS);
     } else {
       DETECTED_PATHS = explodePathsInputList();
@@ -1470,123 +1346,167 @@ Alignment:
 Base rows: ${BASE_RECORDS.length}
 Records path: ${usedPath}
 
-Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use sequential input).`
-    );
-
+Click Parse & Build Table again if you change explode settings.`);
     rebuildDataset();
   }
 
-  // -----------------------------
-  // Supabase upload
-  // -----------------------------
   function setProgress(pct){
     $("bar").style.width = `${Math.max(0, Math.min(100, pct))}%`;
   }
 
   function buildUploadRows(limitMode, opts={}){
     const {keys, names} = getSelectedCols();
-    const sourceRows = (limitMode === "preview")
-      ? ROWS.slice(0, parseInt($("maxRows").value,10))
-      : ROWS;
-
+    const sourceRows = limitMode === "preview" ? ROWS.slice(0, parseInt($("maxRows").value,10)) : ROWS;
     const addTimestamps = $("autoTimestamps").checked;
     const nowIso = new Date().toISOString();
     const schemaActive = isSchemaGuardActive();
-
     const userId = opts.userId || null;
     const userCol = (opts.userCol || "").trim();
 
-    const omitted = new Set();
+    const outRows = sourceRows.map(row => {
+      const out = {};
+      keys.forEach((srcKey, i) => {
+        let v = row[srcKey];
+        if (Array.isArray(v) || isPlainObject(v)) v = JSON.stringify(v);
+        out[names[i]] = v;
+      });
 
-    const outRows = sourceRows.map(r=>{
-      const o = {};
-      for(let i=0;i<keys.length;i++){
-        const srcKey = keys[i];
-        const dbKey = names[i];
-
-        if(schemaActive && !FF_PLAYER_STATS_RAW_SCHEMA.has(dbKey)){
-          omitted.add(dbKey);
-          continue;
-        }
-
-        o[dbKey] = r[srcKey];
+      if (addTimestamps) {
+        if (!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has("created_at")) out.created_at = nowIso;
+        if (!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has("updated_at")) out.updated_at = nowIso;
       }
 
-      if(userCol && userId){
-        // only attach if it won't be blocked by schema guard
-        if(!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has(userCol)){
-          if(!(userCol in o)) o[userCol] = userId;
-        } else {
-          omitted.add(userCol);
-        }
+      if (userId && userCol && (!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has(userCol))) {
+        out[userCol] = userId;
       }
 
-      if(addTimestamps){
-        if(!("created_at" in o) || o.created_at == null || o.created_at === "") o.created_at = nowIso;
-        o.updated_at = nowIso;
-      }
-      return o;
+      return out;
     });
 
-    return {rows: outRows, omitted: Array.from(omitted)};
+    return outRows;
   }
 
-  function resolveOnConflict(raw){
-    const typed = (raw || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
+  function chunk(arr, size){
+    const out = [];
+    for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i+size));
+    return out;
+  }
 
-    if(!typed.length) return "";
+  function formatSupabaseError(err, fallbackPrefix="Supabase error"){
+    if(!err) return `${fallbackPrefix}: (unknown)`;
+    const parts = [];
+    const msg = err?.message;
+    const code = err?.code;
+    const details = err?.details;
+    const hint = err?.hint;
+    if(msg) parts.push(`message: ${msg}`);
+    if(code) parts.push(`code: ${code}`);
+    if(details) parts.push(`details: ${details}`);
+    if(hint) parts.push(`hint: ${hint}`);
+    if(!parts.length) parts.push(String(err));
+    return parts.join("\n");
+  }
 
-    const dbNames = new Set(Object.values(COLCFG).map(x => x?.name).filter(Boolean));
+  function getSbClient(){
+    const url = ($("sbUrl").value || "").trim();
+    const key = ($("sbKey").value || "").trim();
+    if(!url || !key) return null;
 
-    return typed.map(col=>{
-      if(COLCFG[col]?.name) return COLCFG[col].name;
-      if(dbNames.has(col)) return col;
-      return toDbSafeKey(col);
-    }).join(",");
+    if(SB && SB_URL === url && SB_KEY === key) return SB;
+
+    SB_URL = url;
+    SB_KEY = key;
+
+    SB = supabase.createClient(url, key, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+
+    try{
+      if(SB_SUB?.unsubscribe) SB_SUB.unsubscribe();
+      const { data } = SB.auth.onAuthStateChange(() => refreshAuthUI().catch(()=>{}));
+      SB_SUB = data?.subscription || null;
+    }catch(_e){}
+
+    return SB;
+  }
+
+  async function refreshAuthUI(){
+    const sb = getSbClient();
+    if(!sb){
+      setAuthPill("neutral", "Anon", "Enter URL + anon key to load session.");
+      return;
+    }
+    const { data, error } = await sb.auth.getSession();
+    if(error){
+      setAuthPill("bad", "Auth error", formatSupabaseError(error, "Auth error"));
+      return;
+    }
+    const session = data?.session || null;
+    const user = session?.user || null;
+    if(user){
+      const role = user.role || "authenticated";
+      const email = user.email || "(no email)";
+      setAuthPill("good", "Signed in", `${email} • ${role}\nuid: ${user.id}`);
+    }else{
+      setAuthPill("neutral", "Anon", "No active session.");
+    }
+  }
+
+  async function authSignIn(){
+    const sb = getSbClient();
+    if(!sb) return setAuthPill("bad", "No client", "Fill Supabase URL + anon key first.");
+    const email = ($("authEmail").value || "").trim();
+    const password = ($("authPass").value || "").trim();
+    if(!email || !password) return setAuthPill("bad", "Missing", "Enter email + password.");
+    setAuthPill("neutral", "Signing in…", "Please wait.");
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) return setAuthPill("bad", "Sign-in failed", formatSupabaseError(error, "Sign-in failed"));
+    await refreshAuthUI();
+  }
+
+  async function authSignUp(){
+    const sb = getSbClient();
+    if(!sb) return setAuthPill("bad", "No client", "Fill Supabase URL + anon key first.");
+    const email = ($("authEmail").value || "").trim();
+    const password = ($("authPass").value || "").trim();
+    if(!email || !password) return setAuthPill("bad", "Missing", "Enter email + password.");
+    setAuthPill("neutral", "Signing up…", "Check your inbox if email confirmation is enabled.");
+    const { error } = await sb.auth.signUp({ email, password });
+    if(error) return setAuthPill("bad", "Sign-up failed", formatSupabaseError(error, "Sign-up failed"));
+    await refreshAuthUI();
+  }
+
+  async function authSignOut(){
+    const sb = getSbClient();
+    if(!sb) return setAuthPill("neutral", "Anon", "No client.");
+    const { error } = await sb.auth.signOut();
+    if(error) return setAuthPill("bad", "Sign-out failed", formatSupabaseError(error, "Sign-out failed"));
+    await refreshAuthUI();
   }
 
   async function uploadToSupabase(){
     if(!ROWS.length){
-      setStatus("upStatus", "No rows to upload. Parse JSON first.", true);
-      setProgress(0);
+      setStatus("upStatus", "Nothing to upload. Parse JSON first.");
       return;
     }
-
-    const url = $("sbUrl").value.trim();
-    const key = $("sbKey").value.trim();
-    const table = $("sbTable").value.trim();
-    const mode = $("sbMode").value;
-    const onConflictInput = $("sbConflict").value.trim();
-    const chunkSize = parseInt($("sbChunk").value,10);
-    const rowMode = $("sbRows").value;
-
-    if(!url || !key || !table){
-      setStatus("upStatus", "Missing Supabase URL / anon key / table name.", true);
-      setProgress(0);
-      return;
-    }
-
-    const onConflict = resolveOnConflict(onConflictInput);
-    if(mode === "upsert" && !onConflict){
-      setStatus("upStatus", "Upsert requires an On conflict column(s).", true);
-      setProgress(0);
-      return;
-    }
-
-    setStatus("upStatus", "Preparing rows…");
-    setProgress(0);
 
     const sb = getSbClient();
     if(!sb){
-      setStatus("upStatus", "Could not create Supabase client. Check URL/key.", true);
-      setProgress(0);
+      setStatus("upStatus", "Fill Supabase URL + anon key first.");
       return;
     }
 
-    // pull identity
+    const table = ($("sbTable").value || "").trim();
+    if(!table){
+      setStatus("upStatus", "Enter a table name first.");
+      return;
+    }
+
+    const mode = ($("sbMode").value || "upsert").trim();
+    const conflict = ($("sbConflict").value || "").trim();
+    const limitMode = ($("sbRows").value || "all").trim();
+    const chunkSize = parseInt($("sbChunk").value || "500", 10);
+
     let userId = null;
     try{
       const { data } = await sb.auth.getSession();
@@ -1594,179 +1514,144 @@ Choose "Explode dataset" to preview/upload player_stats, team_stats, etc (or use
     }catch(_e){}
 
     const userCol = ($("authUserCol").value || "").trim();
+    const rows = buildUploadRows(limitMode, { userId, userCol });
 
-    const built = buildUploadRows(rowMode, { userId, userCol });
-    const rows = built.rows;
-    const omitted = built.omitted;
-
-    const total = rows.length;
-    if(!total){
-      setStatus("upStatus", "Nothing to upload after column selection.", true);
-      setProgress(0);
+    if(!rows.length){
+      setStatus("upStatus", "No upload rows after filtering.");
       return;
     }
 
-    const chunks = [];
-    for(let i=0;i<rows.length;i+=chunkSize){
-      chunks.push(rows.slice(i, i+chunkSize));
-    }
+    setStatus("upStatus", `Preparing ${rows.length} rows...`);
+    setProgress(0);
 
-    let ok = 0;
-    let failed = 0;
+    const chunks = chunk(rows, chunkSize);
+    let done = 0;
 
-    for(let i=0;i<chunks.length;i++){
-      const batch = chunks[i];
-      setStatus("upStatus", `Uploading ${i+1}/${chunks.length}…
-Batch size: ${batch.length}
-Uploaded: ${ok}/${total} • Failed: ${failed}
-Auth: ${userId ? `signed-in (${userId})` : "anon"}
-
-${mode === "upsert" ? `onConflict: ${onConflict}` : ""}${omitted.length ? `\nOmitted: ${omitted.slice(0,12).join(", ")}${omitted.length>12?" …":""}` : ""}`);
-      setProgress(Math.round((i / chunks.length) * 100));
-
-      try{
+    try{
+      for(let i=0;i<chunks.length;i++){
+        const payload = chunks[i];
         let res;
-        if(mode === "insert"){
-          res = await sb.from(table).insert(batch);
-        }else{
-          res = await sb.from(table).upsert(batch, { onConflict: onConflict.replace(/\s+/g,"") });
+        if(mode === "upsert"){
+          const opts = conflict ? { onConflict: conflict } : {};
+          res = await sb.from(table).upsert(payload, opts);
+        } else {
+          res = await sb.from(table).insert(payload);
         }
 
-        if(res?.error || (res?.status && res.status >= 400)){
-          const statusLine = `HTTP: ${res?.status ?? "?"} ${res?.statusText ?? ""}`.trim();
-          const msg = res?.error ? formatSupabaseError(res.error) : "Request failed (no error payload).";
-          console.error(res?.error || res);
-          setStatus("upStatus", `${statusLine}\n${msg}`, true);
-          setProgress(Math.round(((i+1)/chunks.length)*100));
-          return;
-        }
+        if(res.error) throw res.error;
 
-        ok += batch.length;
-      }catch(e){
-        failed += batch.length;
-        setStatus("upStatus", `Network/runtime error on batch ${i+1}:\n${e.message}`, true);
-        setProgress(Math.round(((i+1)/chunks.length)*100));
-        return;
+        done += payload.length;
+        setProgress((done / rows.length) * 100);
+        setStatus("upStatus", `Uploaded ${done}/${rows.length} rows (${i+1}/${chunks.length} batches).`);
       }
-    }
 
-    setProgress(100);
-    setStatus("upStatus", `Done ✅
-Uploaded: ${ok}/${total}
-Failed: ${failed}
-Auth: ${userId ? `signed-in (${userId})` : "anon"}
-Mode: ${mode}${mode==="upsert" ? ` (onConflict: ${onConflict})` : ""}
-${omitted.length ? `\nOmitted ${omitted.length} cols.` : ""}`);
+      setStatus("upStatus", `Upload complete.\nRows: ${rows.length}\nMode: ${mode}\nTable: ${table}`);
+      setProgress(100);
+    }catch(err){
+      setStatus("upStatus", `Upload failed:\n${formatSupabaseError(err)}`);
+    }
   }
 
-  // -----------------------------
-  // Events
-  // -----------------------------
-  $("btnParse").addEventListener("click", buildFromJSON);
+  function downloadText(filename, content, mime="text/plain"){
+    const blob = new Blob([content], {type:mime});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 800);
+  }
+
+  function toCSV(rows, cols){
+    const esc = (s) => {
+      const str = s == null ? "" : String(s);
+      if(/[",\n\r]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
+      return str;
+    };
+    const header = cols.map(esc).join(",");
+    const lines = rows.map(r => cols.map(c => esc(r[c])).join(","));
+    return [header, ...lines].join("\n");
+  }
+
+  $("btnSample").addEventListener("click", ()=>{
+    $("jsonText").value = `{
+  "match": {
+    "match_id": "2012171594614190080",
+    "create_time": 1768574067
+  },
+  "team_stats": [
+    {
+      "team_name": "ACD",
+      "booyah": false,
+      "ranking_score": 6,
+      "killing_score": 7,
+      "final": true,
+      "team_id": 2,
+      "win_rate": 0,
+      "kill_count": 7,
+      "is_focus": false,
+      "is_double_kill_score": false,
+      "is_eliminated": true,
+      "eliminated_team_name": "SSZ",
+      "player_stats": [
+        {
+          "account_id": "323265050",
+          "nickname": "ACD.Nokii10",
+          "shoots": 121,
+          "hits": 41,
+          "headshots": 5,
+          "kills": 1,
+          "assists": 0,
+          "damage": 1185,
+          "skill_ids": [2106,2006,4406,1306],
+          "pet_skill_name": "Dreki",
+          "pet_skill_id": 1315000012
+        }
+      ]
+    }
+  ]
+}`;
+    $("defMode").value = "BR";
+    $("defYear").value = "2026";
+    $("defWeek").value = "W1";
+    $("defDay").value = "D1";
+    $("defMatchNumber").value = "1";
+    $("defMatchId").value = "2012171594614190080";
+    $("explodePick").value = "__input__";
+    $("explodePaths").value = "team_stats,team_stats.player_stats";
+    renderExplodePickOptions(explodePathsInputList());
+    setPill("neutral","Sample loaded");
+    setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
+  });
 
   $("btnClear").addEventListener("click", ()=>{
     $("jsonText").value = "";
-    $("pathText").value = "";
-    $("explodePaths").value = "team_stats,team_stats.player_stats";
-    $("explodePick").value = "__input__";
-    $("fetchUrl").value = "";
-    $("arrMode").value = "keep";
-    $("maxRows").value = "2000";
-
-    $("autoExplode").checked = false;
-
-    $("defMode").value = "BR";
-    $("defTournament").value = "";
-    $("defStage").value = "";
-
-    $("defYear").value = String(new Date().getFullYear());
-    $("defWeek").value = "";
-    $("defDay").value = "";
-    $("defMatchNumber").value = "";
-    $("defMatchId").value = "";
-
-    $("autoTimestamps").checked = true;
-
-    $("authEmail").value = "";
-    $("authPass").value = "";
-    $("authUserCol").value = "";
-
     RAW = null;
     BASE_RECORDS = [];
     DETECTED_PATHS = [];
-    ROWS = []; COLS = []; COLCFG = {};
-
-    $("colList").innerHTML = `<div class="small" style="padding:10px 12px;color:var(--muted)">No columns yet.</div>`;
-    $("theadRow").innerHTML = "";
-    $("tbody").innerHTML = "";
+    ROWS = [];
+    COLS = [];
+    COLCFG = {};
     updateMeta();
+    renderColList();
+    renderTable();
     setPill("neutral","Waiting for JSON");
     setStatus("parseStatus","No data parsed yet.");
     setStatus("upStatus","Ready.");
     setProgress(0);
-
-    renderExplodePickOptions(explodePathsInputList());
-    refreshAuthUI().catch(()=>{});
-  });
-
-  $("btnSample").addEventListener("click", ()=>{
-    const sample = {
-      data: {
-        matches: [
-          {
-            match_id: "1725487677733611520",
-            team_stats: [
-              {
-                team_id: 10,
-                team_name: "ABC",
-                booyah: true,
-                kill_count: 7,
-                ranking_score: 12,
-                player_stats: [
-                  { account_id: 111, nickname: "A1", kills: 3, damage: 812, skill_ids:[101,202,303] },
-                  { account_id: 222, nickname: "A2", kills: 2, damage: 540, skill_ids:[404,505] }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    };
-    $("jsonText").value = JSON.stringify(sample, null, 2);
-    $("pathText").value = "data.matches";
-    $("arrMode").value = "keep";
-    $("maxRows").value = "2000";
-
-    $("autoExplode").checked = false;
-
-    $("defMode").value = "BR";
-    $("defTournament").value = "Sample Cup";
-    $("defStage").value = "Finals";
-    $("defYear").value = String(new Date().getFullYear());
-    $("defWeek").value = "W1";
-    $("defDay").value = "D1";
-    $("defMatchNumber").value = "1";
-    $("defMatchId").value = "1725487677733611520";
-
-    $("explodePick").value = "__input__";
-    $("explodePaths").value = "team_stats,team_stats.player_stats";
-    renderExplodePickOptions(explodePathsInputList());
-
-    setPill("neutral","Sample loaded");
-    setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
   });
 
   $("fileInput").addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if(!f) return;
     try{
-      const txt = await f.text();
-      $("jsonText").value = txt;
+      $("jsonText").value = await f.text();
       setPill("neutral", "File loaded");
       setStatus("parseStatus", `Loaded file: ${f.name}\nClick Parse & Build Table.`);
     }catch(err){
       setPill("bad","File read failed");
-      setStatus("parseStatus", "Could not read file:\n" + err.message, true);
+      setStatus("parseStatus", "Could not read file:\n" + err.message);
     } finally {
       e.target.value = "";
     }
@@ -1774,125 +1659,86 @@ ${omitted.length ? `\nOmitted ${omitted.length} cols.` : ""}`);
 
   $("btnFetch").addEventListener("click", async ()=>{
     const url = $("fetchUrl").value.trim();
-    if(!url){
-      setStatus("parseStatus","Enter a URL first.", true);
-      return;
-    }
+    if(!url) return setStatus("parseStatus","Enter a URL first.");
     setPill("neutral","Fetching…");
     setStatus("parseStatus","Fetching JSON from URL…");
     try{
       const res = await fetch(url, {cache:"no-store"});
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const txt = await res.text();
-      $("jsonText").value = txt;
+      $("jsonText").value = await res.text();
       setPill("neutral","Fetched");
       setStatus("parseStatus","Fetched OK. Click Parse & Build Table.");
     }catch(e){
       setPill("bad","Fetch failed");
-      setStatus("parseStatus",
-`Fetch failed:
-${e.message}
-
-This is often CORS.
-If so, fetch server-side (proxy/Edge Function) then paste the JSON here.`, true);
+      setStatus("parseStatus", `Fetch failed:\n${e.message}`);
     }
   });
 
+  $("btnParse").addEventListener("click", buildFromJSON);
   $("btnAll").addEventListener("click", ()=>{
-    for(const c of COLS){ COLCFG[c].include = true; }
+    for(const c of COLS) COLCFG[c].include = true;
     applySchemaGuardToColCfg();
-    renderColList(); renderTable();
+    renderColList();
+    renderTable();
   });
-
   $("btnNone").addEventListener("click", ()=>{
-    for(const c of COLS){ COLCFG[c].include = false; }
-    renderColList(); renderTable();
+    for(const c of COLS) COLCFG[c].include = false;
+    renderColList();
+    renderTable();
   });
-
-  $("maxRows").addEventListener("change", ()=>{
-    if(ROWS.length) renderTable();
-  });
-
-  $("explodePick").addEventListener("change", ()=>{
-    if(BASE_RECORDS.length) rebuildDataset();
-  });
-
-  $("arrMode").addEventListener("change", ()=>{
-    if(BASE_RECORDS.length) rebuildDataset();
-  });
-
-  $("autoExplode").addEventListener("change", ()=>{
-    if(!$("jsonText").value.trim()) return;
-    buildFromJSON();
-  });
-
+  $("maxRows").addEventListener("change", ()=>{ if(ROWS.length) renderTable(); });
+  $("explodePick").addEventListener("change", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
+  $("arrMode").addEventListener("change", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
+  $("autoExplode").addEventListener("change", ()=>{ if($("jsonText").value.trim()) buildFromJSON(); });
   $("explodePaths").addEventListener("change", ()=>{
     if(!$("autoExplode").checked){
       renderExplodePickOptions(explodePathsInputList());
       if(BASE_RECORDS.length) rebuildDataset();
     }
   });
-
-  $("schemaGuard").addEventListener("change", ()=>{
-    if(BASE_RECORDS.length) rebuildDataset();
-  });
-
-  $("sbTable").addEventListener("input", ()=>{
-    if(BASE_RECORDS.length) rebuildDataset();
-  });
+  $("schemaGuard").addEventListener("change", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
+  $("sbTable").addEventListener("input", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
 
   $("btnUpload").addEventListener("click", uploadToSupabase);
 
   $("btnCSV").addEventListener("click", ()=>{
-    if(!ROWS.length){ alert("Parse JSON first."); return; }
+    if(!ROWS.length) return;
     const {keys, names} = getSelectedCols();
-    if(!keys.length){ alert("No columns selected."); return; }
-    const rowMode = $("sbRows").value;
-    const built = buildUploadRows(rowMode);
-    const rows = built.rows;
-
-    const cols = names;
-    const normalized = rows.map(r=>{
+    const rows = ROWS.map(r => {
       const out = {};
-      for(const c of cols){
-        const v = r[c];
-        out[c] = (Array.isArray(v) || isPlainObject(v)) ? safeString(v) : v;
-      }
+      keys.forEach((k, i) => out[names[i]] = r[k]);
       return out;
     });
-
-    const csv = toCSV(normalized, cols);
-    downloadText("table_export.csv", csv, "text/csv");
+    downloadText("ff_match_rows.csv", toCSV(rows, names), "text/csv");
   });
 
   $("btnJSON").addEventListener("click", ()=>{
-    if(!ROWS.length){ alert("Parse JSON first."); return; }
-    const rowMode = $("sbRows").value;
-    const built = buildUploadRows(rowMode);
-    downloadText("rows_export.json", JSON.stringify(built.rows, null, 2), "application/json");
+    if(!ROWS.length) return;
+    const {keys, names} = getSelectedCols();
+    const rows = ROWS.map(r => {
+      const out = {};
+      keys.forEach((k, i) => out[names[i]] = r[k]);
+      return out;
+    });
+    downloadText("ff_match_rows.json", JSON.stringify(rows, null, 2), "application/json");
   });
 
-  /* ✅ Auth button events */
-  $("btnAuthRefresh").addEventListener("click", ()=>refreshAuthUI().catch(()=>{}));
-  $("btnSignIn").addEventListener("click", ()=>authSignIn().catch(()=>{}));
-  $("btnSignUp").addEventListener("click", ()=>authSignUp().catch(()=>{}));
-  $("btnSignOut").addEventListener("click", ()=>authSignOut().catch(()=>{}));
+  $("btnAuthRefresh").addEventListener("click", refreshAuthUI);
+  $("btnSignIn").addEventListener("click", authSignIn);
+  $("btnSignUp").addEventListener("click", authSignUp);
+  $("btnSignOut").addEventListener("click", authSignOut);
 
-  /* refresh auth UI when URL/key changes */
-  $("sbUrl").addEventListener("change", ()=>refreshAuthUI().catch(()=>{}));
-  $("sbKey").addEventListener("change", ()=>refreshAuthUI().catch(()=>{}));
+  updateMeta();
+  renderColList();
+  renderTable();
+  refreshAuthUI().catch(()=>{});
 
-  // init defaults
-  (function initDefaults(){
-    $("defYear").value = String(new Date().getFullYear());
-    $("autoExplode").checked = false;
-    $("explodePick").value = "__input__";
-    $("arrMode").value = "keep";
-    renderExplodePickOptions(explodePathsInputList());
-    updateMeta();
-    setPill("neutral","Waiting for JSON");
-    refreshAuthUI().catch(()=>{});
-  })();
+  // sensible defaults for your current payload
+  $("defMode").value = "BR";
+  $("defMatchNumber").value = "1";
+  $("explodePick").value = "__input__";
+  $("explodePaths").value = "team_stats,team_stats.player_stats";
+  renderExplodePickOptions(explodePathsInputList());
 </script>
 </body>
 </html>
