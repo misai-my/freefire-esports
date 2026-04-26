@@ -570,6 +570,7 @@
 
         <div class="row" style="justify-content:flex-end;margin-top:10px">
           <button class="btn" id="btnCSV">Download CSV (selected cols)</button>
+          <button class="btn" id="btnCopySheets">Copy for Google Sheets</button>
           <button class="btn" id="btnJSON">Download JSON rows</button>
         </div>
 
@@ -1574,6 +1575,40 @@ Click Parse & Build Table again if you change explode settings.`);
     return [header, ...lines].join("\n");
   }
 
+  function toTSV(rows, cols){
+    const esc = (s) => {
+      const str = s == null ? "" : String(s);
+      return str.replace(/\r?\n/g, " ").replace(/\t/g, " ");
+    };
+    const header = cols.map(esc).join("\t");
+    const lines = rows.map(r => cols.map(c => esc(r[c])).join("\t"));
+    return [header, ...lines].join("\n");
+  }
+
+  async function copyTextToClipboard(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(_err){
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      let ok = false;
+      try{
+        ok = document.execCommand("copy");
+      }catch(_e){
+        ok = false;
+      }
+      document.body.removeChild(ta);
+      return ok;
+    }
+  }
+
   $("btnSample").addEventListener("click", ()=>{
     $("jsonText").value = `{
   "match": {
@@ -1712,6 +1747,34 @@ Click Parse & Build Table again if you change explode settings.`);
     downloadText("ff_match_rows.csv", toCSV(rows, names), "text/csv");
   });
 
+  $("btnCopySheets").addEventListener("click", async ()=>{
+    if(!ROWS.length){
+      setStatus("upStatus", "Nothing to copy. Parse JSON first.");
+      return;
+    }
+
+    const {keys, names} = getSelectedCols();
+    if(!keys.length){
+      setStatus("upStatus", "No columns selected to copy.");
+      return;
+    }
+
+    const rows = ROWS.map(r => {
+      const out = {};
+      keys.forEach((k, i) => out[names[i]] = r[k]);
+      return out;
+    });
+
+    const tsv = toTSV(rows, names);
+    const ok = await copyTextToClipboard(tsv);
+
+    if(ok){
+      setStatus("upStatus", `Copied ${rows.length} rows to clipboard for Google Sheets.`);
+    }else{
+      setStatus("upStatus", "Copy failed. Your browser may be blocking clipboard access.");
+    }
+  });
+
   $("btnJSON").addEventListener("click", ()=>{
     if(!ROWS.length) return;
     const {keys, names} = getSelectedCols();
@@ -1733,7 +1796,6 @@ Click Parse & Build Table again if you change explode settings.`);
   renderTable();
   refreshAuthUI().catch(()=>{});
 
-  // sensible defaults for your current payload
   $("defMode").value = "BR";
   $("defMatchNumber").value = "1";
   $("explodePick").value = "__input__";
