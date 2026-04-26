@@ -552,7 +552,7 @@
       <button class="btn secondary" id="reloadBtn">Reload</button>
     </div>
     <div class="muted" id="diagNote">
-      If this shows 0 rows but you expect data, it’s usually RLS (no SELECT policy) or you inserted into a different table/schema.
+      If this shows 0 rows but you expect data, it’s usually RLS (no SELECT policy) or you inserted into a different table/schema. This page now prefers the exact ff_player_stats_raw columns when they are present.
     </div>
   </div>
 
@@ -864,12 +864,21 @@ let KEYS = {
   kills: null,
   damage: null,
   rank: null,
+  rankingScore: null,
   booyah: null,
   petName: null,
   petId: null,
-  loadouts: null,          // ✅ ff_stats_raw.player_stats_loadouts
-  skillInfo: null,         // ✅ ff_stats_raw.player_stats_skill_info
-  skillIds: []
+  loadouts: null,
+  skillInfo: null,
+  skillInfoSkillId: null,
+  skillInfoSkillName: null,
+  skillInfoSkillActive: null,
+  skillInfoActiveCount: null,
+  skillIds: [],
+  snapshotId: null,
+  pulledAt: null,
+  dataSource: null,
+  duplicateKey: null
 };
 
 let ID_TO_NAME = new Map();          // all types
@@ -881,43 +890,107 @@ let CHAR_SKILLKEY_TO_KIND = new Map();    // normalized key -> active|passive
 let CHAR_SKILLKEY_LIST = [];              // [{key,kind}] for fuzzy fallback
 let CHAR_READY = false;
 
+function hasExactFFPlayerStatsRawProfile(keys){
+  const need = [
+    'team_name','player_stats_nickname','Tournament','Year','Week','Day','MatchNumber','match_id',
+    'player_stats_kills','player_stats_damage','booyah','player_stats_pet_skill_name',
+    'player_stats_pet_skill_id','player_stats_loadouts','player_stats_skill_ids_0'
+  ];
+  return need.every(k => keys.includes(k));
+}
+function hasPlacementColumn(){
+  return !!KEYS.rank;
+}
+function placementMetricLabel(){
+  if (hasPlacementColumn()) return 'Avg Placement';
+  if (KEYS.rankingScore) return 'Avg Ranking Score';
+  return 'Avg Metric';
+}
+function syncPlacementUiLabels(){
+  const opt = [...el('overallSortKey').options].find(o => o.value === 'avg_place');
+  if (opt) opt.textContent = placementMetricLabel();
+}
+
 /* ============ Schema detection ============ */
 function detectSchema(sample){
   const keys = Object.keys(sample||{});
+  const exact = hasExactFFPlayerStatsRawProfile(keys);
 
-  KEYS.team = pickKey(keys, [/^team_name$/i, /team.*(tag|name)/i, /^tag$/i, /^team$/i]);
-  KEYS.player = pickKey(keys, [/player_stats_nickname/i, /nickname/i, /\bign\b/i, /player.*name/i, /^name$/i]);
+  const exactPick = (k) => keys.includes(k) ? k : null;
 
-  KEYS.tournament = pickKey(keys, [/^tournament$/i, /\btournament\b/i]);
-  KEYS.year = pickKey(keys, [/^year$/i, /\byear\b/i]);
-  KEYS.week = pickKey(keys, [/^week$/i, /\bweek\b/i]);
-  KEYS.day = pickKey(keys, [/^day$/i, /\bday\b/i]);
-  KEYS.matchNo = pickKey(keys, [/matchnumber/i, /match_number/i, /matchno/i, /\bmatch\b.*\bno\b/i]);
-  KEYS.matchId = pickKey(keys, [/match_id/i, /game_id/i, /battle_id/i, /round_id/i]);
+  if(exact){
+    KEYS.team = exactPick('team_name');
+    KEYS.player = exactPick('player_stats_nickname');
+    KEYS.tournament = exactPick('Tournament');
+    KEYS.year = exactPick('Year');
+    KEYS.week = exactPick('Week');
+    KEYS.day = exactPick('Day');
+    KEYS.matchNo = exactPick('MatchNumber');
+    KEYS.matchId = exactPick('match_id');
+    KEYS.kills = exactPick('player_stats_kills');
+    KEYS.damage = exactPick('player_stats_damage');
+    KEYS.rank = null;
+    KEYS.rankingScore = exactPick('ranking_score');
+    KEYS.booyah = exactPick('booyah');
+    KEYS.petName = exactPick('player_stats_pet_skill_name');
+    KEYS.petId = exactPick('player_stats_pet_skill_id');
+    KEYS.loadouts = exactPick('player_stats_loadouts');
+    KEYS.skillInfo = exactPick('player_stats_skill_info');
+    KEYS.skillInfoSkillId = exactPick('player_stats_skill_info_skill_id');
+    KEYS.skillInfoSkillName = exactPick('player_stats_skill_info_skill_name');
+    KEYS.skillInfoSkillActive = exactPick('player_stats_skill_info_skill_active');
+    KEYS.skillInfoActiveCount = exactPick('player_stats_skill_info_active_count');
+    KEYS.snapshotId = exactPick('snapshot_id');
+    KEYS.pulledAt = exactPick('pulled_at');
+    KEYS.dataSource = exactPick('data_source');
+    KEYS.duplicateKey = exactPick('duplicate_key');
+    KEYS.skillIds = ['player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3'].filter(k => keys.includes(k));
+  } else {
+    KEYS.team = pickKey(keys, [/^team_name$/i, /team.*(tag|name)/i, /^tag$/i, /^team$/i]);
+    KEYS.player = pickKey(keys, [/player_stats_nickname/i, /nickname/i, /ign/i, /player.*name/i, /^name$/i]);
 
-  KEYS.kills = pickKey(keys, [/player_stats_kills/i, /\bkills\b/i, /\belims?\b/i, /\belimination\b/i]);
-  KEYS.damage = pickKey(keys, [/player_stats_damage/i, /\bdamage\b/i]);
+    KEYS.tournament = pickKey(keys, [/^tournament$/i, /tournament/i]);
+    KEYS.year = pickKey(keys, [/^year$/i, /year/i]);
+    KEYS.week = pickKey(keys, [/^week$/i, /week/i]);
+    KEYS.day = pickKey(keys, [/^day$/i, /day/i]);
+    KEYS.matchNo = pickKey(keys, [/matchnumber/i, /match_number/i, /matchno/i, /match.*no/i]);
+    KEYS.matchId = pickKey(keys, [/match_id/i, /game_id/i, /battle_id/i, /round_id/i]);
 
-  KEYS.rank = pickKey(keys, [/\brank\b/i, /placement/i, /\bplace\b/i, /team_rank/i, /final_rank/i]);
-  KEYS.booyah = pickKey(keys, [/booyah/i, /is_booyah/i, /winner/i, /is_winner/i]);
+    KEYS.kills = pickKey(keys, [/player_stats_kills/i, /kills/i, /elims?/i, /elimination/i]);
+    KEYS.damage = pickKey(keys, [/player_stats_damage/i, /damage/i]);
 
-  KEYS.petName = pickKey(keys, [/pet_skill_name/i, /pet.*name/i]);
-  KEYS.petId = pickKey(keys, [/pet_skill_id/i, /pet.*id/i]);
+    KEYS.rank = pickKey(keys, [/placement/i, /place/i, /team_rank/i, /final_rank/i]);
+    KEYS.rankingScore = pickKey(keys, [/^ranking_score$/i, /rank.*score/i]);
+    KEYS.booyah = pickKey(keys, [/booyah/i, /is_booyah/i, /winner/i, /is_winner/i]);
 
-  // ✅ Loadout + skill_info are from ff_stats_raw ONLY (no match_api mapping)
-  KEYS.loadouts = pickKey(keys, [/^player_stats_loadouts$/i, /player_stats_loadout/i, /\bloadouts\b/i, /\bloadout\b/i]);
-  KEYS.skillInfo = pickKey(keys, [/^player_stats_skill_info$/i, /player.*skill.*info/i, /\bskill_info\b/i]);
+    KEYS.petName = pickKey(keys, [/pet_skill_name/i, /pet.*name/i]);
+    KEYS.petId = pickKey(keys, [/pet_skill_id/i, /pet.*id/i]);
 
-  const skillKeys = keys
-    .filter(k => /skill_ids_/i.test(k))
-    .sort((a,b)=>{
-      const ai = Number((a.match(/(\d+)$/)||[])[1]||0);
-      const bi = Number((b.match(/(\d+)$/)||[])[1]||0);
-      return ai-bi;
-    });
-  KEYS.skillIds = skillKeys.slice(0,4);
+    KEYS.loadouts = pickKey(keys, [/^player_stats_loadouts$/i, /player_stats_loadout/i, /loadouts/i, /loadout/i]);
+    KEYS.skillInfo = pickKey(keys, [/^player_stats_skill_info$/i, /player.*skill.*info/i, /skill_info/i]);
+    KEYS.skillInfoSkillId = pickKey(keys, [/player_stats_skill_info_skill_id/i, /skill_info.*skill_id/i]);
+    KEYS.skillInfoSkillName = pickKey(keys, [/player_stats_skill_info_skill_name/i, /skill_info.*skill_name/i]);
+    KEYS.skillInfoSkillActive = pickKey(keys, [/player_stats_skill_info_skill_active/i, /skill_info.*skill_active/i]);
+    KEYS.skillInfoActiveCount = pickKey(keys, [/player_stats_skill_info_active_count/i, /skill_info.*active_count/i]);
+    KEYS.snapshotId = pickKey(keys, [/snapshot_id/i]);
+    KEYS.pulledAt = pickKey(keys, [/pulled_at/i]);
+    KEYS.dataSource = pickKey(keys, [/data_source/i]);
+    KEYS.duplicateKey = pickKey(keys, [/duplicate_key/i]);
+
+    const skillKeys = keys
+      .filter(k => /skill_ids_/i.test(k))
+      .sort((a,b)=>{
+        const ai = Number((a.match(/(\d+)$/)||[])[1]||0);
+        const bi = Number((b.match(/(\d+)$/)||[])[1]||0);
+        return ai-bi;
+      });
+    KEYS.skillIds = skillKeys.slice(0,4);
+  }
+
+  syncPlacementUiLabels();
 
   const summary = [
+    exact ? 'profile=ff_player_stats_raw' : 'profile=detected',
     KEYS.team ? `team=${KEYS.team}` : 'team=—',
     KEYS.player ? `player=${KEYS.player}` : 'player=—',
     KEYS.tournament ? `tournament=${KEYS.tournament}` : 'tournament=—',
@@ -929,10 +1002,12 @@ function detectSchema(sample){
     KEYS.petName ? `pet=${KEYS.petName}` : (KEYS.petId ? `petId=${KEYS.petId}` : 'pet=—'),
     KEYS.loadouts ? `loadouts=${KEYS.loadouts}` : 'loadouts=—',
     KEYS.skillInfo ? `skill_info=${KEYS.skillInfo}` : 'skill_info=—',
+    KEYS.skillInfoSkillId ? `skill_info_id=${KEYS.skillInfoSkillId}` : 'skill_info_id=—',
     KEYS.kills ? `kills=${KEYS.kills}` : 'kills=—',
     KEYS.damage ? `dmg=${KEYS.damage}` : 'dmg=—',
-    KEYS.rank ? `rank=${KEYS.rank}` : 'rank=—',
+    KEYS.rank ? `rank=${KEYS.rank}` : (KEYS.rankingScore ? `ranking_score=${KEYS.rankingScore}` : 'rank=—'),
     KEYS.booyah ? `booyah=${KEYS.booyah}` : 'booyah=—',
+    KEYS.dataSource ? `data_source=${KEYS.dataSource}` : 'data_source=—'
   ].join(' • ');
 
   el('diagSchema').textContent = 'Detected schema: ' + summary;
@@ -1164,12 +1239,24 @@ function getRank(r){
   }
   return null;
 }
+function getRankMetric(r){
+  const placement = getRank(r);
+  if(placement != null) return placement;
+  if(KEYS.rankingScore){
+    const v = Number(r?.[KEYS.rankingScore]);
+    if(isFinite(v)) return v;
+  }
+  return null;
+}
 function getBooyah(r, rankValue=null){
   if(KEYS.booyah){
     if(toBool(r?.[KEYS.booyah])) return true;
   }
-  if(rankValue == null) rankValue = getRank(r);
-  return rankValue === 1;
+  if(KEYS.rank){
+    if(rankValue == null) rankValue = getRank(r);
+    return rankValue === 1;
+  }
+  return false;
 }
 function matchKeyForRow(r){
   const t = norm(getVal(r, KEYS.tournament));
@@ -1401,12 +1488,12 @@ function teamMatchAgg(rows){
     }
     const o = m.get(key);
 
-    const rk = getRank(r);
+    const rk = getRankMetric(r);
     if(rk != null){
       o.placement = (o.placement==null) ? rk : Math.min(o.placement, rk);
     }
 
-    const b = getBooyah(r, rk);
+    const b = getBooyah(r, getRank(r));
     if(b) o.booyah = 1;
 
     if(KEYS.kills) o.elims += n(getVal(r, KEYS.kills));
@@ -1504,8 +1591,18 @@ function parseSkillInfoIds(raw){
   return [...new Set(ids.map(x=>String(parseInt(x,10))))].filter(Boolean);
 }
 function getSkillInfoIdsForRow(r){
-  if(!KEYS.skillInfo) return [];
-  return parseSkillInfoIds(r?.[KEYS.skillInfo]);
+  const ids = [];
+
+  if (KEYS.skillInfoSkillId) {
+    const id = norm(getVal(r, KEYS.skillInfoSkillId));
+    if (id) ids.push(id);
+  }
+
+  if (KEYS.skillInfo) {
+    ids.push(...parseSkillInfoIds(r?.[KEYS.skillInfo]));
+  }
+
+  return [...new Set(ids.filter(Boolean))];
 }
 
 /* ============ Active/Passive by name + validation ============ */
@@ -1634,7 +1731,7 @@ function renderOverall(){
     {label:'Elims/m', key:'elims_pm', format:'1d', right:true},
     {label:'Damage', key:'damage', right:true},
     {label:'Dmg/m', key:'dmg_pm', format:'0d', right:true},
-    {label:'Avg Place', key:'avg_place', right:true, html:r=> (r.avg_place==null ? '—' : r.avg_place.toFixed(1))}
+    {label:placementMetricLabel(), key:'avg_place', right:true, html:r=> (r.avg_place==null ? '—' : r.avg_place.toFixed(1))}
   ]);
 
   applyColumnHeatmap('tblOverall', ['dmg_pm','elims_pm','booyahs','matches','damage','elims']);
@@ -1725,7 +1822,7 @@ function renderTeamKpis(teamRows){
       <div class="kpi">Booyahs <strong>${booyahs}</strong> <span class="muted">(${fmtPct(matches?booyahs/matches:0)})</span></div>
       <div class="kpi">Elims <strong>${elims}</strong> <span class="muted">(${(elims/matches).toFixed(1)}/m)</span></div>
       <div class="kpi">Damage <strong>${damage}</strong> <span class="muted">(${(damage/matches).toFixed(0)}/m)</span></div>
-      <div class="kpi">Avg Placement <strong>${avg_place==null?'—':avg_place.toFixed(1)}</strong></div>
+      <div class="kpi">${placementMetricLabel()} <strong>${avg_place==null?'—':avg_place.toFixed(1)}</strong></div>
     </div>
   ` : `<div class="muted">No team rows in this scope.</div>`;
 
@@ -1992,7 +2089,7 @@ function renderAllTeamsSkillSummary(){
             <span class="badge">Elims/m <strong>${st.elims_pm.toFixed(1)}</strong></span>
             <span class="badge">Dmg/m <strong>${st.dmg_pm.toFixed(0)}</strong></span>
             <span class="badge">Booyahs <strong>${st.booyahs}</strong></span>
-            <span class="badge">Avg <strong>${st.avg_place==null?'—':st.avg_place.toFixed(1)}</strong></span>
+            <span class="badge">${placementMetricLabel()} <strong>${st.avg_place==null?'—':st.avg_place.toFixed(1)}</strong></span>
           </div>
         </summary>
 
