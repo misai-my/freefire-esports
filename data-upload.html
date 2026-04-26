@@ -37,7 +37,7 @@
       background: linear-gradient(180deg, rgba(7,9,15,.80), rgba(7,9,15,.55));
       border-bottom:1px solid var(--line);
     }
-    .wrap{max-width:1280px;margin:0 auto;padding:14px 16px}
+    .wrap{max-width:1320px;margin:0 auto;padding:14px 16px}
     .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between}
     .brand{display:flex;align-items:center;gap:12px}
     .fflogo{
@@ -76,8 +76,8 @@
       border-color: rgba(255,107,107,.35);
       background: linear-gradient(180deg, rgba(255,107,107,.16), rgba(255,107,107,.08));
     }
-    main{max-width:1280px;margin:0 auto;padding:16px}
-    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+    main{max-width:1320px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1.06fr .94fr;gap:14px}
     @media (max-width:980px){ .grid{grid-template-columns:1fr} }
     .card{
       background: linear-gradient(180deg, var(--panel), var(--panel2));
@@ -95,9 +95,9 @@
     .card .bd{padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .row + .row{margin-top:10px}
-    .field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:180px;flex:1}
     label{font-size:12px;color:var(--muted)}
-    input[type="text"], input[type="password"], input[type="url"], select, textarea{
+    input[type="text"], input[type="password"], input[type="url"], input[type="datetime-local"], select, textarea{
       width:100%;
       border:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.25);
@@ -249,7 +249,7 @@
         />
         <div>
           <h1>Free Fire Match Data Uploader</h1>
-          <div class="sub">Paste / upload JSON, flatten & explode arrays, preview table, then insert/upsert into Supabase.</div>
+          <div class="sub">Server.js-compatible parser for ff_player_stats_raw-style rows.</div>
         </div>
       </div>
       <div class="actions">
@@ -270,23 +270,93 @@
       </div>
       <div class="bd">
         <div class="row">
-          <div class="field" style="min-width:280px">
-            <label>Paste JSON</label>
-            <textarea id="jsonText" placeholder='Paste JSON here (array or object)…'></textarea>
+          <div class="field" style="min-width:300px;flex:1.3">
+            <label>Paste JSON response</label>
+            <textarea id="jsonText" placeholder='Paste raw Garena / tournament JSON here…'></textarea>
             <div class="hint">
-              For your match payload, leave records path blank and keep explode paths as
-              <span class="kbd">team_stats,team_stats.player_stats</span>.
+              This parser follows your <span class="kbd">server.js</span> flattening logic:
+              it looks for <span class="kbd">player_stats / players</span> arrays, flattens parent team fields,
+              keeps arrays-of-objects as JSON strings, and adds server-like metadata columns.
             </div>
           </div>
         </div>
 
         <div class="row">
-          <div class="field" style="min-width:260px;flex:1.2">
-            <label>Records array path (optional)</label>
-            <input id="pathText" type="text" placeholder="e.g. data.matches"/>
-            <div class="hint">Leave blank for root array or root object with <span class="kbd">match + team_stats</span>.</div>
+          <div class="field" style="min-width:220px">
+            <label>Default Mode</label>
+            <select id="defMode">
+              <option value="BR" selected>BR</option>
+              <option value="CS">CS</option>
+            </select>
           </div>
-          <div class="field" style="min-width:160px;flex:.6">
+          <div class="field" style="min-width:220px">
+            <label>Data Source</label>
+            <select id="defDataSource">
+              <option value="tournament" selected>Tournament</option>
+              <option value="garena">Garena</option>
+            </select>
+          </div>
+          <div class="field" style="min-width:180px">
+            <label>Center</label>
+            <select id="defCenter">
+              <option value="sg" selected>sg</option>
+              <option value="ind">ind</option>
+              <option value="us">us</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Tournament</label>
+            <input id="defTournament" type="text" placeholder="e.g. FFWS SEA 2026 Spring"/>
+          </div>
+          <div class="field">
+            <label>Stage</label>
+            <input id="defStage" type="text" placeholder="e.g. Phase 1"/>
+          </div>
+          <div class="field">
+            <label>MatchNumber</label>
+            <input id="defMatchNumber" type="text" placeholder="e.g. 1"/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Year</label>
+            <input id="defYear" type="text" placeholder="e.g. 2026"/>
+          </div>
+          <div class="field">
+            <label>Week</label>
+            <input id="defWeek" type="text" placeholder="e.g. 1"/>
+          </div>
+          <div class="field">
+            <label>Day</label>
+            <input id="defDay" type="text" placeholder="e.g. 1"/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>match_id override</label>
+            <input id="defMatchId" type="text" placeholder="leave blank to infer from JSON"/>
+          </div>
+          <div class="field">
+            <label>Snapshot ID</label>
+            <input id="defSnapshotId" type="text" placeholder="optional"/>
+          </div>
+          <div class="field">
+            <label>Pulled At (ISO, optional)</label>
+            <input id="defPulledAt" type="text" placeholder="leave blank for current time"/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="min-width:260px;flex:1.3">
+            <label>Tournament API URL</label>
+            <input id="defTournamentApiUrl" type="url" value="http://148.153.174.68:28461/api/GetMatchStats"/>
+          </div>
+          <div class="field" style="min-width:260px;flex:1.2">
             <label>Max preview rows</label>
             <select id="maxRows">
               <option value="50">50</option>
@@ -295,95 +365,6 @@
               <option value="2000" selected>2000</option>
             </select>
           </div>
-        </div>
-
-        <div class="row">
-          <div class="field" style="min-width:220px;flex:.8">
-            <label>Flatten arrays of objects</label>
-            <select id="arrMode">
-              <option value="keep" selected>Keep as JSON</option>
-              <option value="index">Explode to indexed columns</option>
-            </select>
-          </div>
-
-          <div class="field" style="min-width:260px;flex:1.2">
-            <label>Explode paths (comma-separated)</label>
-            <input id="explodePaths" type="text" value="team_stats,team_stats.player_stats"/>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field" style="min-width:220px;flex:1">
-            <label>Explode dataset</label>
-            <select id="explodePick">
-              <option value="">(No explode) Base records</option>
-              <option value="__input__" selected>Use explode paths input</option>
-            </select>
-          </div>
-
-          <div class="field" style="min-width:220px;flex:1">
-            <label>Auto-detect explode paths</label>
-            <div class="checkrow">
-              <input id="autoExplode" type="checkbox" />
-              <div>
-                <div style="font-size:12px">Detect arrays-of-objects and auto-fill explode paths</div>
-                <div class="small">Off is recommended for your match payload.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label>Default Mode</label>
-            <select id="defMode">
-              <option value="BR" selected>BR</option>
-              <option value="CS">CS</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Default Tournament</label>
-            <input id="defTournament" type="text" placeholder="e.g. FFWS SEA Spring 2026"/>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label>Default Stage</label>
-            <input id="defStage" type="text" placeholder="e.g. Knockout Stage"/>
-          </div>
-          <div class="field">
-            <label>Default Year</label>
-            <input id="defYear" type="text" placeholder="e.g. 2026"/>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label>Default Week</label>
-            <input id="defWeek" type="text" placeholder="e.g. W1"/>
-          </div>
-          <div class="field">
-            <label>Default Day</label>
-            <input id="defDay" type="text" placeholder="e.g. D1"/>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label>Default MatchNumber</label>
-            <input id="defMatchNumber" type="text" placeholder="e.g. 1"/>
-          </div>
-          <div class="field">
-            <label>Default match_id</label>
-            <input id="defMatchId" type="text" placeholder="e.g. 2012171594614190080"/>
-          </div>
-        </div>
-
-        <div class="hint">
-          This page forces your requested preview/output order and ensures these columns exist even when they are null.
-          Arrays such as <span class="kbd">player_stats_kill_info</span> and
-          <span class="kbd">player_stats_weapon_usages</span> are kept as JSON strings when uploaded.
         </div>
 
         <div class="row">
@@ -420,7 +401,7 @@
             <div class="colhd">
               <div style="display:flex;flex-direction:column;gap:2px">
                 <div style="font-size:12px">Columns</div>
-                <div class="small">Include / rename before upload</div>
+                <div class="small">Include / rename before export or upload</div>
               </div>
               <div style="display:flex;gap:8px">
                 <button class="btn" id="btnAll">All</button>
@@ -450,7 +431,7 @@
               <div class="colhd">
                 <div class="auth-meta">
                   <div style="font-size:12px">Auth identity</div>
-                  <div class="small">Optional, but useful when RLS requires authentication.</div>
+                  <div class="small">Used to optionally fill auth_user_id / auth_email.</div>
                 </div>
                 <div class="pill" id="authPill">
                   <span class="dot neutral"></span><span id="authText">Anon</span>
@@ -475,13 +456,6 @@
                   <button class="btn" id="btnSignUp">Sign up</button>
                   <button class="btn bad" id="btnSignOut">Sign out</button>
                 </div>
-
-                <div class="row" style="margin-top:10px">
-                  <div class="field">
-                    <label>Attach signed-in user id to column (optional)</label>
-                    <input id="authUserCol" type="text" placeholder="e.g. created_by"/>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -505,8 +479,8 @@
                 <div class="checkrow">
                   <input id="schemaGuard" type="checkbox" checked />
                   <div>
-                    <div style="font-size:12px">Only include columns from the exact requested list + timestamps.</div>
-                    <div class="small">Useful for ff_player_stats_raw.</div>
+                    <div style="font-size:12px">Only include columns from the attached CSV header + timestamps.</div>
+                    <div class="small">id is kept unselected by default.</div>
                   </div>
                 </div>
               </div>
@@ -515,7 +489,7 @@
             <div class="row">
               <div class="field">
                 <label>On conflict (Upsert only)</label>
-                <input id="sbConflict" type="text" value="match_id,team_id,player_stats_account_id"/>
+                <input id="sbConflict" type="text" value="duplicate_key"/>
               </div>
             </div>
 
@@ -524,8 +498,8 @@
                 <label>Chunk size</label>
                 <select id="sbChunk">
                   <option value="100">100</option>
-                  <option value="250">250</option>
-                  <option value="500" selected>500</option>
+                  <option value="250" selected>250</option>
+                  <option value="500">500</option>
                   <option value="1000">1000</option>
                 </select>
               </div>
@@ -535,18 +509,6 @@
                   <option value="all" selected>All parsed rows</option>
                   <option value="preview">Preview rows only</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="field" style="min-width:220px">
-                <label>Auto timestamps</label>
-                <div class="checkrow">
-                  <input id="autoTimestamps" type="checkbox" checked />
-                  <div>
-                    <div style="font-size:12px">Add created_at and updated_at on upload</div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -583,50 +545,47 @@
 <script>
   const $ = (id) => document.getElementById(id);
 
-  const REQUESTED_OUTPUT_COLS = [
-    "match_id","MatchNumber","Mode","Tournament","Stage","Year","Week","Day",
-    "booyah","eliminated_team_name","final","is_double_kill_score","is_eliminated","is_focus",
-    "kill_count","killing_score",
-    "player_stats_account_id","player_stats_alok_heal_hP","player_stats_assists","player_stats_avatar_id",
-    "player_stats_bag_inv","player_stats_be_killed_time","player_stats_chrono_block_damage",
-    "player_stats_clothes_skin_headwear","player_stats_clothes_skin_pants","player_stats_clothes_skin_shoes","player_stats_clothes_skin_top",
-    "player_stats_coordinate_info_x_coordinate","player_stats_coordinate_info_y_coordinate",
-    "player_stats_damage","player_stats_dragon_grenade_kill","player_stats_enable_emulator_check",
-    "player_stats_grenade_kill","player_stats_grenade_use","player_stats_headshot_killtimes","player_stats_headshots",
-    "player_stats_helmet_inv","player_stats_hits","player_stats_hp_added",
-    "player_stats_hp_info_current_hp","player_stats_hp_info_current_shield_hp","player_stats_hp_info_total_hp","player_stats_hp_info_total_shield_hp",
-    "player_stats_ice_grenade_kill","player_stats_icewall_destroyed_times","player_stats_icewall_use",
-    "player_stats_is_in_bomb_zone","player_stats_is_in_safe_zone","player_stats_kill_distance","player_stats_kill_info",
-    "player_stats_kills","player_stats_knock_down","player_stats_knock_down_damage_info","player_stats_knockdown_real_damage",
-    "player_stats_leg_hits","player_stats_loadouts","player_stats_medkit_use","player_stats_moving_distance",
-    "player_stats_nb_skill_usages","player_stats_nickname","player_stats_oil_kill","player_stats_pet_skill_id",
-    "player_stats_pet_skill_name","player_stats_player_state","player_stats_rescue_times","player_stats_revive_teammate_nums",
-    "player_stats_revive_teammate_times","player_stats_revived_times","player_stats_shoots","player_stats_skill_autoflightbomb_hit_num",
-    "player_stats_skill_clu_scan_nums","player_stats_skill_dimitri_revived_nums",
-    "player_stats_skill_ids_0","player_stats_skill_ids_1","player_stats_skill_ids_2","player_stats_skill_ids_3",
-    "player_stats_skill_info","player_stats_skill_kenta_reduce_damage","player_stats_skill_markicewall_damage",
-    "player_stats_skill_resist_exploded_num","player_stats_skill_silence_num","player_stats_skill_sonia_fatal_revival_nums",
-    "player_stats_skill_villain_damage","player_stats_skill_villain_recover","player_stats_skyler_ice_wall_destroy",
-    "player_stats_survival_time","player_stats_torso_hits","player_stats_vehicle_kill","player_stats_vehicle_move_distance",
-    "player_stats_vest_inv","player_stats_weapon_skin_ids","player_stats_weapon_usages",
-    "ranking_score","team_id","team_name","win_rate"
+  const SERVER_OUTPUT_COLS = [
+    "id","match_id","Mode","Tournament","Stage","Year","Week","Day","MatchNumber",
+    "booyah","eliminated_team_name","final","is_double_kill_score","is_eliminated","is_focus","kill_count","killing_score",
+    "player_stats_account_id","player_stats_alok_heal_hP","player_stats_assists","player_stats_avatar_id","player_stats_bag_inv",
+    "player_stats_be_killed_time","player_stats_chrono_block_damage","player_stats_clothes_skin_headwear","player_stats_clothes_skin_pants",
+    "player_stats_clothes_skin_shoes","player_stats_clothes_skin_top","player_stats_coordinate_info_x_coordinate",
+    "player_stats_coordinate_info_y_coordinate","player_stats_damage","player_stats_dragon_grenade_kill",
+    "player_stats_enable_emulator_check","player_stats_grenade_kill","player_stats_grenade_use","player_stats_headshot_killtimes",
+    "player_stats_headshots","player_stats_helmet_inv","player_stats_hits","player_stats_hp_added","player_stats_hp_info_current_hp",
+    "player_stats_hp_info_current_shield_hp","player_stats_hp_info_total_hp","player_stats_hp_info_total_shield_hp",
+    "player_stats_ice_grenade_kill","player_stats_icewall_destroyed_times","player_stats_icewall_use","player_stats_is_in_bomb_zone",
+    "player_stats_is_in_safe_zone","player_stats_kill_distance","player_stats_kill_info","player_stats_kill_info_kill_distance",
+    "player_stats_kill_info_kill_timestamp","player_stats_kill_info_killer_id","player_stats_kill_info_player_killed_id",
+    "player_stats_kill_info_weapon_used_id","player_stats_kills","player_stats_knock_down","player_stats_knock_down_damage_info",
+    "player_stats_knock_down_damage_info_account_id","player_stats_knock_down_damage_info_damage",
+    "player_stats_knock_down_damage_info_damage_type","player_stats_knock_down_damage_info_nickname",
+    "player_stats_knock_down_damage_info_time_ms","player_stats_knockdown_real_damage","player_stats_leg_hits",
+    "player_stats_loadouts","player_stats_medkit_use","player_stats_moving_distance","player_stats_nb_skill_usages",
+    "player_stats_nickname","player_stats_oil_kill","player_stats_pet_skill_id","player_stats_pet_skill_name",
+    "player_stats_player_state","player_stats_rescue_times","player_stats_revive_teammate_nums","player_stats_revive_teammate_times",
+    "player_stats_revived_times","player_stats_shoots","player_stats_skill_autoflightbomb_hit_num","player_stats_skill_clu_scan_nums",
+    "player_stats_skill_dimitri_revived_nums","player_stats_skill_ids_0","player_stats_skill_ids_1","player_stats_skill_ids_2",
+    "player_stats_skill_ids_3","player_stats_skill_info_active_count","player_stats_skill_info_skill_active",
+    "player_stats_skill_info_skill_id","player_stats_skill_info_skill_name","player_stats_skill_kenta_reduce_damage",
+    "player_stats_skill_markicewall_damage","player_stats_skill_resist_exploded_num","player_stats_skill_silence_num",
+    "player_stats_skill_sonia_fatal_revival_nums","player_stats_skill_villain_damage","player_stats_skill_villain_recover",
+    "player_stats_skyler_ice_wall_destroy","player_stats_survival_time","player_stats_torso_hits","player_stats_vehicle_kill",
+    "player_stats_vehicle_move_distance","player_stats_vest_inv","player_stats_weapon_skin_ids","player_stats_weapon_usages",
+    "player_stats_weapon_usages_damage","player_stats_weapon_usages_headshots","player_stats_weapon_usages_hits",
+    "player_stats_weapon_usages_kills","player_stats_weapon_usages_shoots","player_stats_weapon_usages_weapon_id",
+    "player_stats_weapon_usages_weapon_name","ranking_score","team_id","team_name","win_rate","created_at","updated_at",
+    "owner_id","damage","auth_user_id","auth_email","snapshot_id","pulled_at","row_data","response_hash","duplicate_key","data_source"
   ];
 
-  const REQUESTED_OUTPUT_COL_SET = new Set(REQUESTED_OUTPUT_COLS);
-
-  const FF_PLAYER_STATS_RAW_SCHEMA = new Set([
-    "id",
-    ...REQUESTED_OUTPUT_COLS,
-    "created_at",
-    "updated_at"
-  ]);
+  const OUTPUT_COL_SET = new Set(SERVER_OUTPUT_COLS);
 
   let RAW = null;
-  let BASE_RECORDS = [];
-  let DETECTED_PATHS = [];
   let ROWS = [];
   let COLS = [];
   let COLCFG = {};
+  let LAST_META = null;
 
   let SB = null;
   let SB_URL = "";
@@ -650,9 +609,7 @@
     $("authMeta").textContent = meta || "";
   }
 
-  function setStatus(id, msg){
-    $(id).textContent = msg;
-  }
+  function setStatus(id, msg){ $(id).textContent = msg; }
 
   function safeString(v){
     if (v === null || v === undefined) return "";
@@ -661,46 +618,34 @@
     return JSON.stringify(v);
   }
 
-  function isPlainObject(x){
-    return x && typeof x === "object" && !Array.isArray(x);
+  function isPlainObject(value){
+    return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 
-  function isPrimitive(x){
-    return x === null || x === undefined || ["string","number","boolean"].includes(typeof x);
-  }
-
-  function looksLikeRootMatchPayload(v){
-    return !!(v && typeof v === "object" && !Array.isArray(v) && v.match && Array.isArray(v.team_stats));
-  }
-
-  function parseYearMaybe(v){
-    const s = (v ?? "").toString().trim();
-    if(!s) return null;
-    return /^[0-9]{4}$/.test(s) ? parseInt(s, 10) : s;
-  }
-
-  function parseIntMaybe(v){
-    const s = (v ?? "").toString().trim();
-    if(!s) return null;
-    return /^[0-9]+$/.test(s) ? parseInt(s, 10) : s;
+  function isScalar(value){
+    return value === null || value === undefined || typeof value === "string" || typeof value === "number" || typeof value === "boolean";
   }
 
   function toDbSafeKey(key){
     let s = String(key ?? "").trim();
     if(!s) return s;
-    s = s.replace(/\[(\d+)\]/g, "_$1_");
-    s = s.replace(/\./g, "_");
-    s = s.replace(/[^a-zA-Z0-9_]/g, "_");
-    s = s.replace(/_+/g, "_");
-    s = s.replace(/^_+|_+$/g, "");
+    s = s.replace(/[^a-zA-Z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
     if(/^\d/.test(s)) s = "c_" + s;
-    if(!s) s = "col";
-    return s;
+    return s || "col";
   }
 
-  function shouldExplodePrimitiveArrayKey(key){
-    const last = String(key || "").split(".").pop();
-    return last === "skill_ids" || last === "skillIds";
+  function parseOptionalInteger(value){
+    const raw = String(value ?? "").trim();
+    if(!raw) return null;
+    const num = Number(raw);
+    return Number.isInteger(num) ? num : null;
+  }
+
+  function parseYearMaybe(value){
+    const raw = String(value ?? "").trim();
+    if(!raw) return null;
+    const num = Number(raw);
+    return Number.isInteger(num) ? num : raw;
   }
 
   function getByPath(root, path){
@@ -714,396 +659,326 @@
     return cur;
   }
 
-  function setByPath(root, path, value){
-    const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-    if(!parts.length) return;
-    let cur = root;
-    for(let i=0;i<parts.length-1;i++){
-      const p = parts[i];
-      if(cur[p] == null || typeof cur[p] !== "object") cur[p] = {};
-      cur = cur[p];
-    }
-    cur[parts[parts.length-1]] = value;
-  }
-
-  function deleteByPath(root, path){
-    const parts = path.replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-    if(!parts.length) return;
-    let cur = root;
-    for(let i=0;i<parts.length-1;i++){
-      const p = parts[i];
-      if(cur == null || typeof cur !== "object") return;
-      cur = cur[p];
-    }
-    if(cur && typeof cur === "object") delete cur[parts[parts.length-1]];
-  }
-
-  function deepCloneJSON(x){
-    return JSON.parse(JSON.stringify(x));
-  }
-
-  function getUtcDatePartsFromUnixSeconds(sec){
-    if(!sec && sec !== 0) return null;
-    const d = new Date(Number(sec) * 1000);
-    if (Number.isNaN(d.getTime())) return null;
-    const year = d.getUTCFullYear();
-    const start = new Date(Date.UTC(year, 0, 1));
-    const dayOfYear = Math.floor((d - start) / 86400000) + 1;
-    const week = Math.ceil(dayOfYear / 7);
-    return {
-      year,
-      week,
-      day: `D${d.getUTCDay() === 0 ? 7 : d.getUTCDay()}`
-    };
-  }
-
   function inferMatchIdFromRaw(raw){
     if(!raw) return null;
     if(raw.match_id) return String(raw.match_id);
     if(raw.matchId) return String(raw.matchId);
-    const m1 = getByPath(raw, "match.match_id"); if(m1) return String(m1);
-    const m2 = getByPath(raw, "match.matchId"); if(m2) return String(m2);
+    const a = getByPath(raw, "match.match_id");
+    if(a !== undefined && a !== null && a !== "") return String(a);
     return null;
   }
 
-  function inferMatchIdFromRecord(rec){
-    if(!rec || typeof rec !== "object") return null;
-    if(rec.match_id) return String(rec.match_id);
-    const a = getByPath(rec, "match.match_id"); if(a) return String(a);
-    return null;
+  function getUtcDatePartsFromUnixSeconds(sec){
+    if(sec === null || sec === undefined || sec === "") return null;
+    const n = Number(sec);
+    if(!Number.isFinite(n)) return null;
+    const d = new Date(n * 1000);
+    if(Number.isNaN(d.getTime())) return null;
+    const year = d.getUTCFullYear();
+    const start = new Date(Date.UTC(year, 0, 1));
+    const dayOfYear = Math.floor((d - start) / 86400000) + 1;
+    const week = Math.ceil(dayOfYear / 7);
+    const day = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+    return { year, week, day };
   }
 
-  function findFirstArrayOfObjects(root){
-    const q = [{v: root, path: ""}];
-    const seen = new Set();
-    while(q.length){
-      const {v, path} = q.shift();
-      if(!v || typeof v !== "object") continue;
-      if(seen.has(v)) continue;
-      seen.add(v);
+  function normalizeMode(value){
+    const v = String(value || "br").trim().toLowerCase();
+    return v === "cs" ? "cs" : "br";
+  }
 
-      if(Array.isArray(v) && v.length && isPlainObject(v[0])){
-        return {arr: v, path: path || "(root)"};
-      }
-      if(Array.isArray(v)){
-        for(let i=0;i<Math.min(v.length, 6);i++){
-          q.push({v: v[i], path: path ? `${path}[${i}]` : `[${i}]`});
+  function normalizeCenter(value){
+    const v = String(value || "sg").trim().toLowerCase();
+    return ["sg","ind","us"].includes(v) ? v : "sg";
+  }
+
+  function normalizeDataSource(value){
+    const v = String(value || "garena").trim().toLowerCase();
+    return v === "tournament" ? "tournament" : "garena";
+  }
+
+  function buildEndpoint(center, mode, matchId, dataSource, tournamentApiUrl){
+    const baseMap = {
+      sg: "https://suez.garenanow.com",
+      ind: "https://suez-ind.garenanow.com",
+      us: "https://suez-us.garenanow.com"
+    };
+    if(dataSource === "tournament") return tournamentApiUrl || "http://148.153.174.68:28461/api/GetMatchStats";
+    const base = baseMap[center] || baseMap.sg;
+    return `${base}/game/freefire/tidy/v1/livematch/${mode}/${matchId}`;
+  }
+
+  function normalizeScalarValue(value){
+    if(value === undefined || value === null) return null;
+    if(typeof value === "boolean") return value;
+    if(typeof value === "number") return Number.isFinite(value) ? value : null;
+    if(typeof value === "string"){
+      const trimmed = value.trim();
+      if(trimmed === "") return null;
+      const numericPattern = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
+      if(numericPattern.test(trimmed)){
+        const isLongIntegerId = /^\d{15,}$/.test(trimmed);
+        if(!isLongIntegerId){
+          const num = Number(trimmed);
+          if(Number.isFinite(num)) return num;
         }
-      }else{
-        for(const k of Object.keys(v)){
-          q.push({v: v[k], path: path ? `${path}.${k}` : k});
-        }
       }
+      return value;
     }
-    return {arr: null, path: ""};
+    return String(value);
   }
 
-  function detectArrayObjectPaths(records, opts={}){
-    const maxDepth = opts.maxDepth ?? 7;
-    const maxPaths = opts.maxPaths ?? 80;
-    const sampleN  = opts.sampleN  ?? 10;
+  function normalizeValue(value){
+    if(value === undefined || value === null) return null;
+    if(isScalar(value)) return normalizeScalarValue(value);
+    if(Array.isArray(value)){
+      if(value.every(isScalar)){
+        return value.filter(v => v !== undefined && v !== null).map(v => String(v)).join(" | ");
+      }
+      return JSON.stringify(value);
+    }
+    if(isPlainObject(value)) return JSON.stringify(value);
+    return String(value);
+  }
 
-    const paths = new Set();
-    const sample = (records || []).slice(0, sampleN).filter(isPlainObject);
+  function flattenObjectServer(source, prefix = "", output = {}){
+    if(!isPlainObject(source)) return output;
+    for(const [key, value] of Object.entries(source)){
+      const cleanKey = prefix ? `${prefix}_${key}` : key;
+      if(isPlainObject(value)){
+        flattenObjectServer(value, cleanKey, output);
+        continue;
+      }
+      if(Array.isArray(value)){
+        output[cleanKey] = normalizeValue(value);
+        if(value.every(isScalar)){
+          value.forEach((item, index) => {
+            output[`${cleanKey}_${index}`] = normalizeScalarValue(item);
+          });
+        }
+        continue;
+      }
+      output[cleanKey] = normalizeValue(value);
+    }
+    return output;
+  }
 
-    function visit(node, path, depth){
-      if(paths.size >= maxPaths) return;
-      if(depth > maxDepth) return;
-      if(node == null || typeof node !== "object") return;
+  function looksLikePlayerObject(obj){
+    if(!isPlainObject(obj)) return false;
+    return Boolean(
+      obj.account_id !== undefined || obj.nickname !== undefined || obj.kills !== undefined || obj.damage !== undefined ||
+      obj.weapon_usages !== undefined || obj.skill_ids !== undefined || obj.skill_info !== undefined ||
+      obj.pet_skill_id !== undefined || obj.player_state !== undefined || obj.shoots !== undefined || obj.hits !== undefined ||
+      obj.headshots !== undefined
+    );
+  }
 
+  function looksLikePlayerArray(key, value){
+    if(!Array.isArray(value) || value.length === 0) return false;
+    const lowerKey = String(key || "").toLowerCase();
+    const keyLooksRight =
+      lowerKey === "player_stats" || lowerKey === "playerstats" || lowerKey === "players" ||
+      lowerKey === "player_list" || lowerKey === "playerlist" || lowerKey === "player_stat" ||
+      lowerKey.includes("player_stats") || lowerKey.includes("players");
+    if(!keyLooksRight) return false;
+    return value.some(looksLikePlayerObject);
+  }
+
+  function removePlayerArrays(obj){
+    const copy = {};
+    for(const [key, value] of Object.entries(obj || {})){
+      if(looksLikePlayerArray(key, value)) continue;
+      copy[key] = value;
+    }
+    return copy;
+  }
+
+  function buildDuplicateKey(row, meta){
+    const accountId = row.player_stats_account_id || row.player_stats_nickname || "unknown_player";
+    const team = row.team_id || row.team_name || "unknown_team";
+    return [String(meta.matchId || ""), String(meta.modeLower || ""), String(meta.center || ""), String(meta.dataSource || ""), String(team), String(accountId)].join("|");
+  }
+
+  function addCommonAliases(row, meta){
+    row.match_id = String(meta.matchId || "");
+    row.Mode = meta.modeUpper;
+    row.Tournament = meta.tournament || null;
+    row.Stage = meta.stage || null;
+    row.Year = meta.year ?? null;
+    row.Week = meta.week ?? null;
+    row.Day = meta.day ?? null;
+    row.MatchNumber = meta.matchNumber ?? null;
+    row.snapshot_id = meta.snapshotId ?? null;
+    row.pulled_at = meta.pulledAt || null;
+    row.response_hash = meta.responseHash || null;
+    row.data_source = meta.dataSource || null;
+    row.created_at = meta.createdAt || meta.pulledAt || null;
+    row.updated_at = meta.updatedAt || meta.pulledAt || null;
+    row.owner_id = meta.ownerId || null;
+    row.auth_user_id = meta.authUserId || null;
+    row.auth_email = meta.authEmail || null;
+    row.damage = meta.damageTopLevel ?? null;
+    return row;
+  }
+
+  function extractPlayerStatRows(responseJson, meta){
+    const rows = [];
+    const seen = new WeakSet();
+
+    function walk(node, inheritedContext = {}){
       if(Array.isArray(node)){
-        for(let i=0;i<Math.min(node.length, 3);i++) visit(node[i], path, depth+1);
+        for(const item of node) walk(item, inheritedContext);
         return;
       }
+      if(!isPlainObject(node)) return;
+      if(seen.has(node)) return;
+      seen.add(node);
 
-      for(const [k, v] of Object.entries(node)){
-        const nextPath = path ? `${path}.${k}` : k;
-        if(Array.isArray(v)){
-          const firstObj = v.find(isPlainObject);
-          if(firstObj){
-            paths.add(nextPath);
-            visit(firstObj, nextPath, depth+1);
-          } else {
-            for(let i=0;i<Math.min(v.length, 3);i++) visit(v[i], nextPath, depth+1);
-          }
-        } else if(isPlainObject(v)){
-          visit(v, nextPath, depth+1);
+      const nodeContext = flattenObjectServer(removePlayerArrays(node));
+      const currentContext = { ...inheritedContext, ...nodeContext };
+
+      for(const [key, value] of Object.entries(node)){
+        if(!looksLikePlayerArray(key, value)) continue;
+        for(const player of value){
+          if(!looksLikePlayerObject(player)) continue;
+          const row = { ...currentContext };
+          flattenObjectServer(player, "player_stats", row);
+          addCommonAliases(row, meta);
+          row.duplicate_key = buildDuplicateKey(row, meta);
+          row.row_data = {
+            ...row,
+            mode: meta.modeLower,
+            center: meta.center,
+            endpoint: meta.endpoint,
+            match_number: meta.matchNumber,
+            tournament: meta.tournament,
+            stage: meta.stage,
+            year: meta.year,
+            week: meta.week,
+            day: meta.day,
+            target_id: null
+          };
+          rows.push(row);
+        }
+      }
+
+      for(const [key, value] of Object.entries(node)){
+        if(looksLikePlayerArray(key, value)) continue;
+        if(isPlainObject(value) || Array.isArray(value)) walk(value, currentContext);
+      }
+    }
+
+    walk(responseJson, {});
+
+    if(rows.length === 0 && Array.isArray(responseJson)){
+      for(const item of responseJson){
+        if(isPlainObject(item) && (item.player_stats_account_id !== undefined || item.player_stats_nickname !== undefined)){
+          const row = flattenObjectServer(item);
+          addCommonAliases(row, meta);
+          row.duplicate_key = buildDuplicateKey(row, meta);
+          row.row_data = { ...row, mode: meta.modeLower, center: meta.center, endpoint: meta.endpoint };
+          rows.push(row);
         }
       }
     }
 
-    for(const rec of sample) visit(rec, "", 0);
-
-    const out = Array.from(paths);
-    out.sort((a,b)=>{
-      const ap = a.includes("player_stats") ? 0 : 1;
-      const bp = b.includes("player_stats") ? 0 : 1;
-      if(ap !== bp) return ap - bp;
-      return a.localeCompare(b);
-    });
-    return out;
+    return rows;
   }
 
-  function explodePathsInputList(){
-    return ($("explodePaths").value || "").split(",").map(s => s.trim()).filter(Boolean);
-  }
-
-  function renderExplodePickOptions(paths){
-    const sel = $("explodePick");
-    const current = sel.value;
-    while(sel.options.length > 2) sel.remove(2);
-    for(const p of (paths || [])){
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = `Explode: ${p}`;
-      sel.appendChild(opt);
+  async function sha256(text){
+    try{
+      if(!window.crypto?.subtle) return "";
+      const bytes = new TextEncoder().encode(String(text || ""));
+      const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+      return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    }catch(_e){
+      return "";
     }
-    const values = new Set(Array.from(sel.options).map(o => o.value));
-    sel.value = values.has(current) ? current : "__input__";
   }
 
-  function explodeObjects(records, explodePaths){
-    let current = records;
-    for(const rawP of explodePaths){
-      const p = rawP.trim();
-      if(!p) continue;
-      const next = [];
-      for(const rec of current){
-        if(!isPlainObject(rec)){
-          next.push(rec);
-          continue;
-        }
-        const arr = getByPath(rec, p);
-        if(!Array.isArray(arr) || !arr.length){
-          next.push(rec);
-          continue;
-        }
-        const objectsOnly = arr.filter(isPlainObject);
-        if(!objectsOnly.length){
-          next.push(rec);
-          continue;
-        }
-        for(const item of objectsOnly){
-          const cloned = deepCloneJSON(rec);
-          deleteByPath(cloned, p);
-          setByPath(cloned, p, item);
-          next.push(cloned);
-        }
-      }
-      current = next;
+  async function getSignedInIdentity(){
+    try{
+      const sb = getSbClient();
+      if(!sb) return { userId: null, email: null };
+      const { data } = await sb.auth.getSession();
+      return {
+        userId: data?.session?.user?.id || null,
+        email: data?.session?.user?.email || null
+      };
+    }catch(_e){
+      return { userId: null, email: null };
     }
-    return current;
   }
 
-  function flattenObject(obj, prefix="", out={}, arrMode="keep"){
-    for(const [k, v] of Object.entries(obj || {})){
-      const key = prefix ? `${prefix}.${k}` : k;
+  async function buildMeta(raw, rawText){
+    const inferred = inferMatchIdFromRaw(raw);
+    const matchId = String($("defMatchId").value || inferred || "").trim();
+    const modeUpper = String($("defMode").value || "BR").trim().toUpperCase();
+    const modeLower = normalizeMode(modeUpper);
+    const dataSource = normalizeDataSource($("defDataSource").value);
+    const center = normalizeCenter($("defCenter").value);
+    const tournamentApiUrl = String($("defTournamentApiUrl").value || "").trim() || "http://148.153.174.68:28461/api/GetMatchStats";
+    const tournament = String($("defTournament").value || "").trim() || null;
+    const stage = String($("defStage").value || "").trim() || null;
+    const matchNumber = parseOptionalInteger($("defMatchNumber").value);
+    const snapshotId = parseOptionalInteger($("defSnapshotId").value);
 
-      if (v === null || v === undefined){
-        out[key] = null;
-      } else if (Array.isArray(v)){
-        if (v.length === 0){
-          out[key] = [];
-        } else if (v.every(isPrimitive)){
-          if(shouldExplodePrimitiveArrayKey(key)){
-            const cap = 50;
-            v.slice(0, cap).forEach((item, idx) => out[`${key}[${idx}]`] = item);
-            if(v.length > cap) out[`${key}_truncated`] = v.length;
-          } else {
-            out[key] = v;
-          }
-        } else if (v.every(isPlainObject) && arrMode === "index"){
-          v.forEach((item, idx)=> flattenObject(item, `${key}[${idx}]`, out, arrMode));
-        } else {
-          out[key] = v;
-        }
-      } else if (isPlainObject(v)){
-        flattenObject(v, key, out, arrMode);
-      } else {
-        out[key] = v;
-      }
-    }
-    return out;
+    const derived = getUtcDatePartsFromUnixSeconds(getByPath(raw, "match.create_time"));
+    const year = parseYearMaybe($("defYear").value) ?? derived?.year ?? null;
+    const week = parseOptionalInteger($("defWeek").value) ?? derived?.week ?? null;
+    const day = parseOptionalInteger($("defDay").value) ?? derived?.day ?? null;
+
+    const pulledAt = String($("defPulledAt").value || "").trim() || new Date().toISOString();
+    const createdAt = pulledAt;
+    const updatedAt = pulledAt;
+
+    const endpoint = buildEndpoint(center, modeLower, matchId, dataSource, tournamentApiUrl);
+    const responseHash = await sha256(rawText);
+    const { userId, email } = await getSignedInIdentity();
+
+    return {
+      matchId,
+      modeUpper,
+      modeLower,
+      dataSource,
+      center,
+      endpoint,
+      tournament,
+      stage,
+      year,
+      week,
+      day,
+      matchNumber,
+      snapshotId,
+      pulledAt,
+      createdAt,
+      updatedAt,
+      responseHash,
+      authUserId: userId,
+      authEmail: email,
+      ownerId: null,
+      damageTopLevel: null
+    };
   }
 
-  function ensureRequestedColumns(rows){
-    return rows.map(row => {
+  function coerceOutputValue(value){
+    if(value === undefined) return null;
+    if(value === null) return null;
+    if(isPlainObject(value) || Array.isArray(value)) return JSON.stringify(value);
+    return value;
+  }
+
+  function finalizeRows(serverRows){
+    return serverRows.map((row) => {
       const out = {};
-      for (const col of REQUESTED_OUTPUT_COLS) {
-        out[col] = Object.prototype.hasOwnProperty.call(row, col) ? row[col] : null;
-      }
-      for (const [k, v] of Object.entries(row || {})) {
-        if (!Object.prototype.hasOwnProperty.call(out, k)) out[k] = v;
+      for(const col of SERVER_OUTPUT_COLS){
+        out[col] = Object.prototype.hasOwnProperty.call(row, col) ? coerceOutputValue(row[col]) : null;
       }
       return out;
     });
   }
 
-  function orderedColumnsFromRows(rows){
-    const extras = new Set();
-    for (const row of rows) {
-      for (const key of Object.keys(row || {})) {
-        if (!REQUESTED_OUTPUT_COL_SET.has(key)) extras.add(key);
-      }
-    }
-    return [...REQUESTED_OUTPUT_COLS, ...Array.from(extras).sort((a,b) => a.localeCompare(b))];
-  }
-
-  function promoteTeamStatsForFFPlayerStatsRaw(rec){
-    if(!isPlainObject(rec)) return rec;
-
-    const ts = rec.team_stats;
-    if(isPlainObject(ts)){
-      if(isPlainObject(ts.player_stats) && !isPlainObject(rec.player_stats)){
-        rec.player_stats = ts.player_stats;
-      }
-      if("player_stats" in ts) delete ts.player_stats;
-      for(const [k,v] of Object.entries(ts)){
-        if(!(k in rec)) rec[k] = v;
-      }
-      delete rec.team_stats;
-    }
-
-    const ps = rec.player_stats;
-    if(isPlainObject(ps)){
-      if (Object.prototype.hasOwnProperty.call(ps, "account_id")) rec.player_stats_account_id = ps.account_id;
-      if (Object.prototype.hasOwnProperty.call(ps, "alok_heal_hP")) rec.player_stats_alok_heal_hP = ps.alok_heal_hP;
-      if (Object.prototype.hasOwnProperty.call(ps, "assists")) rec.player_stats_assists = ps.assists;
-      if (Object.prototype.hasOwnProperty.call(ps, "avatar_id")) rec.player_stats_avatar_id = ps.avatar_id;
-      if (Object.prototype.hasOwnProperty.call(ps, "bag_inv")) rec.player_stats_bag_inv = ps.bag_inv;
-      if (Object.prototype.hasOwnProperty.call(ps, "be_killed_time")) rec.player_stats_be_killed_time = ps.be_killed_time;
-      if (Object.prototype.hasOwnProperty.call(ps, "chrono_block_damage")) rec.player_stats_chrono_block_damage = ps.chrono_block_damage;
-      if (Object.prototype.hasOwnProperty.call(ps, "damage")) rec.player_stats_damage = ps.damage;
-      if (Object.prototype.hasOwnProperty.call(ps, "dragon_grenade_kill")) rec.player_stats_dragon_grenade_kill = ps.dragon_grenade_kill;
-      if (Object.prototype.hasOwnProperty.call(ps, "enable_emulator_check")) rec.player_stats_enable_emulator_check = ps.enable_emulator_check;
-      if (Object.prototype.hasOwnProperty.call(ps, "grenade_kill")) rec.player_stats_grenade_kill = ps.grenade_kill;
-      if (Object.prototype.hasOwnProperty.call(ps, "grenade_use")) rec.player_stats_grenade_use = ps.grenade_use;
-      if (Object.prototype.hasOwnProperty.call(ps, "headshot_killtimes")) rec.player_stats_headshot_killtimes = ps.headshot_killtimes;
-      if (Object.prototype.hasOwnProperty.call(ps, "headshots")) rec.player_stats_headshots = ps.headshots;
-      if (Object.prototype.hasOwnProperty.call(ps, "helmet_inv")) rec.player_stats_helmet_inv = ps.helmet_inv;
-      if (Object.prototype.hasOwnProperty.call(ps, "hits")) rec.player_stats_hits = ps.hits;
-      if (Object.prototype.hasOwnProperty.call(ps, "hp_added")) rec.player_stats_hp_added = ps.hp_added;
-      if (Object.prototype.hasOwnProperty.call(ps, "ice_grenade_kill")) rec.player_stats_ice_grenade_kill = ps.ice_grenade_kill;
-      if (Object.prototype.hasOwnProperty.call(ps, "icewall_destroyed_times")) rec.player_stats_icewall_destroyed_times = ps.icewall_destroyed_times;
-      if (Object.prototype.hasOwnProperty.call(ps, "icewall_use")) rec.player_stats_icewall_use = ps.icewall_use;
-      if (Object.prototype.hasOwnProperty.call(ps, "is_in_bomb_zone")) rec.player_stats_is_in_bomb_zone = ps.is_in_bomb_zone;
-      if (Object.prototype.hasOwnProperty.call(ps, "is_in_safe_zone")) rec.player_stats_is_in_safe_zone = ps.is_in_safe_zone;
-      if (Object.prototype.hasOwnProperty.call(ps, "kill_distance")) rec.player_stats_kill_distance = ps.kill_distance;
-      if (Object.prototype.hasOwnProperty.call(ps, "kill_info")) rec.player_stats_kill_info = ps.kill_info;
-      if (Object.prototype.hasOwnProperty.call(ps, "kills")) rec.player_stats_kills = ps.kills;
-      if (Object.prototype.hasOwnProperty.call(ps, "knock_down")) rec.player_stats_knock_down = ps.knock_down;
-      if (Object.prototype.hasOwnProperty.call(ps, "knock_down_damage_info")) rec.player_stats_knock_down_damage_info = ps.knock_down_damage_info;
-      if (Object.prototype.hasOwnProperty.call(ps, "knockdown_real_damage")) rec.player_stats_knockdown_real_damage = ps.knockdown_real_damage;
-      if (Object.prototype.hasOwnProperty.call(ps, "leg_hits")) rec.player_stats_leg_hits = ps.leg_hits;
-      if (Object.prototype.hasOwnProperty.call(ps, "loadouts")) rec.player_stats_loadouts = ps.loadouts;
-      if (Object.prototype.hasOwnProperty.call(ps, "medkit_use")) rec.player_stats_medkit_use = ps.medkit_use;
-      if (Object.prototype.hasOwnProperty.call(ps, "moving_distance")) rec.player_stats_moving_distance = ps.moving_distance;
-      if (Object.prototype.hasOwnProperty.call(ps, "nb_skill_usages")) rec.player_stats_nb_skill_usages = ps.nb_skill_usages;
-      if (Object.prototype.hasOwnProperty.call(ps, "nickname")) rec.player_stats_nickname = ps.nickname;
-      if (Object.prototype.hasOwnProperty.call(ps, "oil_kill")) rec.player_stats_oil_kill = ps.oil_kill;
-      if (Object.prototype.hasOwnProperty.call(ps, "pet_skill_id")) rec.player_stats_pet_skill_id = ps.pet_skill_id;
-      if (Object.prototype.hasOwnProperty.call(ps, "pet_skill_name")) rec.player_stats_pet_skill_name = ps.pet_skill_name;
-      if (Object.prototype.hasOwnProperty.call(ps, "player_state")) rec.player_stats_player_state = ps.player_state;
-      if (Object.prototype.hasOwnProperty.call(ps, "rescue_times")) rec.player_stats_rescue_times = ps.rescue_times;
-      if (Object.prototype.hasOwnProperty.call(ps, "revive_teammate_nums")) rec.player_stats_revive_teammate_nums = ps.revive_teammate_nums;
-      if (Object.prototype.hasOwnProperty.call(ps, "revive_teammate_times")) rec.player_stats_revive_teammate_times = ps.revive_teammate_times;
-      if (Object.prototype.hasOwnProperty.call(ps, "revived_times")) rec.player_stats_revived_times = ps.revived_times;
-      if (Object.prototype.hasOwnProperty.call(ps, "shoots")) rec.player_stats_shoots = ps.shoots;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_autoflightbomb_hit_num")) rec.player_stats_skill_autoflightbomb_hit_num = ps.skill_autoflightbomb_hit_num;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_clu_scan_nums")) rec.player_stats_skill_clu_scan_nums = ps.skill_clu_scan_nums;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_dimitri_revived_nums")) rec.player_stats_skill_dimitri_revived_nums = ps.skill_dimitri_revived_nums;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_info")) rec.player_stats_skill_info = ps.skill_info;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_kenta_reduce_damage")) rec.player_stats_skill_kenta_reduce_damage = ps.skill_kenta_reduce_damage;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_markicewall_damage")) rec.player_stats_skill_markicewall_damage = ps.skill_markicewall_damage;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_resist_exploded_num")) rec.player_stats_skill_resist_exploded_num = ps.skill_resist_exploded_num;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_silence_num")) rec.player_stats_skill_silence_num = ps.skill_silence_num;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_sonia_fatal_revival_nums")) rec.player_stats_skill_sonia_fatal_revival_nums = ps.skill_sonia_fatal_revival_nums;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_villain_damage")) rec.player_stats_skill_villain_damage = ps.skill_villain_damage;
-      if (Object.prototype.hasOwnProperty.call(ps, "skill_villain_recover")) rec.player_stats_skill_villain_recover = ps.skill_villain_recover;
-      if (Object.prototype.hasOwnProperty.call(ps, "skyler_ice_wall_destroy")) rec.player_stats_skyler_ice_wall_destroy = ps.skyler_ice_wall_destroy;
-      if (Object.prototype.hasOwnProperty.call(ps, "survival_time")) rec.player_stats_survival_time = ps.survival_time;
-      if (Object.prototype.hasOwnProperty.call(ps, "torso_hits")) rec.player_stats_torso_hits = ps.torso_hits;
-      if (Object.prototype.hasOwnProperty.call(ps, "vehicle_kill")) rec.player_stats_vehicle_kill = ps.vehicle_kill;
-      if (Object.prototype.hasOwnProperty.call(ps, "vehicle_move_distance")) rec.player_stats_vehicle_move_distance = ps.vehicle_move_distance;
-      if (Object.prototype.hasOwnProperty.call(ps, "vest_inv")) rec.player_stats_vest_inv = ps.vest_inv;
-      if (Object.prototype.hasOwnProperty.call(ps, "weapon_skin_ids")) rec.player_stats_weapon_skin_ids = ps.weapon_skin_ids;
-      if (Object.prototype.hasOwnProperty.call(ps, "weapon_usages")) rec.player_stats_weapon_usages = ps.weapon_usages;
-
-      if (Array.isArray(ps.skill_ids)) {
-        rec.player_stats_skill_ids_0 = ps.skill_ids[0] ?? null;
-        rec.player_stats_skill_ids_1 = ps.skill_ids[1] ?? null;
-        rec.player_stats_skill_ids_2 = ps.skill_ids[2] ?? null;
-        rec.player_stats_skill_ids_3 = ps.skill_ids[3] ?? null;
-      }
-
-      if (isPlainObject(ps.clothes_skin)) {
-        rec.player_stats_clothes_skin_headwear = ps.clothes_skin.headwear ?? null;
-        rec.player_stats_clothes_skin_pants = ps.clothes_skin.pants ?? null;
-        rec.player_stats_clothes_skin_shoes = ps.clothes_skin.shoes ?? null;
-        rec.player_stats_clothes_skin_top = ps.clothes_skin.top ?? null;
-      }
-
-      if (isPlainObject(ps.coordinate_info)) {
-        rec.player_stats_coordinate_info_x_coordinate = ps.coordinate_info.x_coordinate ?? null;
-        rec.player_stats_coordinate_info_y_coordinate = ps.coordinate_info.y_coordinate ?? null;
-      }
-
-      if (isPlainObject(ps.hp_info)) {
-        rec.player_stats_hp_info_current_hp = ps.hp_info.current_hp ?? null;
-        rec.player_stats_hp_info_current_shield_hp = ps.hp_info.current_shield_hp ?? null;
-        rec.player_stats_hp_info_total_hp = ps.hp_info.total_hp ?? null;
-        rec.player_stats_hp_info_total_shield_hp = ps.hp_info.total_shield_hp ?? null;
-      }
-    }
-
-    return rec;
-  }
-
-  function normalizeValueForPreviewAndUpload(v){
-    if (v === undefined) return null;
-    if (v === null) return null;
-    if (Array.isArray(v) || isPlainObject(v)) return JSON.stringify(v);
-    return v;
-  }
-
-  function injectDefaultsIntoRecords(records){
-    const modeVal = ($("defMode").value ?? "").trim();
-    const tVal = ($("defTournament").value ?? "").trim();
-    const sVal = ($("defStage").value ?? "").trim();
-    let yVal = parseYearMaybe($("defYear").value);
-    let wVal = ($("defWeek").value ?? "").trim();
-    let dVal = ($("defDay").value ?? "").trim();
-    const mnVal = parseIntMaybe($("defMatchNumber").value);
-    const midVal = ($("defMatchId").value ?? "").trim();
-
-    return records.map(r => {
-      if(!isPlainObject(r)) return r;
-
-      const inferredId = inferMatchIdFromRecord(r);
-      if(!("match_id" in r) || r.match_id == null || r.match_id === "") r.match_id = inferredId || midVal || null;
-
-      const rawTs = getByPath(r, "match.create_time");
-      const derived = getUtcDatePartsFromUnixSeconds(rawTs);
-
-      if (!yVal && derived?.year) yVal = derived.year;
-      if (!wVal && derived?.week) wVal = `W${derived.week}`;
-      if (!dVal && derived?.day) dVal = derived.day;
-
-      if(!("Mode" in r)) r.Mode = modeVal || null;
-      if(!("Tournament" in r)) r.Tournament = tVal || null;
-      if(!("Stage" in r)) r.Stage = sVal || null;
-      if(!("Year" in r)) r.Year = yVal ?? null;
-      if(!("Week" in r)) r.Week = wVal || null;
-      if(!("Day" in r)) r.Day = dVal || null;
-      if(!("MatchNumber" in r)) r.MatchNumber = mnVal ?? null;
-
-      return r;
-    });
-  }
-
-  function updateMeta(){
-    $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`;
-  }
+  function updateMeta(){ $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`; }
 
   function getSelectedCols(){
     const keys = [];
@@ -1118,18 +993,16 @@
     return {keys, names};
   }
 
-  function isSchemaGuardActive(){
-    return $("schemaGuard").checked;
-  }
+  function isSchemaGuardActive(){ return $("schemaGuard").checked; }
 
   function applySchemaGuardToColCfg(){
-    if(!COLS.length) return;
-    if(!isSchemaGuardActive()) return;
+    if(!COLS.length || !isSchemaGuardActive()) return;
     for(const c of COLS){
       const cfg = COLCFG[c] ?? (COLCFG[c] = { include:true, name: toDbSafeKey(c) });
       const db = cfg.name || toDbSafeKey(c);
-      cfg.include = db !== "id" && FF_PLAYER_STATS_RAW_SCHEMA.has(db);
+      cfg.include = OUTPUT_COL_SET.has(db);
     }
+    if(COLCFG.id) COLCFG.id.include = false;
   }
 
   function renderColList(){
@@ -1144,35 +1017,28 @@
       const row = document.createElement("div");
       row.className = "colrow";
       row.innerHTML = `
-        <input type="checkbox" ${cfg.include ? "checked":""} aria-label="include"/>
+        <input type="checkbox" ${cfg.include ? "checked": ""} aria-label="include"/>
         <div class="k" title="${c}">${c}</div>
         <input type="text" value="${cfg.name}" aria-label="rename"/>
       `;
       const cb = row.querySelector('input[type="checkbox"]');
       const inp = row.querySelector('input[type="text"]');
-
-      cb.addEventListener("change", ()=>{
-        COLCFG[c].include = cb.checked;
-        renderTable();
-      });
-
+      cb.addEventListener("change", ()=>{ COLCFG[c].include = cb.checked; renderTable(); });
       inp.addEventListener("input", ()=>{
-        const val = (inp.value || "").trim();
-        COLCFG[c].name = val ? val : toDbSafeKey(c);
+        COLCFG[c].name = (inp.value || "").trim() || toDbSafeKey(c);
         if(isSchemaGuardActive()){
           applySchemaGuardToColCfg();
           renderColList();
         }
         renderTable();
       });
-
       box.appendChild(row);
     }
   }
 
   function renderTable(){
     const {keys, names} = getSelectedCols();
-    const max = parseInt($("maxRows").value,10);
+    const max = parseInt($("maxRows").value, 10);
     const previewRows = ROWS.slice(0, max);
     const thRow = $("theadRow");
     const tb = $("tbody");
@@ -1184,101 +1050,25 @@
     }
 
     thRow.innerHTML = "";
-    for(const n of names){
+    names.forEach((n) => {
       const th = document.createElement("th");
       th.textContent = n;
       thRow.appendChild(th);
-    }
+    });
 
     tb.innerHTML = "";
-    for(const r of previewRows){
+    previewRows.forEach((r) => {
       const tr = document.createElement("tr");
-      for(const k of keys){
+      keys.forEach((k) => {
         const td = document.createElement("td");
         td.textContent = safeString(r[k]);
         tr.appendChild(td);
-      }
+      });
       tb.appendChild(tr);
-    }
+    });
   }
 
-  function rebuildDataset(){
-    if(!BASE_RECORDS || !BASE_RECORDS.length){
-      ROWS = []; COLS = []; COLCFG = {};
-      updateMeta();
-      renderColList();
-      renderTable();
-      return;
-    }
-
-    const arrMode = $("arrMode").value || "keep";
-    const pick = $("explodePick").value || "";
-    let explodePaths = [];
-
-    if(pick === "__input__") explodePaths = explodePathsInputList();
-    else if(pick) explodePaths = [pick];
-    else explodePaths = [];
-
-    let shaped = BASE_RECORDS;
-    if(explodePaths.length){
-      try{
-        shaped = explodeObjects(BASE_RECORDS, explodePaths);
-      }catch(err){
-        setPill("bad","Explode failed");
-        setStatus("parseStatus", `Explode error:\n${err.message}`);
-        return;
-      }
-    }
-
-    shaped = shaped.map(promoteTeamStatsForFFPlayerStatsRaw);
-
-    let flat = [];
-    for(const rec of shaped){
-      if(isPlainObject(rec)){
-        const f = flattenObject(rec, "", {}, arrMode);
-        const norm = {};
-        for (const [k,v] of Object.entries(f)) norm[toDbSafeKey(k)] = normalizeValueForPreviewAndUpload(v);
-        flat.push(norm);
-      }else{
-        flat.push({value: normalizeValueForPreviewAndUpload(rec)});
-      }
-    }
-
-    flat = ensureRequestedColumns(flat);
-    ROWS = flat;
-    COLS = orderedColumnsFromRows(flat);
-
-    COLCFG = {};
-    for(const c of COLS){
-      COLCFG[c] = {
-        include: REQUESTED_OUTPUT_COL_SET.has(c),
-        name: toDbSafeKey(c)
-      };
-    }
-    if(COLCFG["id"]) COLCFG["id"].include = false;
-
-    applySchemaGuardToColCfg();
-    updateMeta();
-    renderColList();
-    renderTable();
-
-    const label = pick === "" ? "(base)" : (pick === "__input__" ? "(sequential input)" : `(explode: ${pick})`);
-    setPill("good","Parsed");
-    setStatus("parseStatus",
-`Parsed OK.
-Base rows: ${BASE_RECORDS.length}
-Current rows: ${ROWS.length} ${label}
-Columns: ${COLS.length}
-Explode choices: ${DETECTED_PATHS.length ? DETECTED_PATHS.join(", ") : "(none)"}
-Preview shows up to ${$("maxRows").value} rows.
-
-Alignment:
-- Promoted team_stats.* → root
-- Promoted team_stats.player_stats → player_stats.*
-- Forced requested output columns and order.`);
-  }
-
-  function buildFromJSON(){
+  async function buildFromJSON(){
     const txt = $("jsonText").value.trim();
     if(!txt){
       setPill("bad", "No JSON");
@@ -1290,120 +1080,79 @@ Alignment:
       RAW = JSON.parse(txt);
     }catch(e){
       setPill("bad", "Invalid JSON");
-      setStatus("parseStatus", "JSON parse error:\n" + e.message);
+      setStatus("parseStatus", `JSON parse error:\n${e.message}`);
       return;
     }
 
-    const inferred = inferMatchIdFromRaw(RAW);
-    if(inferred && !$("defMatchId").value.trim()) $("defMatchId").value = inferred;
+    const meta = await buildMeta(RAW, txt);
+    LAST_META = meta;
 
-    const path = $("pathText").value.trim();
-    let records = null;
-    let usedPath = "";
-
-    if(path){
-      const v = getByPath(RAW, path);
-      if(!Array.isArray(v)){
-        setPill("bad", "Path not array");
-        setStatus("parseStatus", `Path "${path}" did not resolve to an array.`);
-        return;
-      }
-      records = v;
-      usedPath = path;
-    }else{
-      if(Array.isArray(RAW)){
-        records = RAW;
-        usedPath = "(root array)";
-      } else if (looksLikeRootMatchPayload(RAW)) {
-        records = [RAW];
-        usedPath = "(root object: match + team_stats)";
-      } else {
-        const found = findFirstArrayOfObjects(RAW);
-        records = found.arr;
-        usedPath = found.path || "(none)";
-      }
-    }
-
-    if(!records || !records.length){
-      setPill("bad", "No records");
-      setStatus("parseStatus", `Could not find rows to tabulate.\nAuto-detected: ${usedPath}`);
+    if(!meta.matchId){
+      setPill("bad", "Missing match_id");
+      setStatus("parseStatus", "Could not infer match_id. Fill the match_id override field.");
       return;
     }
 
-    BASE_RECORDS = injectDefaultsIntoRecords(records.filter(r => r != null && isPlainObject(r)));
-
-    if($("autoExplode").checked){
-      DETECTED_PATHS = detectArrayObjectPaths(BASE_RECORDS, {maxDepth: 7, maxPaths: 80, sampleN: 10});
-      if(DETECTED_PATHS.length) $("explodePaths").value = DETECTED_PATHS.join(", ");
-      renderExplodePickOptions(DETECTED_PATHS);
-    } else {
-      DETECTED_PATHS = explodePathsInputList();
-      renderExplodePickOptions(DETECTED_PATHS);
+    const extracted = extractPlayerStatRows(RAW, meta);
+    if(!extracted.length){
+      setPill("bad", "No player rows");
+      setStatus("parseStatus", "No player_stats / players array found in the JSON payload.");
+      return;
     }
 
-    setPill("good", "Parsed base");
+    ROWS = finalizeRows(extracted);
+    COLS = [...SERVER_OUTPUT_COLS];
+    COLCFG = {};
+    COLS.forEach((c) => {
+      COLCFG[c] = { include: c !== "id", name: c };
+    });
+    applySchemaGuardToColCfg();
+    updateMeta();
+    renderColList();
+    renderTable();
+
+    setPill("good", "Parsed");
     setStatus("parseStatus",
-`Base parsed OK.
-Base rows: ${BASE_RECORDS.length}
-Records path: ${usedPath}
-
-Click Parse & Build Table again if you change explode settings.`);
-    rebuildDataset();
+`Parsed OK.
+Rows: ${ROWS.length}
+Columns: ${COLS.length}
+match_id: ${meta.matchId}
+Mode: ${meta.modeUpper}
+Data source: ${meta.dataSource}
+Center: ${meta.center}
+Endpoint: ${meta.endpoint}
+response_hash: ${meta.responseHash || "(unavailable)"}`);
   }
 
-  function setProgress(pct){
-    $("bar").style.width = `${Math.max(0, Math.min(100, pct))}%`;
-  }
+  function setProgress(pct){ $("bar").style.width = `${Math.max(0, Math.min(100, pct))}%`; }
 
-  function buildUploadRows(limitMode, opts={}){
+  function buildUploadRows(limitMode){
     const {keys, names} = getSelectedCols();
-    const sourceRows = limitMode === "preview" ? ROWS.slice(0, parseInt($("maxRows").value,10)) : ROWS;
-    const addTimestamps = $("autoTimestamps").checked;
-    const nowIso = new Date().toISOString();
-    const schemaActive = isSchemaGuardActive();
-    const userId = opts.userId || null;
-    const userCol = (opts.userCol || "").trim();
-
-    const outRows = sourceRows.map(row => {
+    const sourceRows = limitMode === "preview" ? ROWS.slice(0, parseInt($("maxRows").value, 10)) : ROWS;
+    return sourceRows.map((row) => {
       const out = {};
       keys.forEach((srcKey, i) => {
         let v = row[srcKey];
-        if (Array.isArray(v) || isPlainObject(v)) v = JSON.stringify(v);
+        if(isPlainObject(v) || Array.isArray(v)) v = JSON.stringify(v);
         out[names[i]] = v;
       });
-
-      if (addTimestamps) {
-        if (!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has("created_at")) out.created_at = nowIso;
-        if (!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has("updated_at")) out.updated_at = nowIso;
-      }
-
-      if (userId && userCol && (!schemaActive || FF_PLAYER_STATS_RAW_SCHEMA.has(userCol))) {
-        out[userCol] = userId;
-      }
-
       return out;
     });
-
-    return outRows;
   }
 
   function chunk(arr, size){
     const out = [];
-    for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i+size));
+    for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i + size));
     return out;
   }
 
   function formatSupabaseError(err, fallbackPrefix="Supabase error"){
     if(!err) return `${fallbackPrefix}: (unknown)`;
     const parts = [];
-    const msg = err?.message;
-    const code = err?.code;
-    const details = err?.details;
-    const hint = err?.hint;
-    if(msg) parts.push(`message: ${msg}`);
-    if(code) parts.push(`code: ${code}`);
-    if(details) parts.push(`details: ${details}`);
-    if(hint) parts.push(`hint: ${hint}`);
+    if(err?.message) parts.push(`message: ${err.message}`);
+    if(err?.code) parts.push(`code: ${err.code}`);
+    if(err?.details) parts.push(`details: ${err.details}`);
+    if(err?.hint) parts.push(`hint: ${err.hint}`);
     if(!parts.length) parts.push(String(err));
     return parts.join("\n");
   }
@@ -1412,12 +1161,10 @@ Click Parse & Build Table again if you change explode settings.`);
     const url = ($("sbUrl").value || "").trim();
     const key = ($("sbKey").value || "").trim();
     if(!url || !key) return null;
-
     if(SB && SB_URL === url && SB_KEY === key) return SB;
 
     SB_URL = url;
     SB_KEY = key;
-
     SB = supabase.createClient(url, key, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
@@ -1445,9 +1192,7 @@ Click Parse & Build Table again if you change explode settings.`);
     const session = data?.session || null;
     const user = session?.user || null;
     if(user){
-      const role = user.role || "authenticated";
-      const email = user.email || "(no email)";
-      setAuthPill("good", "Signed in", `${email} • ${role}\nuid: ${user.id}`);
+      setAuthPill("good", "Signed in", `${user.email || "(no email)"} • ${user.role || "authenticated"}\nuid: ${user.id}`);
     }else{
       setAuthPill("neutral", "Anon", "No active session.");
     }
@@ -1490,33 +1235,21 @@ Click Parse & Build Table again if you change explode settings.`);
       setStatus("upStatus", "Nothing to upload. Parse JSON first.");
       return;
     }
-
     const sb = getSbClient();
     if(!sb){
       setStatus("upStatus", "Fill Supabase URL + anon key first.");
       return;
     }
-
     const table = ($("sbTable").value || "").trim();
     if(!table){
       setStatus("upStatus", "Enter a table name first.");
       return;
     }
-
     const mode = ($("sbMode").value || "upsert").trim();
     const conflict = ($("sbConflict").value || "").trim();
     const limitMode = ($("sbRows").value || "all").trim();
-    const chunkSize = parseInt($("sbChunk").value || "500", 10);
-
-    let userId = null;
-    try{
-      const { data } = await sb.auth.getSession();
-      userId = data?.session?.user?.id || null;
-    }catch(_e){}
-
-    const userCol = ($("authUserCol").value || "").trim();
-    const rows = buildUploadRows(limitMode, { userId, userCol });
-
+    const chunkSize = parseInt($("sbChunk").value || "250", 10);
+    const rows = buildUploadRows(limitMode);
     if(!rows.length){
       setStatus("upStatus", "No upload rows after filtering.");
       return;
@@ -1525,27 +1258,19 @@ Click Parse & Build Table again if you change explode settings.`);
     setStatus("upStatus", `Preparing ${rows.length} rows...`);
     setProgress(0);
 
-    const chunks = chunk(rows, chunkSize);
+    const batches = chunk(rows, chunkSize);
     let done = 0;
-
     try{
-      for(let i=0;i<chunks.length;i++){
-        const payload = chunks[i];
-        let res;
-        if(mode === "upsert"){
-          const opts = conflict ? { onConflict: conflict } : {};
-          res = await sb.from(table).upsert(payload, opts);
-        } else {
-          res = await sb.from(table).insert(payload);
-        }
-
+      for(let i=0;i<batches.length;i++){
+        const payload = batches[i];
+        const res = mode === "upsert"
+          ? await sb.from(table).upsert(payload, conflict ? { onConflict: conflict } : {})
+          : await sb.from(table).insert(payload);
         if(res.error) throw res.error;
-
         done += payload.length;
         setProgress((done / rows.length) * 100);
-        setStatus("upStatus", `Uploaded ${done}/${rows.length} rows (${i+1}/${chunks.length} batches).`);
+        setStatus("upStatus", `Uploaded ${done}/${rows.length} rows (${i+1}/${batches.length} batches).`);
       }
-
       setStatus("upStatus", `Upload complete.\nRows: ${rows.length}\nMode: ${mode}\nTable: ${table}`);
       setProgress(100);
     }catch(err){
@@ -1567,7 +1292,7 @@ Click Parse & Build Table again if you change explode settings.`);
   function toCSV(rows, cols){
     const esc = (s) => {
       const str = s == null ? "" : String(s);
-      if(/[",\n\r]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
+      if(/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
       return str;
     };
     const header = cols.map(esc).join(",");
@@ -1599,11 +1324,7 @@ Click Parse & Build Table again if you change explode settings.`);
       ta.select();
       ta.setSelectionRange(0, ta.value.length);
       let ok = false;
-      try{
-        ok = document.execCommand("copy");
-      }catch(_e){
-        ok = false;
-      }
+      try{ ok = document.execCommand("copy"); }catch(_e){ ok = false; }
       document.body.removeChild(ta);
       return ok;
     }
@@ -1611,69 +1332,73 @@ Click Parse & Build Table again if you change explode settings.`);
 
   $("btnSample").addEventListener("click", ()=>{
     $("jsonText").value = `{
-  "match": {
-    "match_id": "2012171594614190080",
-    "create_time": 1768574067
-  },
+  "match": { "match_id": "2047633736134043648", "create_time": 1777169452 },
   "team_stats": [
     {
-      "team_name": "ACD",
+      "team_id": 4,
+      "team_name": "RRQ",
       "booyah": false,
-      "ranking_score": 6,
-      "killing_score": 7,
+      "eliminated_team_name": "GOW",
       "final": true,
-      "team_id": 2,
-      "win_rate": 0,
-      "kill_count": 7,
-      "is_focus": false,
       "is_double_kill_score": false,
       "is_eliminated": true,
-      "eliminated_team_name": "SSZ",
+      "is_focus": false,
+      "kill_count": 2,
+      "killing_score": 2,
+      "ranking_score": 6,
+      "win_rate": 0,
       "player_stats": [
         {
-          "account_id": "323265050",
-          "nickname": "ACD.Nokii10",
-          "shoots": 121,
-          "hits": 41,
-          "headshots": 5,
+          "account_id": "10001085",
+          "nickname": "RRQ.SAMPLE",
           "kills": 1,
-          "assists": 0,
-          "damage": 1185,
-          "skill_ids": [2106,2006,4406,1306],
+          "damage": 886,
+          "shoots": 306,
+          "hits": 8,
+          "headshots": 0,
+          "player_state": 0,
+          "pet_skill_id": 1315000012,
           "pet_skill_name": "Dreki",
-          "pet_skill_id": 1315000012
+          "skill_ids": [2106,2006,4406,1306],
+          "weapon_usages": [
+            {"weapon_id":58,"shoots":11,"hits":2,"headshots":0,"kills":0,"damage":13,"weapon_name":"UZI"}
+          ],
+          "kill_info": [
+            {"killer_id":"10001085","player_killed_id":"10001099","weapon_used_id":635,"kill_timestamp":"346137","kill_distance":3}
+          ]
         }
       ]
     }
   ]
 }`;
     $("defMode").value = "BR";
+    $("defDataSource").value = "tournament";
+    $("defCenter").value = "sg";
+    $("defTournament").value = "FFWS SEA 2026 Spring";
+    $("defStage").value = "Phase 1";
     $("defYear").value = "2026";
-    $("defWeek").value = "W1";
-    $("defDay").value = "D1";
+    $("defWeek").value = "1";
+    $("defDay").value = "1";
     $("defMatchNumber").value = "1";
-    $("defMatchId").value = "2012171594614190080";
-    $("explodePick").value = "__input__";
-    $("explodePaths").value = "team_stats,team_stats.player_stats";
-    renderExplodePickOptions(explodePathsInputList());
-    setPill("neutral","Sample loaded");
-    setStatus("parseStatus","Sample loaded. Click Parse & Build Table.");
+    $("defMatchId").value = "2047633736134043648";
+    $("defSnapshotId").value = "13";
+    setPill("neutral", "Sample loaded");
+    setStatus("parseStatus", "Sample loaded. Click Parse & Build Table.");
   });
 
   $("btnClear").addEventListener("click", ()=>{
     $("jsonText").value = "";
     RAW = null;
-    BASE_RECORDS = [];
-    DETECTED_PATHS = [];
     ROWS = [];
     COLS = [];
     COLCFG = {};
+    LAST_META = null;
     updateMeta();
     renderColList();
     renderTable();
-    setPill("neutral","Waiting for JSON");
-    setStatus("parseStatus","No data parsed yet.");
-    setStatus("upStatus","Ready.");
+    setPill("neutral", "Waiting for JSON");
+    setStatus("parseStatus", "No data parsed yet.");
+    setStatus("upStatus", "Ready.");
     setProgress(0);
   });
 
@@ -1685,8 +1410,8 @@ Click Parse & Build Table again if you change explode settings.`);
       setPill("neutral", "File loaded");
       setStatus("parseStatus", `Loaded file: ${f.name}\nClick Parse & Build Table.`);
     }catch(err){
-      setPill("bad","File read failed");
-      setStatus("parseStatus", "Could not read file:\n" + err.message);
+      setPill("bad", "File read failed");
+      setStatus("parseStatus", `Could not read file:\n${err.message}`);
     } finally {
       e.target.value = "";
     }
@@ -1694,45 +1419,40 @@ Click Parse & Build Table again if you change explode settings.`);
 
   $("btnFetch").addEventListener("click", async ()=>{
     const url = $("fetchUrl").value.trim();
-    if(!url) return setStatus("parseStatus","Enter a URL first.");
-    setPill("neutral","Fetching…");
-    setStatus("parseStatus","Fetching JSON from URL…");
+    if(!url) return setStatus("parseStatus", "Enter a URL first.");
+    setPill("neutral", "Fetching…");
+    setStatus("parseStatus", "Fetching JSON from URL…");
     try{
-      const res = await fetch(url, {cache:"no-store"});
+      const res = await fetch(url, { cache:"no-store" });
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       $("jsonText").value = await res.text();
-      setPill("neutral","Fetched");
-      setStatus("parseStatus","Fetched OK. Click Parse & Build Table.");
+      setPill("neutral", "Fetched");
+      setStatus("parseStatus", "Fetched OK. Click Parse & Build Table.");
     }catch(e){
-      setPill("bad","Fetch failed");
+      setPill("bad", "Fetch failed");
       setStatus("parseStatus", `Fetch failed:\n${e.message}`);
     }
   });
 
-  $("btnParse").addEventListener("click", buildFromJSON);
+  $("btnParse").addEventListener("click", ()=>{ buildFromJSON(); });
   $("btnAll").addEventListener("click", ()=>{
-    for(const c of COLS) COLCFG[c].include = true;
-    applySchemaGuardToColCfg();
+    COLS.forEach(c => COLCFG[c].include = true);
+    if(COLCFG.id) COLCFG.id.include = false;
     renderColList();
     renderTable();
   });
   $("btnNone").addEventListener("click", ()=>{
-    for(const c of COLS) COLCFG[c].include = false;
+    COLS.forEach(c => COLCFG[c].include = false);
     renderColList();
     renderTable();
   });
   $("maxRows").addEventListener("change", ()=>{ if(ROWS.length) renderTable(); });
-  $("explodePick").addEventListener("change", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
-  $("arrMode").addEventListener("change", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
-  $("autoExplode").addEventListener("change", ()=>{ if($("jsonText").value.trim()) buildFromJSON(); });
-  $("explodePaths").addEventListener("change", ()=>{
-    if(!$("autoExplode").checked){
-      renderExplodePickOptions(explodePathsInputList());
-      if(BASE_RECORDS.length) rebuildDataset();
-    }
+  $("schemaGuard").addEventListener("change", ()=>{
+    if(!COLS.length) return;
+    applySchemaGuardToColCfg();
+    renderColList();
+    renderTable();
   });
-  $("schemaGuard").addEventListener("change", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
-  $("sbTable").addEventListener("input", ()=>{ if(BASE_RECORDS.length) rebuildDataset(); });
 
   $("btnUpload").addEventListener("click", uploadToSupabase);
 
@@ -1744,7 +1464,7 @@ Click Parse & Build Table again if you change explode settings.`);
       keys.forEach((k, i) => out[names[i]] = r[k]);
       return out;
     });
-    downloadText("ff_match_rows.csv", toCSV(rows, names), "text/csv");
+    downloadText("ff_player_stats_raw_rows.csv", toCSV(rows, names), "text/csv");
   });
 
   $("btnCopySheets").addEventListener("click", async ()=>{
@@ -1752,27 +1472,19 @@ Click Parse & Build Table again if you change explode settings.`);
       setStatus("upStatus", "Nothing to copy. Parse JSON first.");
       return;
     }
-
     const {keys, names} = getSelectedCols();
     if(!keys.length){
       setStatus("upStatus", "No columns selected to copy.");
       return;
     }
-
     const rows = ROWS.map(r => {
       const out = {};
       keys.forEach((k, i) => out[names[i]] = r[k]);
       return out;
     });
-
     const tsv = toTSV(rows, names);
     const ok = await copyTextToClipboard(tsv);
-
-    if(ok){
-      setStatus("upStatus", `Copied ${rows.length} rows to clipboard for Google Sheets.`);
-    }else{
-      setStatus("upStatus", "Copy failed. Your browser may be blocking clipboard access.");
-    }
+    setStatus("upStatus", ok ? `Copied ${rows.length} rows to clipboard for Google Sheets.` : "Copy failed. Your browser may be blocking clipboard access.");
   });
 
   $("btnJSON").addEventListener("click", ()=>{
@@ -1783,7 +1495,7 @@ Click Parse & Build Table again if you change explode settings.`);
       keys.forEach((k, i) => out[names[i]] = r[k]);
       return out;
     });
-    downloadText("ff_match_rows.json", JSON.stringify(rows, null, 2), "application/json");
+    downloadText("ff_player_stats_raw_rows.json", JSON.stringify(rows, null, 2), "application/json");
   });
 
   $("btnAuthRefresh").addEventListener("click", refreshAuthUI);
@@ -1797,10 +1509,8 @@ Click Parse & Build Table again if you change explode settings.`);
   refreshAuthUI().catch(()=>{});
 
   $("defMode").value = "BR";
-  $("defMatchNumber").value = "1";
-  $("explodePick").value = "__input__";
-  $("explodePaths").value = "team_stats,team_stats.player_stats";
-  renderExplodePickOptions(explodePathsInputList());
+  $("defDataSource").value = "tournament";
+  $("defCenter").value = "sg";
 </script>
 </body>
 </html>
