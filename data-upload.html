@@ -1300,6 +1300,68 @@ response_hash: ${meta.responseHash || "(unavailable)"}`);
     return [header, ...lines].join("\n");
   }
 
+  const GOOGLE_SHEETS_OMIT_COLUMNS = new Set([
+    "row_data",
+    "player_stats_weapon_usages",
+    "player_stats_kill_info",
+    "player_stats_knock_down_damage_info",
+    "match_match_stats_extra_circle_info",
+    "match_match_stats_extra_spector_info",
+    "match_match_stats_extra_round_stats",
+    "team_stats",
+    "response"
+  ]);
+
+  const GOOGLE_SHEETS_CELL_CHAR_LIMIT = 45000;
+  const GOOGLE_SHEETS_JSON_SOFT_LIMIT = 12000;
+
+  function sanitizeSheetsCellValue(value){
+    if (value == null) return { value: "", blanked: false };
+
+    const str = String(value).replace(/\r?\n/g, " ").replace(/\t/g, " ");
+    const trimmed = str.trim();
+    const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+
+    if (str.length > GOOGLE_SHEETS_CELL_CHAR_LIMIT) {
+      return { value: "", blanked: true };
+    }
+
+    if (looksJson && str.length > GOOGLE_SHEETS_JSON_SOFT_LIMIT) {
+      return { value: "", blanked: true };
+    }
+
+    return { value: str, blanked: false };
+  }
+
+  function prepareRowsForGoogleSheets(rows, cols){
+    const keptCols = [];
+    const omittedCols = [];
+
+    cols.forEach(col => {
+      if (GOOGLE_SHEETS_OMIT_COLUMNS.has(col)) omittedCols.push(col);
+      else keptCols.push(col);
+    });
+
+    let blankedCells = 0;
+
+    const preparedRows = rows.map(row => {
+      const out = {};
+      keptCols.forEach(col => {
+        const sanitized = sanitizeSheetsCellValue(row[col]);
+        out[col] = sanitized.value;
+        if (sanitized.blanked) blankedCells++;
+      });
+      return out;
+    });
+
+    return {
+      rows: preparedRows,
+      cols: keptCols,
+      omittedCols,
+      blankedCells
+    };
+  }
+
   function toTSV(rows, cols){
     const esc = (s) => {
       const str = s == null ? "" : String(s);
@@ -1482,9 +1544,28 @@ response_hash: ${meta.responseHash || "(unavailable)"}`);
       keys.forEach((k, i) => out[names[i]] = r[k]);
       return out;
     });
-    const tsv = toTSV(rows, names);
+
+    const prepared = prepareRowsForGoogleSheets(rows, names);
+
+    if(!prepared.cols.length){
+      setStatus("upStatus", "All selected columns were omitted for Google Sheets because they are heavy-data fields.");
+      return;
+    }
+
+    const tsv = toTSV(prepared.rows, prepared.cols);
     const ok = await copyTextToClipboard(tsv);
-    setStatus("upStatus", ok ? `Copied ${rows.length} rows to clipboard for Google Sheets.` : "Copy failed. Your browser may be blocking clipboard access.");
+
+    if(ok){
+      const notes = [];
+      if(prepared.omittedCols.length) notes.push(`omitted columns: ${prepared.omittedCols.join(", ")}`);
+      if(prepared.blankedCells) notes.push(`blanked heavy cells: ${prepared.blankedCells}`);
+      setStatus(
+        "upStatus",
+        `Copied ${prepared.rows.length} rows to clipboard for Google Sheets.${notes.length ? "\n" + notes.join("\n") : ""}`
+      );
+    }else{
+      setStatus("upStatus", "Copy failed. Your browser may be blocking clipboard access.");
+    }
   });
 
   $("btnJSON").addEventListener("click", ()=>{
