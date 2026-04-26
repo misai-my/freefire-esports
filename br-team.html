@@ -545,7 +545,7 @@
   <div class="section">
     <h2>Diagnostics</h2>
     <div class="bar">
-      <span class="chip" id="diagCount">ff_stats_raw rows: —</span>
+      <span class="chip" id="diagCount">ff_player_stats_raw rows: —</span>
       <span class="chip" id="diagSchema">Detected schema: —</span>
       <span class="chip" id="diagMap">match_api mapping: —</span>
       <span class="chip" id="diagChar">character.json mapping: —</span>
@@ -1102,9 +1102,9 @@ async function headCount(){
   try{
     const res = await client.from(TABLE).select('*', { count: 'exact', head: true });
     if(res.error) throw res.error;
-    el('diagCount').textContent = `ff_stats_raw rows: ${res.count ?? '—'}`;
+    el('diagCount').textContent = `ff_player_stats_raw rows: ${res.count ?? '—'}`;
   }catch(e){
-    el('diagCount').textContent = `ff_stats_raw rows: (count blocked by RLS)`;
+    el('diagCount').textContent = `ff_player_stats_raw rows: (count blocked by RLS)`;
     console.warn('Count failed (RLS likely):', e?.message || e);
   }
 }
@@ -1436,7 +1436,7 @@ function skillIdFromRow(r, idx){
   return s;
 }
 
-/* ====== Loadout: ONLY from ff_stats_raw.player_stats_loadouts ====== */
+/* ====== Loadout: ONLY from ff_player_stats_raw.player_stats_loadouts ====== */
 function getLoadoutRaw(r){
   if(!KEYS.loadouts) return '';
   const v = r?.[KEYS.loadouts];
@@ -1445,7 +1445,7 @@ function getLoadoutRaw(r){
   try{ return JSON.stringify(v); }catch{ return String(v); }
 }
 
-/* ============ skill_info fallback (ff_stats_raw.player_stats_skill_info) ============ */
+/* ============ skill_info fallback (ff_player_stats_raw.player_stats_skill_info) ============ */
 function parseSkillInfoIds(raw){
   if(raw == null) return [];
   let v = raw;
