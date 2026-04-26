@@ -725,6 +725,25 @@ const MAP_TABLE = 'match_api';
 /* ✅ Set this to your hosted character.json URL */
 const CHARACTER_JSON_URL = 'character.json';
 
+
+/* ✅ Only fetch the columns this page actually uses. This avoids pulling very heavy
+   fields like row_data / response_hash from ff_player_stats_raw on every load. */
+const FAST_SELECT_COLUMNS = [
+  'id',
+  'match_id','MatchNumber','Mode','Tournament','Stage','Year','Week','Day',
+  'booyah','ranking_score','team_id','team_name','win_rate',
+  'player_stats_account_id','player_stats_nickname','player_stats_kills','player_stats_damage',
+  'player_stats_pet_skill_id','player_stats_pet_skill_name',
+  'player_stats_loadouts',
+  'player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
+  'player_stats_skill_info','player_stats_skill_info_skill_id','player_stats_skill_info_skill_name',
+  'player_stats_skill_info_skill_active','player_stats_skill_info_active_count',
+  'snapshot_id','pulled_at','data_source','duplicate_key',
+  'created_at','updated_at'
+].join(',');
+
+const MAP_SELECT_COLUMNS = 'id,name,type';
+
 /* ============ Small utils ============ */
 const el = id => document.getElementById(id);
 const n = x => Number(x ?? 0) || 0;
@@ -1035,7 +1054,7 @@ async function loadMatchApi(){
   try{
     const { data, error } = await client
       .from(MAP_TABLE)
-      .select('*')
+      .select(MAP_SELECT_COLUMNS)
       .limit(20000);
 
     if(error) throw error;
@@ -1175,7 +1194,7 @@ async function loadCharacterJson(){
 /* ============ Fetching ============ */
 async function headCount(){
   try{
-    const res = await client.from(TABLE).select('*', { count: 'exact', head: true });
+    const res = await client.from(TABLE).select('id', { count: 'exact', head: true });
     if(res.error) throw res.error;
     el('diagCount').textContent = `ff_player_stats_raw rows: ${res.count ?? '—'}`;
   }catch(e){
@@ -1193,7 +1212,11 @@ async function fetchAllRows(){
     let ok = true;
 
     for(;;){
-      const q = client.from(TABLE).select('*').order(orderCol, { ascending: true }).range(from, from + CHUNK - 1);
+      const q = client
+        .from(TABLE)
+        .select(FAST_SELECT_COLUMNS)
+        .order(orderCol, { ascending: true })
+        .range(from, from + CHUNK - 1);
       const { data, error } = await q;
 
       if(error){
@@ -1206,6 +1229,11 @@ async function fetchAllRows(){
       if(!rows.length) break;
       out.push(...rows);
       from += rows.length;
+
+      el('diagCount').textContent = `ff_player_stats_raw rows loaded: ${out.length}${rows.length === CHUNK ? '+' : ''}`;
+      const veilBox = document.querySelector('#veil .box');
+      if(veilBox) veilBox.textContent = `Loading data… ${out.length} rows`;
+
       if(rows.length < CHUNK) break;
       if(from > 200000) break;
     }
@@ -1213,7 +1241,7 @@ async function fetchAllRows(){
     if(ok) return out;
   }
 
-  const { data, error } = await client.from(TABLE).select('*').limit(5000);
+  const { data, error } = await client.from(TABLE).select(FAST_SELECT_COLUMNS).limit(5000);
   if(error) throw error;
   return data || [];
 }
@@ -2201,10 +2229,13 @@ async function init(){
   try{
     clearErr();
     el('veil').classList.remove('hide');
+    const veilBox = document.querySelector('#veil .box');
+    if(veilBox) veilBox.textContent = 'Loading data…';
 
     document.querySelectorAll('details.accordion').forEach(d=> d.open = false);
 
-    await headCount();
+    // Start lightweight diagnostics in parallel.
+    headCount().catch(()=>{});
 
     RAW = await fetchAllRows();
 
@@ -2214,22 +2245,28 @@ async function init(){
       el('tblAllTeamsSkills').innerHTML = '<div class="muted">No teams.</div>';
       el('veil').classList.add('hide');
       gerr(
-        `No rows returned from ${TABLE}.\n\n` +
-        `Possible causes:\n` +
-        `• Table is empty (no inserts)\n` +
-        `• RLS blocks SELECT for anon/authenticated\n` +
-        `• Different table name/schema\n\n` +
-        `Quick check: In Supabase SQL editor run:\n` +
+        `No rows returned from ${TABLE}.
+
+` +
+        `Possible causes:
+` +
+        `• Table is empty (no inserts)
+` +
+        `• RLS blocks SELECT for anon/authenticated
+` +
+        `• Different table name/schema
+
+` +
+        `Quick check: In Supabase SQL editor run:
+` +
         `select count(*) from public.${TABLE};`
       );
       return;
     }
 
+    if(veilBox) veilBox.textContent = `Preparing ${RAW.length} rows…`;
+
     detectSchema(RAW[0]);
-
-    await loadMatchApi();
-    await loadCharacterJson();
-
     populateTournamentDropdown();
     resetToLatest();
 
@@ -2241,13 +2278,24 @@ async function init(){
     }
 
     wire();
-
     el('veil').classList.add('hide');
+
+    // Load name maps after the page is already usable, then refresh the skill/pet labels.
+    Promise.allSettled([loadMatchApi(), loadCharacterJson()]).then(()=>{
+      renderOverall();
+      renderAllTeamsSkillSummary();
+      if(CURRENT_TEAM){
+        selectTeam(CURRENT_TEAM, true);
+      }
+    });
   }catch(e){
     el('veil').classList.add('hide');
-    gerr('Fatal init error:\n\n' + (e?.message || e));
+    gerr('Fatal init error:
+
+' + (e?.message || e));
   }
 }
+
 
 init();
 </script>
