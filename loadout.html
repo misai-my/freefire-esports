@@ -970,7 +970,7 @@ html[data-theme="light"] select option{
     }
     .booster-card{
       display:grid;
-      grid-template-columns: 42px minmax(0, 1fr);
+      grid-template-columns: 66px minmax(0, 1fr);
       gap:10px;
       align-items:start;
       padding:10px;
@@ -980,18 +980,53 @@ html[data-theme="light"] select option{
       min-width:0;
     }
     .booster-logo{
-      width:42px;
-      height:42px;
+      width:66px;
+      height:58px;
       border-radius:14px;
       display:grid;
       place-items:center;
       color: var(--brand);
-      background: linear-gradient(135deg, rgba(255,189,89,.16), rgba(77,211,255,.10));
+      background: rgba(0,0,0,.28);
       border:1px solid rgba(255,255,255,.12);
       box-shadow: 0 10px 24px rgba(0,0,0,.25);
       overflow:hidden;
+      padding:2px;
+    }
+    .booster-logo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
     }
     .booster-logo svg{width:26px;height:26px;display:block;}
+    .booster-mini-strip{
+      display:flex;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:5px;
+      margin:2px 0 0 0;
+    }
+    .booster-mini-icon{
+      width:38px;
+      height:42px;
+      border-radius:10px;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      padding:1px;
+      background: rgba(0,0,0,.24);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .booster-mini-icon img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+    .booster-mini-icon svg{
+      width:19px;
+      height:19px;
+    }
     .booster-copy{min-width:0;}
     .booster-copy b{
       margin:0 0 3px 0;
@@ -1029,8 +1064,9 @@ html[data-theme="light"] select option{
       background: rgba(255,255,255,.62);
       border-color: rgba(0,0,0,.10);
     }
-    html[data-theme="light"] .booster-logo{
-      background: linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.14));
+    html[data-theme="light"] .booster-logo,
+    html[data-theme="light"] .booster-mini-icon{
+      background: rgba(255,255,255,.70);
       border-color: rgba(0,0,0,.10);
     }
     html[data-theme="light"] .meta-card b,
@@ -2034,6 +2070,54 @@ function toggleTheme(){
     const filterCategory = document.getElementById('filterCategory');
 
 
+    const TEAM_BOOSTER_ICON_BASE = 'assets/team_boosters/';
+    const TEAM_BOOSTER_ICON_MAP = {
+      hp_ep_recovery: `${TEAM_BOOSTER_ICON_BASE}1_recover.png`,
+      recover: `${TEAM_BOOSTER_ICON_BASE}1_recover.png`,
+      speed_up: `${TEAM_BOOSTER_ICON_BASE}2_speed_up.png`,
+      speed: `${TEAM_BOOSTER_ICON_BASE}2_speed_up.png`,
+      extra_heal: `${TEAM_BOOSTER_ICON_BASE}3_extra_heal.png`,
+      out_zone_buff: `${TEAM_BOOSTER_ICON_BASE}4_buff.png`,
+      out_zone: `${TEAM_BOOSTER_ICON_BASE}4_buff.png`,
+      buff: `${TEAM_BOOSTER_ICON_BASE}4_buff.png`,
+      gloo_wall: `${TEAM_BOOSTER_ICON_BASE}5_gloo_wall.png`,
+      armor: `${TEAM_BOOSTER_ICON_BASE}6_armor.png`
+    };
+
+    function getBoosterIconUrl(boost){
+      if (!boost) return '';
+      return boost.icon_url
+        || TEAM_BOOSTER_ICON_MAP[boost.id]
+        || TEAM_BOOSTER_ICON_MAP[boost.icon_key]
+        || '';
+    }
+
+    function fillBoosterLogo(container, boost){
+      if (!container || !boost) return;
+      container.innerHTML = '';
+      const url = getBoosterIconUrl(boost);
+      if (url){
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = boost.name || boost.short_name || 'Team Booster';
+        img.loading = 'lazy';
+        img.onerror = () => {
+          container.innerHTML = boosterLogoSvg(boost.icon_key, boost.icon_label || boost.short_name || boost.name);
+        };
+        container.appendChild(img);
+        return;
+      }
+      container.innerHTML = boosterLogoSvg(boost.icon_key, boost.icon_label || boost.short_name || boost.name);
+    }
+
+    function makeBoosterMiniIcon(boost){
+      const box = document.createElement('span');
+      box.className = 'booster-mini-icon';
+      box.title = boost.name || boost.short_name || 'Team Booster';
+      fillBoosterLogo(box, boost);
+      return box;
+    }
+
     function getModeCostMeta(item){
       return item?.cost?.[mode] || null;
     }
@@ -2184,7 +2268,7 @@ function toggleTheme(){
 
           const logo = document.createElement('div');
           logo.className = 'booster-logo';
-          logo.innerHTML = boosterLogoSvg(boost.icon_key, boost.icon_label || boost.short_name || boost.name);
+          fillBoosterLogo(logo, boost);
 
           const copy = document.createElement('div');
           copy.className = 'booster-copy';
@@ -2298,6 +2382,12 @@ function toggleTheme(){
         chips.appendChild(chipBoosts);
       }
 
+      const boosterStrip = document.createElement('div');
+      boosterStrip.className = 'booster-mini-strip';
+      if (boosters.length){
+        boosters.forEach(boost => boosterStrip.appendChild(makeBoosterMiniIcon(boost)));
+      }
+
       const desc = document.createElement('div');
       desc.className = 'item-desc';
       desc.textContent = getDetails(item); // ✅ full description on card
@@ -2305,6 +2395,7 @@ function toggleTheme(){
       card.appendChild(thumb);
       card.appendChild(nm);
       card.appendChild(chips);
+      if (boosterStrip.childElementCount) card.appendChild(boosterStrip);
       card.appendChild(desc);
 
       card.addEventListener('click', () => openInfo(item));
