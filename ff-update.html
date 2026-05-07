@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,79 +5,791 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Free Fire — OB Updates</title>
   <link rel="preconnect" href="https://dl.dir.freefiremobile.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"/>
   <style>
     :root{
-      --bg:#0e0e0e; --panel:#1b1b1b; --panel2:#141414;
-      --ink:#f5f5f5; --muted:#b9b9b9;
-      --brand:#ffbd59; --brand2:#ff7733; --line:#313131;
+      --bg:#07090f;
+      --bg2:#0b1020;
+      --panel: rgba(20, 26, 38, .72);
+      --panel2: rgba(14, 18, 28, .70);
+      --line: rgba(255,255,255,.08);
+      --line2: rgba(255,255,255,.12);
+      --ink:#f4f6ff;
+      --muted:#aab1c5;
+      --brand:#ffbd59;
+      --brand2:#ff7733;
+      --accent:#4dd3ff;
+      --good:#8be3a3;
+      --danger:#ff8d8d;
+      --radius:16px;
+      --radius-lg:22px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+      --sb-w: 260px;
+      --sb-w-collapsed: 82px;
     }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif}
-    header{position:sticky;top:0;z-index:5;background:#1f1f1f;border-bottom:3px solid var(--brand);padding:14px 16px}
-    h1{margin:0;font-size:1.1rem;letter-spacing:.3px;color:var(--brand)}
-    .user-controls{position:absolute;right:16px;top:12px;display:flex;gap:10px;align-items:center}
-    .btn{background:var(--brand);color:var(--panel);border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
-    .btn.secondary{background:#2a2a2a;color:#ddd;border:1px solid #3a3a3a}
-    .btn.secondary:hover{border-color:#565656}
 
-    .shell{max-width:1100px;margin:22px auto;padding:0 12px}
-    .section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px}
-    .section h2{margin:0 0 10px;color:var(--brand)}
+    *{box-sizing:border-box}
+    html{
+      min-height:100%;
+      scroll-behavior:smooth;
+      background:linear-gradient(180deg,var(--bg),var(--bg2));
+      color-scheme:dark;
+    }
+    body{
+      min-height:100%;
+      margin:0;
+      font-family:Roboto,system-ui,-apple-system,Segoe UI,Inter,Ubuntu,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.15), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.12), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.10), transparent 60%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+      overflow-x:hidden;
+    }
+    body::before, body::after{
+      content:"";
+      position:fixed;
+      inset:auto auto 0 0;
+      width:520px;height:520px;
+      border-radius:50%;
+      border:10px solid rgba(77,211,255,.14);
+      transform:translate(-45%,-35%);
+      filter:blur(.2px);
+      pointer-events:none;
+      z-index:-1;
+    }
+    body::after{
+      inset:-120px 0 auto auto;
+      width:420px;height:420px;
+      border-color:rgba(77,211,255,.10);
+      transform:translate(38%,0%);
+    }
+    a{color:inherit}
+    img{max-width:100%}
+
+    .app{
+      min-height:100vh;
+      display:flex;
+      gap:18px;
+      padding:18px;
+      max-width:1440px;
+      margin:0 auto;
+    }
+
+    .sidebar{
+      width:var(--sb-w);
+      background:var(--panel2);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      position:sticky;
+      top:18px;
+      height:calc(100vh - 36px);
+      transition:width .18s ease;
+      flex:0 0 auto;
+    }
+    .sidebar.collapsed{width:var(--sb-w-collapsed)}
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:16px 16px 10px;
+      border-bottom:1px solid var(--line);
+    }
+    .brand-left{display:flex;align-items:center;gap:10px;min-width:0}
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background:linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-family:Orbitron,sans-serif;
+      letter-spacing:.5px;
+      color:var(--brand);
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-family:Orbitron,sans-serif;
+      font-size:1.05rem;
+      letter-spacing:.6px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:150px;
+    }
+    .brand small{
+      display:block;
+      color:var(--muted);
+      font-size:.78rem;
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:150px;
+    }
+
+    .nav{
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow:auto;
+    }
+    .nav::-webkit-scrollbar{width:10px}
+    .nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}
+    .nav::-webkit-scrollbar-track{background:transparent}
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid transparent;
+      color:var(--muted);
+      text-decoration:none;
+      transition:.2s ease;
+      cursor:pointer;
+      min-width:0;
+    }
+    .nav-item:hover{
+      background:rgba(255,255,255,.05);
+      border-color:rgba(255,255,255,.08);
+      color:var(--ink);
+    }
+    .nav-item.active{
+      background:linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));
+      border-color:rgba(255,189,89,.22);
+      color:var(--ink);
+    }
+    .nav-ico{
+      width:26px;height:26px;border-radius:10px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      display:grid;place-items:center;
+      flex:0 0 auto;
+    }
+    .nav-ico svg{width:14px;height:14px;opacity:.9}
+    .nav-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+    .sidebar.collapsed .brand h1,
+    .sidebar.collapsed .brand small,
+    .sidebar.collapsed .nav-label{display:none}
+    .sidebar.collapsed .brand{justify-content:center}
+    .sidebar.collapsed .brand-left{justify-content:center}
+    .sidebar.collapsed .nav-item{justify-content:center;gap:0;padding:10px 8px}
+
+    .main{
+      flex:1;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .topbar{
+      position:sticky;
+      top:18px;
+      z-index:20;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+    }
+    .topbar::-webkit-scrollbar{display:none}
+    .icon-btn{
+      width:42px;height:42px;border-radius:14px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      color:var(--ink);
+      flex:0 0 auto;
+    }
+    .icon-btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}
+    .icon-btn svg{width:18px;height:18px;opacity:.92}
+    .search{
+      flex:1 1 220px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      background:rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      min-width:170px;
+      max-width:360px;
+    }
+    .search input{
+      width:100%;
+      background:transparent;
+      border:0;
+      outline:none;
+      color:var(--ink);
+      font-size:.95rem;
+    }
+    .search input::placeholder{color:rgba(170,177,197,.75)}
+    .page-title{
+      min-width:190px;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      margin-right:auto;
+    }
+    .page-title strong{
+      display:block;
+      font-family:Orbitron,sans-serif;
+      letter-spacing:.6px;
+      color:var(--brand);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .page-title span{
+      display:block;
+      color:var(--muted);
+      font-size:.78rem;
+      white-space:nowrap;
+    }
+    .top-links{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
+    }
+    .top-link{
+      color:rgba(244,246,255,.86);
+      text-decoration:none;
+      font-size:.85rem;
+      font-weight:800;
+      white-space:nowrap;
+      padding:9px 11px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.05);
+      transition:.2s ease;
+    }
+    .top-link:hover{
+      border-color:rgba(77,211,255,.22);
+      box-shadow:0 0 0 3px rgba(77,211,255,.10);
+      background:rgba(255,255,255,.08);
+    }
+    .top-link.brand-link{
+      color:var(--brand);
+      border-color:rgba(255,189,89,.18);
+      background:rgba(255,189,89,.08);
+    }
+
+    .content{
+      min-height:0;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .shell{
+      width:100%;
+      max-width:1160px;
+      margin:0 auto;
+      padding:0;
+    }
+    .section{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      padding:14px;
+      margin-bottom:14px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      overflow:hidden;
+      scroll-margin-top:104px;
+    }
+    .section h2{
+      margin:0 0 12px;
+      color:var(--brand);
+      font-family:Orbitron,sans-serif;
+      letter-spacing:.45px;
+      font-size:1.15rem;
+    }
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:12px}
     .grid3{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}
-    .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
-    .card h3{margin:0 0 6px;color:var(--brand2);font-size:1.0rem}
+    .card{
+      background:rgba(14,18,28,.70);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      min-width:0;
+      box-shadow:0 14px 36px rgba(0,0,0,.22);
+    }
+    .card h3{
+      margin:0 0 8px;
+      color:var(--brand2);
+      font-size:1rem;
+      letter-spacing:.2px;
+    }
+    .card p{line-height:1.45;margin:0 0 10px}
+    .card p:last-child{margin-bottom:0}
+    .card ul{margin:8px 0 0 18px;padding:0;color:rgba(244,246,255,.88);line-height:1.46}
+    .card li{margin:4px 0}
     .muted{color:var(--muted)}
-    .hero{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
-    .hero img{width:100%;display:block}
-
-    .kpis{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
-    .kpi{background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;font-size:.9rem}
-
-    .pillnav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-    .pillnav a{padding:6px 10px;border-radius:999px;border:1px solid #2a2a2a;background:#141414;color:#e8e8e8;text-decoration:none;font-size:.9rem}
-    .pillnav a:hover{border-color:#484848}
-
-    table{width:100%;border-collapse:collapse;font-size:.95rem}
-    th,td{border-bottom:1px solid #2a2a2a;padding:6px 6px;vertical-align:top}
-    thead th{background:#191919;position:sticky;top:0;text-align:left}
-
-    .img{width:100%;border-radius:10px;border:1px solid var(--line)}
-    .note{font-size:.9rem;color:var(--muted)}
-    .divider{height:1px;background:#2a2a2a;margin:8px 0 12px}
-
-
+    .hero{
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.20);
+      box-shadow:0 18px 42px rgba(0,0,0,.28);
+    }
+    .hero img{
+      width:100%;
+      display:block;
+    }
+    .kpis{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:10px 0 0;
+    }
+    .kpi{
+      background:rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+      padding:7px 11px;
+      font-size:.88rem;
+      color:rgba(244,246,255,.88);
+    }
+    .pillnav{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:12px 0 0;
+    }
+    .pillnav a{
+      padding:7px 11px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.18);
+      color:rgba(244,246,255,.88);
+      text-decoration:none;
+      font-size:.86rem;
+      font-weight:800;
+      transition:.18s ease;
+    }
+    .pillnav a:hover{
+      border-color:rgba(77,211,255,.22);
+      box-shadow:0 0 0 3px rgba(77,211,255,.10);
+      background:rgba(255,255,255,.06);
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:.92rem;
+      overflow:hidden;
+      border-radius:16px;
+    }
+    th,td{
+      border-bottom:1px solid rgba(255,255,255,.08);
+      padding:9px 10px;
+      vertical-align:top;
+      text-align:left;
+      word-break:break-word;
+    }
+    thead th{
+      background:rgba(0,0,0,.22);
+      color:var(--brand);
+      font-weight:900;
+      position:sticky;
+      top:0;
+    }
+    tbody tr:hover td{background:rgba(255,255,255,.025)}
+    .img{
+      width:100%;
+      border-radius:14px;
+      border:1px solid var(--line);
+      display:block;
+      background:rgba(0,0,0,.18);
+    }
+    .note{
+      font-size:.88rem;
+      color:var(--muted);
+      line-height:1.4;
+    }
+    .divider{
+      height:1px;
+      background:rgba(255,255,255,.08);
+      margin:12px 0;
+    }
     .hero-text{
-      display:flex;align-items:center;justify-content:space-between;gap:16px;
-      min-height:220px;padding:24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      min-height:220px;
+      padding:24px;
+      border-radius:18px;
       background:
         radial-gradient(circle at top right, rgba(77,211,255,.18), transparent 34%),
         radial-gradient(circle at bottom left, rgba(255,119,51,.16), transparent 30%),
-        linear-gradient(135deg,#151515 0%,#111 55%,#181818 100%);
+        linear-gradient(135deg,rgba(20,26,38,.86) 0%,rgba(14,18,28,.78) 55%,rgba(20,26,38,.86) 100%);
     }
-    .hero-copy h2{margin:0 0 10px;color:var(--brand);font-size:1.7rem;line-height:1.1}
-    .hero-copy p{margin:0 0 10px;color:#ececec;max-width:760px}
+    .hero-copy h2{margin:0 0 10px;color:var(--brand);font-size:1.7rem;line-height:1.1;font-family:Orbitron,sans-serif}
+    .hero-copy p{margin:0 0 10px;color:rgba(244,246,255,.92);max-width:760px;line-height:1.45}
     .hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-    .hero-badge{background:#111;border:1px solid #2e2e2e;border-radius:999px;padding:7px 12px;font-size:.92rem;color:#f0f0f0}
+    .hero-badge{
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:.9rem;
+      color:rgba(244,246,255,.90);
+    }
 
-    @media (max-width: 860px){ .grid2,.grid3{grid-template-columns:1fr} header{padding-right:12px} .user-controls{position:static;margin-top:10px;justify-content:flex-start;flex-wrap:wrap} }
+    body.sb-lock{overflow:hidden}
+    .sb-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.58);
+      backdrop-filter:blur(3px);
+      -webkit-backdrop-filter:blur(3px);
+      display:none;
+      z-index:998;
+    }
+    .sb-backdrop.show{display:block}
+
+    :root[data-theme="light"]{
+      color-scheme:light;
+      --bg:#f6f8ff;
+      --bg2:#e9eefc;
+      --panel:rgba(255,255,255,.78);
+      --panel2:rgba(255,255,255,.72);
+      --line:rgba(10,20,40,.10);
+      --line2:rgba(10,20,40,.14);
+      --ink:#0d1220;
+      --muted:#4a5871;
+      --shadow:0 22px 70px rgba(16,24,40,.12);
+    }
+    :root[data-theme="light"] body{
+      background:
+        radial-gradient(900px 500px at 18% 12%, rgba(77,211,255,.22), transparent 60%),
+        radial-gradient(700px 420px at 85% 18%, rgba(255,189,89,.20), transparent 60%),
+        radial-gradient(900px 620px at 50% 110%, rgba(255,119,51,.16), transparent 60%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+    }
+    :root[data-theme="light"] .card,
+    :root[data-theme="light"] .kpi,
+    :root[data-theme="light"] .pillnav a,
+    :root[data-theme="light"] .search,
+    :root[data-theme="light"] .icon-btn,
+    :root[data-theme="light"] .top-link,
+    :root[data-theme="light"] .hero-badge{
+      background:rgba(255,255,255,.58);
+      border-color:rgba(10,20,40,.12);
+      color:var(--ink);
+    }
+    :root[data-theme="light"] .nav-ico{background:rgba(10,20,40,.05);border-color:rgba(10,20,40,.10)}
+    :root[data-theme="light"] .search input{color:var(--ink)}
+    :root[data-theme="light"] .top-link.brand-link{background:rgba(255,189,89,.18)}
+    :root[data-theme="light"] table th{background:rgba(10,20,40,.05)}
+    :root[data-theme="light"] th,
+    :root[data-theme="light"] td{border-bottom-color:rgba(10,20,40,.10)}
+
+    @media (max-width:1200px){
+      .grid3{grid-template-columns:repeat(2,minmax(220px,1fr))}
+      .page-title{min-width:160px}
+    }
+    @media (max-width:980px){
+      .app{display:block;padding:12px;gap:0}
+      .sidebar{
+        position:fixed;
+        top:12px;
+        bottom:12px;
+        left:12px;
+        height:auto;
+        width:min(320px,86vw);
+        z-index:999;
+        transform:translateX(calc(-100% - 18px));
+        transition:transform .22s ease;
+      }
+      .sidebar.open{transform:translateX(0)}
+      .sidebar.collapsed{width:min(320px,86vw)}
+      .sidebar.collapsed .brand h1,
+      .sidebar.collapsed .brand small,
+      .sidebar.collapsed .nav-label{display:initial}
+      .sidebar.collapsed .brand{justify-content:flex-start}
+      .sidebar.collapsed .brand-left{justify-content:flex-start}
+      .sidebar.collapsed .nav-item{justify-content:flex-start;gap:10px;padding:10px}
+      .main{width:100%}
+      .topbar{top:12px;gap:10px}
+      .search{flex:1 1 170px;min-width:150px;max-width:none}
+      .page-title{display:none}
+    }
+    @media (max-width:860px){
+      .grid2,.grid3{grid-template-columns:1fr}
+      .section{padding:12px;border-radius:18px}
+    }
+    @media (max-width:620px){
+      .topbar{padding:10px;border-radius:18px}
+      .top-links{gap:6px}
+      .top-link{padding:8px 9px;font-size:.8rem}
+      .search{min-width:132px;padding:9px 10px}
+      .section{scroll-margin-top:90px}
+      .card{padding:12px;border-radius:16px}
+      .kpi{border-radius:14px}
+      .pillnav a{font-size:.8rem;padding:7px 9px}
+      table{font-size:.84rem}
+      th,td{padding:8px}
+    }
+
   </style>
+  <script>
+    (function(){
+      const key = 'ff_theme_v1';
+      const saved = localStorage.getItem(key);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = saved || (prefersDark ? 'dark' : 'light');
+    })();
+
+  </script>
 </head>
 <body>
-<header>
-  <h1>Free Fire — OB Updates</h1>
-  <div class="user-controls">
-    <a class="btn secondary" href="home.html">← Dashboard</a>
-    <a class="btn secondary" href="#ob53">OB53</a>
-    <a class="btn secondary" href="#ob52">OB52</a>
-    <a class="btn secondary" href="#ob51">OB51</a>
-  </div>
-</header>
+  <div class="app">
+<aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-left">
+          <div class="logo">FF</div>
+          <div class="brand-text">
+            <h1>Free Fire</h1>
+            <small class="muted">Caster Dashboard</small>
+          </div>
+        </div>
+      </div>
 
-<div class="shell">
+      <nav class="nav" id="nav">
+        <a class="nav-item" href="home.html" data-page="home.html" title="Dashboard">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 4h7v7H4V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M13 4h7v4h-7V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M13 10h7v10h-7V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M4 13h7v7H4v-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
 
+        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M17 5l1.5-2M19 8h2M17 11l1.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Character Skills</span>
+        </a>
 
-  <!-- ========================= -->
+        <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8 10a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M20 10a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M10 7a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M18 7a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M7 18c0-2.2 2.2-4 5-4s5 1.8 5 4c0 1.4-1 2.5-2.4 2.5-.9 0-1.6-.5-2.6-.5s-1.7.5-2.6.5C8 20.5 7 19.4 7 18Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Pets</span>
+        </a>
+
+        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 14h8l2-3h8v4h-5l-2 3H8l-2 3H3v-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M14 11V8h5l2 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 14v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Weapons</span>
+        </a>
+
+        <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadout">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8 7V6a4 4 0 0 1 8 0v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M6 8h12l1 12H5L6 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M9 12h6M9 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Loadout</span>
+        </a>
+
+        <a class="nav-item" href="preset.html" data-page="preset.html" title="Preset Builder">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h10M18 7h2M16 5v4M4 17h2M10 17h10M8 15v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M15 11l1.2 2.4L19 14l-2.1 1.9.5 2.8L15 17.3l-2.4 1.4.5-2.8L11 14l2.8-.6L15 11Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Preset Builder</span>
+        </a>
+
+        <a class="nav-item" href="map.html" data-page="map.html" title="Map">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 18l-5 2V6l5-2 6 2 5-2v14l-5 2-6-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </span>
+          <span class="nav-label">Map</span>
+        </a>
+
+        <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 10l4-3 4 5 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">BR Data</span>
+        </a>
+
+        <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft-team.html" title="CS Draft">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M9 4V2h6v2M8 10h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M15 18l1-3 4-4 2 2-4 4-3 1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Draft</span>
+        </a>
+
+        <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" stroke="currentColor" stroke-width="2"/>
+              <path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" stroke="currentColor" stroke-width="2"/>
+              <path d="M9 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Data</span>
+        </a>
+
+        <a class="nav-item" href="clash-compare.html" data-page="clash-compare.html" title="CS Compare">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 5h6v14H5V5ZM13 5h6v14h-6V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M7 9h2M15 9h2M7 14h2M15 14h2M11 12h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Compare</span>
+        </a>
+
+        <a class="nav-item" href="store.html" data-page="store.html" title="Stores">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 10h16l-1-5H5l-1 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M5 10v10h14V10M9 20v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M8 10v2a2 2 0 0 1-4 0v-2M14 10v2a2 2 0 0 1-4 0v-2M20 10v2a2 2 0 0 1-4 0v-2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </span>
+          <span class="nav-label">Stores</span>
+        </a>
+
+        <a class="nav-item" href="clash-combo.html" data-page="clash-combo.html" title="Clash Squad Combo">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8 8h4v4H8V8ZM12 12h4v4h-4v-4ZM4 16h4v4H4v-4ZM16 4h4v4h-4V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M10 12l2 2M14 12l2-4M8 18l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">CS Combo</span>
+        </a>
+
+        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 5h7v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M13 5h7v14h-7V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M11 5v14M7 9h1M16 9h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">Split View</span>
+        </a>
+
+        <a class="nav-item" href="ff-update.html" data-page="ff-update.html" title="OB Updates">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 5h7v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M13 5h7v14h-7V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M11 5v14M7 9h1M16 9h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="nav-label">OB Updates</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="sb-backdrop" id="sbBackdrop" aria-hidden="true"></div>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="sbToggle" aria-label="Toggle sidebar" aria-expanded="false" title="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="page-title">
+          <strong>Free Fire — OB Updates</strong>
+          <span>Patch reference • OB51 to OB53</span>
+        </div>
+
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85">
+            <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="searchInput" placeholder="Search pages." />
+        </div>
+
+        <nav class="top-links" aria-label="Patch quick links">
+          <a class="top-link brand-link" href="home.html">Dashboard</a>
+          <a class="top-link" href="#ob53">OB53</a>
+          <a class="top-link" href="#ob52">OB52</a>
+          <a class="top-link" href="#ob51">OB51</a>
+        </nav>
+
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle light and dark theme" title="Toggle theme">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3v2M12 19v2M5.6 5.6 7 7M17 17l1.4 1.4M3 12h2M19 12h2M5.6 18.4 7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </header>
+
+      <section class="content">
+        <div class="shell">
+<!-- ========================= -->
   <!-- OB53 — HERO / SUMMARY     -->
   <!-- ========================= -->
   <div class="section" id="ob53">
@@ -879,7 +1590,138 @@
     </table>
     <p class="note">All art and logos © Garena. This fan page summarizes the key changes with links to the official notes.</p>
   </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-</div>
+  <script>
+const sidebar = document.getElementById('sidebar');
+    const sbBackdrop = document.getElementById('sbBackdrop');
+
+    (function initSidebarCollapse(){
+      const key = 'ff_sidebar_collapsed_v1';
+      const btn = document.getElementById('sbToggle');
+      const path = document.getElementById('sbTogglePath');
+
+      const isMobile = () => window.matchMedia('(max-width: 980px)').matches;
+
+      function setBackdrop(on){
+        if (!sbBackdrop) return;
+        sbBackdrop.classList.toggle('show', !!on);
+        sbBackdrop.setAttribute('aria-hidden', on ? 'false' : 'true');
+        document.body.classList.toggle('sb-lock', !!on);
+      }
+
+      function applyDesktopCollapsedFromStorage(){
+        const saved = localStorage.getItem(key) === '1';
+        sidebar.classList.toggle('collapsed', saved);
+      }
+
+      function syncIcon(){
+        if (!path) return;
+
+        if (isMobile()){
+          const open = sidebar.classList.contains('open');
+          path.setAttribute('d', open
+            ? 'M6 6l12 12M18 6L6 18'
+            : 'M4 7h16M4 12h16M4 17h16'
+          );
+          btn?.setAttribute('aria-expanded', open ? 'true' : 'false');
+          return;
+        }
+
+        const collapsed = sidebar.classList.contains('collapsed');
+        path.setAttribute('d', collapsed
+          ? 'M10 7l5 5-5 5'
+          : 'M14 7l-5 5 5 5'
+        );
+        btn?.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      }
+
+      function closeMobileDrawer(){
+        sidebar.classList.remove('open');
+        setBackdrop(false);
+        syncIcon();
+      }
+
+      if (isMobile()){
+        sidebar.classList.remove('collapsed');
+      } else {
+        applyDesktopCollapsedFromStorage();
+      }
+      syncIcon();
+
+      btn?.addEventListener('click', () => {
+        if (isMobile()){
+          const willOpen = !sidebar.classList.contains('open');
+          sidebar.classList.toggle('open', willOpen);
+          setBackdrop(willOpen);
+          syncIcon();
+          return;
+        }
+
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
+        syncIcon();
+      });
+
+      sbBackdrop?.addEventListener('click', closeMobileDrawer);
+
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        a.addEventListener('click', () => {
+          if (isMobile()) closeMobileDrawer();
+        });
+      });
+
+      window.addEventListener('resize', () => {
+        if (isMobile()){
+          sidebar.classList.remove('collapsed');
+          setBackdrop(sidebar.classList.contains('open'));
+        } else {
+          sidebar.classList.remove('open');
+          setBackdrop(false);
+          applyDesktopCollapsedFromStorage();
+        }
+        syncIcon();
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMobile() && sidebar.classList.contains('open')){
+          closeMobileDrawer();
+        }
+      });
+    })();
+
+    (function setActiveNav(){
+      const rawHere = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
+      const here = rawHere.includes('update') || rawHere.includes('ob') ? 'ff-update.html' : rawHere;
+      document.querySelectorAll('.nav-item').forEach(a => {
+        const page = (a.getAttribute('data-page') || '').toLowerCase();
+        a.classList.toggle('active', page === here);
+      });
+    })();
+
+    document.getElementById('searchInput')?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      document.querySelectorAll('#nav .nav-item').forEach(a => {
+        const txt = a.textContent.toLowerCase();
+        a.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
+
+
+    (function initThemeToggle(){
+      const key = 'ff_theme_v1';
+      const btn = document.getElementById('themeToggle');
+      btn?.addEventListener('click', () => {
+        const current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = current === 'light' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem(key, next);
+      });
+    })();
+
+  </script>
 </body>
 </html>
