@@ -743,6 +743,10 @@
     .team-modal #tblPlayers .table-wrap table{max-width:none;}
     #tblOverall tbody tr{cursor:pointer}
     #tblOverall tbody tr:hover td{border-color:rgba(255,189,89,.25);background:rgba(255,189,89,.08)}
+    #tblOverall thead th.sortable{cursor:pointer;user-select:none;transition:.18s ease}
+    #tblOverall thead th.sortable:hover{border-color:rgba(255,189,89,.30);background:rgba(255,189,89,.10);color:var(--brand)}
+    #tblOverall thead th.sort-active{color:var(--brand);border-color:rgba(255,189,89,.24)}
+    #tblOverall .sort-indicator{display:inline-block;margin-left:4px;font-size:.70rem;line-height:1;color:var(--brand);opacity:.9}
     html[data-theme="light"] .team-modal-backdrop{background:rgba(10,20,40,.45)}
 
 
@@ -1075,6 +1079,7 @@
             <option value="ranking_score">Rank Score</option>
             <option value="dmg_pm">Damage / match</option>
             <option value="elims_pm">Elims / match</option>
+            <option value="ranking_score_pm">Rank / match</option>
             <option value="matches">Matches</option>
             <option value="damage">Total Damage</option>
             <option value="team">Team (A→Z)</option>
@@ -1281,7 +1286,11 @@ function getVal(r, key){ return key ? r?.[key] : ''; }
 
 function renderSimpleTable(list, cols){
   if(!list.length) return '<div class="muted">No rows.</div>';
-  const head = `<thead><tr>${cols.map(c => `<th data-key="${c.key}" class="${c.right ? 'right' : ''}">${c.label}</th>`).join('')}</tr></thead>`;
+  const head = `<thead><tr>${cols.map(c => {
+    const cls = [c.right ? 'right' : '', c.sortable ? 'sortable' : '', c.activeSort ? 'sort-active' : '', c.headerClass || ''].filter(Boolean).join(' ');
+    const sortAttrs = c.sortable ? ' data-sortable="1" role="button" tabindex="0" title="Click to sort"' : '';
+    return `<th data-key="${c.key}" class="${cls}"${sortAttrs}>${c.label}</th>`;
+  }).join('')}</tr></thead>`;
   const body = `<tbody>${list.map((r,i)=>`<tr>${cols.map(c=>{
     let v;
     if(typeof c.html === 'function') v = c.html(r,i);
@@ -2488,6 +2497,57 @@ function sortOverallRows(rows, sortKey, dir){
   return rows;
 }
 
+function overallSortLabel(key, label){
+  const currentKey = el('overallSortKey')?.value || 'total_score';
+  const dir = el('overallSortDir')?.dataset.dir || 'desc';
+  const icon = currentKey === key ? (dir === 'desc' ? '▼' : '▲') : '↕';
+  return `${escHtml(label)}<span class="sort-indicator">${icon}</span>`;
+}
+
+function setOverallSortFromHeader(key, label){
+  if(!key) return;
+  const sortSelect = el('overallSortKey');
+  const dirBtn = el('overallSortDir');
+  if(!sortSelect || !dirBtn) return;
+
+  const currentKey = sortSelect.value || 'total_score';
+  const nextDir = currentKey === key
+    ? (dirBtn.dataset.dir === 'desc' ? 'asc' : 'desc')
+    : (key === 'team' ? 'asc' : 'desc');
+
+  if(![...sortSelect.options].some(o => o.value === key)){
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = label || key;
+    opt.hidden = true;
+    sortSelect.appendChild(opt);
+  }
+
+  sortSelect.value = key;
+  dirBtn.dataset.dir = nextDir;
+  dirBtn.textContent = nextDir === 'desc' ? 'Desc' : 'Asc';
+  renderOverall();
+}
+
+function wireOverallHeaderSort(){
+  const table = el('tblOverall')?.querySelector('table');
+  if(!table) return;
+
+  table.querySelectorAll('thead th[data-sortable="1"]').forEach(th => {
+    const key = th.dataset.key;
+    const label = th.textContent.replace(/[↕▲▼]/g, '').trim();
+    const activate = () => setOverallSortFromHeader(key, label);
+
+    th.addEventListener('click', activate);
+    th.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        activate();
+      }
+    });
+  });
+}
+
 function renderOverall(){
   const tm = teamMatchAgg(FILTERED); const g = groupBy(tm, r=>r.team); const rows = [];
   for(const [team, list] of g.entries()){
@@ -2512,17 +2572,18 @@ function renderOverall(){
   sortOverallRows(rows, sortKey, dir);
 
   el('tblOverall').innerHTML = renderSimpleTable(rows, [
-    {label:'Team', key:'team'},
-    {label:'Matches', key:'matches', right:true},
-    {label:'Booyah', key:'booyahs', right:true},
-    {label:'Elims', key:'elims', right:true},
-    {label:'Rank', key:'ranking_score', right:true},
-    {label:'Total', key:'total_score', right:true},
-    {label:'Damage', key:'damage', right:true},
-    {label:'Elims/m', key:'elims_pm', right:true, format:'1d'},
-    {label:'Rank/m', key:'ranking_score_pm', right:true, format:'1d'},
-    {label:'Damage/m', key:'dmg_pm', right:true, format:'0d'}
+    {label:overallSortLabel('team','Team'), key:'team', sortable:true, activeSort:sortKey==='team'},
+    {label:overallSortLabel('matches','Matches'), key:'matches', right:true, sortable:true, activeSort:sortKey==='matches'},
+    {label:overallSortLabel('booyahs','Booyah'), key:'booyahs', right:true, sortable:true, activeSort:sortKey==='booyahs'},
+    {label:overallSortLabel('elims','Elims'), key:'elims', right:true, sortable:true, activeSort:sortKey==='elims'},
+    {label:overallSortLabel('ranking_score','Rank'), key:'ranking_score', right:true, sortable:true, activeSort:sortKey==='ranking_score'},
+    {label:overallSortLabel('total_score','Total'), key:'total_score', right:true, sortable:true, activeSort:sortKey==='total_score'},
+    {label:overallSortLabel('damage','Damage'), key:'damage', right:true, sortable:true, activeSort:sortKey==='damage'},
+    {label:overallSortLabel('elims_pm','Elims/m'), key:'elims_pm', right:true, format:'1d', sortable:true, activeSort:sortKey==='elims_pm'},
+    {label:overallSortLabel('ranking_score_pm','Rank/m'), key:'ranking_score_pm', right:true, format:'1d', sortable:true, activeSort:sortKey==='ranking_score_pm'},
+    {label:overallSortLabel('dmg_pm','Damage/m'), key:'dmg_pm', right:true, format:'0d', sortable:true, activeSort:sortKey==='dmg_pm'}
   ]);
+  wireOverallHeaderSort();
   applyColumnHeatmap('tblOverall', ['matches','booyahs','elims','ranking_score','total_score','damage','elims_pm','ranking_score_pm','dmg_pm']);
   el('tblOverall')?.querySelectorAll('tbody tr').forEach(tr => {
     const teamCell = tr.querySelector('td[data-key="team"]');
