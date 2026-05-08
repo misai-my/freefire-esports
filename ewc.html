@@ -876,6 +876,329 @@
       max-width:132px;
     }
 
+
+    /* ===== Resource popup rail + compact preset builder ===== */
+    .summary-layout{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 168px;
+      gap:12px;
+      align-items:start;
+    }
+    .summary-table-card{min-width:0;}
+    .asset-rail{
+      position:sticky;
+      top:88px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background:rgba(0,0,0,.14);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:18px;
+      padding:10px;
+      box-shadow:0 12px 34px rgba(0,0,0,.22);
+    }
+    .asset-rail-title{
+      font-family:Orbitron,sans-serif;
+      color:var(--brand);
+      font-size:.72rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:1000;
+      margin:0 0 2px;
+    }
+    .asset-rail .btn{
+      width:100%;
+      justify-content:flex-start;
+      gap:8px;
+      padding:8px 9px;
+      border-radius:12px;
+      font-size:.78rem;
+    }
+    .asset-rail .btn .dot{flex:0 0 auto;}
+    .dot.skill{background:var(--accent)}
+    .dot.pet{background:var(--brand)}
+    .dot.weapon{background:#ff6b6b}
+    .dot.loadout{background:var(--brand2)}
+    .dot.map{background:#62e887}
+
+    .resource-modal{
+      position:fixed;
+      inset:0;
+      z-index:9000;
+      display:none;
+      place-items:center;
+      padding:18px;
+    }
+    .resource-modal.show{display:grid;}
+    .resource-modal-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,.72);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+    .resource-modal-card{
+      position:relative;
+      z-index:1;
+      width:min(1040px,96vw);
+      max-height:90vh;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      background:var(--panel2);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:24px;
+      box-shadow:0 30px 100px rgba(0,0,0,.72);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+    }
+    .resource-modal-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(135deg,rgba(255,189,89,.10),transparent 42%),linear-gradient(225deg,rgba(77,211,255,.10),transparent 42%);
+    }
+    .resource-modal-top h3{
+      margin:0;
+      color:var(--brand);
+      font-family:Orbitron,sans-serif;
+      font-size:1.08rem;
+      letter-spacing:.45px;
+    }
+    .resource-modal-top p{margin:5px 0 0;color:var(--muted);font-size:.82rem;font-weight:800;}
+    .resource-modal-body{
+      padding:12px;
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    .resource-modal-controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+    }
+    .resource-search{
+      flex:1;
+      min-width:220px;
+      background:rgba(0,0,0,.22);
+      color:var(--ink);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px 12px;
+      outline:none;
+    }
+    .resource-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+      gap:10px;
+    }
+    .resource-card{
+      min-width:0;
+      cursor:pointer;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:16px;
+      padding:8px;
+      transition:.16s ease;
+      overflow:hidden;
+    }
+    .resource-card:hover{
+      transform:translateY(-1px);
+      border-color:rgba(255,189,89,.24);
+      background:rgba(255,255,255,.065);
+    }
+    .resource-thumb{
+      width:100%;
+      aspect-ratio:1/1;
+      border-radius:13px;
+      overflow:hidden;
+      background:linear-gradient(135deg,rgba(77,211,255,.10),rgba(255,189,89,.09));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;
+      place-items:center;
+      margin-bottom:7px;
+    }
+    .resource-card[data-kind="weapon"] .resource-thumb{aspect-ratio:16/9;}
+    .resource-thumb img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+    .resource-card[data-kind="weapon"] .resource-thumb img{object-fit:contain;padding:6px;}
+    .resource-fallback{
+      display:grid;
+      place-items:center;
+      width:100%;height:100%;
+      font-family:Orbitron,sans-serif;
+      color:var(--brand);
+      font-weight:1000;
+      text-align:center;
+      padding:8px;
+      line-height:1.05;
+    }
+    .resource-name{
+      font-weight:1000;
+      color:rgba(244,246,255,.93);
+      text-align:center;
+      font-size:.82rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .resource-sub{
+      display:flex;
+      justify-content:center;
+      gap:5px;
+      flex-wrap:wrap;
+      margin-top:5px;
+    }
+    .resource-chip{
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.16);
+      color:rgba(244,246,255,.84);
+      border-radius:999px;
+      padding:4px 7px;
+      font-size:.66rem;
+      font-weight:900;
+    }
+    .resource-desc{
+      margin-top:6px;
+      color:rgba(244,246,255,.76);
+      font-size:.72rem;
+      line-height:1.15;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      min-height:2.3em;
+    }
+
+    .preset-mini{
+      margin-top:14px;
+    }
+    .preset-mini-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .preset-mini-head h2{margin:0!important;}
+    .preset-pills{display:flex;gap:6px;flex-wrap:wrap;}
+    .preset-row-wrap{
+      border:1px solid rgba(255,255,255,.09);
+      background:rgba(0,0,0,.12);
+      border-radius:18px;
+      padding:10px;
+      margin-top:10px;
+    }
+    .preset-row-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:8px;
+      color:var(--brand);
+      font-family:Orbitron,sans-serif;
+      font-size:.82rem;
+      font-weight:1000;
+      letter-spacing:.35px;
+    }
+    .preset-row{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      padding-bottom:2px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .preset-slot{
+      width:160px;
+      min-width:160px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.09);
+      background:rgba(255,255,255,.04);
+      overflow:hidden;
+      cursor:pointer;
+      transition:.16s ease;
+      position:relative;
+    }
+    .preset-slot:hover{transform:translateY(-1px);border-color:rgba(255,189,89,.25);background:rgba(255,255,255,.065);}
+    .preset-slot-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+      padding:7px 8px;
+      border-bottom:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.03);
+    }
+    .preset-slot-top b{
+      color:rgba(244,246,255,.90);
+      font-size:.72rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .preset-slot-body{display:flex;gap:8px;align-items:center;padding:8px;min-height:76px;}
+    .preset-thumb{
+      width:48px;height:58px;min-width:48px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(135deg,rgba(77,211,255,.09),rgba(255,189,89,.08));
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+    .preset-slot[data-kind="weapon"] .preset-thumb{width:58px;height:42px;}
+    .preset-thumb img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+    .preset-slot[data-kind="weapon"] .preset-thumb img{object-fit:contain;padding:5px;}
+    .preset-meta{min-width:0;flex:1;}
+    .preset-name{font-weight:1000;font-size:.78rem;color:rgba(244,246,255,.90);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .preset-sub{font-size:.68rem;color:var(--muted);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+    .preset-clear{
+      position:absolute;
+      right:6px;
+      bottom:6px;
+      width:24px;height:24px;
+      border-radius:9px;
+      border:1px solid rgba(255,107,107,.22);
+      background:rgba(255,107,107,.10);
+      color:#ffdede;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      font-weight:1000;
+      line-height:1;
+    }
+
+    html[data-theme="light"] .asset-rail,
+    html[data-theme="light"] .resource-card,
+    html[data-theme="light"] .preset-row-wrap,
+    html[data-theme="light"] .preset-slot{
+      background:rgba(255,255,255,.62);
+      border-color:rgba(10,20,40,.10);
+      color:var(--ink);
+    }
+    html[data-theme="light"] .resource-name,
+    html[data-theme="light"] .preset-name,
+    html[data-theme="light"] .preset-slot-top b{color:var(--ink);}
+    html[data-theme="light"] .resource-desc{color:rgba(18,20,40,.72);}
+    html[data-theme="light"] .resource-search{background:rgba(255,255,255,.78);border-color:rgba(10,20,40,.12);color:var(--ink);}
+
+    @media(max-width:980px){
+      .summary-layout{grid-template-columns:1fr;}
+      .asset-rail{position:relative;top:auto;flex-direction:row;overflow-x:auto;align-items:center;}
+      .asset-rail-title{min-width:max-content;margin-right:2px;}
+      .asset-rail .btn{width:auto;min-width:max-content;}
+      .resource-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));}
+      .preset-slot{width:148px;min-width:148px;}
+    }
+
   </style>
 </head>
 <body>
@@ -1095,8 +1418,9 @@
       <span class="chip"><span class="dot bad"></span> Player Loadouts</span>
     </div>
   </section>
-  <div class="section">
-    <h2>Filters</h2>
+  <details class="accordion" id="accFilters">
+    <summary><span>Filters</span><span class="muted">Collapsed by default</span></summary>
+    <div class="accordion-body">
     <div class="bar">
       <label>Tournament <select id="fTournament" class="input" style="min-width:250px"><option value="__all__">All</option></select></label>
       <label>Mode <select id="fMode" class="input" style="min-width:100px"><option value="__all__">All</option></select></label>
@@ -1107,8 +1431,9 @@
       <label>Match # <select id="fMatchNo" class="input" style="min-width:120px"><option value="__all__">All</option></select></label>
       <button class="btn secondary" id="resetFilters">Reset to Latest</button>
     </div>
-    <div class="muted" id="filterHint">—</div>
-  </div>
+      <div class="muted" id="filterHint">—</div>
+    </div>
+  </details>
   <details class="accordion" id="accOverall" open>
     <summary><span>Overall — Team Summary</span><span class="muted" id="overallHint"></span></summary>
     <div class="accordion-body">
@@ -1128,7 +1453,17 @@
         </label>
         <button class="btn secondary" id="overallSortDir" data-dir="desc">Desc</button>
       </div>
-      <div class="card"><div id="tblOverall">Loading…</div></div>
+      <div class="summary-layout">
+        <div class="card summary-table-card"><div id="tblOverall">Loading…</div></div>
+        <aside class="asset-rail" aria-label="Quick resource popups">
+          <div class="asset-rail-title">Quick Popups</div>
+          <button class="btn secondary" type="button" data-open-resource="skills"><span class="dot skill"></span>Skills</button>
+          <button class="btn secondary" type="button" data-open-resource="pets"><span class="dot pet"></span>Pets</button>
+          <button class="btn secondary" type="button" data-open-resource="weapons"><span class="dot weapon"></span>Weapons</button>
+          <button class="btn secondary" type="button" data-open-resource="loadouts"><span class="dot loadout"></span>Loadout</button>
+          <button class="btn secondary" type="button" data-open-resource="maps"><span class="dot map"></span>Map</button>
+        </aside>
+      </div>
     </div>
   </details>
   <div class="section">
@@ -1136,6 +1471,40 @@
     <div class="bar"><input type="search" id="teamSearch" placeholder="Search EWC team…" class="input" style="flex:1;max-width:420px"><span class="chip">Selected: <span id="selectedTeamChip">—</span></span></div>
     <div id="teamGrid" class="team-grid">Loading teams…</div>
   </div>
+
+  <section class="section preset-mini" id="miniPresetBuilder">
+    <div class="preset-mini-head">
+      <div>
+        <h2>Mini Preset Builder</h2>
+        <div class="muted" style="font-size:.82rem;margin-top:4px">Quick build reference for caster prep. Click a slot to pick from the popup library.</div>
+      </div>
+      <div class="preset-pills">
+        <button class="btn secondary" id="presetResetBtn" type="button">Reset Preset</button>
+        <a class="btn brand" href="preset.html">Open Full Builder</a>
+      </div>
+    </div>
+
+    <div class="preset-row-wrap">
+      <div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="muted">1 slot</span></div>
+      <div class="preset-row" id="presetActiveRow"></div>
+    </div>
+    <div class="preset-row-wrap">
+      <div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="muted">3 slots</span></div>
+      <div class="preset-row" id="presetPassiveRow"></div>
+    </div>
+    <div class="preset-row-wrap">
+      <div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="muted">1 slot</span></div>
+      <div class="preset-row" id="presetPetRow"></div>
+    </div>
+    <div class="preset-row-wrap">
+      <div class="preset-row-title"><span><span class="dot weapon"></span> Weapons</span><span class="muted">2 slots</span></div>
+      <div class="preset-row" id="presetWeaponRow"></div>
+    </div>
+    <div class="preset-row-wrap">
+      <div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="muted">4 slots</span></div>
+      <div class="preset-row" id="presetLoadoutRow"></div>
+    </div>
+  </section>
 </div>
 </div>
   </main>
@@ -1205,6 +1574,29 @@
   </section>
 </div>
 
+<div class="resource-modal" id="resourceModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="resourceModalTitle">
+  <div class="resource-modal-backdrop" id="resourceModalBackdrop"></div>
+  <section class="resource-modal-card" role="document">
+    <div class="resource-modal-top">
+      <div style="min-width:0">
+        <h3 id="resourceModalTitle">Resources</h3>
+        <p id="resourceModalSub">Browse Free Fire reference data.</p>
+      </div>
+      <button class="icon-btn" id="resourceModalClose" aria-label="Close resource popup" title="Close" type="button">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="resource-modal-body">
+      <div class="resource-modal-controls">
+        <input class="resource-search" id="resourceSearch" type="search" placeholder="Search…" />
+        <span class="chip" id="resourceCount">0 items</span>
+      </div>
+      <div class="resource-grid" id="resourceGrid"></div>
+    </div>
+  </section>
+</div>
+
+
 <script>
 /* ============ Supabase init ============ */
 const SUPABASE_URL = 'https://ooutjrewmwsixghbouxi.supabase.co';
@@ -1219,6 +1611,7 @@ const MAP_TABLE = 'match_api';
 const CHARACTER_JSON_URL = 'character.json';
 const PET_JSON_URL = 'pet.json';
 const LOADOUT_JSON_URL = 'loadout.json';
+const WEAPON_JSON_URLS = ['weapon.json','weapons.json','free_fire_full_weapon_data_with_armory.json'];
 const MAX_ROWS_TO_LOAD = 5000;
 const CHUNK_SIZE = 1000;
 
@@ -1277,6 +1670,40 @@ const SAMPLE_PLAYER_ROLES = ['IGL','Rusher','Support','Sniper','Flex'];
 const SAMPLE_PLAYER_COUNTRIES = ['TBD'];
 let LAST_SELECTED_TEAM_ROWS = [];
 let LAST_PLAYER_SUMMARY_ROWS = [];
+
+
+
+const RESOURCE_DATA = {
+  skills: [],
+  pets: [],
+  weapons: [],
+  loadouts: [],
+  maps: [
+    { name:'Bermuda', category:'Battle Royale Map', image:'https://i.imgur.com/V6iUHaA.jpeg', description:'Classic Free Fire map used for route planning, rotations, and zone-control discussion.' },
+    { name:'Purgatory', category:'Battle Royale Map', image:'https://i.imgur.com/ieY0LHk.jpeg', description:'Large terrain map with wide rotations and bridge/pathing pressure.' },
+    { name:'Alpine', category:'Battle Royale Map', image:'https://i.imgur.com/48O1Jf8.jpeg', description:'Mountainous map for high-ground control, early path planning, and endgame reads.' },
+    { name:'Kalahari', category:'Battle Royale Map', image:'https://i.imgur.com/4Yz12P9.jpeg', description:'Dry, open map where long sightlines and compound control matter.' },
+    { name:'NeXTerra', category:'Battle Royale Map', image:'https://i.imgur.com/x5he05R.jpeg', description:'Modern map with fast rotations and dense contest areas.' },
+    { name:'Solara', category:'Battle Royale Map', image:'https://i.imgur.com/IX1oY9Z.jpeg', description:'Map reference slot for EWC preparation and tactical notes.' }
+  ]
+};
+const RESOURCE_TITLES = {
+  skills: ['Character Skills', 'Active and passive skills from character.json'],
+  pets: ['Pets', 'Pet skills from pet.json'],
+  weapons: ['Weapons', 'Weapon reference from weapon data'],
+  loadouts: ['Loadouts', 'BR/CS loadout tools from loadout.json'],
+  maps: ['Maps', 'Map references for rotations and path planning']
+};
+const MINI_PRESET_KEY = 'ewc_mini_preset_v1';
+let MINI_PRESET = {
+  active: [null],
+  passive: [null, null, null],
+  pet: [null],
+  weapon: [null, null],
+  loadout: [null, null, null, null]
+};
+let RESOURCE_MODAL_KIND = 'skills';
+let RESOURCE_PICK_TARGET = null;
 
 let DASHBOARD_SELECT_COLS = [];
 const el = id => document.getElementById(id);
@@ -2063,6 +2490,8 @@ async function loadCharacterJson(){
       Array.isArray(data?.data) ? data.data :
       [];
 
+    RESOURCE_DATA.skills = arr.map(item => normalizeGalleryItem(item, 'skills')).filter(Boolean);
+
     let activeCount = 0;
     let passiveCount = 0;
 
@@ -2161,6 +2590,7 @@ async function loadPetJson(){
     if(!res.ok) throw new Error(`pet.json fetch failed: ${res.status}`);
     const data = await res.json();
     const arr = jsonArrayFromData(data, ['pets','pet','data','items']);
+    RESOURCE_DATA.pets = arr.map(item => normalizeGalleryItem(item, 'pets')).filter(Boolean);
 
     for(const pet of arr){
       if(!pet || typeof pet !== 'object') continue;
@@ -2205,6 +2635,7 @@ async function loadLoadoutJson(){
     if(!res.ok) throw new Error(`loadout.json fetch failed: ${res.status}`);
     const data = await res.json();
     const arr = jsonArrayFromData(data, ['loadouts','loadout','data','items']);
+    RESOURCE_DATA.loadouts = arr.map(item => normalizeGalleryItem(item, 'loadouts')).filter(Boolean);
 
     for(const item of arr){
       if(!item || typeof item !== 'object') continue;
@@ -3466,6 +3897,228 @@ function skillValidationSummary(rows){
   return out;
 }
 
+
+/***********************
+ * Quick resource popups + Mini Preset Builder
+ ***********************/
+function getGalleryName(item, kind){
+  return norm(
+    item?.name ?? item?.title ?? item?.label ??
+    item?.character ?? item?.character_name ?? item?.characterName ?? item?.hero ?? item?.hero_name ??
+    item?.skill_name ?? item?.skillName ?? item?.skill ?? item?.ability ?? item?.ability_name ??
+    item?.pet_name ?? item?.petName ?? item?.loadout_name ?? item?.loadoutName ??
+    item?.weapon_name ?? item?.weaponName ?? item?.gun_name ?? item?.gunName ??
+    firstValueByPatterns(item || {}, [/^name$/i, /^title$/i, /^label$/i, /character.*name/i, /hero.*name/i, /skill.*name/i, /^skill$/i, /^ability$/i, /pet.*name/i, /loadout.*name/i, /weapon.*name/i, /gun.*name/i])
+  );
+}
+function getGallerySub(item, kind){
+  if(kind === 'skills') return norm(item?.skill_type ?? item?.skillType ?? item?.type ?? item?.role ?? item?.category) || 'Skill';
+  if(kind === 'pets') return norm(item?.type ?? item?.category ?? item?.role) || 'Pet';
+  if(kind === 'weapons') return norm(item?.category ?? item?.type ?? item?.weapon_type ?? item?.weaponType) || 'Weapon';
+  if(kind === 'loadouts') return norm(item?.mode ?? item?.category ?? item?.type) || 'Loadout';
+  if(kind === 'maps') return norm(item?.category ?? item?.type) || 'Map';
+  return '';
+}
+function getGalleryDesc(item, kind){
+  return norm(
+    item?.description ?? item?.desc ?? item?.details ?? item?.effect ?? item?.skill_description ?? item?.skillDescription ??
+    item?.description_en ?? item?.description_ms ?? item?.br_description ?? item?.cs_description ?? item?.skill ?? item?.ability_description ??
+    firstValueByPatterns(item || {}, [/description/i, /^desc$/i, /effect/i, /details/i])
+  );
+}
+function normalizeGalleryItem(item, kind){
+  if(!item || typeof item !== 'object') return null;
+  const name = getGalleryName(item, kind);
+  if(!name) return null;
+  return {
+    kind,
+    name,
+    sub: getGallerySub(item, kind),
+    desc: getGalleryDesc(item, kind),
+    img: firstImageValue(item),
+    raw: item
+  };
+}
+async function loadWeaponJson(){
+  RESOURCE_DATA.weapons = [];
+  let lastErr = null;
+  for(const url of WEAPON_JSON_URLS){
+    try{
+      const res = await fetch(`${url}?v=${Date.now()}`, { cache:'no-store' });
+      if(!res.ok) throw new Error(`${url} fetch failed: ${res.status}`);
+      const data = await res.json();
+      const arr = jsonArrayFromData(data, ['weapons','weapon','data','items','guns']);
+      RESOURCE_DATA.weapons = arr.map(item => normalizeGalleryItem(item, 'weapons')).filter(Boolean);
+      if(RESOURCE_DATA.weapons.length) return;
+    }catch(e){
+      lastErr = e;
+      console.warn('weapon data load failed:', e?.message || e);
+    }
+  }
+  RESOURCE_DATA.weapons = [
+    {kind:'weapons', name:'M82B', sub:'Sniper Rifle', desc:'Sample weapon card. Replace with weapon.json data when available.', img:'', raw:{}},
+    {kind:'weapons', name:'M1887', sub:'Shotgun', desc:'Sample close-range weapon reference.', img:'', raw:{}},
+    {kind:'weapons', name:'PARAFAL', sub:'Assault Rifle', desc:'Sample rifle reference for preset planning.', img:'', raw:{}},
+    {kind:'weapons', name:'Groza', sub:'Assault Rifle', desc:'Sample rifle reference for preset planning.', img:'', raw:{}}
+  ];
+  if(lastErr) console.warn('Using sample weapon data:', lastErr?.message || lastErr);
+}
+function resourceKindToPresetKind(kind){
+  return kind === 'skills' ? 'active' : kind === 'pets' ? 'pet' : kind === 'weapons' ? 'weapon' : kind === 'loadouts' ? 'loadout' : kind;
+}
+function getResourceList(kind){
+  const list = RESOURCE_DATA[kind] || [];
+  if(kind === 'skills' && RESOURCE_PICK_TARGET?.kind === 'active') return list.filter(item => /active/i.test(item.sub || '') || skillKindFromName(item.name) === 'active');
+  if(kind === 'skills' && RESOURCE_PICK_TARGET?.kind === 'passive') return list.filter(item => /passive/i.test(item.sub || '') || skillKindFromName(item.name) === 'passive');
+  return list;
+}
+function resourceInitials(name){
+  const words = norm(name).split(/\s+/).filter(Boolean);
+  if(!words.length) return '?';
+  if(words.length === 1) return words[0].slice(0,2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+function resourceCardHtml(item, kind){
+  const img = item.img || '';
+  const clickTitle = RESOURCE_PICK_TARGET ? `Pick ${item.name}` : item.name;
+  return `<div class="resource-card" data-kind="${escHtml(kind)}" data-name="${escHtml(item.name)}" title="${escHtml(clickTitle)}">
+    <div class="resource-thumb">${img ? `<img src="${escHtml(img)}" alt="${escHtml(item.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=&quot;resource-fallback&quot;>${escHtml(resourceInitials(item.name))}</span>'">` : `<span class="resource-fallback">${escHtml(resourceInitials(item.name))}</span>`}</div>
+    <div class="resource-name">${escHtml(item.name)}</div>
+    <div class="resource-sub"><span class="resource-chip">${escHtml(item.sub || kind)}</span>${RESOURCE_PICK_TARGET ? '<span class="resource-chip">Pick</span>' : ''}</div>
+    <div class="resource-desc">${escHtml(item.desc || 'No description yet.')}</div>
+  </div>`;
+}
+function renderResourceGrid(query=''){
+  const q = norm(query).toLowerCase();
+  const list = getResourceList(RESOURCE_MODAL_KIND).filter(item => {
+    const blob = [item.name,item.sub,item.desc].join(' ').toLowerCase();
+    return !q || blob.includes(q);
+  });
+  setText('resourceCount', `${list.length} item${list.length === 1 ? '' : 's'}`);
+  const grid = el('resourceGrid');
+  if(!grid) return;
+  grid.innerHTML = list.length ? list.map(item => resourceCardHtml(item, RESOURCE_MODAL_KIND)).join('') : '<div class="empty-msg">No matching items.</div>';
+  grid.querySelectorAll('.resource-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const name = card.getAttribute('data-name');
+      const item = list.find(x => x.name === name);
+      if(!item) return;
+      if(RESOURCE_PICK_TARGET){
+        applyPresetPick(RESOURCE_PICK_TARGET.kind, RESOURCE_PICK_TARGET.index, item);
+        closeResourcePopup();
+      }
+    });
+  });
+}
+function openResourcePopup(kind, pickTarget=null){
+  RESOURCE_MODAL_KIND = kind;
+  RESOURCE_PICK_TARGET = pickTarget;
+  const [title, sub] = RESOURCE_TITLES[kind] || ['Resources','Browse reference data'];
+  setText('resourceModalTitle', pickTarget ? `Pick ${pickTarget.label}` : title);
+  setText('resourceModalSub', pickTarget ? 'Choose one item for the mini preset builder.' : sub);
+  const input = el('resourceSearch');
+  if(input) input.value = '';
+  renderResourceGrid('');
+  const modal = el('resourceModal');
+  modal?.classList.add('show');
+  modal?.setAttribute('aria-hidden','false');
+  document.body.classList.add('sb-open');
+  setTimeout(()=>input?.focus(), 0);
+}
+function closeResourcePopup(){
+  const modal = el('resourceModal');
+  modal?.classList.remove('show');
+  modal?.setAttribute('aria-hidden','true');
+  RESOURCE_PICK_TARGET = null;
+  if(!isTeamModalOpen()) document.body.classList.remove('sb-open');
+}
+function loadMiniPreset(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(MINI_PRESET_KEY) || 'null');
+    if(saved && typeof saved === 'object') MINI_PRESET = { ...MINI_PRESET, ...saved };
+  }catch(_e){}
+}
+function saveMiniPreset(){
+  try{ localStorage.setItem(MINI_PRESET_KEY, JSON.stringify(MINI_PRESET)); }catch(_e){}
+}
+function presetKindToResourceKind(kind){
+  if(kind === 'active' || kind === 'passive') return 'skills';
+  if(kind === 'pet') return 'pets';
+  if(kind === 'weapon') return 'weapons';
+  if(kind === 'loadout') return 'loadouts';
+  return kind;
+}
+function presetKindLabel(kind){
+  return kind === 'active' ? 'Active Skill' : kind === 'passive' ? 'Passive Skill' : kind === 'pet' ? 'Pet' : kind === 'weapon' ? 'Weapon' : kind === 'loadout' ? 'Loadout' : 'Item';
+}
+function presetSlotHtml(kind, item, index){
+  const name = item?.name || 'Click to pick';
+  const sub = item?.sub || presetKindLabel(kind);
+  const img = item?.img || '';
+  const dotClass = kind === 'pet' ? 'pet' : kind === 'weapon' ? 'weapon' : kind === 'loadout' ? 'loadout' : 'skill';
+  return `<div class="preset-slot" data-kind="${escHtml(kind)}" data-index="${index}">
+    ${item ? `<button class="preset-clear" data-clear-kind="${escHtml(kind)}" data-clear-index="${index}" type="button" title="Clear">×</button>` : ''}
+    <div class="preset-slot-top"><b>${escHtml(presetKindLabel(kind))} ${index + 1}</b><span class="chip"><span class="dot ${dotClass}"></span>${escHtml(presetKindLabel(kind).split(' ')[0])}</span></div>
+    <div class="preset-slot-body">
+      <div class="preset-thumb">${img ? `<img src="${escHtml(img)}" alt="${escHtml(name)}" loading="lazy">` : `<span class="resource-fallback">${escHtml(resourceInitials(name))}</span>`}</div>
+      <div class="preset-meta"><div class="preset-name" title="${escHtml(name)}">${escHtml(name)}</div><div class="preset-sub" title="${escHtml(sub)}">${escHtml(sub)}</div></div>
+    </div>
+  </div>`;
+}
+function renderPresetRow(rowId, kind){
+  const row = el(rowId);
+  if(!row) return;
+  const slots = MINI_PRESET[kind] || [];
+  row.innerHTML = slots.map((item, i) => presetSlotHtml(kind, item, i)).join('');
+  row.querySelectorAll('.preset-slot').forEach(slot => {
+    slot.addEventListener('click', e => {
+      if(e.target?.closest?.('.preset-clear')) return;
+      const slotKind = slot.getAttribute('data-kind');
+      const index = Number(slot.getAttribute('data-index')) || 0;
+      openResourcePopup(presetKindToResourceKind(slotKind), { kind: slotKind, index, label: `${presetKindLabel(slotKind)} ${index + 1}` });
+    });
+  });
+  row.querySelectorAll('.preset-clear').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const k = btn.getAttribute('data-clear-kind');
+      const i = Number(btn.getAttribute('data-clear-index')) || 0;
+      if(MINI_PRESET[k]) MINI_PRESET[k][i] = null;
+      saveMiniPreset();
+      renderMiniPresetBuilder();
+    });
+  });
+}
+function renderMiniPresetBuilder(){
+  renderPresetRow('presetActiveRow', 'active');
+  renderPresetRow('presetPassiveRow', 'passive');
+  renderPresetRow('presetPetRow', 'pet');
+  renderPresetRow('presetWeaponRow', 'weapon');
+  renderPresetRow('presetLoadoutRow', 'loadout');
+}
+function applyPresetPick(kind, index, item){
+  if(!MINI_PRESET[kind]) return;
+  MINI_PRESET[kind][index] = item;
+  saveMiniPreset();
+  renderMiniPresetBuilder();
+}
+function resetMiniPreset(){
+  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], weapon:[null,null], loadout:[null,null,null,null] };
+  saveMiniPreset();
+  renderMiniPresetBuilder();
+}
+function wireResourceTools(){
+  document.querySelectorAll('[data-open-resource]').forEach(btn => {
+    btn.addEventListener('click', () => openResourcePopup(btn.getAttribute('data-open-resource')));
+  });
+  el('resourceModalClose')?.addEventListener('click', closeResourcePopup);
+  el('resourceModalBackdrop')?.addEventListener('click', closeResourcePopup);
+  el('resourceSearch')?.addEventListener('input', e => renderResourceGrid(e.target.value || ''));
+  el('presetResetBtn')?.addEventListener('click', resetMiniPreset);
+  loadMiniPreset();
+  renderMiniPresetBuilder();
+}
+
 function updateSkillDiagnostics(){
   try{
     const rows = RAW || [];
@@ -3494,6 +4147,7 @@ function wire(){
   el('resetFilters').addEventListener('click', resetToLatest);
   el('generateAiInsightsBtn')?.addEventListener('click', generateAiInsightsForCurrentTeam);
   wireTeamModal();
+  wireResourceTools();
 }
 async function init(){
   try{
@@ -3509,7 +4163,7 @@ async function init(){
     detectSchema(RAW[0]);
     await loadMatchApi();
     await loadCharacterJson();
-    await Promise.all([loadPetJson(), loadLoadoutJson()]);
+    await Promise.all([loadPetJson(), loadLoadoutJson(), loadWeaponJson()]);
     updateSkillDiagnostics();
     updateSkillLookupDiagnostics();
     populateTopDropdowns();
