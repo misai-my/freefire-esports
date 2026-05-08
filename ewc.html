@@ -743,10 +743,6 @@
     .team-modal #tblPlayers .table-wrap table{max-width:none;}
     #tblOverall tbody tr{cursor:pointer}
     #tblOverall tbody tr:hover td{border-color:rgba(255,189,89,.25);background:rgba(255,189,89,.08)}
-    #tblOverall thead th.sortable{cursor:pointer;user-select:none;transition:.18s ease}
-    #tblOverall thead th.sortable:hover{border-color:rgba(255,189,89,.30);background:rgba(255,189,89,.10);color:var(--brand)}
-    #tblOverall thead th.sort-active{color:var(--brand);border-color:rgba(255,189,89,.24)}
-    #tblOverall .sort-indicator{display:inline-block;margin-left:4px;font-size:.70rem;line-height:1;color:var(--brand);opacity:.9}
     html[data-theme="light"] .team-modal-backdrop{background:rgba(10,20,40,.45)}
 
 
@@ -831,6 +827,53 @@
       .team-modal-head{padding:13px;display:block}
       .team-modal-actions{justify-content:space-between;margin-top:10px}
       .team-modal-body{padding:10px}
+    }
+
+  
+
+    /* Player tab skill icon visibility fix */
+    .team-modal .roster-loadout{
+      flex-wrap:wrap;
+      overflow:visible;
+      align-items:center;
+      gap:6px;
+      min-height:38px;
+    }
+    .team-modal .roster-loadout .skill-item{
+      flex:0 0 auto;
+      max-width:none;
+      min-width:34px;
+      padding:3px;
+      gap:0;
+    }
+    .team-modal .roster-loadout .skill-label{
+      display:none;
+    }
+    .team-modal .roster-loadout .visual-icon-wrap{
+      width:30px;
+      height:30px;
+      min-width:30px;
+    }
+    .team-modal #tblPlayers .player-visual-cell.multi{
+      flex-wrap:nowrap;
+      overflow:visible;
+      gap:4px;
+    }
+    .team-modal #tblPlayers .player-visual-cell.multi .skill-item{
+      flex:0 0 auto;
+      max-width:none;
+      min-width:30px;
+      padding:3px;
+      gap:0;
+    }
+    .team-modal #tblPlayers .player-visual-cell.multi .skill-label{
+      display:none;
+    }
+    .team-modal #tblPlayers th[data-key="passive"],
+    .team-modal #tblPlayers td[data-key="passive"]{
+      width:132px;
+      min-width:132px;
+      max-width:132px;
     }
 
   </style>
@@ -1052,21 +1095,20 @@
       <span class="chip"><span class="dot bad"></span> Player Loadouts</span>
     </div>
   </section>
-  <details class="accordion" id="accFilters">
-    <summary><span>Filters</span><span class="muted" id="filterHint">—</span></summary>
-    <div class="accordion-body">
-      <div class="bar">
-        <label>Tournament <select id="fTournament" class="input" style="min-width:250px"><option value="__all__">All</option></select></label>
-        <label>Mode <select id="fMode" class="input" style="min-width:100px"><option value="__all__">All</option></select></label>
-        <label>Source <select id="fSource" class="input" style="min-width:130px"><option value="__all__">All</option></select></label>
-        <label>Year <select id="fYear" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
-        <label>Week <select id="fWeek" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
-        <label>Day <select id="fDay" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
-        <label>Match # <select id="fMatchNo" class="input" style="min-width:120px"><option value="__all__">All</option></select></label>
-        <button class="btn secondary" id="resetFilters">Reset to Latest</button>
-      </div>
+  <div class="section">
+    <h2>Filters</h2>
+    <div class="bar">
+      <label>Tournament <select id="fTournament" class="input" style="min-width:250px"><option value="__all__">All</option></select></label>
+      <label>Mode <select id="fMode" class="input" style="min-width:100px"><option value="__all__">All</option></select></label>
+      <label>Source <select id="fSource" class="input" style="min-width:130px"><option value="__all__">All</option></select></label>
+      <label>Year <select id="fYear" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
+      <label>Week <select id="fWeek" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
+      <label>Day <select id="fDay" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
+      <label>Match # <select id="fMatchNo" class="input" style="min-width:120px"><option value="__all__">All</option></select></label>
+      <button class="btn secondary" id="resetFilters">Reset to Latest</button>
     </div>
-  </details>
+    <div class="muted" id="filterHint">—</div>
+  </div>
   <details class="accordion" id="accOverall" open>
     <summary><span>Overall — Team Summary</span><span class="muted" id="overallHint"></span></summary>
     <div class="accordion-body">
@@ -1079,7 +1121,6 @@
             <option value="ranking_score">Rank Score</option>
             <option value="dmg_pm">Damage / match</option>
             <option value="elims_pm">Elims / match</option>
-            <option value="ranking_score_pm">Rank / match</option>
             <option value="matches">Matches</option>
             <option value="damage">Total Damage</option>
             <option value="team">Team (A→Z)</option>
@@ -1286,11 +1327,7 @@ function getVal(r, key){ return key ? r?.[key] : ''; }
 
 function renderSimpleTable(list, cols){
   if(!list.length) return '<div class="muted">No rows.</div>';
-  const head = `<thead><tr>${cols.map(c => {
-    const cls = [c.right ? 'right' : '', c.sortable ? 'sortable' : '', c.activeSort ? 'sort-active' : '', c.headerClass || ''].filter(Boolean).join(' ');
-    const sortAttrs = c.sortable ? ' data-sortable="1" role="button" tabindex="0" title="Click to sort"' : '';
-    return `<th data-key="${c.key}" class="${cls}"${sortAttrs}>${c.label}</th>`;
-  }).join('')}</tr></thead>`;
+  const head = `<thead><tr>${cols.map(c => `<th data-key="${c.key}" class="${c.right ? 'right' : ''}">${c.label}</th>`).join('')}</tr></thead>`;
   const body = `<tbody>${list.map((r,i)=>`<tr>${cols.map(c=>{
     let v;
     if(typeof c.html === 'function') v = c.html(r,i);
@@ -1479,6 +1516,7 @@ let CHAR_SKILLKEY_TO_KIND = new Map();
 let CHAR_SKILLKEY_TO_CANONICAL = new Map();
 let CHAR_SKILLKEY_LIST = [];
 let SKILL_NAME_TO_IMAGE = new Map();
+let SKILL_ID_TO_IMAGE = new Map();
 let CHAR_READY = false;
 
 let PET_NAME_TO_IMAGE = new Map();
@@ -1846,9 +1884,13 @@ function skillImageLookupKeys(value){
   // For match_api names like "Moco Awakened" or "Alok Awakened",
   // character.json usually stores the image under the base character name.
   // Use only the first name for image lookup while keeping the displayed skill name unchanged.
+  const firstKey = firstSkillNameTokenKey(raw);
   if(shouldUseFirstNameForSkillLookup(raw)){
-    const firstKey = firstSkillNameTokenKey(raw);
     if(firstKey) keys.unshift(firstKey);
+  }else if(firstKey && firstKey !== skillKey(raw)){
+    // Image-only fallback for character-style names with extra words.
+    // Keeps labels unchanged but gives icons a better chance to resolve from character.json.
+    keys.push(firstKey);
   }
 
   return uniqueList(keys);
@@ -1916,7 +1958,9 @@ function visualImageCandidates(kind, label, id=''){
 
   if(kind === 'skill'){
     // Skills must use character.json image fields first.
-    // For names like "Moco Awakened" / "Alok Awakened", lookup the first name in character.json.
+    // Prefer an ID match when character.json has an ID/code, then fallback to skill/character names.
+    const byId = normalizedId ? SKILL_ID_TO_IMAGE.get(normalizedId) : '';
+    if(byId) candidates.push(byId);
     const mapped = lookupSkillImageFromCharacterJson(name);
     if(mapped) candidates.push(mapped);
 
@@ -2007,6 +2051,7 @@ async function loadCharacterJson(){
   CHAR_SKILLKEY_TO_CANONICAL.clear();
   CHAR_SKILLKEY_LIST = [];
   SKILL_NAME_TO_IMAGE.clear();
+  SKILL_ID_TO_IMAGE.clear();
 
   try{
     const res = await fetch(`${CHARACTER_JSON_URL}?v=${Date.now()}`, { cache:'no-store' });
@@ -2029,6 +2074,12 @@ async function loadCharacterJson(){
       if(!kind) continue;
 
       const skillImage = firstImageValue(ch);
+      const skillImageIds = idCandidatesFromRow(ch);
+      if(skillImage){
+        for(const id of skillImageIds){
+          if(id && !SKILL_ID_TO_IMAGE.has(id)) SKILL_ID_TO_IMAGE.set(id, skillImage);
+        }
+      }
       const possibleNames = [
         ch?.skill,
         ch?.skill_name,
@@ -2090,7 +2141,7 @@ async function loadCharacterJson(){
       name: CHAR_SKILLKEY_TO_CANONICAL.get(key) || key
     }));
     CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
-    setText('diagChar', `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • active=${activeCount} • passive=${passiveCount}`);
+    setText('diagChar', `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • active=${activeCount} • passive=${passiveCount} • image IDs=${SKILL_ID_TO_IMAGE.size}`);
   }catch(e){
     CHAR_READY = false;
     setText('diagChar', 'character.json validation: unavailable / fallback mode');
@@ -2497,57 +2548,6 @@ function sortOverallRows(rows, sortKey, dir){
   return rows;
 }
 
-function overallSortLabel(key, label){
-  const currentKey = el('overallSortKey')?.value || 'total_score';
-  const dir = el('overallSortDir')?.dataset.dir || 'desc';
-  const icon = currentKey === key ? (dir === 'desc' ? '▼' : '▲') : '↕';
-  return `${escHtml(label)}<span class="sort-indicator">${icon}</span>`;
-}
-
-function setOverallSortFromHeader(key, label){
-  if(!key) return;
-  const sortSelect = el('overallSortKey');
-  const dirBtn = el('overallSortDir');
-  if(!sortSelect || !dirBtn) return;
-
-  const currentKey = sortSelect.value || 'total_score';
-  const nextDir = currentKey === key
-    ? (dirBtn.dataset.dir === 'desc' ? 'asc' : 'desc')
-    : (key === 'team' ? 'asc' : 'desc');
-
-  if(![...sortSelect.options].some(o => o.value === key)){
-    const opt = document.createElement('option');
-    opt.value = key;
-    opt.textContent = label || key;
-    opt.hidden = true;
-    sortSelect.appendChild(opt);
-  }
-
-  sortSelect.value = key;
-  dirBtn.dataset.dir = nextDir;
-  dirBtn.textContent = nextDir === 'desc' ? 'Desc' : 'Asc';
-  renderOverall();
-}
-
-function wireOverallHeaderSort(){
-  const table = el('tblOverall')?.querySelector('table');
-  if(!table) return;
-
-  table.querySelectorAll('thead th[data-sortable="1"]').forEach(th => {
-    const key = th.dataset.key;
-    const label = th.textContent.replace(/[↕▲▼]/g, '').trim();
-    const activate = () => setOverallSortFromHeader(key, label);
-
-    th.addEventListener('click', activate);
-    th.addEventListener('keydown', e => {
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
-        activate();
-      }
-    });
-  });
-}
-
 function renderOverall(){
   const tm = teamMatchAgg(FILTERED); const g = groupBy(tm, r=>r.team); const rows = [];
   for(const [team, list] of g.entries()){
@@ -2572,18 +2572,17 @@ function renderOverall(){
   sortOverallRows(rows, sortKey, dir);
 
   el('tblOverall').innerHTML = renderSimpleTable(rows, [
-    {label:overallSortLabel('team','Team'), key:'team', sortable:true, activeSort:sortKey==='team'},
-    {label:overallSortLabel('matches','Matches'), key:'matches', right:true, sortable:true, activeSort:sortKey==='matches'},
-    {label:overallSortLabel('booyahs','Booyah'), key:'booyahs', right:true, sortable:true, activeSort:sortKey==='booyahs'},
-    {label:overallSortLabel('elims','Elims'), key:'elims', right:true, sortable:true, activeSort:sortKey==='elims'},
-    {label:overallSortLabel('ranking_score','Rank'), key:'ranking_score', right:true, sortable:true, activeSort:sortKey==='ranking_score'},
-    {label:overallSortLabel('total_score','Total'), key:'total_score', right:true, sortable:true, activeSort:sortKey==='total_score'},
-    {label:overallSortLabel('damage','Damage'), key:'damage', right:true, sortable:true, activeSort:sortKey==='damage'},
-    {label:overallSortLabel('elims_pm','Elims/m'), key:'elims_pm', right:true, format:'1d', sortable:true, activeSort:sortKey==='elims_pm'},
-    {label:overallSortLabel('ranking_score_pm','Rank/m'), key:'ranking_score_pm', right:true, format:'1d', sortable:true, activeSort:sortKey==='ranking_score_pm'},
-    {label:overallSortLabel('dmg_pm','Damage/m'), key:'dmg_pm', right:true, format:'0d', sortable:true, activeSort:sortKey==='dmg_pm'}
+    {label:'Team', key:'team'},
+    {label:'Matches', key:'matches', right:true},
+    {label:'Booyah', key:'booyahs', right:true},
+    {label:'Elims', key:'elims', right:true},
+    {label:'Rank', key:'ranking_score', right:true},
+    {label:'Total', key:'total_score', right:true},
+    {label:'Damage', key:'damage', right:true},
+    {label:'Elims/m', key:'elims_pm', right:true, format:'1d'},
+    {label:'Rank/m', key:'ranking_score_pm', right:true, format:'1d'},
+    {label:'Damage/m', key:'dmg_pm', right:true, format:'0d'}
   ]);
-  wireOverallHeaderSort();
   applyColumnHeatmap('tblOverall', ['matches','booyahs','elims','ranking_score','total_score','damage','elims_pm','ranking_score_pm','dmg_pm']);
   el('tblOverall')?.querySelectorAll('tbody tr').forEach(tr => {
     const teamCell = tr.querySelector('td[data-key="team"]');
@@ -3115,7 +3114,7 @@ function renderRosterCards(teamRows){
     const profile = getPlayerProfile(r.player, i);
     const loadoutBits = [
       r.activeItem ? visualItemHtml('skill', r.activeItem) : '',
-      ...(r.passiveItems || []).slice(0,2).map(x => visualItemHtml('skill', x, true)),
+      ...(r.passiveItems || []).slice(0,3).map(x => visualItemHtml('skill', x, true)),
       r.petItem ? visualItemHtml('pet', r.petItem) : '',
       r.loadoutItem ? visualItemHtml('loadout', r.loadoutItem) : ''
     ].filter(Boolean).join('');
@@ -3296,7 +3295,7 @@ function renderTeamKpis(teamRows){
 
   el('teamKpis').innerHTML = matches ? `<div class="kpis"><div class="kpi">Matches <strong>${matches}</strong></div><div class="kpi">Total Score <strong>${totalScore}</strong></div><div class="kpi">Booyahs <strong>${booyahs}</strong> <span class="muted">(${fmtPct(matches?booyahs/matches:0)})</span></div><div class="kpi">Elims <strong>${elims}</strong> <span class="muted">(${(elims/matches).toFixed(1)}/m)</span></div><div class="kpi">Rank Score <strong>${ranking}</strong> <span class="muted">(${(ranking/matches).toFixed(1)}/m)</span></div><div class="kpi">Damage <strong>${damage}</strong> <span class="muted">(${(damage/matches).toFixed(0)}/m)</span></div></div>` : '<div class="muted">No team rows in this scope.</div>';
   const snap = summarizeTeamLoadout(teamRows);
-  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div>`;
+  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active/passive is validated by matching <code>match_api.name</code> against <code>character.json</code> skill names. Loadout codes are displayed as names only.</div>`;
 }
 function renderPlayersTable(teamRows){
   const out = buildPlayerSummaryRows(teamRows);
