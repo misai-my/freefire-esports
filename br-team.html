@@ -948,6 +948,7 @@
     <h2>Filters</h2>
     <div class="bar">
       <label>Tournament <select id="fTournament" class="input" style="min-width:250px"><option value="__all__">All</option></select></label>
+      <label>Stage <select id="fStage" class="input" style="min-width:170px"><option value="__all__">All</option></select></label>
       <label>Mode <select id="fMode" class="input" style="min-width:100px"><option value="__all__">All</option></select></label>
       <label>Source <select id="fSource" class="input" style="min-width:130px"><option value="__all__">All</option></select></label>
       <label>Year <select id="fYear" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
@@ -1278,7 +1279,7 @@ let CURRENT_TEAM = null;
 let USED_CORE_SELECT = true;
 let KEYS = {
   team:null, teamId:null, player:null, accountId:null,
-  tournament:null, year:null, week:null, day:null, matchNo:null, matchId:null, mode:null, dataSource:null, center:null,
+  tournament:null, stage:null, year:null, week:null, day:null, matchNo:null, matchId:null, mode:null, dataSource:null, center:null,
   kills:null, damage:null, assists:null, headshots:null, shoots:null, hits:null, survivalTime:null,
   booyah:null, killCount:null, killingScore:null, rankingScore:null, winRate:null,
   petName:null, petId:null, loadouts:null,
@@ -1312,6 +1313,7 @@ function detectSchema(sample){
   KEYS.player = pickKey(keys, [/^player_stats_nickname$/i, /^nickname$/i, /player.*name/i, /^name$/i]);
   KEYS.accountId = pickKey(keys, [/^player_stats_account_id$/i, /^account_id$/i, /account.*id/i]);
   KEYS.tournament = pickKey(keys, [/^Tournament$/, /^tournament$/i]);
+  KEYS.stage = pickKey(keys, [/^Stage$/, /^stage$/i]);
   KEYS.year = pickKey(keys, [/^Year$/, /^year$/i]);
   KEYS.week = pickKey(keys, [/^Week$/, /^week$/i]);
   KEYS.day = pickKey(keys, [/^Day$/, /^day$/i]);
@@ -1349,6 +1351,7 @@ function detectSchema(sample){
     KEYS.player ? `player=${KEYS.player}` : 'player=—',
     KEYS.accountId ? `account=${KEYS.accountId}` : 'account=—',
     KEYS.tournament ? `tournament=${KEYS.tournament}` : 'tournament=—',
+    KEYS.stage ? `stage=${KEYS.stage}` : 'stage=—',
     KEYS.matchNo ? `matchNo=${KEYS.matchNo}` : 'matchNo=—',
     KEYS.kills ? `kills=${KEYS.kills}` : 'kills=—',
     KEYS.damage ? `dmg=${KEYS.damage}` : 'dmg=—',
@@ -2114,10 +2117,16 @@ async function fetchAllRows(){
 
 function toBool(v){ const s = norm(v).toLowerCase(); return v === true || s === '1' || s === 'true' || s === 'yes' || s === 'y'; }
 function matchKeyForRow(r){
-  const t = norm(getVal(r, KEYS.tournament)); const y = norm(getVal(r, KEYS.year)); const w = norm(getVal(r, KEYS.week)); const d = norm(getVal(r, KEYS.day)); const m = norm(getVal(r, KEYS.matchNo)); const mid = norm(getVal(r, KEYS.matchId));
-  return mid ? `${t}|${mid}` : `${t}|Y${y}|W${w}|D${d}|M${m}`;
+  const t = norm(getVal(r, KEYS.tournament));
+  const s = norm(getVal(r, KEYS.stage));
+  const y = norm(getVal(r, KEYS.year));
+  const w = norm(getVal(r, KEYS.week));
+  const d = norm(getVal(r, KEYS.day));
+  const m = norm(getVal(r, KEYS.matchNo));
+  const mid = norm(getVal(r, KEYS.matchId));
+  return mid ? `${t}|${s}|${mid}` : `${t}|${s}|Y${y}|W${w}|D${d}|M${m}`;
 }
-function currentFilter(){ return { t:el('fTournament').value, mode:el('fMode').value, source:el('fSource').value, y:el('fYear').value, w:el('fWeek').value, d:el('fDay').value, m:el('fMatchNo').value }; }
+function currentFilter(){ return { t:el('fTournament').value, stage:el('fStage').value, mode:el('fMode').value, source:el('fSource').value, y:el('fYear').value, w:el('fWeek').value, d:el('fDay').value, m:el('fMatchNo').value }; }
 function countMatchesIn(rows){ return new Set(rows.map(matchKeyForRow)).size; }
 function uniqSorted(values, descNumeric=true){
   const arr = [...new Set(values.map(v => norm(v)).filter(Boolean))];
@@ -2129,12 +2138,33 @@ function setSelectOptions(selectEl, values, keepCurrent=true){
   selectEl.innerHTML = '<option value="__all__">All</option>' + values.map(v=>`<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');
   if(cur && [...selectEl.options].some(o=>o.value===cur)) selectEl.value = cur; else selectEl.value = '__all__';
 }
-function rowsForCascade(){
+function rowsForStageOptions(){
   let rows = RAW.slice();
-  const t = el('fTournament').value, mode = el('fMode').value, source = el('fSource').value, y = el('fYear').value, w = el('fWeek').value, d = el('fDay').value;
+  const t = el('fTournament').value;
+  const mode = el('fMode').value;
+  const source = el('fSource').value;
+
   if(t !== '__all__' && KEYS.tournament) rows = rows.filter(r => norm(getVal(r, KEYS.tournament)) === t);
   if(mode !== '__all__' && KEYS.mode) rows = rows.filter(r => norm(getVal(r, KEYS.mode)).toUpperCase() === mode.toUpperCase());
   if(source !== '__all__' && KEYS.dataSource) rows = rows.filter(r => norm(getVal(r, KEYS.dataSource)) === source);
+
+  return rows;
+}
+function rowsForCascade(){
+  let rows = RAW.slice();
+  const t = el('fTournament').value;
+  const stage = el('fStage').value;
+  const mode = el('fMode').value;
+  const source = el('fSource').value;
+  const y = el('fYear').value;
+  const w = el('fWeek').value;
+  const d = el('fDay').value;
+
+  if(t !== '__all__' && KEYS.tournament) rows = rows.filter(r => norm(getVal(r, KEYS.tournament)) === t);
+  if(stage !== '__all__' && KEYS.stage) rows = rows.filter(r => norm(getVal(r, KEYS.stage)) === stage);
+  if(mode !== '__all__' && KEYS.mode) rows = rows.filter(r => norm(getVal(r, KEYS.mode)).toUpperCase() === mode.toUpperCase());
+  if(source !== '__all__' && KEYS.dataSource) rows = rows.filter(r => norm(getVal(r, KEYS.dataSource)) === source);
+
   const rBase = rows.slice();
   if(y !== '__all__' && KEYS.year) rows = rows.filter(r => norm(getVal(r, KEYS.year)) === y);
   const rY = rows.slice();
@@ -2144,8 +2174,17 @@ function rowsForCascade(){
   return { rBase, rY, rW, rD: rows };
 }
 function refreshCascadeOptions(changed){
-  const { rBase, rY, rW, rD } = rowsForCascade();
   if(['tournament','mode','source'].includes(changed)){
+    if(KEYS.stage) setSelectOptions(el('fStage'), uniqSorted(rowsForStageOptions().map(r=>getVal(r,KEYS.stage))), false);
+    const { rBase, rY, rW, rD } = rowsForCascade();
+    if(KEYS.year) setSelectOptions(el('fYear'), uniqSorted(rBase.map(r=>getVal(r,KEYS.year))), false);
+    if(KEYS.week) setSelectOptions(el('fWeek'), uniqSorted(rY.map(r=>getVal(r,KEYS.week))), false);
+    if(KEYS.day) setSelectOptions(el('fDay'), uniqSorted(rW.map(r=>getVal(r,KEYS.day))), false);
+    if(KEYS.matchNo) setSelectOptions(el('fMatchNo'), uniqSorted(rD.map(r=>getVal(r,KEYS.matchNo))), false);
+    return;
+  }
+  const { rBase, rY, rW, rD } = rowsForCascade();
+  if(changed === 'stage'){
     if(KEYS.year) setSelectOptions(el('fYear'), uniqSorted(rBase.map(r=>getVal(r,KEYS.year))), false);
     if(KEYS.week) setSelectOptions(el('fWeek'), uniqSorted(rY.map(r=>getVal(r,KEYS.week))), false);
     if(KEYS.day) setSelectOptions(el('fDay'), uniqSorted(rW.map(r=>getVal(r,KEYS.day))), false);
@@ -2171,9 +2210,17 @@ function latestKeyFrom(rows){
   let best = null;
   for(const r of rows){
     const y=n(getVal(r,KEYS.year)), w=n(getVal(r,KEYS.week)), d=n(getVal(r,KEYS.day)), m=n(getVal(r,KEYS.matchNo));
-    const pulled = Date.parse(norm(r.pulled_at || '')) || 0;
+    const pulled = Date.parse(norm(r.pulled_at || r.updated_at || r.created_at || '')) || 0;
     const key=(y*1e10)+(w*1e8)+(d*1e6)+(m*1e4)+Math.min(9999, Math.floor(pulled/100000000));
-    if(!best || key > best.key) best={key,y:norm(getVal(r,KEYS.year)),w:norm(getVal(r,KEYS.week)),d:norm(getVal(r,KEYS.day)),m:norm(getVal(r,KEYS.matchNo))};
+    if(!best || key > best.key) best={
+      key,
+      t:norm(getVal(r,KEYS.tournament)),
+      s:norm(getVal(r,KEYS.stage)),
+      y:norm(getVal(r,KEYS.year)),
+      w:norm(getVal(r,KEYS.week)),
+      d:norm(getVal(r,KEYS.day)),
+      m:norm(getVal(r,KEYS.matchNo))
+    };
   }
   return best;
 }
@@ -2181,12 +2228,18 @@ function populateTopDropdowns(){
   if(KEYS.tournament) setSelectOptions(el('fTournament'), uniqSorted(RAW.map(r=>getVal(r,KEYS.tournament))), false);
   if(KEYS.mode) setSelectOptions(el('fMode'), uniqSorted(RAW.map(r=>String(getVal(r,KEYS.mode)).toUpperCase())), false);
   if(KEYS.dataSource) setSelectOptions(el('fSource'), uniqSorted(RAW.map(r=>getVal(r,KEYS.dataSource))), false);
+  if(KEYS.stage) setSelectOptions(el('fStage'), uniqSorted(rowsForStageOptions().map(r=>getVal(r,KEYS.stage))), false);
 }
 function resetToLatest(){
   populateTopDropdowns();
-  const tRows = RAW.slice();
-  const latest = latestKeyFrom(tRows);
+  const latest = latestKeyFrom(RAW.slice());
+
+  if(latest?.t && [...el('fTournament').options].some(o=>o.value===latest.t)) el('fTournament').value = latest.t;
   refreshCascadeOptions('tournament');
+
+  if(latest?.s && [...el('fStage').options].some(o=>o.value===latest.s)) el('fStage').value = latest.s;
+  refreshCascadeOptions('stage');
+
   if(latest?.y && [...el('fYear').options].some(o=>o.value===latest.y)) el('fYear').value = latest.y;
   refreshCascadeOptions('year');
   if(latest?.w && [...el('fWeek').options].some(o=>o.value===latest.w)) el('fWeek').value = latest.w;
@@ -2200,6 +2253,7 @@ function applyFilters(){
   const f = currentFilter();
   FILTERED = RAW.filter(r => {
     if(f.t !== '__all__' && KEYS.tournament && norm(getVal(r,KEYS.tournament)) !== f.t) return false;
+    if(f.stage !== '__all__' && KEYS.stage && norm(getVal(r,KEYS.stage)) !== f.stage) return false;
     if(f.mode !== '__all__' && KEYS.mode && norm(getVal(r,KEYS.mode)).toUpperCase() !== f.mode.toUpperCase()) return false;
     if(f.source !== '__all__' && KEYS.dataSource && norm(getVal(r,KEYS.dataSource)) !== f.source) return false;
     if(f.y !== '__all__' && KEYS.year && norm(getVal(r,KEYS.year)) !== f.y) return false;
@@ -2210,6 +2264,7 @@ function applyFilters(){
   });
   const scopeText = [
     f.t !== '__all__' ? f.t : 'All tournaments',
+    f.stage !== '__all__' ? f.stage : 'All stages',
     f.mode !== '__all__' ? f.mode : 'All modes',
     f.source !== '__all__' ? f.source : 'All sources',
     f.y !== '__all__' ? `Y${f.y}` : 'All years',
@@ -2218,7 +2273,7 @@ function applyFilters(){
     f.m !== '__all__' ? `M${f.m}` : 'All matches'
   ].join(' • ');
   el('scopeChip').textContent = 'Scope: ' + scopeText;
-  el('filterHint').textContent = `Rows: ${FILTERED.length} • Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
+  el('filterHint').textContent = `Rows: ${FILTERED.length} • Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size} • Stages: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.stage))).filter(Boolean)).size}`;
   el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
   renderOverall(); renderTeamGrid(el('teamSearch').value || ''); renderAllTeamsSkillSummary();
   if(CURRENT_TEAM){ const teams = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(CURRENT_TEAM)) selectTeam(CURRENT_TEAM, true); else clearTeam(); }
@@ -2833,7 +2888,7 @@ function wire(){
   el('overallSortDir').addEventListener('click', ()=>{ const b=el('overallSortDir'); const cur=b.dataset.dir==='desc'?'asc':'desc'; b.dataset.dir=cur; b.textContent=cur==='desc'?'Desc':'Asc'; renderOverall(); });
   el('overallSortKey').addEventListener('change', renderOverall);
   el('teamSearch').addEventListener('input', e=>renderTeamGrid(e.target.value||''));
-  for(const [id, changed] of [['fTournament','tournament'],['fMode','mode'],['fSource','source'],['fYear','year'],['fWeek','week'],['fDay','day']]) el(id).addEventListener('change', ()=>{ refreshCascadeOptions(changed); applyFilters(); });
+  for(const [id, changed] of [['fTournament','tournament'],['fStage','stage'],['fMode','mode'],['fSource','source'],['fYear','year'],['fWeek','week'],['fDay','day']]) el(id).addEventListener('change', ()=>{ refreshCascadeOptions(changed); applyFilters(); });
   el('fMatchNo').addEventListener('change', applyFilters);
   el('resetFilters').addEventListener('click', resetToLatest);
   el('accAllTeamsSkills').querySelector('summary').addEventListener('click', e => { if(e.target?.closest('#expandAllTeamsBtn') || e.target?.closest('#collapseAllTeamsBtn')) e.preventDefault(); });
