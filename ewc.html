@@ -717,6 +717,38 @@
       scrollbar-width:none;
     }
     .team-modal-tabs::-webkit-scrollbar{display:none}
+    .team-resource-strip{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 14px 10px;
+      border-bottom:1px solid var(--line);
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      background:rgba(0,0,0,.10);
+    }
+    .team-resource-strip::-webkit-scrollbar{display:none}
+    .team-resource-label{
+      flex:0 0 auto;
+      color:var(--brand);
+      font-family:Orbitron,sans-serif;
+      font-size:.70rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:1000;
+      margin-right:2px;
+    }
+    .team-resource-strip .btn{
+      flex:0 0 auto;
+      gap:7px;
+      padding:7px 9px;
+      border-radius:999px;
+      font-size:.76rem;
+    }
+    .team-modal.resource-stacked .team-modal-card{
+      box-shadow:0 20px 80px rgba(0,0,0,.58);
+    }
     .team-tab{
       border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.05);
@@ -827,6 +859,9 @@
       .team-modal-head{padding:13px;display:block}
       .team-modal-actions{justify-content:space-between;margin-top:10px}
       .team-modal-body{padding:10px}
+      .team-resource-strip{padding:8px 10px;gap:7px}
+      .team-resource-label{display:none}
+      .team-resource-strip .btn{font-size:.72rem;padding:7px 9px}
     }
 
   
@@ -937,6 +972,11 @@
       backdrop-filter:blur(8px);
       -webkit-backdrop-filter:blur(8px);
     }
+    .resource-modal.stacked .resource-modal-backdrop{
+      background:rgba(0,0,0,.46);
+      backdrop-filter:blur(4px);
+      -webkit-backdrop-filter:blur(4px);
+    }
     .resource-modal-card{
       position:relative;
       z-index:1;
@@ -951,6 +991,11 @@
       box-shadow:0 30px 100px rgba(0,0,0,.72);
       backdrop-filter:blur(18px);
       -webkit-backdrop-filter:blur(18px);
+    }
+    .resource-modal.stacked .resource-modal-card{
+      width:min(980px,94vw);
+      max-height:86vh;
+      box-shadow:0 34px 110px rgba(0,0,0,.78), 0 0 0 1px rgba(255,189,89,.10);
     }
     .resource-modal-top{
       display:flex;
@@ -1534,6 +1579,15 @@
       <button class="team-tab" type="button" data-tab="matches">Match Log</button>
     </div>
 
+    <div class="team-resource-strip" aria-label="Open reference popup over team profile">
+      <span class="team-resource-label">Quick Reference</span>
+      <button class="btn secondary" type="button" data-open-resource="skills"><span class="dot skill"></span>Skills</button>
+      <button class="btn secondary" type="button" data-open-resource="pets"><span class="dot pet"></span>Pets</button>
+      <button class="btn secondary" type="button" data-open-resource="weapons"><span class="dot weapon"></span>Weapons</button>
+      <button class="btn secondary" type="button" data-open-resource="loadouts"><span class="dot loadout"></span>Loadout</button>
+      <button class="btn secondary" type="button" data-open-resource="maps"><span class="dot map"></span>Map</button>
+    </div>
+
     <div class="team-modal-body">
       <section class="team-tab-panel active" id="panel-overview" data-panel="overview">
         <div id="teamProfileHero">Select a team.</div>
@@ -1895,7 +1949,12 @@ sbToggleBtn?.addEventListener('click', toggleSidebar);
 sbClose?.addEventListener('click', closeMobileSidebar);
 sbOverlay?.addEventListener('click', closeMobileSidebar);
 window.addEventListener('resize', () => { if(!isMobile()) closeMobileSidebar(); setToggleIcon(); });
-document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMobileSidebar(); });
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if(isResourceModalOpen()){ closeResourcePopup(); return; }
+  if(isTeamModalOpen()){ closeTeamModal(); return; }
+  closeMobileSidebar();
+});
 setToggleIcon();
 
 function setActiveNavItem(){
@@ -3778,9 +3837,10 @@ function openTeamModal(){
   setTeamTab('overview');
 }
 function closeTeamModal(){
+  if(isResourceModalOpen()) closeResourcePopup();
   const modal = el('teamModal');
   if(!modal) return;
-  modal.classList.remove('show');
+  modal.classList.remove('show','resource-stacked');
   modal.setAttribute('aria-hidden','true');
   document.body.classList.remove('sb-open');
 }
@@ -4014,21 +4074,26 @@ function openResourcePopup(kind, pickTarget=null){
   RESOURCE_MODAL_KIND = kind;
   RESOURCE_PICK_TARGET = pickTarget;
   const [title, sub] = RESOURCE_TITLES[kind] || ['Resources','Browse reference data'];
+  const stackedOverTeam = isTeamModalOpen();
   setText('resourceModalTitle', pickTarget ? `Pick ${pickTarget.label}` : title);
-  setText('resourceModalSub', pickTarget ? 'Choose one item for the mini preset builder.' : sub);
+  setText('resourceModalSub', stackedOverTeam && !pickTarget ? `${sub} • opened above the team profile` : (pickTarget ? 'Choose one item for the mini preset builder.' : sub));
   const input = el('resourceSearch');
   if(input) input.value = '';
   renderResourceGrid('');
   const modal = el('resourceModal');
   modal?.classList.add('show');
+  modal?.classList.toggle('stacked', stackedOverTeam);
   modal?.setAttribute('aria-hidden','false');
+  el('teamModal')?.classList.toggle('resource-stacked', stackedOverTeam);
   document.body.classList.add('sb-open');
   setTimeout(()=>input?.focus(), 0);
 }
+function isResourceModalOpen(){ return el('resourceModal')?.classList.contains('show'); }
 function closeResourcePopup(){
   const modal = el('resourceModal');
-  modal?.classList.remove('show');
+  modal?.classList.remove('show','stacked');
   modal?.setAttribute('aria-hidden','true');
+  el('teamModal')?.classList.remove('resource-stacked');
   RESOURCE_PICK_TARGET = null;
   if(!isTeamModalOpen()) document.body.classList.remove('sb-open');
 }
