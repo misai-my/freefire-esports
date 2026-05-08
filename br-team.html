@@ -125,7 +125,7 @@
   <details class="accordion" id="accAllTeamsSkills">
     <summary><span>All Teams — Skill Summary</span><div class="allteams-controls"><span class="muted" id="allTeamsHint"></span><button class="btn secondary" id="expandAllTeamsBtn" type="button">Expand All</button><button class="btn secondary" id="collapseAllTeamsBtn" type="button">Collapse All</button></div></summary>
     <div class="accordion-body">
-      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with loadout names mapped.</div><div id="tblAllTeamsSkills">—</div></div>
+      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with loadout names mapped and skill names validated against character.json.</div><div id="tblAllTeamsSkills">—</div></div>
     </div>
   </details>
 </div>
@@ -179,6 +179,19 @@ function normalizeLookupId(value){
   if(!s) return '';
   if(/^[-+]?\d+(\.0+)?$/.test(s)) return String(parseInt(s, 10));
   return s;
+}
+function normalizeMatchApiNumericId(value){
+  const raw = norm(value);
+  if(!raw) return '';
+
+  // match_api.id is a plain number such as 7706.
+  // Player rows can still arrive as number, "7706", "7706.0", or "ID 7706".
+  const exact = raw.match(/^[-+]?(\d+)(?:\.0+)?$/);
+  if(exact) return String(parseInt(exact[1], 10));
+
+  const token = raw.match(/\d+(?:\.0+)?/);
+  if(!token) return '';
+  return String(parseInt(token[0], 10));
 }
 const toNum = v => { const x = Number(v); return Number.isFinite(x) ? x : null; };
 const fmtPct = x => Number.isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
@@ -296,6 +309,7 @@ let ID_TO_NAME = new Map();
 let SKILL_ID_TO_NAME = new Map();
 let MAP_READY = false;
 let CHAR_SKILLKEY_TO_KIND = new Map();
+let CHAR_SKILLKEY_TO_CANONICAL = new Map();
 let CHAR_SKILLKEY_LIST = [];
 let CHAR_READY = false;
 
@@ -404,12 +418,11 @@ function mapNameFromId(id, fallback=''){
   return lookupInMap(ID_TO_NAME, key) || fallback || `ID ${key}`;
 }
 function mapSkillFromId(id, fallback=''){
-  const key = normalizeLookupId(id);
+  const key = normalizeMatchApiNumericId(id);
   if(!key) return fallback || '—';
 
-  // Skill lookup is intentionally exact:
-  // ff_player_stats_raw skill ID -> match_api.id, with match_api.type = 2.
-  // Do not fall back to non-skill rows, because that can display the wrong name.
+  // Exact requested lookup:
+  // Number from ff_player_stats_raw skill field -> match_api.id, only where match_api.type = 2, display match_api.name.
   return SKILL_ID_TO_NAME.get(key) || fallback || `ID ${key}`;
 }
 function firstNonEmptyFromKeys(row, keys){
@@ -496,48 +509,70 @@ function isSkillMatchApiRow(row, typeKeys){
   }
   return false;
 }
+async function fetchMatchApiSkillRowsByType(typeValue){
+  const rows = [];
+  let from = 0;
+  const size = 1000;
+
+  for(;;){
+    const { data, error } = await client
+      .from(MAP_TABLE)
+      .select('id,type,name')
+      .eq('type', typeValue)
+      .range(from, from + size - 1);
+
+    if(error) throw error;
+
+    const batch = data || [];
+    rows.push(...batch);
+
+    if(batch.length < size) break;
+    from += size;
+  }
+
+  return rows;
+}
+
 async function loadMatchApi(){
   MAP_READY = false;
   ID_TO_NAME.clear();
   SKILL_ID_TO_NAME.clear();
 
   try{
-    // Exact lookup requested:
-    // match_api.id === player skill ID, match_api.type === 2, display match_api.name.
-    const { data, error } = await client
-      .from(MAP_TABLE)
-      .select('id,type,name')
-      .limit(50000);
+    // Exact requested lookup path:
+    // match_api.id is a plain number, match_api.type must be 2, and match_api.name is displayed.
+    // Querying type=2 first avoids loading unrelated API rows and avoids missing skills when match_api is large.
+    let rows = [];
+    let filterNote = 'type=2 numeric';
 
-    if(error) throw error;
-
-    const rows = data || [];
-    if(!rows.length){
-      el('diagMap').textContent = 'match_api mapping: 0 rows';
-      return;
+    try{
+      rows = await fetchMatchApiSkillRowsByType(2);
+    }catch(firstErr){
+      console.warn('match_api type=2 numeric fetch failed, trying string type:', firstErr?.message || firstErr);
+      rows = await fetchMatchApiSkillRowsByType('2');
+      filterNote = 'type="2" string';
     }
 
-    let namedRows = 0;
     let skillRows = 0;
+    let namedRows = 0;
 
     for(const r of rows){
-      const id = normalizeLookupId(r?.id);
+      const id = normalizeMatchApiNumericId(r?.id);
       const name = norm(r?.name);
-      const type = Number(r?.type);
+      const type = Number(norm(r?.type));
+
+      if(type !== 2) continue;
+      skillRows++;
 
       if(!id || !name) continue;
-
       namedRows++;
-      ID_TO_NAME.set(id, name);
 
-      if(type === 2){
-        skillRows++;
-        SKILL_ID_TO_NAME.set(id, name);
-      }
+      ID_TO_NAME.set(id, name);
+      SKILL_ID_TO_NAME.set(id, name);
     }
 
     MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    el('diagMap').textContent = `match_api mapping: rows=${rows.length} • named=${namedRows} • skill rows(type=2)=${skillRows} • skill IDs=${SKILL_ID_TO_NAME.size} • exact id→name`;
+    el('diagMap').textContent = `match_api mapping: fetched=${rows.length} • skill rows(type=2)=${skillRows} • named=${namedRows} • skill IDs=${SKILL_ID_TO_NAME.size} • ${filterNote} • id→name`;
   }catch(e){
     el('diagMap').textContent = 'match_api mapping: unavailable / expected columns: id, type, name';
     console.warn('match_api load failed:', e?.message || e);
@@ -566,6 +601,7 @@ function firstCharacterValue(row, patterns){
 async function loadCharacterJson(){
   CHAR_READY = false;
   CHAR_SKILLKEY_TO_KIND.clear();
+  CHAR_SKILLKEY_TO_CANONICAL.clear();
   CHAR_SKILLKEY_LIST = [];
 
   try{
@@ -578,27 +614,55 @@ async function loadCharacterJson(){
       Array.isArray(data?.data) ? data.data :
       [];
 
+    let activeCount = 0;
+    let passiveCount = 0;
+
     for(const ch of arr){
       const kind = normKind(
-        ch?.skill_type ?? ch?.skillType ?? ch?.skill_kind ?? ch?.type ?? ch?.category ??
-        firstCharacterValue(ch, [/skill.*type/i, /type/i, /kind/i, /category/i])
+        ch?.skill_type ?? ch?.skillType ?? ch?.skill_kind ?? ch?.skillKind ?? ch?.type ?? ch?.category ??
+        firstCharacterValue(ch, [/skill.*type/i, /skill.*kind/i, /^type$/i, /^kind$/i, /category/i])
       );
       if(!kind) continue;
 
-      const skillName = ch?.skill ?? ch?.skill_name ?? ch?.skillName ?? ch?.ability ?? ch?.ability_name ??
-        firstCharacterValue(ch, [/^skill$/i, /skill.*name/i, /ability/i]);
+      const possibleNames = [
+        ch?.skill,
+        ch?.skill_name,
+        ch?.skillName,
+        ch?.ability,
+        ch?.ability_name,
+        ch?.abilityName,
+        ch?.name,
+        ch?.title,
+        ch?.label,
+        ch?.character_skill,
+        ch?.characterSkill,
+        firstCharacterValue(ch, [/^skill$/i, /skill.*name/i, /ability.*name/i, /^ability$/i])
+      ].filter(v => norm(v));
 
-      for(const k of skillKeyVariants(skillName)){
-        if(!CHAR_SKILLKEY_TO_KIND.has(k)) CHAR_SKILLKEY_TO_KIND.set(k, kind);
+      for(const skillName of possibleNames){
+        for(const k of skillKeyVariants(skillName)){
+          if(!k) continue;
+          // Keep the first non-empty classification for each normalized skill name.
+          if(!CHAR_SKILLKEY_TO_KIND.has(k)){
+            CHAR_SKILLKEY_TO_KIND.set(k, kind);
+            CHAR_SKILLKEY_TO_CANONICAL.set(k, norm(skillName));
+            if(kind === 'active') activeCount++;
+            if(kind === 'passive') passiveCount++;
+          }
+        }
       }
     }
 
-    CHAR_SKILLKEY_LIST = [...CHAR_SKILLKEY_TO_KIND.entries()].map(([key,kind])=>({key,kind}));
+    CHAR_SKILLKEY_LIST = [...CHAR_SKILLKEY_TO_KIND.entries()].map(([key,kind])=>({
+      key,
+      kind,
+      name: CHAR_SKILLKEY_TO_CANONICAL.get(key) || key
+    }));
     CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
-    el('diagChar').textContent = `character.json mapping: skills=${CHAR_SKILLKEY_TO_KIND.size}`;
+    el('diagChar').textContent = `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • active=${activeCount} • passive=${passiveCount}`;
   }catch(e){
     CHAR_READY = false;
-    el('diagChar').textContent = 'character.json mapping: unavailable / fallback mode';
+    el('diagChar').textContent = 'character.json validation: unavailable / fallback mode';
     console.warn('character.json load failed:', e?.message || e);
   }
 }
@@ -922,7 +986,8 @@ function renderOverall(){
 }
 
 function normalizeSkillId(value){
-  return normalizeLookupId(value);
+  // Skills must match match_api.id, which is a plain number such as 7706.
+  return normalizeMatchApiNumericId(value);
 }
 function parseSkillIdsFromValue(raw){
   if(raw == null || raw === '') return [];
@@ -1007,16 +1072,22 @@ function skillKindFromName(name){
   return CHAR_SKILLKEY_TO_KIND.get(k) || fuzzyKindLookup(k) || '';
 }
 
+function skillNameFromId(id){
+  if(!id) return '';
+  return mapSkillFromId(id, '');
+}
+
 function kindOfSkillId(id){
-  if(!id || !MAP_READY) return '';
-  const nm = mapSkillFromId(id, '');
+  const nm = skillNameFromId(id);
   if(!nm) return '';
+  // Exact requested validation path:
+  // ff_player_stats_raw skill id -> match_api.id/type=2/name -> character.json skill name -> skill_type.
   return skillKindFromName(nm);
 }
 
 function sameSkillName(id, name){
   if(!id || !name) return false;
-  const mapped = mapSkillFromId(id, '');
+  const mapped = skillNameFromId(id);
   return !!mapped && skillKey(mapped) === skillKey(name);
 }
 
@@ -1031,75 +1102,84 @@ function getSkillInfoActiveFlag(r){
   return toBool(raw);
 }
 
+function buildSkillCandidatesFromRow(r){
+  const ids = [...new Set(skillIdsFromRow(r))].filter(Boolean);
+  return ids.map(id => {
+    const name = skillNameFromId(id);
+    return {
+      id,
+      name,
+      kind: name ? skillKindFromName(name) : ''
+    };
+  });
+}
+
 function classifySkillsFromRow(r){
-  const ids = skillIdsFromRow(r);
-  const uniq = [...new Set(ids)].filter(Boolean);
-  const activeName = norm(getVal(r, KEYS.skillInfoName));
+  const candidates = buildSkillCandidatesFromRow(r);
+  const ids = candidates.map(c => c.id);
+  const activeNameRaw = norm(getVal(r, KEYS.skillInfoName));
   const activeInfoIds = getSkillInfoIdsForRow(r);
   const flatActiveId = activeInfoIds.find(Boolean) || '';
   const flatFlag = getSkillInfoActiveFlag(r);
 
-  // Diagnosis/fix:
-  // In server.js rows, player_stats_skill_ids is the equipped list, not a guaranteed
-  // active/passive ordered list. The safest active source is the flattened
-  // player_stats_skill_info_skill_id/name. We trust that source unless character.json
-  // clearly says it is passive. If the external maps are incomplete, we still show IDs
-  // instead of blanking the table.
-  const flatIdKind = flatActiveId ? kindOfSkillId(flatActiveId) : '';
-  const flatNameKind = activeName ? skillKindFromName(activeName) : '';
+  const flatActiveNameFromId = flatActiveId ? skillNameFromId(flatActiveId) : '';
+  const flatActiveName = activeNameRaw || flatActiveNameFromId;
+  const flatActiveKind = flatActiveName ? skillKindFromName(flatActiveName) : '';
+  const flatActiveCandidate = flatActiveId ? candidates.find(c => c.id === flatActiveId) : null;
 
   let active = '';
   let activeLabel = '';
 
-  const flatLooksPassive = flatIdKind === 'passive' || flatNameKind === 'passive';
-  const flatLooksActive = flatFlag === true || flatIdKind === 'active' || flatNameKind === 'active';
+  // 1) Prefer the API's skill_info active source, but validate its displayed name
+  // against character.json. If character.json says that name is passive, do not put
+  // it in the active bucket.
+  if(flatActiveId || flatActiveName){
+    const isValidatedActive = flatActiveKind === 'active' || flatActiveCandidate?.kind === 'active';
+    const isValidatedPassive = flatActiveKind === 'passive' || flatActiveCandidate?.kind === 'passive';
 
-  if((flatActiveId || activeName) && !flatLooksPassive){
-    active = flatActiveId || uniq.find(id => sameSkillName(id, activeName)) || '';
-    activeLabel = activeName || (active ? skillLabelFromId(active) : '');
+    if(isValidatedActive || (flatFlag === true && !isValidatedPassive) || (!CHAR_READY && !isValidatedPassive)){
+      active = flatActiveId || candidates.find(c => skillKey(c.name) === skillKey(flatActiveName))?.id || '';
+      activeLabel = flatActiveName || (active ? skillLabelFromId(active) : '');
+    }
   }
 
-  // If character.json can confidently identify one active skill, use it only when the
-  // flat skill_info source is absent or unusable.
-  if(!active && CHAR_READY && MAP_READY){
-    active = uniq.find(id => kindOfSkillId(id) === 'active') || '';
-    activeLabel = active ? skillLabelFromId(active) : '';
+  // 2) If the flat skill_info value is absent or validated as passive, find the active
+  // skill by matching each match_api skill name against character.json.
+  if(!active){
+    const activeCandidate = candidates.find(c => c.kind === 'active');
+    if(activeCandidate){
+      active = activeCandidate.id;
+      activeLabel = activeCandidate.name || skillLabelFromId(activeCandidate.id);
+    }
   }
 
-  // Final fallback: never hide the whole skill section. Use the flat skill ID/name,
-  // then the first equipped skill ID. This makes mapping/data issues visible instead
-  // of making the dashboard look empty.
+  // 3) Fallback display only: never hide skills just because validation data is incomplete.
+  // This fallback is not used to validate passive/active, it just prevents blank tables.
   if(!active && !activeLabel){
-    active = flatActiveId || uniq[0] || '';
-    activeLabel = activeName || (active ? skillLabelFromId(active) : '');
+    active = flatActiveId || ids[0] || '';
+    activeLabel = flatActiveName || (active ? skillLabelFromId(active) : '');
   }
 
-  const remaining = uniq.filter(id => {
-    if(active && id === active) return false;
-    if(activeLabel && sameSkillName(id, activeLabel)) return false;
-    if(activeName && sameSkillName(id, activeName)) return false;
+  const activeKey = active ? normalizeSkillId(active) : '';
+  const activeLabelKey = skillKey(activeLabel);
+
+  const remaining = candidates.filter(c => {
+    if(activeKey && normalizeSkillId(c.id) === activeKey) return false;
+    if(activeLabelKey && c.name && skillKey(c.name) === activeLabelKey) return false;
+    if(activeNameRaw && c.name && skillKey(c.name) === skillKey(activeNameRaw)) return false;
     return true;
   });
 
-  const confirmedPassives = [];
-  const unknownPassives = [];
+  // Main validation path for passives: match_api.name -> character.json skill_type === passive.
+  const validatedPassives = remaining.filter(c => c.kind === 'passive').map(c => c.id);
 
-  for(const id of remaining){
-    const kind = kindOfSkillId(id);
-    if(kind === 'active') continue;
-    if(kind === 'passive') confirmedPassives.push(id);
-    else unknownPassives.push(id);
-  }
+  // Do not allow character.json-validated active skills into passive.
+  const nonActiveRemaining = remaining.filter(c => c.kind !== 'active').map(c => c.id);
 
-  // Prefer confirmed passive skills, but if the lookup maps are incomplete or names
-  // do not match character.json exactly, show the remaining IDs/names rather than blanking.
-  let passives = confirmedPassives.length ? confirmedPassives : unknownPassives;
-
-  // In the common 4-skill loadout case, active + 3 remaining skills should still show
-  // as passives even when character.json classification fails.
-  if(!passives.length && remaining.length){
-    passives = remaining.filter(id => kindOfSkillId(id) !== 'active');
-  }
+  // If character.json validates at least one passive, use validated passives. Otherwise,
+  // fall back to the remaining non-active IDs so the table still shows data while the
+  // mapping is being cleaned up.
+  const passives = validatedPassives.length ? validatedPassives : nonActiveRemaining;
 
   return { active, activeLabel, passives };
 }
@@ -1224,7 +1304,7 @@ function renderTeamKpis(teamRows){
 
   el('teamKpis').innerHTML = matches ? `<div class="kpis"><div class="kpi">Matches <strong>${matches}</strong></div><div class="kpi">Total Score <strong>${totalScore}</strong></div><div class="kpi">Booyahs <strong>${booyahs}</strong> <span class="muted">(${fmtPct(matches?booyahs/matches:0)})</span></div><div class="kpi">Elims <strong>${elims}</strong> <span class="muted">(${(elims/matches).toFixed(1)}/m)</span></div><div class="kpi">Rank Score <strong>${ranking}</strong> <span class="muted">(${(ranking/matches).toFixed(1)}/m)</span></div><div class="kpi">Damage <strong>${damage}</strong> <span class="muted">(${(damage/matches).toFixed(0)}/m)</span></div></div>` : '<div class="muted">No team rows in this scope.</div>';
   const snap = summarizeTeamLoadout(teamRows);
-  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active/passive is now validated against <code>character.json</code> when available. Loadout codes are displayed as names only.</div>`;
+  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active/passive is validated by matching <code>match_api.name</code> against <code>character.json</code> skill names. Loadout codes are displayed as names only.</div>`;
 }
 function renderPlayersTable(teamRows){
   const g = groupBy(teamRows, r => norm(getVal(r, KEYS.player)) || norm(getVal(r, KEYS.accountId)) || '—'); const out = [];
@@ -1277,6 +1357,22 @@ function renderAllTeamsSkillSummary(){
   el('collapseAllTeamsBtn').onclick = () => { document.querySelectorAll('details.team-exp').forEach(d=>d.open=false); };
 }
 
+function skillValidationSummary(rows){
+  const seen = new Set();
+  const out = { active: 0, passive: 0, unknown: 0 };
+  for(const r of rows || []){
+    for(const id of skillIdsFromRow(r)){
+      if(!id || seen.has(id)) continue;
+      seen.add(id);
+      const kind = kindOfSkillId(id);
+      if(kind === 'active') out.active++;
+      else if(kind === 'passive') out.passive++;
+      else out.unknown++;
+    }
+  }
+  return out;
+}
+
 function updateSkillDiagnostics(){
   try{
     const rows = RAW || [];
@@ -1286,7 +1382,8 @@ function updateSkillDiagnostics(){
     const sample = rows.find(r => skillIdsFromRow(r).length || getSkillInfoIdsForRow(r).length || norm(getVal(r, KEYS.skillInfoName)));
     const sampleIds = sample ? skillIdsFromRow(sample).slice(0,4).join(',') : 'none';
     const sampleActive = sample ? (getActiveSkillLabel(sample) || getActiveSkillId(sample) || 'none') : 'none';
-    el('diagSkill').textContent = `skill fields: split=${withSplit} • raw=${withRaw} • info=${withInfo} • sample=${sampleIds} • active=${sampleActive}`;
+    const validation = skillValidationSummary(rows);
+    el('diagSkill').textContent = `skill fields: split=${withSplit} • raw=${withRaw} • info=${withInfo} • sample=${sampleIds} • active=${sampleActive} • validated A/P/U=${validation.active}/${validation.passive}/${validation.unknown}`;
   }catch(e){
     el('diagSkill').textContent = 'skill fields: diagnostic failed';
     console.warn('Skill diagnostic failed:', e?.message || e);
@@ -1318,6 +1415,7 @@ async function init(){
     await loadMatchApi();
     await loadCharacterJson();
     updateSkillDiagnostics();
+    updateSkillLookupDiagnostics();
     populateTopDropdowns();
     resetToLatest();
     wire();
