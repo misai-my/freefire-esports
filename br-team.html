@@ -8,6 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Theme pre-load -->
+  <script>
+    (function(){
+      const KEY = 'ff_theme_v1';
+      const saved = localStorage.getItem(KEY);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <style>
     :root{
       --bg:#07090f;--bg2:#0b1020;--panel:rgba(20,26,38,.72);--panel2:rgba(14,18,28,.70);
@@ -203,20 +214,295 @@
       #tblActive .table-wrap table,#tblPassive .table-wrap table,#tblPet .table-wrap table{min-width:260px;max-width:none}
     }
 
+  
+
+    /* ===== Sidebar + shared dashboard theme ===== */
+    :root{
+      --sb-w:260px;
+      --sb-w-collapsed:82px;
+      --chip-bg:rgba(0,0,0,.18);
+      --chip-bd:rgba(255,255,255,.12);
+    }
+    html[data-theme="dark"]{ color-scheme:dark; }
+    html[data-theme="light"]{
+      color-scheme:light;
+      --bg:#f6f7fb;
+      --bg2:#e9ecf5;
+      --panel:rgba(255,255,255,.78);
+      --panel2:rgba(255,255,255,.88);
+      --line:rgba(10,20,40,.11);
+      --ink:#121428;
+      --muted:#5b647a;
+      --shadow:0 18px 60px rgba(10,20,40,.14);
+      --chip-bg:rgba(255,255,255,.72);
+      --chip-bd:rgba(10,20,40,.12);
+      --heat-rgb:255,189,89;
+    }
+    html[data-theme="light"] body::before,
+    html[data-theme="light"] body::after{ border-color:rgba(77,211,255,.18); }
+    html[data-theme="light"] select,
+    html[data-theme="light"] input,
+    html[data-theme="light"] .input{
+      background:rgba(255,255,255,.74)!important;
+      border-color:rgba(10,20,40,.13)!important;
+      color:var(--ink)!important;
+    }
+    html[data-theme="light"] select option{ background:#fff;color:var(--ink); }
+    html[data-theme="light"] .btn,
+    html[data-theme="light"] .icon-btn,
+    html[data-theme="light"] .logout,
+    html[data-theme="light"] .chip,
+    html[data-theme="light"] .userchip,
+    html[data-theme="light"] .kpi,
+    html[data-theme="light"] .badge{
+      background:rgba(255,255,255,.66);
+      border-color:rgba(10,20,40,.12);
+      color:var(--ink);
+    }
+    html[data-theme="light"] tbody tr td{ background:rgba(255,255,255,.48);border-color:rgba(10,20,40,.08); }
+    html[data-theme="light"] thead th{ background:rgba(255,255,255,.78);border-color:rgba(10,20,40,.10); }
+    html[data-theme="light"] .nav-ico{ background:rgba(10,20,40,.05);border-color:rgba(10,20,40,.10); }
+    html[data-theme="light"] .nav-item:hover{ background:rgba(10,20,40,.05);border-color:rgba(10,20,40,.10);color:var(--ink); }
+
+    header{ display:none!important; }
+    .app{
+      min-height:100vh;
+      display:flex;
+      gap:18px;
+      padding:18px;
+      max-width:1440px;
+      margin:0 auto;
+      align-items:flex-start;
+      position:relative;
+      z-index:1;
+    }
+    .sb-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      backdrop-filter:blur(2px);
+      -webkit-backdrop-filter:blur(2px);
+      display:none;
+      z-index:1900;
+    }
+    .sb-overlay.show{ display:block; }
+    body.sb-open{ overflow:hidden; }
+    .sidebar{
+      width:var(--sb-w);
+      background:var(--panel2);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      position:sticky;
+      top:18px;
+      height:calc(100vh - 36px);
+      transition:width .18s ease, transform .18s ease;
+      flex:0 0 auto;
+      z-index:10;
+    }
+    .sidebar.collapsed{ width:var(--sb-w-collapsed); }
+    .brand{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:16px 16px 10px;
+      border-bottom:1px solid var(--line);
+      flex:0 0 auto;
+    }
+    .brand-left{ display:flex;align-items:center;gap:10px;min-width:0; }
+    .logo{
+      width:36px;height:36px;border-radius:12px;
+      background:linear-gradient(135deg, rgba(255,189,89,.25), rgba(77,211,255,.18));
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      font-family:Orbitron,sans-serif;
+      letter-spacing:.5px;
+      color:var(--brand);
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-family:Orbitron,sans-serif;
+      font-size:1.05rem;
+      letter-spacing:.6px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:150px;
+      color:var(--ink);
+    }
+    .brand small{ display:block;color:var(--muted);font-size:.78rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px; }
+    .nav{ padding:12px;display:flex;flex-direction:column;gap:8px;overflow:auto; }
+    .nav::-webkit-scrollbar{width:10px}.nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}.nav::-webkit-scrollbar-track{background:transparent}
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid transparent;
+      color:var(--muted);
+      text-decoration:none;
+      transition:.2s ease;
+      min-width:0;
+    }
+    .nav-item:hover{ background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08);color:var(--ink); }
+    .nav-item.active{ background:linear-gradient(135deg, rgba(255,189,89,.14), rgba(77,211,255,.09));border-color:rgba(255,189,89,.22);color:var(--ink); }
+    .nav-ico{ width:26px;height:26px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;flex:0 0 auto; }
+    .nav-ico svg{ width:15px;height:15px;opacity:.92; }
+    .nav-label{ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-weight:800;font-size:.88rem; }
+    .sidebar.collapsed .brand h1,
+    .sidebar.collapsed .brand small,
+    .sidebar.collapsed .nav-label{ display:none; }
+    .sidebar.collapsed .brand{ justify-content:center; }
+    .sidebar.collapsed .brand-left{ justify-content:center; }
+    .sidebar.collapsed .nav-item{ justify-content:center;gap:0;padding:10px 8px; }
+    .sidebar.collapsed .sb-close{ display:none; }
+    .main{ flex:1;display:flex;flex-direction:column;min-width:0;gap:14px; }
+    .topbar{
+      position:sticky;
+      top:18px;
+      z-index:40;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      scrollbar-width:none;
+      min-width:0;
+    }
+    .topbar::-webkit-scrollbar{ display:none; }
+    .page-title{ min-width:190px;margin-right:auto; }
+    .page-title h1{ margin:0;font-family:Orbitron,sans-serif;font-size:1rem;letter-spacing:.55px;color:var(--brand);white-space:nowrap; }
+    .page-title span{ display:block;color:var(--muted);font-size:.78rem;margin-top:1px;white-space:nowrap; }
+    .top-actions{ display:flex;align-items:center;gap:8px;flex:0 0 auto; }
+    .icon-btn{
+      width:40px;height:40px;border-radius:14px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;place-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      color:var(--ink);
+      flex:0 0 auto;
+    }
+    .icon-btn:hover{ transform:translateY(-1px);background:rgba(255,255,255,.08); }
+    .icon-btn svg{ width:18px;height:18px;opacity:.92; }
+    .sb-close{ display:none; }
+    .userchip{ display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);max-width:260px;min-width:0; }
+    .avatar{ width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg, rgba(255,189,89,.30), rgba(77,211,255,.18));border:1px solid rgba(255,255,255,.10);flex:0 0 auto; }
+    .usertext{ min-width:0; }
+    .usertext b{ display:block;font-size:.86rem;font-family:Orbitron,sans-serif;color:var(--brand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px; }
+    .usertext span{ display:block;font-size:.74rem;color:var(--muted); }
+    .logout{ color:rgba(255,255,255,.72);text-decoration:none;font-size:.84rem;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);transition:.2s ease;cursor:pointer;white-space:nowrap; }
+    .logout:hover{ border-color:rgba(255,77,77,.35);color:#ff8d8d;box-shadow:0 0 0 3px rgba(255,77,77,.10); }
+    .shell{ max-width:none;width:100%;margin:0;padding:0 0 18px; }
+    #scopeChip{ max-width:420px;flex:0 1 auto; }
+
+    @media (max-width:980px){
+      .app{ display:block;padding:12px; }
+      .sidebar{ position:fixed;top:12px;bottom:12px;left:12px;height:auto;width:min(320px,86vw);z-index:2000;transform:translateX(calc(-100% - 18px)); }
+      .sidebar.open{ transform:translateX(0); }
+      .sidebar.collapsed{ width:min(320px,86vw); }
+      .sidebar.collapsed .brand h1,
+      .sidebar.collapsed .brand small,
+      .sidebar.collapsed .nav-label{ display:initial; }
+      .sidebar.collapsed .brand{ justify-content:space-between; }
+      .sidebar.collapsed .brand-left{ justify-content:flex-start; }
+      .sidebar.collapsed .nav-item{ justify-content:flex-start;gap:10px;padding:10px; }
+      .sb-close{ display:grid; }
+      .topbar{ top:12px; }
+      .page-title{ min-width:150px; }
+      #scopeChip{ max-width:260px; }
+      .userchip{ max-width:170px; }
+    }
+    @media (max-width:760px){
+      .page-title{ display:none; }
+      .usertext span{ display:none; }
+      .userchip{ padding:6px 8px; }
+    }
+    @media (max-width:620px){
+      .topbar{ gap:8px;padding:9px;border-radius:18px; }
+      #scopeChip{ display:none; }
+      .usertext{ display:none; }
+      .userchip{ padding:6px; }
+      .logout{ padding:8px 9px; }
+    }
+
   </style>
 </head>
 <body>
-<header>
-  <div class="hdr-inner">
-    <h1>FF Player Raw — Teams & Players</h1>
-    <div class="user-controls">
-      <a class="btn secondary" href="home.html">← Back to Dashboard</a>
-      <span class="chip" id="scopeChip">Scope: —</span>
-      <span class="chip" id="user-info">Checking login…</span>
-      <button class="btn brand" id="logoutBtn">Logout</button>
+
+<div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
+    <div class="brand">
+      <div class="brand-left">
+        <div class="logo">FF</div>
+        <div class="brand-text">
+          <h1>Free Fire</h1>
+          <small class="muted">Caster Dashboard</small>
+        </div>
+      </div>
+      <button class="icon-btn sb-close" id="sbClose" aria-label="Close sidebar" title="Close">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
     </div>
-  </div>
-</header>
+    <nav class="nav" id="nav">
+      <a class="nav-item" href="home.html" data-page="home.html" title="Dashboard">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 4h7v4h-7V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 10h7v10h-7V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 13h7v7H4v-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 5l1.5-2M19 8h2M17 11l1.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="nav-label">Character Skills</span>
+      </a>
+      <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M8 14c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3Zm8 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3Z" stroke="currentColor" stroke-width="2"/><path d="M6 19c1.4-2 3.3-3 6-3s4.6 1 6 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="nav-label">Pets</span>
+      </a>
+      <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 13h12l4-4 2 2-4 4v4h-4v-2H9l-2 2H3v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+        <span class="nav-label">Weapons</span>
+      </a>
+      <a class="nav-item active" href="ff_player_raw_sidebar_theme.html" data-page="ff_player_raw_sidebar_theme.html" title="BR Team Stats">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-7M20 16v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="nav-label">BR Team Stats</span>
+      </a>
+      <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadouts">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12M6 12h12M6 17h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 5h16v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+        <span class="nav-label">Loadouts</span>
+      </a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <button class="icon-btn" id="sbToggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none"><path id="sbTogglePath" d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="page-title"><h1>FF Player Raw</h1><span>Teams & Players</span></div>
+      <span class="chip" id="scopeChip">Scope: —</span>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"><span id="themeIcon"></span></button>
+        <div class="userchip"><div class="avatar"></div><div class="usertext"><b id="user-info">Checking login…</b><span>Supabase session</span></div></div>
+        <button class="logout" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
 <div id="veil"><div class="box">Loading ff_player_stats_raw…</div></div>
 <div class="shell">
   <div id="globalErr" class="gerr"></div>
@@ -285,6 +571,8 @@
       <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with loadout names mapped and skill names validated against character.json.</div><div id="tblAllTeamsSkills">—</div></div>
     </div>
   </details>
+</div>
+  </main>
 </div>
 <script>
 /* ============ Supabase init ============ */
@@ -457,6 +745,68 @@ function applyColumnHeatmap(containerId, keys, options = {}){
   }catch{ el('user-info').textContent = 'Anon access'; }
 })();
 el('logoutBtn').onclick = async () => { await client.auth.signOut(); location.reload(); };
+
+
+/* ============ Sidebar + Theme controls ============ */
+const THEME_KEY = 'ff_theme_v1';
+const themeToggleBtn = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const ICON_SUN = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4V2M12 22v-2M4.93 4.93 3.52 3.52M20.48 20.48l-1.41-1.41M4 12H2M22 12h-2M4.93 19.07l-1.41 1.41M20.48 3.52l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" stroke="currentColor" stroke-width="2"/></svg>`;
+const ICON_MOON = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function getTheme(){ return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+function renderThemeIcon(theme){ if(themeIcon) themeIcon.innerHTML = theme === 'dark' ? ICON_SUN : ICON_MOON; }
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  try{ localStorage.setItem(THEME_KEY, theme); }catch(_e){}
+  renderThemeIcon(theme);
+  if(themeToggleBtn){
+    const nextLabel = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    themeToggleBtn.setAttribute('title', nextLabel);
+    themeToggleBtn.setAttribute('aria-label', nextLabel);
+    themeToggleBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+  }
+}
+themeToggleBtn?.addEventListener('click', () => applyTheme(getTheme() === 'dark' ? 'light' : 'dark'));
+applyTheme(getTheme());
+
+const sidebar = document.getElementById('sidebar');
+const sbOverlay = document.getElementById('sbOverlay');
+const sbClose = document.getElementById('sbClose');
+const sbToggleBtn = document.getElementById('sbToggle');
+const sbTogglePath = document.getElementById('sbTogglePath');
+function isMobile(){ return window.matchMedia('(max-width: 980px)').matches; }
+function setToggleIcon(){
+  if(!sbTogglePath || !sidebar) return;
+  const mobile = isMobile();
+  const open = sidebar.classList.contains('open');
+  const collapsed = sidebar.classList.contains('collapsed');
+  if(mobile){
+    sbTogglePath.setAttribute('d', open ? 'M6 6l12 12M18 6 6 18' : 'M4 6h16M4 12h16M4 18h16');
+    sbTogglePath.setAttribute('stroke-linejoin', open ? 'round' : 'miter');
+  }else{
+    sbTogglePath.setAttribute('d', collapsed ? 'M9 5l7 7-7 7' : 'M15 5l-7 7 7 7');
+    sbTogglePath.setAttribute('stroke-linejoin', 'round');
+  }
+}
+function openMobileSidebar(){ sidebar?.classList.add('open'); sbOverlay?.classList.add('show'); sbOverlay?.setAttribute('aria-hidden','false'); document.body.classList.add('sb-open'); setToggleIcon(); }
+function closeMobileSidebar(){ sidebar?.classList.remove('open'); sbOverlay?.classList.remove('show'); sbOverlay?.setAttribute('aria-hidden','true'); document.body.classList.remove('sb-open'); setToggleIcon(); }
+function toggleSidebar(){
+  if(!sidebar) return;
+  if(isMobile()){
+    sidebar.classList.contains('open') ? closeMobileSidebar() : openMobileSidebar();
+    return;
+  }
+  sidebar.classList.toggle('collapsed');
+  try{ localStorage.setItem('ff_sidebar_collapsed_v1', sidebar.classList.contains('collapsed') ? '1' : '0'); }catch(_e){}
+  setToggleIcon();
+}
+try{ if(!isMobile() && localStorage.getItem('ff_sidebar_collapsed_v1') === '1') sidebar?.classList.add('collapsed'); }catch(_e){}
+sbToggleBtn?.addEventListener('click', toggleSidebar);
+sbClose?.addEventListener('click', closeMobileSidebar);
+sbOverlay?.addEventListener('click', closeMobileSidebar);
+window.addEventListener('resize', () => { if(!isMobile()) closeMobileSidebar(); setToggleIcon(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMobileSidebar(); });
+setToggleIcon();
 
 let RAW = [];
 let FILTERED = [];
