@@ -148,8 +148,8 @@ const DASHBOARD_DESIRED_COLS = [
   'team_id','team_name',
   'player_stats_account_id','player_stats_nickname','player_stats_kills','player_stats_damage','player_stats_assists','player_stats_headshots','player_stats_shoots','player_stats_hits',
   'player_stats_pet_skill_id','player_stats_pet_skill_name',
-  'player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
-  'player_stats_skill_info_active_count','player_stats_skill_info_skill_active','player_stats_skill_info_skill_id','player_stats_skill_info_skill_name',
+  'player_stats_skill_ids','player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
+  'player_stats_skill_info','player_stats_skill_info_active_count','player_stats_skill_info_skill_active','player_stats_skill_info_skill_id','player_stats_skill_info_skill_name',
   'player_stats_loadouts','player_stats_survival_time',
   'created_at','updated_at','snapshot_id','pulled_at','response_hash','duplicate_key','data_source'
 ];
@@ -172,6 +172,12 @@ let DASHBOARD_SELECT_COLS = [];
 const el = id => document.getElementById(id);
 const n = x => Number(x ?? 0) || 0;
 const norm = v => (v == null ? '' : String(v).trim());
+function normalizeLookupId(value){
+  const s = norm(value);
+  if(!s) return '';
+  if(/^[-+]?\d+(\.0+)?$/.test(s)) return String(parseInt(s, 10));
+  return s;
+}
 const toNum = v => { const x = Number(v); return Number.isFinite(x) ? x : null; };
 const fmtPct = x => Number.isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
 const clip = (s, max = 160) => {
@@ -348,34 +354,101 @@ function detectSchema(sample){
 }
 
 function mapNameFromId(id, fallback=''){
-  const key = norm(id);
+  const key = normalizeLookupId(id);
   if(!key) return fallback || '—';
   return ID_TO_NAME.get(key) || fallback || `ID ${key}`;
 }
 function mapSkillFromId(id, fallback=''){
-  const key = norm(id);
+  const key = normalizeLookupId(id);
   if(!key) return fallback || '—';
-  return SKILL_ID_TO_NAME.get(key) || fallback || `ID ${key}`;
+
+  // Skills are stored in match_api with type = 2. If a table has a slightly
+  // different schema, loadMatchApi maps every ID-like column from those type=2 rows.
+  return SKILL_ID_TO_NAME.get(key) || ID_TO_NAME.get(key) || fallback || `ID ${key}`;
+}
+function firstNonEmptyFromKeys(row, keys){
+  for(const key of keys){
+    const value = norm(row?.[key]);
+    if(value) return value;
+  }
+  return '';
+}
+function getIdCandidatesFromMatchApiRow(row, idKeys){
+  const out = [];
+  const push = value => {
+    const id = normalizeLookupId(value);
+    if(!id) return;
+    // Avoid mapping tiny status/type values as IDs.
+    if(/^\d+$/.test(id) && id.length < 3) return;
+    if(!out.includes(id)) out.push(id);
+  };
+
+  for(const key of idKeys){
+    const value = row?.[key];
+    if(Array.isArray(value)) value.forEach(push);
+    else push(value);
+  }
+
+  return out;
+}
+function isSkillTypeValue(value){
+  const raw = norm(value).toLowerCase();
+  if(!raw) return false;
+  if(Number(raw) === 2) return true;
+  return raw === 'skill' || raw === 'skills' || raw.includes('skill');
 }
 async function loadMatchApi(){
-  MAP_READY = false; ID_TO_NAME.clear(); SKILL_ID_TO_NAME.clear();
+  MAP_READY = false;
+  ID_TO_NAME.clear();
+  SKILL_ID_TO_NAME.clear();
+
   try{
     const { data, error } = await client.from(MAP_TABLE).select('*').limit(20000);
     if(error) throw error;
+
     const rows = data || [];
-    if(!rows.length){ el('diagMap').textContent = 'match_api mapping: 0 rows'; return; }
-    const allKeys = [...new Set(rows.flatMap(r => Object.keys(r || {})))];
-    const idKey = pickKey(allKeys, [/^id$/i, /_id$/i, /\bid\b/i]) || 'id';
-    const nameKey = pickKey(allKeys, [/^name$/i, /title/i, /label/i]) || 'name';
-    const typeKey = pickKey(allKeys, [/^type$/i, /api_type/i, /kind/i]) || 'type';
-    for(const r of rows){
-      const id = norm(r?.[idKey]); const nm = norm(r?.[nameKey]); if(!id || !nm) continue;
-      ID_TO_NAME.set(id, nm);
-      if(Number(r?.[typeKey]) === 2) SKILL_ID_TO_NAME.set(id, nm);
+    if(!rows.length){
+      el('diagMap').textContent = 'match_api mapping: 0 rows';
+      return;
     }
+
+    const allKeys = [...new Set(rows.flatMap(r => Object.keys(r || {})))];
+    const typeKey = pickKey(allKeys, [/^type$/i, /^api_type$/i, /^item_type$/i, /^kind$/i, /^category$/i, /\btype\b/i]) || 'type';
+
+    const preferredNameKeys = allKeys.filter(k => /^(name|title|label)$/i.test(k));
+    const fallbackNameKeys = allKeys.filter(k => /(name|title|label|display|description|desc)/i.test(k));
+    const nameKeys = [...new Set([...preferredNameKeys, ...fallbackNameKeys])];
+
+    const preferredIdKeys = allKeys.filter(k => /^(api_id|item_id|skill_id|resource_id|match_api_id|game_id|code)$/i.test(k));
+    const fallbackIdKeys = allKeys.filter(k => /(^id$|_id$|id$|code$)/i.test(k));
+    const idKeys = [...new Set([...preferredIdKeys, ...fallbackIdKeys])];
+
+    let namedRows = 0;
+    let skillRows = 0;
+
+    for(const r of rows){
+      const nm = firstNonEmptyFromKeys(r, nameKeys);
+      if(!nm) continue;
+
+      const ids = getIdCandidatesFromMatchApiRow(r, idKeys);
+      if(!ids.length) continue;
+
+      namedRows++;
+      const isSkill = isSkillTypeValue(r?.[typeKey]);
+      if(isSkill) skillRows++;
+
+      for(const id of ids){
+        if(!ID_TO_NAME.has(id)) ID_TO_NAME.set(id, nm);
+        if(isSkill && !SKILL_ID_TO_NAME.has(id)) SKILL_ID_TO_NAME.set(id, nm);
+      }
+    }
+
     MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    el('diagMap').textContent = `match_api mapping: all=${ID_TO_NAME.size} • skills(type=2)=${SKILL_ID_TO_NAME.size}`;
-  }catch(e){ el('diagMap').textContent = 'match_api mapping: unavailable'; console.warn('match_api load failed:', e?.message || e); }
+    el('diagMap').textContent = `match_api mapping: rows=${rows.length} • named=${namedRows} • typeKey=${typeKey} • skill rows(type=2)=${skillRows} • skill IDs=${SKILL_ID_TO_NAME.size}`;
+  }catch(e){
+    el('diagMap').textContent = 'match_api mapping: unavailable';
+    console.warn('match_api load failed:', e?.message || e);
+  }
 }
 function normKind(v){ const s = norm(v).toLowerCase(); if(s.includes('active')) return 'active'; if(s.includes('passive')) return 'passive'; return ''; }
 function skillKey(s){ return String(s ?? '').toUpperCase().replace(/\(.*?\)/g,' ').replace(/\bAWAKEN(ED)?\b/g,' ').replace(/\bMAX(ED)?\b/g,' ').replace(/\bLV(L)?\s*\d+\b/g,' ').replace(/[-–—_:|•]/g,' ').replace(/[^A-Z0-9 ]+/g,' ').replace(/\s+/g,' ').trim(); }
@@ -724,12 +797,51 @@ function renderOverall(){
   applyColumnHeatmap('tblOverall', ['total_score','booyahs','elims','ranking_score','final_ranking_score','dmg_pm','elims_pm','damage','matches','ranking_score_pm']);
 }
 
+function normalizeSkillId(value){
+  return normalizeLookupId(value);
+}
+function parseSkillIdsFromValue(raw){
+  if(raw == null || raw === '') return [];
+  let value = raw;
+
+  if(typeof value === 'string'){
+    const s = value.trim();
+    if(!s) return [];
+    try{
+      value = JSON.parse(s);
+    }catch(_e){
+      return [...new Set((s.match(/\d+(?:\.0+)?/g) || []).map(normalizeSkillId).filter(Boolean))];
+    }
+  }
+
+  const out = [];
+  const push = v => {
+    const id = normalizeSkillId(v);
+    if(id) out.push(id);
+  };
+  const walk = v => {
+    if(v == null) return;
+    if(Array.isArray(v)){ v.forEach(walk); return; }
+    if(typeof v === 'object'){
+      push(v.id ?? v.skill_id ?? v.skillId ?? v.active_skill_id ?? v.activeSkillId);
+      Object.values(v).forEach(walk);
+      return;
+    }
+    push(v);
+  };
+
+  walk(value);
+  return [...new Set(out)].filter(Boolean);
+}
 function skillIdFromRow(r, idx){
   const k = KEYS.skillIds[idx];
   if(!k) return '';
-  const s = norm(r?.[k]);
-  if(!s) return '';
-  return /^\d+(\.0+)?$/.test(s) ? String(parseInt(s,10)) : s;
+  return normalizeSkillId(r?.[k]);
+}
+function skillIdsFromRow(r){
+  const splitIds = (KEYS.skillIds || []).map((_,idx)=>skillIdFromRow(r, idx)).filter(Boolean);
+  const rawIds = parseSkillIdsFromValue(r?.player_stats_skill_ids);
+  return [...new Set([...splitIds, ...rawIds])].filter(Boolean);
 }
 function parseSkillInfoIds(raw){
   if(raw == null) return [];
@@ -738,11 +850,12 @@ function parseSkillInfoIds(raw){
     const s = v.trim();
     if(!s) return [];
     try{ v = JSON.parse(s); }
-    catch{ return [...new Set((s.match(/\d+/g)||[]).map(x=>String(parseInt(x,10))))]; }
+    catch{ return [...new Set((s.match(/\d+(?:\.0+)?/g)||[]).map(normalizeSkillId).filter(Boolean))]; }
   }
   const out = [];
   const pushId = x => {
-    if(x != null && /^\d+(\.0+)?$/.test(String(x).trim())) out.push(String(parseInt(String(x),10)));
+    const id = normalizeSkillId(x);
+    if(id) out.push(id);
   };
   const walk = x => {
     if(x == null) return;
@@ -760,7 +873,7 @@ function parseSkillInfoIds(raw){
 }
 function getSkillInfoIdsForRow(r){
   const flatId = norm(getVal(r, KEYS.skillInfoId));
-  if(flatId) return [/^\d+(\.0+)?$/.test(flatId) ? String(parseInt(flatId,10)) : flatId];
+  if(flatId) return [normalizeSkillId(flatId)];
   if(KEYS.skillInfo) return parseSkillInfoIds(r?.[KEYS.skillInfo]);
   return [];
 }
@@ -795,7 +908,7 @@ function getSkillInfoActiveFlag(r){
 }
 
 function classifySkillsFromRow(r){
-  const ids = (KEYS.skillIds || []).map((_,idx)=>skillIdFromRow(r, idx)).filter(Boolean);
+  const ids = skillIdsFromRow(r);
   const uniq = [...new Set(ids)];
   const activeName = norm(getVal(r, KEYS.skillInfoName));
   const activeInfoIds = getSkillInfoIdsForRow(r);
