@@ -691,7 +691,7 @@
   <details class="accordion" id="accAllTeamsSkills">
     <summary><span>All Teams — Skill Summary</span><div class="allteams-controls"><span class="muted" id="allTeamsHint"></span><button class="btn secondary" id="expandAllTeamsBtn" type="button">Expand All</button><button class="btn secondary" id="collapseAllTeamsBtn" type="button">Collapse All</button></div></summary>
     <div class="accordion-body">
-      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with loadout names mapped and skill names validated against character.json.</div><div id="tblAllTeamsSkills">—</div></div>
+      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with images from character.json, pet.json, and loadout.json.</div><div id="tblAllTeamsSkills">—</div></div>
     </div>
   </details>
 </div>
@@ -707,6 +707,8 @@ const client = supabase.createClient(
 const TABLE = 'ff_player_stats_raw';
 const MAP_TABLE = 'match_api';
 const CHARACTER_JSON_URL = 'character.json';
+const PET_JSON_URL = 'pet.json';
+const LOADOUT_JSON_URL = 'loadout.json';
 const MAX_ROWS_TO_LOAD = 5000;
 const CHUNK_SIZE = 1000;
 
@@ -954,6 +956,16 @@ let CHAR_SKILLKEY_TO_CANONICAL = new Map();
 let CHAR_SKILLKEY_LIST = [];
 let SKILL_NAME_TO_IMAGE = new Map();
 let CHAR_READY = false;
+
+let PET_NAME_TO_IMAGE = new Map();
+let PET_ID_TO_IMAGE = new Map();
+let PET_ID_TO_NAME = new Map();
+let PET_READY = false;
+
+let LOADOUT_NAME_TO_IMAGE = new Map();
+let LOADOUT_ID_TO_IMAGE = new Map();
+let LOADOUT_ID_TO_NAME = new Map();
+let LOADOUT_READY = false;
 
 function detectSchema(sample){
   const keys = Object.keys(sample || {});
@@ -1254,14 +1266,43 @@ function firstImageValue(row){
     /^ability.*(icon|image|img|photo)$/i,
     /skill.*(icon|image|img|photo)/i,
     /ability.*(icon|image|img|photo)/i,
-    /^(icon|image|img|photo|avatar|portrait)$/i,
-    /(icon|image|img|photo|avatar|portrait)/i
+    /^(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)$/i,
+    /(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)/i
   ];
   for(const rx of priority){
     const k = keys.find(key => rx.test(key) && normalizeImageUrl(row?.[key]));
     if(k) return normalizeImageUrl(row?.[k]);
   }
   return '';
+}
+function firstValueByPatterns(row, patterns){
+  const keys = Object.keys(row || {});
+  const key = pickKey(keys, patterns);
+  return key ? row?.[key] : '';
+}
+function jsonArrayFromData(data, preferredKeys=[]){
+  if(Array.isArray(data)) return data;
+  if(!data || typeof data !== 'object') return [];
+  for(const key of preferredKeys){
+    if(Array.isArray(data?.[key])) return data[key];
+  }
+  for(const value of Object.values(data)){
+    if(Array.isArray(value)) return value;
+  }
+  return [];
+}
+function assetLookupKey(value){
+  return skillKey(value);
+}
+function idCandidatesFromRow(row){
+  const keys = Object.keys(row || {});
+  const idKeys = keys.filter(k => /(^id$|_id$|id$|code|key|api_id|item_id|skill_id|pet_id|loadout_id)/i.test(k));
+  const out = [];
+  for(const k of idKeys){
+    const id = normalizeMatchApiNumericId(row?.[k]) || normalizeLookupId(row?.[k]);
+    if(id) out.push(id);
+  }
+  return uniqueList(out);
 }
 function slugAssetName(value){
   return norm(value)
@@ -1291,20 +1332,33 @@ function uniqueList(items){
 function visualImageCandidates(kind, label, id=''){
   const name = norm(label);
   const slug = slugAssetName(name);
-  const code = norm(id) || (kind === 'loadout' ? LOADOUT_NAME_TO_CODE.get(name) : '');
+  const key = assetLookupKey(name);
+  const normalizedId = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
+  const code = normalizedId || (kind === 'loadout' ? LOADOUT_NAME_TO_CODE.get(name) : '');
   const candidates = [];
 
   if(kind === 'skill'){
-    const mapped = SKILL_NAME_TO_IMAGE.get(skillKey(name));
+    // Skills must use character.json image fields first.
+    const mapped = SKILL_NAME_TO_IMAGE.get(key);
     if(mapped) candidates.push(mapped);
     if(slug){
       candidates.push(`assets/img/skills/${slug}.png`, `assets/img/skill/${slug}.png`, `assets/img/characters/${slug}.png`, `assets/img/character/${slug}.png`);
     }
   }else if(kind === 'pet'){
+    // Pets must use pet.json image fields first, by ID then by name.
+    const byId = normalizedId ? PET_ID_TO_IMAGE.get(normalizedId) : '';
+    const byName = PET_NAME_TO_IMAGE.get(key);
+    if(byId) candidates.push(byId);
+    if(byName) candidates.push(byName);
     if(slug){
       candidates.push(`assets/img/pets/${slug}.png`, `assets/img/pet/${slug}.png`);
     }
   }else if(kind === 'loadout'){
+    // Loadouts must use loadout.json image fields first, by code/ID then by name.
+    const byId = code ? LOADOUT_ID_TO_IMAGE.get(code) : '';
+    const byName = LOADOUT_NAME_TO_IMAGE.get(key);
+    if(byId) candidates.push(byId);
+    if(byName) candidates.push(byName);
     if(code){
       candidates.push(`assets/img/loadouts/${code}.png`, `assets/img/loadout/${code}.png`);
     }
@@ -1339,7 +1393,9 @@ function visualItemHtml(kind, item, compact=false){
   if(!item || !norm(item.name)) return '';
   const label = norm(item.name);
   const count = item.picks ? ` ${item.picks}` : '';
-  return `<div class="skill-item ${compact ? 'multi' : ''}" title="${escHtml(label)}${count ? ` (${escHtml(item.picks)})` : ''}">${visualIconHtml(kind, label, item.id || '')}<span class="skill-label">${escHtml(label)}${count ? `<span class="skill-count">${escHtml(count)}</span>` : ''}</span></div>`;
+  let itemId = item.id || '';
+  if(!itemId && kind === 'loadout') itemId = LOADOUT_NAME_TO_CODE.get(label) || '';
+  return `<div class="skill-item ${compact ? 'multi' : ''}" title="${escHtml(label)}${count ? ` (${escHtml(item.picks)})` : ''}">${visualIconHtml(kind, label, itemId)}<span class="skill-label">${escHtml(label)}${count ? `<span class="skill-count">${escHtml(count)}</span>` : ''}</span></div>`;
 }
 function visualColumnHtml(title, kind, items, compact=false){
   const clean = (items || []).filter(item => item && norm(item.name));
@@ -1421,6 +1477,97 @@ async function loadCharacterJson(){
     CHAR_READY = false;
     setText('diagChar', 'character.json validation: unavailable / fallback mode');
     console.warn('character.json load failed:', e?.message || e);
+  }
+}
+
+
+async function loadPetJson(){
+  PET_READY = false;
+  PET_NAME_TO_IMAGE.clear();
+  PET_ID_TO_IMAGE.clear();
+  PET_ID_TO_NAME.clear();
+
+  try{
+    const res = await fetch(`${PET_JSON_URL}?v=${Date.now()}`, { cache:'no-store' });
+    if(!res.ok) throw new Error(`pet.json fetch failed: ${res.status}`);
+    const data = await res.json();
+    const arr = jsonArrayFromData(data, ['pets','pet','data','items']);
+
+    for(const pet of arr){
+      if(!pet || typeof pet !== 'object') continue;
+      const name = norm(
+        pet?.name ?? pet?.pet_name ?? pet?.petName ?? pet?.skill_name ?? pet?.skillName ?? pet?.title ?? pet?.label ??
+        firstValueByPatterns(pet, [/^name$/i, /^pet.*name$/i, /^skill.*name$/i, /^title$/i, /^label$/i])
+      );
+      const image = firstImageValue(pet);
+      const ids = idCandidatesFromRow(pet);
+
+      if(name){
+        const key = assetLookupKey(name);
+        for(const id of ids){
+          if(!PET_ID_TO_NAME.has(id)) PET_ID_TO_NAME.set(id, name);
+        }
+        if(image && !PET_NAME_TO_IMAGE.has(key)) PET_NAME_TO_IMAGE.set(key, image);
+      }
+      if(image){
+        for(const id of ids){
+          if(!PET_ID_TO_IMAGE.has(id)) PET_ID_TO_IMAGE.set(id, image);
+        }
+      }
+    }
+
+    PET_READY = PET_NAME_TO_IMAGE.size > 0 || PET_ID_TO_IMAGE.size > 0;
+    setText('diagPet', `pet.json images: ${PET_NAME_TO_IMAGE.size} names • ${PET_ID_TO_IMAGE.size} ids`);
+  }catch(e){
+    PET_READY = false;
+    setText('diagPet', 'pet.json images: unavailable / fallback paths');
+    console.warn('pet.json load failed:', e?.message || e);
+  }
+}
+
+async function loadLoadoutJson(){
+  LOADOUT_READY = false;
+  LOADOUT_NAME_TO_IMAGE.clear();
+  LOADOUT_ID_TO_IMAGE.clear();
+  LOADOUT_ID_TO_NAME.clear();
+
+  try{
+    const res = await fetch(`${LOADOUT_JSON_URL}?v=${Date.now()}`, { cache:'no-store' });
+    if(!res.ok) throw new Error(`loadout.json fetch failed: ${res.status}`);
+    const data = await res.json();
+    const arr = jsonArrayFromData(data, ['loadouts','loadout','data','items']);
+
+    for(const item of arr){
+      if(!item || typeof item !== 'object') continue;
+      const name = norm(
+        item?.name ?? item?.loadout_name ?? item?.loadoutName ?? item?.title ?? item?.label ?? item?.item_name ??
+        firstValueByPatterns(item, [/^name$/i, /^loadout.*name$/i, /^item.*name$/i, /^title$/i, /^label$/i])
+      );
+      const image = firstImageValue(item);
+      const ids = idCandidatesFromRow(item);
+
+      if(name){
+        const key = assetLookupKey(name);
+        for(const id of ids){
+          if(!LOADOUT_ID_TO_NAME.has(id)) LOADOUT_ID_TO_NAME.set(id, name);
+          if(!LOADOUT_CODE_MAP.has(id)) LOADOUT_CODE_MAP.set(id, name);
+          if(!LOADOUT_NAME_TO_CODE.has(name)) LOADOUT_NAME_TO_CODE.set(name, id);
+        }
+        if(image && !LOADOUT_NAME_TO_IMAGE.has(key)) LOADOUT_NAME_TO_IMAGE.set(key, image);
+      }
+      if(image){
+        for(const id of ids){
+          if(!LOADOUT_ID_TO_IMAGE.has(id)) LOADOUT_ID_TO_IMAGE.set(id, image);
+        }
+      }
+    }
+
+    LOADOUT_READY = LOADOUT_NAME_TO_IMAGE.size > 0 || LOADOUT_ID_TO_IMAGE.size > 0;
+    setText('diagLoadout', `loadout.json images: ${LOADOUT_NAME_TO_IMAGE.size} names • ${LOADOUT_ID_TO_IMAGE.size} ids`);
+  }catch(e){
+    LOADOUT_READY = false;
+    setText('diagLoadout', 'loadout.json images: unavailable / fallback paths');
+    console.warn('loadout.json load failed:', e?.message || e);
   }
 }
 
@@ -1966,8 +2113,9 @@ function updateSkillLookupDiagnostics(){
 function getPetLabel(r){
   const name = norm(getVal(r, KEYS.petName));
   if(name) return name;
-  const id = norm(getVal(r, KEYS.petId));
-  return id ? mapNameFromId(id, `ID ${id}`) : '';
+  const id = normalizeMatchApiNumericId(getVal(r, KEYS.petId)) || normalizeLookupId(getVal(r, KEYS.petId));
+  if(!id) return '';
+  return PET_ID_TO_NAME.get(id) || mapNameFromId(id, `ID ${id}`);
 }
 function getLoadoutRaw(r){
   const v = getVal(r, KEYS.loadouts);
@@ -2014,12 +2162,13 @@ function getLoadoutLabel(r){
   if(!raw) return '';
   const codes = parseLoadoutCodes(raw);
   if(codes.length){
-    return codes.map(code => LOADOUT_CODE_MAP.get(code)).filter(Boolean).join(' • ');
+    return codes.map(code => LOADOUT_ID_TO_NAME.get(code) || LOADOUT_CODE_MAP.get(code)).filter(Boolean).join(' • ');
   }
 
   const rawText = norm(raw);
-  if(/^\d+$/.test(rawText)){
-    return mapNameFromId(rawText, 'Unknown Loadout');
+  const rawId = normalizeMatchApiNumericId(rawText) || normalizeLookupId(rawText);
+  if(rawId && /^\d+$/.test(rawId)){
+    return LOADOUT_ID_TO_NAME.get(rawId) || LOADOUT_CODE_MAP.get(rawId) || mapNameFromId(rawId, 'Unknown Loadout');
   }
   return rawText;
 }
@@ -2197,6 +2346,7 @@ async function init(){
     detectSchema(RAW[0]);
     await loadMatchApi();
     await loadCharacterJson();
+    await Promise.all([loadPetJson(), loadLoadoutJson()]);
     updateSkillDiagnostics();
     updateSkillLookupDiagnostics();
     populateTopDropdowns();
