@@ -202,10 +202,10 @@
     #tblPlayers th[data-key="rank"],#tblPlayers td[data-key="rank"]{width:34px;max-width:34px}
     #tblPlayers th[data-key="player"],#tblPlayers td[data-key="player"]{width:108px;max-width:108px;text-align:left}
     #tblPlayers th[data-key="account"],#tblPlayers td[data-key="account"]{width:90px;max-width:90px}
-    #tblPlayers th[data-key="active"],#tblPlayers td[data-key="active"],
-    #tblPlayers th[data-key="passive"],#tblPlayers td[data-key="passive"],
-    #tblPlayers th[data-key="pet"],#tblPlayers td[data-key="pet"],
-    #tblPlayers th[data-key="loadout"],#tblPlayers td[data-key="loadout"]{width:120px;max-width:120px;text-align:left}
+    #tblPlayers th[data-key="active"],#tblPlayers td[data-key="active"]{width:132px;max-width:132px;text-align:left}
+    #tblPlayers th[data-key="passive"],#tblPlayers td[data-key="passive"]{width:250px;max-width:250px;text-align:left}
+    #tblPlayers th[data-key="pet"],#tblPlayers td[data-key="pet"]{width:130px;max-width:130px;text-align:left}
+    #tblPlayers th[data-key="loadout"],#tblPlayers td[data-key="loadout"]{width:132px;max-width:132px;text-align:left}
     #tblPlayers .small code{max-width:108px}
 
     /* Usage tables: compact and left aligned */
@@ -568,24 +568,32 @@
 
 
     /* Player table image cells */
+    #tblPlayers .table-wrap table{min-width:1260px}
+    #tblPlayers th[data-key="active"],#tblPlayers td[data-key="active"]{width:132px;max-width:132px;text-align:left}
+    #tblPlayers th[data-key="passive"],#tblPlayers td[data-key="passive"]{width:250px;max-width:250px;text-align:left}
+    #tblPlayers th[data-key="pet"],#tblPlayers td[data-key="pet"]{width:130px;max-width:130px;text-align:left}
+    #tblPlayers th[data-key="loadout"],#tblPlayers td[data-key="loadout"]{width:132px;max-width:132px;text-align:left}
+
     #tblPlayers .player-visual-cell{
       display:flex;
       align-items:center;
       gap:5px;
       min-width:0;
-      max-width:220px;
+      max-width:100%;
       overflow:hidden;
     }
     #tblPlayers .player-visual-cell.multi{
-      max-width:300px;
+      max-width:248px;
       flex-wrap:nowrap;
+      justify-content:flex-start;
     }
     #tblPlayers .player-visual-cell .skill-item{
       flex:0 1 auto;
-      max-width:130px;
+      max-width:124px;
     }
     #tblPlayers .player-visual-cell.multi .skill-item{
-      max-width:92px;
+      flex:0 0 78px;
+      max-width:78px;
     }
     #tblPlayers .visual-icon-wrap{
       width:28px;
@@ -593,7 +601,42 @@
       min-width:28px;
     }
     #tblPlayers .skill-label{
-      max-width:88px;
+      max-width:78px;
+    }
+    #tblPlayers .player-visual-cell.multi .skill-label{
+      max-width:36px;
+    }
+    .skill-icon-stack{
+      position:relative;
+      display:inline-flex;
+      width:fit-content;
+      min-width:28px;
+    }
+    .skill-count-badge{
+      position:absolute;
+      right:-4px;
+      bottom:-4px;
+      min-width:15px;
+      height:15px;
+      padding:0 4px;
+      border-radius:999px;
+      display:grid;
+      place-items:center;
+      background:rgba(255,189,89,.96);
+      color:#15110a;
+      font-size:.58rem;
+      font-weight:1000;
+      line-height:1;
+      border:1px solid rgba(0,0,0,.45);
+      box-shadow:0 2px 8px rgba(0,0,0,.45);
+      z-index:2;
+    }
+    .skill-count.inline{
+      display:inline-block;
+      margin-left:3px;
+      color:var(--brand);
+      font-weight:1000;
+      font-size:.62rem;
     }
 
   </style>
@@ -1636,10 +1679,18 @@ function visualIconHtml(kind, label, id=''){
 function visualItemHtml(kind, item, compact=false){
   if(!item || !norm(item.name)) return '';
   const label = norm(item.name);
-  const count = item.picks ? ` ${item.picks}` : '';
+  const picks = item.picks ? Number(item.picks) || item.picks : '';
+  const countTitle = picks ? ` (${escHtml(picks)})` : '';
   let itemId = item.id || '';
   if(!itemId && kind === 'loadout') itemId = LOADOUT_NAME_TO_CODE.get(label) || '';
-  return `<div class="skill-item ${compact ? 'multi' : ''}" title="${escHtml(label)}${count ? ` (${escHtml(item.picks)})` : ''}">${visualIconHtml(kind, label, itemId)}<span class="skill-label">${escHtml(label)}${count ? `<span class="skill-count">${escHtml(count)}</span>` : ''}</span></div>`;
+
+  return `<div class="skill-item ${compact ? 'multi' : ''}" title="${escHtml(label)}${countTitle}">
+    <span class="skill-icon-stack">
+      ${visualIconHtml(kind, label, itemId)}
+      ${picks ? `<span class="skill-count-badge">${escHtml(picks)}</span>` : ''}
+    </span>
+    <span class="skill-label">${escHtml(label)}${picks ? `<span class="skill-count inline">×${escHtml(picks)}</span>` : ''}</span>
+  </div>`;
 }
 function visualColumnHtml(title, kind, items, compact=false){
   const clean = (items || []).filter(item => item && norm(item.name));
