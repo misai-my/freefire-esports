@@ -1294,6 +1294,59 @@ function jsonArrayFromData(data, preferredKeys=[]){
 function assetLookupKey(value){
   return skillKey(value);
 }
+function firstSkillNameTokenKey(value){
+  const raw = norm(value)
+    .replace(/[()]/g, ' ')
+    .replace(/[-–—_:|•]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if(!raw) return '';
+  const first = raw.split(/\s+/)[0];
+  return first ? skillKey(first) : '';
+}
+function shouldUseFirstNameForSkillLookup(value){
+  const raw = norm(value);
+  if(!raw) return false;
+  const words = raw.replace(/[()]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if(words.length < 2) return false;
+  return /awaken|awakened|awakening/i.test(raw);
+}
+function skillImageLookupKeys(value){
+  const raw = norm(value);
+  if(!raw) return [];
+  const keys = [];
+  for(const k of skillKeyVariants(raw)){
+    if(k) keys.push(k);
+  }
+
+  // For match_api names like "Moco Awakened" or "Alok Awakened",
+  // character.json usually stores the image under the base character name.
+  // Use only the first name for image lookup while keeping the displayed skill name unchanged.
+  if(shouldUseFirstNameForSkillLookup(raw)){
+    const firstKey = firstSkillNameTokenKey(raw);
+    if(firstKey) keys.unshift(firstKey);
+  }
+
+  return uniqueList(keys);
+}
+function lookupSkillImageFromCharacterJson(label){
+  const keys = skillImageLookupKeys(label);
+  for(const key of keys){
+    const img = SKILL_NAME_TO_IMAGE.get(key);
+    if(img) return img;
+  }
+
+  // Fuzzy fallback: if the display name is "Moco Awakened" and character.json has "Moco",
+  // use the "Moco" image. This is intentionally image-only and does not change the label.
+  for(const key of keys){
+    for(const [storedKey, img] of SKILL_NAME_TO_IMAGE.entries()){
+      if(!storedKey || !img) continue;
+      if(key.includes(storedKey) || storedKey.includes(key)) return img;
+    }
+  }
+
+  return '';
+}
 function idCandidatesFromRow(row){
   const keys = Object.keys(row || {});
   const idKeys = keys.filter(k => /(^id$|_id$|id$|code|key|api_id|item_id|skill_id|pet_id|loadout_id)/i.test(k));
@@ -1339,8 +1392,16 @@ function visualImageCandidates(kind, label, id=''){
 
   if(kind === 'skill'){
     // Skills must use character.json image fields first.
-    const mapped = SKILL_NAME_TO_IMAGE.get(key);
+    // For names like "Moco Awakened" / "Alok Awakened", lookup the first name in character.json.
+    const mapped = lookupSkillImageFromCharacterJson(name);
     if(mapped) candidates.push(mapped);
+
+    const firstKey = firstSkillNameTokenKey(name);
+    const firstSlug = firstKey ? slugAssetName(firstKey) : '';
+
+    if(firstSlug && firstSlug !== slug){
+      candidates.push(`assets/img/skills/${firstSlug}.png`, `assets/img/skill/${firstSlug}.png`, `assets/img/characters/${firstSlug}.png`, `assets/img/character/${firstSlug}.png`);
+    }
     if(slug){
       candidates.push(`assets/img/skills/${slug}.png`, `assets/img/skill/${slug}.png`, `assets/img/characters/${slug}.png`, `assets/img/character/${slug}.png`);
     }
@@ -1451,16 +1512,41 @@ async function loadCharacterJson(){
         firstCharacterValue(ch, [/^skill$/i, /skill.*name/i, /ability.*name/i, /^ability$/i])
       ].filter(v => norm(v));
 
-      for(const skillName of possibleNames){
-        for(const k of skillKeyVariants(skillName)){
+      const characterNames = [
+        ch?.character,
+        ch?.character_name,
+        ch?.characterName,
+        ch?.hero,
+        ch?.hero_name,
+        ch?.heroName,
+        ch?.code,
+        ch?.code_name,
+        ch?.codeName,
+        ch?.name,
+        ch?.title,
+        ch?.label,
+        firstCharacterValue(ch, [/^character$/i, /character.*name/i, /^hero$/i, /hero.*name/i, /^name$/i, /^title$/i, /^label$/i])
+      ].filter(v => norm(v));
+
+      const lookupNames = uniqueList([
+        ...possibleNames,
+        ...characterNames,
+        ...possibleNames.map(v => shouldUseFirstNameForSkillLookup(v) ? norm(v).split(/\s+/)[0] : ''),
+        ...characterNames.map(v => norm(v).split(/\s+/)[0])
+      ]);
+
+      for(const skillName of lookupNames){
+        for(const k of skillImageLookupKeys(skillName)){
           if(!k) continue;
-          // Keep the first non-empty classification for each normalized skill name.
+          // Keep the first non-empty classification for each normalized skill/name alias.
           if(!CHAR_SKILLKEY_TO_KIND.has(k)){
             CHAR_SKILLKEY_TO_KIND.set(k, kind);
             CHAR_SKILLKEY_TO_CANONICAL.set(k, norm(skillName));
-            if(skillImage && !SKILL_NAME_TO_IMAGE.has(k)) SKILL_NAME_TO_IMAGE.set(k, skillImage);
             if(kind === 'active') activeCount++;
             if(kind === 'passive') passiveCount++;
+          }
+          if(skillImage && !SKILL_NAME_TO_IMAGE.has(k)){
+            SKILL_NAME_TO_IMAGE.set(k, skillImage);
           }
         }
       }
