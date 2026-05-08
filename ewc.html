@@ -220,7 +220,6 @@
     #tblPassive th[data-key="skill"],#tblPassive td[data-key="skill"],
     #tblPet th[data-key="pet"],#tblPet td[data-key="pet"]{text-align:left}
 
-    /* All Teams skill summary: less vertical space, left-aligned badges/content */
     .allteams-controls{justify-content:flex-start}
     .allteams-subtitle{font-size:.78rem;line-height:1.22;margin-top:4px}
     .expander{gap:6px}
@@ -966,7 +965,6 @@
     <div class="ewc-hero-copy">
       <div class="eyebrow">Esports World Cup</div>
       <h2>EWC Team Command Center</h2>
-      <p>Use the filters to lock the scope, review the overall team summary, then click any team tile or standings row to open a full interactive team profile.</p>
     </div>
     <div class="ewc-hero-badges">
       <span class="chip"><span class="dot good"></span> Team Summary</span>
@@ -1015,20 +1013,6 @@
     <div class="bar"><input type="search" id="teamSearch" placeholder="Search EWC team…" class="input" style="flex:1;max-width:420px"><span class="chip">Selected: <span id="selectedTeamChip">—</span></span></div>
     <div id="teamGrid" class="team-grid">Loading teams…</div>
   </div>
-  <div class="section ewc-note-section">
-    <h2>How to use</h2>
-    <div class="kpis">
-      <div class="kpi">1. Choose the EWC scope with the filters.</div>
-      <div class="kpi">2. Review Overall — Team Summary.</div>
-      <div class="kpi">3. Click a team tile or standings row to open the team popup.</div>
-    </div>
-  </div>
-  <details class="accordion" id="accAllTeamsSkills">
-    <summary><span>All Teams — Skill Summary</span><div class="allteams-controls"><span class="muted" id="allTeamsHint"></span><button class="btn secondary" id="expandAllTeamsBtn" type="button">Expand All</button><button class="btn secondary" id="collapseAllTeamsBtn" type="button">Collapse All</button></div></summary>
-    <div class="accordion-body">
-      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with images from character.json, pet.json, and loadout.json.</div><div id="tblAllTeamsSkills">—</div></div>
-    </div>
-  </details>
 </div>
   </main>
 </div>
@@ -2309,7 +2293,7 @@ function applyFilters(){
   el('scopeChip').textContent = 'Scope: ' + scopeText;
   el('filterHint').textContent = `Rows: ${FILTERED.length} • Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
   el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
-  renderOverall(); renderTeamGrid(el('teamSearch').value || ''); renderAllTeamsSkillSummary();
+  renderOverall(); renderTeamGrid(el('teamSearch').value || '');
 
   const teams = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean));
   if(CURRENT_TEAM){
@@ -2339,11 +2323,15 @@ function teamMatchAgg(rows){
     const matchOrder = matchOrderValueForRow(r);
     if(!m.has(key)) m.set(key, {
       team, mk, match_order: matchOrder,
+      day: norm(getVal(r, KEYS.day)) || '—',
+      match_no: norm(getVal(r, KEYS.matchNo)) || '—',
       booyah:0, elims:0, damage:0, assists:0, headshots:0,
       ranking_score:0, killing_score:0, kill_count:0
     });
     const o = m.get(key);
     o.match_order = Math.max(o.match_order || 0, matchOrder);
+    if((!o.day || o.day === '—') && norm(getVal(r, KEYS.day))) o.day = norm(getVal(r, KEYS.day));
+    if((!o.match_no || o.match_no === '—') && norm(getVal(r, KEYS.matchNo))) o.match_no = norm(getVal(r, KEYS.matchNo));
     if(toBool(getVal(r, KEYS.booyah))) o.booyah = 1;
     if(KEYS.kills) o.elims += n(getVal(r, KEYS.kills));
     if(KEYS.damage) o.damage += n(getVal(r, KEYS.damage));
@@ -2928,6 +2916,8 @@ function renderTeamStory(teamRows){
   el('teamStory').innerHTML = story;
   el('teamMatchLog').innerHTML = renderSimpleTable(matches.map((r,i)=>({
     rank:i+1,
+    day:r.day || '—',
+    matchNo:r.match_no || '—',
     match:r.mk,
     booyah:r.booyah ? 'YES' : '',
     elims:r.elims,
@@ -2938,6 +2928,8 @@ function renderTeamStory(teamRows){
     headshots:r.headshots
   })), [
     {label:'#', key:'rank', right:true},
+    {label:'Day', key:'day'},
+    {label:'Match #', key:'matchNo'},
     {label:'Match Key', key:'match'},
     {label:'Booyah', key:'booyah'},
     {label:'Elims', key:'elims', right:true},
@@ -2971,54 +2963,6 @@ function selectTeam(teamCode, silent=false){
 
   if(!silent) openTeamModal();
 }
-function renderAllTeamsSkillSummary(){
-  const teams = [...new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  if(!teams.length){ el('tblAllTeamsSkills').innerHTML='<div class="muted">No teams in this scope.</div>'; return; }
-  const tmAll = teamMatchAgg(FILTERED); const byTeamMatch = groupBy(tmAll, r=>r.team);
-  const teamStats = team => { const list=byTeamMatch.get(team)||[]; const matches=list.length; const booyahs=list.reduce((a,b)=>a+(b.booyah||0),0); const elims=list.reduce((a,b)=>a+(b.elims||0),0); const dmg=list.reduce((a,b)=>a+(b.damage||0),0); const ranking=list.reduce((a,b)=>a+(b.ranking_score||0),0); const total_score = elims + ranking; return { matches, booyahs, elims, dmg, ranking, total_score, elims_pm:matches?elims/matches:0, dmg_pm:matches?dmg/matches:0, ranking_pm:matches?ranking/matches:0 }; };
-  const perPlayerBlock = teamRows => {
-    const gP=groupBy(teamRows,r=>norm(getVal(r,KEYS.player))||norm(getVal(r,KEYS.accountId))||'—'); const blocks=[];
-    for(const [pname,plist] of gP.entries()){
-      const aC=new Map(), pC=new Map(), petC=new Map(), loC=new Map();
-      for(const r of plist){ const al=getActiveSkillLabel(r); if(al) aC.set(al,(aC.get(al)||0)+1); for(const pid of getPassiveSkillIds(r)){ const label=mapSkillFromId(pid,`ID ${pid}`); pC.set(label,(pC.get(label)||0)+1); } const pt=getPetLabel(r); if(pt) petC.set(pt,(petC.get(pt)||0)+1); const lr=getLoadoutLabel(r); if(lr) loC.set(lr,(loC.get(lr)||0)+1); }
-      const topA=listTopCounts(aC,1)[0], topP=listTopCounts(pC,3), topPet=listTopCounts(petC,1)[0], topLo=[...loC.entries()].sort((a,b)=>b[1]-a[1])[0];
-      blocks.push({
-        pname,
-        html: playerVisualRowHtml(
-          pname,
-          topA ? [{ name: topA.name, picks: topA.picks }] : [],
-          topP.map(x => ({ name: x.name, picks: x.picks })),
-          topPet ? [{ name: topPet.name, picks: topPet.picks }] : [],
-          topLo ? [{ name: topLo[0], picks: topLo[1], id: LOADOUT_NAME_TO_CODE.get(topLo[0]) || '' }] : []
-        )
-      });
-    }
-    blocks.sort((a,b)=>a.pname.localeCompare(b.pname)); return blocks.map(x=>x.html).join('') || '<div class="muted">No player rows.</div>';
-  };
-  const html = `<div class="expander">${teams.map(team=>{
-    const rows=FILTERED.filter(r=>norm(getVal(r,KEYS.team)).toUpperCase()===team);
-    const st=teamStats(team);
-    const act=new Map(), pas=new Map(), pet=new Map(), lo=new Map();
-    for(const r of rows){
-      const al=getActiveSkillLabel(r); if(al) act.set(al,(act.get(al)||0)+1);
-      for(const pid of getPassiveSkillIds(r)){ const label=mapSkillFromId(pid,`ID ${pid}`); pas.set(label,(pas.get(label)||0)+1); }
-      const pt=getPetLabel(r); if(pt) pet.set(pt,(pet.get(pt)||0)+1);
-      const lr=getLoadoutLabel(r); if(lr) lo.set(lr,(lo.get(lr)||0)+1);
-    }
-    const topVisual = topVisualRowHtml(
-      listTopCounts(act,3).map(x=>({name:x.name,picks:x.picks})),
-      listTopCounts(pas,6).map(x=>({name:x.name,picks:x.picks})),
-      listTopCounts(pet,3).map(x=>({name:x.name,picks:x.picks})),
-      listTopCounts(lo,2).map(x=>({name:x.name,picks:x.picks,id:LOADOUT_NAME_TO_CODE.get(x.name)||''}))
-    );
-    return `<details class="team-exp" data-teamexp="${escHtml(team)}"><summary><div class="team-exp-title"><span class="code">${escHtml(team)}</span><span class="muted">• ${st.matches} matches</span></div><div class="team-exp-badges"><span class="badge">Total <strong>${st.total_score}</strong></span><span class="badge">Booyahs <strong>${st.booyahs}</strong></span><span class="badge">Elims <strong>${st.elims}</strong></span><span class="badge">Rank <strong>${st.ranking}</strong></span></div></summary><div class="team-exp-body">${topVisual}<div style="margin-top:8px"><div class="muted" style="margin-bottom:6px;font-weight:900">Players</div>${perPlayerBlock(rows)}</div></div></details>`;
-  }).join('')}</div>`;
-  el('tblAllTeamsSkills').innerHTML = html;
-  el('allTeamsHint').textContent = `${teams.length} teams • ${countMatchesIn(FILTERED)} matches`;
-  el('expandAllTeamsBtn').onclick = () => { el('accAllTeamsSkills').open = true; document.querySelectorAll('details.team-exp').forEach(d=>d.open=true); };
-  el('collapseAllTeamsBtn').onclick = () => { document.querySelectorAll('details.team-exp').forEach(d=>d.open=false); };
-}
-
 function skillValidationSummary(rows){
   const seen = new Set();
   const out = { active: 0, passive: 0, unknown: 0 };
@@ -3061,7 +3005,6 @@ function wire(){
   for(const [id, changed] of [['fTournament','tournament'],['fMode','mode'],['fSource','source'],['fYear','year'],['fWeek','week'],['fDay','day']]) el(id).addEventListener('change', ()=>{ refreshCascadeOptions(changed); applyFilters(); });
   el('fMatchNo').addEventListener('change', applyFilters);
   el('resetFilters').addEventListener('click', resetToLatest);
-  el('accAllTeamsSkills').querySelector('summary').addEventListener('click', e => { if(e.target?.closest('#expandAllTeamsBtn') || e.target?.closest('#collapseAllTeamsBtn')) e.preventDefault(); });
   wireTeamModal();
 }
 async function init(){
