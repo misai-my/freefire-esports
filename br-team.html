@@ -80,14 +80,15 @@
       <div class="bar">
         <label>Sort by
           <select id="overallSortKey" class="input">
-            <option value="dmg_pm" selected>Damage / match</option>
-            <option value="elims_pm">Elims / match</option>
-            <option value="ranking_score_pm">Ranking Score / match</option>
-            <option value="killing_score_pm">Killing Score / match</option>
+            <option value="total_score" selected>Total Score</option>
             <option value="booyahs">Booyahs</option>
+            <option value="elims">Total Elims</option>
+            <option value="ranking_score">Rank Score</option>
+            <option value="final_ranking_score">Final Match Rank Score</option>
+            <option value="dmg_pm">Damage / match</option>
+            <option value="elims_pm">Elims / match</option>
             <option value="matches">Matches</option>
             <option value="damage">Total Damage</option>
-            <option value="elims">Total Elims</option>
             <option value="team">Team (A→Z)</option>
           </select>
         </label>
@@ -109,7 +110,7 @@
     </div>
   </div>
   <details class="accordion" id="accPlayers" open>
-    <summary><span>Players — Server.js Stats + Loadout</span><span class="muted" id="playersHint"></span></summary>
+    <summary><span>Players — Stats + Loadout</span><span class="muted" id="playersHint"></span></summary>
     <div class="accordion-body">
       <div class="card"><div id="tblPlayers">Select a team…</div></div>
       <div class="grid2" style="margin-top:12px">
@@ -122,7 +123,7 @@
   <details class="accordion" id="accAllTeamsSkills">
     <summary><span>All Teams — Skill Summary</span><div class="allteams-controls"><span class="muted" id="allTeamsHint"></span><button class="btn secondary" id="expandAllTeamsBtn" type="button">Expand All</button><button class="btn secondary" id="collapseAllTeamsBtn" type="button">Collapse All</button></div></summary>
     <div class="accordion-body">
-      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with loadout code names mapped.</div><div id="tblAllTeamsSkills">—</div></div>
+      <div class="card"><div class="allteams-subtitle">Collapsed view: team-only server summary. Expanded view: per-player active/passive/pet/loadout from <code>ff_player_stats_raw</code>, with loadout names mapped.</div><div id="tblAllTeamsSkills">—</div></div>
     </div>
   </details>
 </div>
@@ -204,24 +205,60 @@ function renderSimpleTable(list, cols){
   return `<div class="table-wrap"><table>${head}${body}</table></div>`;
 }
 
-function applyColumnHeatmap(containerId, keys){
+function applyColumnHeatmap(containerId, keys, options = {}){
   const table = el(containerId)?.querySelector('table');
   if(!table) return;
-  table.querySelectorAll('td[data-key]').forEach(td => { td.style.backgroundColor=''; td.classList.remove('heat-top'); });
-  const styles = getComputedStyle(document.documentElement);
-  const rgb = styles.getPropertyValue('--heat-rgb') || '255,189,89';
-  const minA = parseFloat(styles.getPropertyValue('--heat-min')) || .06;
-  const maxA = parseFloat(styles.getPropertyValue('--heat-max')) || .22;
-  const BANDS = 5;
+
+  table.querySelectorAll('td[data-key]').forEach(td => {
+    td.style.backgroundColor = '';
+    td.style.color = '';
+    td.classList.remove('heat-top');
+  });
+
+  // Google Sheets-style 5-step color scale: red -> soft red -> yellow -> light green -> green.
+  // Higher values are treated as better by default, which matches score/damage/elims columns.
+  const palette = [
+    'rgba(235, 118, 111, .42)',
+    'rgba(239, 170, 145, .38)',
+    'rgba(248, 227, 145, .40)',
+    'rgba(160, 212, 162, .38)',
+    'rgba(88, 184, 125, .46)'
+  ];
+  const textPalette = [
+    'rgba(255,255,255,.94)',
+    'rgba(255,255,255,.94)',
+    'rgba(255,255,255,.94)',
+    'rgba(255,255,255,.94)',
+    'rgba(255,255,255,.97)'
+  ];
+  const BANDS = palette.length;
+
   for(const key of keys){
+    const reverse = options[key]?.reverse === true;
     const cells = [...table.querySelectorAll(`td[data-key="${key}"]`)];
-    const entries = cells.map((td,i)=>({td,i,v:parseFloat((td.textContent||'').trim().replace('%','').replace(/,/g,''))})).filter(e=>Number.isFinite(e.v));
+    const entries = cells.map((td,i)=>{
+      const raw = (td.textContent||'').trim().replace('%','').replace(/,/g,'');
+      const v = parseFloat(raw);
+      return { td, i, v: Number.isFinite(v) ? v : null };
+    }).filter(e=>e.v != null);
+
     if(!entries.length) continue;
-    const asc = entries.slice().sort((a,b)=>a.v-b.v);
-    const topVal = asc[asc.length-1].v;
-    const bandByIndex = new Map();
-    asc.forEach((e,rank)=>{ const p = asc.length <= 1 ? 1 : rank/(asc.length-1); bandByIndex.set(e.i, Math.min(BANDS-1, Math.floor(p*BANDS))); });
-    cells.forEach((td,i)=>{ const band = bandByIndex.get(i); if(band == null) return; const alpha = minA + (band/(BANDS-1))*(maxA-minA); td.style.backgroundColor = `rgba(${rgb}, ${alpha.toFixed(3)})`; const v = parseFloat((td.textContent||'').replace(/,/g,'')); if(Number.isFinite(v) && v === topVal) td.classList.add('heat-top'); });
+
+    const values = entries.map(e=>e.v);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const topVal = reverse ? min : max;
+
+    entries.forEach(e=>{
+      let band = BANDS - 1;
+      if(max !== min){
+        const p = reverse ? (max - e.v) / (max - min) : (e.v - min) / (max - min);
+        band = Math.max(0, Math.min(BANDS - 1, Math.floor(p * BANDS)));
+      }
+      e.td.style.backgroundColor = palette[band];
+      e.td.style.color = textPalette[band];
+      if(e.v === topVal) e.td.classList.add('heat-top');
+    });
   }
 }
 
@@ -591,13 +628,28 @@ function applyFilters(){
   if(!CURRENT_TEAM){ const first = [...new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean))][0]; if(first) selectTeam(first, true); }
 }
 
+function matchOrderValueForRow(r){
+  const y = n(getVal(r, KEYS.year));
+  const w = n(getVal(r, KEYS.week));
+  const d = n(getVal(r, KEYS.day));
+  const m = n(getVal(r, KEYS.matchNo));
+  const pulled = Date.parse(norm(r.pulled_at || r.updated_at || r.created_at || '')) || 0;
+  return (y * 1e10) + (w * 1e8) + (d * 1e6) + (m * 1e4) + Math.min(9999, Math.floor(pulled / 100000000));
+}
+
 function teamMatchAgg(rows){
   const m = new Map();
   for(const r of rows){
     const team = norm(getVal(r, KEYS.team)).toUpperCase(); if(!team) continue;
     const mk = matchKeyForRow(r); const key = `${team}||${mk}`;
-    if(!m.has(key)) m.set(key, { team, mk, booyah:0, elims:0, damage:0, assists:0, headshots:0, ranking_score:0, killing_score:0, kill_count:0 });
+    const matchOrder = matchOrderValueForRow(r);
+    if(!m.has(key)) m.set(key, {
+      team, mk, match_order: matchOrder,
+      booyah:0, elims:0, damage:0, assists:0, headshots:0,
+      ranking_score:0, killing_score:0, kill_count:0
+    });
     const o = m.get(key);
+    o.match_order = Math.max(o.match_order || 0, matchOrder);
     if(toBool(getVal(r, KEYS.booyah))) o.booyah = 1;
     if(KEYS.kills) o.elims += n(getVal(r, KEYS.kills));
     if(KEYS.damage) o.damage += n(getVal(r, KEYS.damage));
@@ -609,23 +661,67 @@ function teamMatchAgg(rows){
   }
   return [...m.values()];
 }
-function sortRows(rows, key, dir, isText=false){ const d = dir === 'asc' ? 1 : -1; rows.sort((a,b)=> isText ? d*String(a[key]||'').localeCompare(String(b[key]||'')) : d*((a[key]??0)-(b[key]??0))); return rows; }
+
+function sortRows(rows, key, dir, isText=false){
+  const d = dir === 'asc' ? 1 : -1;
+  rows.sort((a,b)=> isText ? d*String(a[key]||'').localeCompare(String(b[key]||'')) : d*((a[key]??0)-(b[key]??0)));
+  return rows;
+}
+
+function sortOverallRows(rows, sortKey, dir){
+  if(sortKey === 'team') return sortRows(rows, 'team', dir, true);
+
+  const direction = dir === 'asc' ? 1 : -1;
+  rows.sort((a,b)=>{
+    const primary = ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) * direction;
+    if(primary) return primary;
+
+    // Fixed tie breakers requested for standings-style ordering.
+    return (b.booyahs - a.booyahs) ||
+      (b.elims - a.elims) ||
+      (b.final_ranking_score - a.final_ranking_score) ||
+      a.team.localeCompare(b.team);
+  });
+  return rows;
+}
+
 function renderOverall(){
   const tm = teamMatchAgg(FILTERED); const g = groupBy(tm, r=>r.team); const rows = [];
   for(const [team, list] of g.entries()){
-    const matches = list.length; const booyahs = list.reduce((a,b)=>a+(b.booyah||0),0); const elims = list.reduce((a,b)=>a+(b.elims||0),0); const damage = list.reduce((a,b)=>a+(b.damage||0),0); const ranking_score = list.reduce((a,b)=>a+(b.ranking_score||0),0); const killing_score = list.reduce((a,b)=>a+(b.killing_score||0),0);
-    rows.push({ team, matches, booyahs, elims, damage, ranking_score, killing_score, elims_pm:matches?elims/matches:0, dmg_pm:matches?damage/matches:0, ranking_score_pm:matches?ranking_score/matches:0, killing_score_pm:matches?killing_score/matches:0 });
+    const matches = list.length;
+    const booyahs = list.reduce((a,b)=>a+(b.booyah||0),0);
+    const elims = list.reduce((a,b)=>a+(b.elims||0),0);
+    const damage = list.reduce((a,b)=>a+(b.damage||0),0);
+    const ranking_score = list.reduce((a,b)=>a+(b.ranking_score||0),0);
+    const finalMatch = list.slice().sort((a,b)=>(b.match_order||0)-(a.match_order||0))[0] || null;
+    const final_ranking_score = finalMatch ? n(finalMatch.ranking_score) : 0;
+    const total_score = elims + ranking_score;
+
+    rows.push({
+      team, matches, booyahs, elims, damage, ranking_score, total_score, final_ranking_score,
+      elims_pm:matches?elims/matches:0,
+      dmg_pm:matches?damage/matches:0,
+      ranking_score_pm:matches?ranking_score/matches:0
+    });
   }
-  const sortKey = el('overallSortKey').value; const dir = el('overallSortDir').dataset.dir;
-  if(sortKey === 'team') sortRows(rows,'team',dir,true); else sortRows(rows,sortKey,dir,false);
+
+  const sortKey = el('overallSortKey').value || 'total_score'; const dir = el('overallSortDir').dataset.dir || 'desc';
+  sortOverallRows(rows, sortKey, dir);
+
   el('tblOverall').innerHTML = renderSimpleTable(rows, [
-    {label:'Team', key:'team'}, {label:'Matches', key:'matches', right:true}, {label:'Booyahs', key:'booyahs', right:true},
-    {label:'Elims', key:'elims', right:true}, {label:'Elims/m', key:'elims_pm', right:true, format:'1d'},
-    {label:'Damage', key:'damage', right:true}, {label:'Dmg/m', key:'dmg_pm', right:true, format:'0d'},
-    {label:'Rank Score', key:'ranking_score', right:true}, {label:'Rank/m', key:'ranking_score_pm', right:true, format:'1d'},
-    {label:'Killing Score', key:'killing_score', right:true}, {label:'KillScore/m', key:'killing_score_pm', right:true, format:'1d'}
+    {label:'Team', key:'team'},
+    {label:'Total Score', key:'total_score', right:true},
+    {label:'Booyahs', key:'booyahs', right:true},
+    {label:'Elims', key:'elims', right:true},
+    {label:'Rank Score', key:'ranking_score', right:true},
+    {label:'Final Rank', key:'final_ranking_score', right:true},
+    {label:'Matches', key:'matches', right:true},
+    {label:'Elims/m', key:'elims_pm', right:true, format:'1d'},
+    {label:'Damage', key:'damage', right:true},
+    {label:'Dmg/m', key:'dmg_pm', right:true, format:'0d'},
+    {label:'Rank/m', key:'ranking_score_pm', right:true, format:'1d'}
   ]);
-  applyColumnHeatmap('tblOverall', ['dmg_pm','elims_pm','ranking_score_pm','killing_score_pm','booyahs','damage','elims']);
+  applyColumnHeatmap('tblOverall', ['total_score','booyahs','elims','ranking_score','final_ranking_score','dmg_pm','elims_pm','damage','matches','ranking_score_pm']);
 }
 
 function skillIdFromRow(r, idx){
@@ -668,58 +764,97 @@ function getSkillInfoIdsForRow(r){
   if(KEYS.skillInfo) return parseSkillInfoIds(r?.[KEYS.skillInfo]);
   return [];
 }
-function kindOfSkillId(id){
-  if(!CHAR_READY || !MAP_READY) return '';
-  const nm = mapSkillFromId(id, '');
-  if(!nm) return '';
-  const k = skillKey(nm);
-  if(!k) return '';
+function skillKindFromName(name){
+  const k = skillKey(name);
+  if(!k || !CHAR_READY) return '';
   return CHAR_SKILLKEY_TO_KIND.get(k) || fuzzyKindLookup(k) || '';
 }
+
+function kindOfSkillId(id){
+  if(!id || !MAP_READY) return '';
+  const nm = mapSkillFromId(id, '');
+  if(!nm) return '';
+  return skillKindFromName(nm);
+}
+
 function sameSkillName(id, name){
   if(!id || !name) return false;
   const mapped = mapSkillFromId(id, '');
   return !!mapped && skillKey(mapped) === skillKey(name);
 }
+
+function skillLabelFromId(id){
+  if(!id) return '';
+  return mapSkillFromId(id, `ID ${id}`);
+}
+
+function getSkillInfoActiveFlag(r){
+  const raw = getVal(r, KEYS.skillInfoActive);
+  if(raw === null || raw === undefined || String(raw).trim() === '') return null;
+  return toBool(raw);
+}
+
 function classifySkillsFromRow(r){
   const ids = (KEYS.skillIds || []).map((_,idx)=>skillIdFromRow(r, idx)).filter(Boolean);
   const uniq = [...new Set(ids)];
   const activeName = norm(getVal(r, KEYS.skillInfoName));
   const activeInfoIds = getSkillInfoIdsForRow(r);
+  const flatActiveId = activeInfoIds.find(Boolean) || '';
+  const flatFlag = getSkillInfoActiveFlag(r);
 
-  // Server.js flattens the active skill into player_stats_skill_info_skill_id/name.
-  // Do not assume skill_ids_0 is active; the skill_ids slots can arrive in a different order.
-  let active = activeInfoIds.find(Boolean) || '';
+  // Important fix:
+  // skill_ids_0..3 is only the equipped skill list; slot order is not reliable.
+  // skill_info_skill_id/name is only trusted as active when the API flag says active,
+  // or when character.json classifies that skill/name as active. If character.json says
+  // it is passive, it is not allowed into the active bucket.
+  const flatIdKind = flatActiveId ? kindOfSkillId(flatActiveId) : '';
+  const flatNameKind = activeName ? skillKindFromName(activeName) : '';
+  const canTrustFlatActive = Boolean(flatActiveId || activeName) && (
+    flatFlag === true ||
+    flatIdKind === 'active' ||
+    flatNameKind === 'active' ||
+    (!CHAR_READY || !MAP_READY) && flatFlag !== false && flatIdKind !== 'passive' && flatNameKind !== 'passive'
+  );
 
-  if(!active && activeName){
-    active = uniq.find(id => sameSkillName(id, activeName)) || '';
+  let active = '';
+  let activeLabel = '';
+
+  if(canTrustFlatActive){
+    active = flatActiveId || uniq.find(id => sameSkillName(id, activeName)) || '';
+    activeLabel = activeName || (active ? skillLabelFromId(active) : '');
   }
+
   if(!active && CHAR_READY && MAP_READY){
     active = uniq.find(id => kindOfSkillId(id) === 'active') || '';
+    activeLabel = active ? skillLabelFromId(active) : '';
   }
-  if(!active){
-    active = uniq[0] || '';
+
+  if(!active && !CHAR_READY && !MAP_READY){
+    active = flatActiveId || uniq[0] || '';
+    activeLabel = activeName || (active ? skillLabelFromId(active) : '');
   }
 
   const passives = uniq.filter(id => {
     if(active && id === active) return false;
-    if(activeName && sameSkillName(id, activeName)) return false;
+    if(activeLabel && sameSkillName(id, activeLabel)) return false;
+    if(activeName && canTrustFlatActive && sameSkillName(id, activeName)) return false;
 
-    // When character.json is available, remove any active-classified skill from passive buckets.
-    // This fixes rows where the active skill is present in skill_ids but not equal to the flat active id.
     const kind = kindOfSkillId(id);
     if(kind === 'active') return false;
+
+    // When character.json and match_api are available, only count confirmed passive skills.
+    // This prevents active skills or unknown IDs from leaking into the passive table.
+    if(CHAR_READY && MAP_READY) return kind === 'passive';
 
     return true;
   });
 
-  return { active, passives };
+  return { active, activeLabel, passives };
 }
+
 function getActiveSkillLabel(r){
-  const name = norm(getVal(r, KEYS.skillInfoName));
-  const id = classifySkillsFromRow(r).active;
-  if(name) return name;
-  return id ? mapSkillFromId(id, `ID ${id}`) : '';
+  const cls = classifySkillsFromRow(r);
+  return cls.activeLabel || (cls.active ? skillLabelFromId(cls.active) : '');
 }
 function getActiveSkillId(r){ return classifySkillsFromRow(r).active; }
 function getPassiveSkillIds(r){ return classifySkillsFromRow(r).passives; }
@@ -774,9 +909,14 @@ function getLoadoutLabel(r){
   if(!raw) return '';
   const codes = parseLoadoutCodes(raw);
   if(codes.length){
-    return codes.map(code => `${LOADOUT_CODE_MAP.get(code)} (${code})`).join(' • ');
+    return codes.map(code => LOADOUT_CODE_MAP.get(code)).filter(Boolean).join(' • ');
   }
-  return raw;
+
+  const rawText = norm(raw);
+  if(/^\d+$/.test(rawText)){
+    return mapNameFromId(rawText, 'Unknown Loadout');
+  }
+  return rawText;
 }
 function listTopCounts(map, topN){ return [...map.entries()].sort((a,b)=>b[1]-a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0,topN).map(([name,picks])=>({name,picks})); }
 function summarizeTeamLoadout(rows){
@@ -805,10 +945,17 @@ function renderTeamGrid(filter=''){
 function highlightActiveTile(){ el('teamGrid')?.querySelectorAll('.team-tile').forEach(div=>div.classList.toggle('active', !!CURRENT_TEAM && CURRENT_TEAM === div.getAttribute('data-team'))); }
 function clearTeam(){ CURRENT_TEAM = null; el('selectedTeamChip').textContent='—'; el('teamTitle').textContent='Team Overview'; el('playersHint').textContent=''; el('teamKpis').innerHTML='Select a team.'; el('teamLoadoutSnap').innerHTML='<span class="muted">—</span>'; el('tblPlayers').innerHTML='<div class="muted">Select a team…</div>'; el('tblActive').innerHTML='—'; el('tblPassive').innerHTML='—'; el('tblPet').innerHTML='—'; highlightActiveTile(); }
 function renderTeamKpis(teamRows){
-  const tm = teamMatchAgg(teamRows); const matches=tm.length; const booyahs=tm.reduce((a,b)=>a+(b.booyah||0),0); const elims=tm.reduce((a,b)=>a+(b.elims||0),0); const damage=tm.reduce((a,b)=>a+(b.damage||0),0); const ranking=tm.reduce((a,b)=>a+(b.ranking_score||0),0); const killing=tm.reduce((a,b)=>a+(b.killing_score||0),0);
-  el('teamKpis').innerHTML = matches ? `<div class="kpis"><div class="kpi">Matches <strong>${matches}</strong></div><div class="kpi">Booyahs <strong>${booyahs}</strong> <span class="muted">(${fmtPct(matches?booyahs/matches:0)})</span></div><div class="kpi">Elims <strong>${elims}</strong> <span class="muted">(${(elims/matches).toFixed(1)}/m)</span></div><div class="kpi">Damage <strong>${damage}</strong> <span class="muted">(${(damage/matches).toFixed(0)}/m)</span></div><div class="kpi">Rank Score <strong>${ranking}</strong> <span class="muted">(${(ranking/matches).toFixed(1)}/m)</span></div><div class="kpi">Killing Score <strong>${killing}</strong> <span class="muted">(${(killing/matches).toFixed(1)}/m)</span></div></div>` : '<div class="muted">No team rows in this scope.</div>';
+  const tm = teamMatchAgg(teamRows);
+  const matches=tm.length;
+  const booyahs=tm.reduce((a,b)=>a+(b.booyah||0),0);
+  const elims=tm.reduce((a,b)=>a+(b.elims||0),0);
+  const damage=tm.reduce((a,b)=>a+(b.damage||0),0);
+  const ranking=tm.reduce((a,b)=>a+(b.ranking_score||0),0);
+  const totalScore = elims + ranking;
+
+  el('teamKpis').innerHTML = matches ? `<div class="kpis"><div class="kpi">Matches <strong>${matches}</strong></div><div class="kpi">Total Score <strong>${totalScore}</strong></div><div class="kpi">Booyahs <strong>${booyahs}</strong> <span class="muted">(${fmtPct(matches?booyahs/matches:0)})</span></div><div class="kpi">Elims <strong>${elims}</strong> <span class="muted">(${(elims/matches).toFixed(1)}/m)</span></div><div class="kpi">Rank Score <strong>${ranking}</strong> <span class="muted">(${(ranking/matches).toFixed(1)}/m)</span></div><div class="kpi">Damage <strong>${damage}</strong> <span class="muted">(${(damage/matches).toFixed(0)}/m)</span></div></div>` : '<div class="muted">No team rows in this scope.</div>';
   const snap = summarizeTeamLoadout(teamRows);
-  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active skill comes from <code>player_stats_skill_info_skill_id/name</code>. Passive skills come from <code>player_stats_skill_ids_0..3</code> after removing the active skill. Loadout codes are mapped to names.</div>`;
+  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active/passive is now validated against <code>character.json</code> when available. Loadout codes are displayed as names only.</div>`;
 }
 function renderPlayersTable(teamRows){
   const g = groupBy(teamRows, r => norm(getVal(r, KEYS.player)) || norm(getVal(r, KEYS.accountId)) || '—'); const out = [];
@@ -843,7 +990,7 @@ function renderAllTeamsSkillSummary(){
   const teams = [...new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   if(!teams.length){ el('tblAllTeamsSkills').innerHTML='<div class="muted">No teams in this scope.</div>'; return; }
   const tmAll = teamMatchAgg(FILTERED); const byTeamMatch = groupBy(tmAll, r=>r.team);
-  const teamStats = team => { const list=byTeamMatch.get(team)||[]; const matches=list.length; const booyahs=list.reduce((a,b)=>a+(b.booyah||0),0); const elims=list.reduce((a,b)=>a+(b.elims||0),0); const dmg=list.reduce((a,b)=>a+(b.damage||0),0); const ranking=list.reduce((a,b)=>a+(b.ranking_score||0),0); return { matches, booyahs, elims, dmg, ranking, elims_pm:matches?elims/matches:0, dmg_pm:matches?dmg/matches:0, ranking_pm:matches?ranking/matches:0 }; };
+  const teamStats = team => { const list=byTeamMatch.get(team)||[]; const matches=list.length; const booyahs=list.reduce((a,b)=>a+(b.booyah||0),0); const elims=list.reduce((a,b)=>a+(b.elims||0),0); const dmg=list.reduce((a,b)=>a+(b.damage||0),0); const ranking=list.reduce((a,b)=>a+(b.ranking_score||0),0); const total_score = elims + ranking; return { matches, booyahs, elims, dmg, ranking, total_score, elims_pm:matches?elims/matches:0, dmg_pm:matches?dmg/matches:0, ranking_pm:matches?ranking/matches:0 }; };
   const perPlayerBlock = teamRows => {
     const gP=groupBy(teamRows,r=>norm(getVal(r,KEYS.player))||norm(getVal(r,KEYS.accountId))||'—'); const blocks=[];
     for(const [pname,plist] of gP.entries()){
@@ -854,7 +1001,7 @@ function renderAllTeamsSkillSummary(){
     }
     blocks.sort((a,b)=>a.pname.localeCompare(b.pname)); return blocks.map(x=>x.html).join('') || '<div class="muted">No player rows.</div>';
   };
-  const html = `<div class="expander">${teams.map(team=>{ const rows=FILTERED.filter(r=>norm(getVal(r,KEYS.team)).toUpperCase()===team); const st=teamStats(team); const snap=summarizeTeamLoadout(rows); return `<details class="team-exp" data-teamexp="${escHtml(team)}"><summary><div class="team-exp-title"><span class="code">${escHtml(team)}</span><span class="muted">• ${st.matches} matches</span></div><div class="team-exp-badges"><span class="badge">Elims/m <strong>${st.elims_pm.toFixed(1)}</strong></span><span class="badge">Dmg/m <strong>${st.dmg_pm.toFixed(0)}</strong></span><span class="badge">Rank/m <strong>${st.ranking_pm.toFixed(1)}</strong></span><span class="badge">Booyahs <strong>${st.booyahs}</strong></span></div></summary><div class="team-exp-body"><div class="kpis"><div class="kpi">Top Actives <strong>${snap.topAct}</strong></div><div class="kpi">Top Passives <strong>${snap.topPas}</strong></div><div class="kpi">Top Pets <strong>${snap.topPet}</strong></div></div><div style="margin-top:10px"><div class="muted" style="margin-bottom:6px;font-weight:900">Players</div>${perPlayerBlock(rows)}</div></div></details>`; }).join('')}</div>`;
+  const html = `<div class="expander">${teams.map(team=>{ const rows=FILTERED.filter(r=>norm(getVal(r,KEYS.team)).toUpperCase()===team); const st=teamStats(team); const snap=summarizeTeamLoadout(rows); return `<details class="team-exp" data-teamexp="${escHtml(team)}"><summary><div class="team-exp-title"><span class="code">${escHtml(team)}</span><span class="muted">• ${st.matches} matches</span></div><div class="team-exp-badges"><span class="badge">Total <strong>${st.total_score}</strong></span><span class="badge">Booyahs <strong>${st.booyahs}</strong></span><span class="badge">Elims <strong>${st.elims}</strong></span><span class="badge">Rank <strong>${st.ranking}</strong></span></div></summary><div class="team-exp-body"><div class="kpis"><div class="kpi">Top Actives <strong>${snap.topAct}</strong></div><div class="kpi">Top Passives <strong>${snap.topPas}</strong></div><div class="kpi">Top Pets <strong>${snap.topPet}</strong></div></div><div style="margin-top:10px"><div class="muted" style="margin-bottom:6px;font-weight:900">Players</div>${perPlayerBlock(rows)}</div></div></details>`; }).join('')}</div>`;
   el('tblAllTeamsSkills').innerHTML = html;
   el('allTeamsHint').textContent = `${teams.length} teams • ${countMatchesIn(FILTERED)} matches`;
   el('expandAllTeamsBtn').onclick = () => { el('accAllTeamsSkills').open = true; document.querySelectorAll('details.team-exp').forEach(d=>d.open=true); };
