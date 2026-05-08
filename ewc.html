@@ -1203,23 +1203,23 @@
     <div id="teamGrid" class="team-grid">Loading teams…</div>
   </div>
 
-  <section class="section preset-mini" id="miniPresetBuilder">
-    <div class="preset-mini-head">
-      <div>
-        <h2>Mini Preset Builder</h2>
-        <div class="muted" style="font-size:.82rem;margin-top:4px">Quick build reference for caster prep. Click an empty slot to pick from the popup library. Click a filled slot for details.</div>
+  <details class="accordion preset-mini" id="miniPresetBuilder">
+    <summary><span>Mini Preset Builder</span><span class="muted">Quick build reference</span></summary>
+    <div class="accordion-body">
+      <div class="preset-mini-head">
+        <div class="muted" style="font-size:.82rem;margin-top:4px">Click an empty slot to pick from the popup library. Click a filled slot for details.</div>
+        <div class="preset-pills">
+          <button class="btn secondary" id="presetResetBtn" type="button">Reset Preset</button>
+          <a class="btn brand" href="preset.html">Open Full Builder</a>
+        </div>
       </div>
-      <div class="preset-pills">
-        <button class="btn secondary" id="presetResetBtn" type="button">Reset Preset</button>
-        <a class="btn brand" href="preset.html">Open Full Builder</a>
-      </div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetActiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="muted">3 slots</span></div><div class="preset-row" id="presetPassiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetPetRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot weapon"></span> Weapons</span><span class="muted">2 slots</span></div><div class="preset-row" id="presetWeaponRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="muted">4 slots</span></div><div class="preset-row" id="presetLoadoutRow"></div></div>
     </div>
-    <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetActiveRow"></div></div>
-    <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="muted">3 slots</span></div><div class="preset-row" id="presetPassiveRow"></div></div>
-    <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetPetRow"></div></div>
-    <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot weapon"></span> Weapons</span><span class="muted">2 slots</span></div><div class="preset-row" id="presetWeaponRow"></div></div>
-    <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="muted">4 slots</span></div><div class="preset-row" id="presetLoadoutRow"></div></div>
-  </section>
+  </details>
 </div>
 </div>
   </main>
@@ -3295,6 +3295,12 @@ function renderRosterCards(teamRows){
   if(!rows.length){ el('rosterCards').innerHTML = '<div class="muted">No player rows for this team.</div>'; return; }
   el('rosterCards').innerHTML = rows.map((r, i) => {
     const profile = getPlayerProfile(r.player, i);
+    const loadoutBits = [
+      r.activeItem ? visualItemHtml('skill', r.activeItem) : '',
+      ...(r.passiveItems || []).slice(0,2).map(x => visualItemHtml('skill', x, true)),
+      r.petItem ? visualItemHtml('pet', r.petItem) : '',
+      r.loadoutItem ? visualItemHtml('loadout', r.loadoutItem) : ''
+    ].filter(Boolean).join('');
     return `<div class="roster-card">
       <div class="roster-head">
         ${playerAvatarHtml(r.player, profile)}
@@ -3308,6 +3314,7 @@ function renderRosterCards(teamRows){
         <div class="roster-stat"><span>HS</span><b>${fmtNum(r.headshots)}</b></div>
         <div class="roster-stat"><span>Matches</span><b>${fmtNum(r.matches)}</b></div>
       </div>
+      <div class="roster-loadout">${loadoutBits || '<span class="muted">No loadout data</span>'}</div>
       <div class="roster-tag">${escHtml(playerImpactTag(r, teamStats))}</div>
     </div>`;
   }).join('');
@@ -3403,6 +3410,7 @@ function buildAiPayload(teamCode, teamRows){
     },
     players: (LAST_PLAYER_SUMMARY_ROWS || []).slice(0,8).map(p => ({
       player: p.player,
+      account: p.account,
       matches: p.matches,
       elims: p.kills,
       damage: p.damage,
@@ -3488,6 +3496,7 @@ function renderPlayersTable(teamRows){
   el('tblPlayers').innerHTML = renderSimpleTable(tableRows, [
     {label:'#',key:'rank',right:true},
     {label:'Player',key:'player'},
+    {label:'Account ID',key:'account'},
     {label:'Matches',key:'matches',right:true},
     {label:'Elims',key:'kills',right:true},
     {label:'Elims/m',key:'elims_pm',right:true,format:'1d'},
