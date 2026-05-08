@@ -851,6 +851,40 @@
     }
     .insight-card strong{display:block;color:var(--ink);font-size:.92rem;margin-bottom:4px}
     .insight-card p{margin:0;color:rgba(170,177,197,.90);font-size:.78rem;line-height:1.32}
+    .insight-toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .insight-toolbar h3{margin:0}
+    .insight-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .ai-status{font-size:.76rem;color:var(--muted);font-weight:800}
+    .ai-status.err{color:#ff9a9a}
+    .ai-status.ok{color:var(--good)}
+    .insight-evidence{
+      display:flex;
+      gap:5px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .insight-evidence b{
+      display:inline-flex;
+      align-items:center;
+      max-width:100%;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.055);
+      color:rgba(244,246,255,.84);
+      font-size:.64rem;
+      line-height:1;
+      padding:5px 7px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
     .player-card-grid{
       display:grid;
       grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
@@ -1362,7 +1396,16 @@
     <div class="team-modal-body">
       <section class="team-tab-panel active" id="panel-overview" data-panel="overview">
         <div id="teamProfileHero"></div>
-        <div class="card"><h3>Team Insight Cards</h3><div id="teamInsightCards" class="insight-grid">—</div></div>
+        <div class="card">
+          <div class="insight-toolbar">
+            <h3>Team Insight Cards</h3>
+            <div class="insight-actions">
+              <span class="ai-status" id="aiInsightStatus">Rule-based insights loaded.</span>
+              <button class="btn brand" id="generateAiInsightsBtn" type="button">Generate AI Insights</button>
+            </div>
+          </div>
+          <div id="teamInsightCards" class="insight-grid">—</div>
+        </div>
         <div class="grid2" style="margin-top:12px">
           <div class="card"><h3>Key KPIs</h3><div id="teamKpis">Select a team.</div></div>
           <div class="card"><h3>Loadout Snapshot (Team)</h3><div id="teamLoadoutSnap" class="muted">—</div></div>
@@ -1402,6 +1445,8 @@ const MAP_TABLE = 'match_api';
 const CHARACTER_JSON_URL = 'character.json';
 const PET_JSON_URL = 'pet.json';
 const LOADOUT_JSON_URL = 'loadout.json';
+const TEAM_INSIGHTS_FUNCTION = 'team-insights';
+const AI_INSIGHTS_STORAGE_KEY = 'ewc_ai_insights_cache_v1';
 const MAX_ROWS_TO_LOAD = 5000;
 const CHUNK_SIZE = 1000;
 
@@ -1693,6 +1738,7 @@ setActiveNavItem();
 let RAW = [];
 let FILTERED = [];
 let CURRENT_TEAM = null;
+let AI_INSIGHT_CACHE = new Map();
 let USED_CORE_SELECT = true;
 let KEYS = {
   team:null, teamId:null, player:null, accountId:null,
@@ -3239,7 +3285,62 @@ function renderTeamProfileHero(teamCode, teamRows){
       </div>
     </div>`;
 }
-function renderTeamInsightCards(teamCode, teamRows){
+function insightCacheScopeObject(){
+  const f = currentFilter();
+  return {
+    tournament: f.t,
+    mode: f.mode,
+    source: f.source,
+    year: f.y,
+    week: f.w,
+    day: f.d,
+    matchNumber: f.m
+  };
+}
+function aiInsightCacheKey(teamCode){
+  return JSON.stringify({ team: norm(teamCode).toUpperCase(), scope: insightCacheScopeObject() });
+}
+function loadAiInsightCache(){
+  try{
+    const raw = localStorage.getItem(AI_INSIGHTS_STORAGE_KEY);
+    if(!raw) return;
+    const entries = JSON.parse(raw);
+    if(Array.isArray(entries)) AI_INSIGHT_CACHE = new Map(entries);
+  }catch(e){
+    AI_INSIGHT_CACHE = new Map();
+  }
+}
+function saveAiInsightCache(){
+  try{
+    const entries = [...AI_INSIGHT_CACHE.entries()].slice(-60);
+    localStorage.setItem(AI_INSIGHTS_STORAGE_KEY, JSON.stringify(entries));
+  }catch(e){}
+}
+function setAiInsightStatus(message, state=''){
+  const node = el('aiInsightStatus');
+  if(!node) return;
+  node.textContent = message;
+  node.classList.toggle('err', state === 'err');
+  node.classList.toggle('ok', state === 'ok');
+}
+function insightCardHtml(label, title, desc, evidence=[]){
+  const ev = (evidence || []).filter(Boolean).slice(0,3);
+  return `<div class="insight-card"><span>${escHtml(label)}</span><strong>${escHtml(title || 'Insufficient data')}</strong><p>${escHtml(desc || 'Insufficient data for this card.')}</p>${ev.length ? `<div class="insight-evidence">${ev.map(x=>`<b title="${escHtml(x)}">${escHtml(x)}</b>`).join('')}</div>` : ''}</div>`;
+}
+function renderAiInsightCards(aiData){
+  if(!aiData || typeof aiData !== 'object') return false;
+  const cards = [
+    insightCardHtml('Playstyle Read', aiData.playstyle?.label, aiData.playstyle?.summary, aiData.playstyle?.evidence),
+    insightCardHtml('Momentum', aiData.momentum?.label, aiData.momentum?.summary, aiData.momentum?.evidence),
+    insightCardHtml('Win Condition', aiData.winCondition?.label, aiData.winCondition?.summary, aiData.winCondition?.evidence),
+    insightCardHtml('Risk Factor', aiData.riskFactor?.label, aiData.riskFactor?.summary, aiData.riskFactor?.evidence),
+    insightCardHtml('Key Player Watch', aiData.keyPlayerWatch?.player || 'Key Player Watch', aiData.keyPlayerWatch?.label, aiData.keyPlayerWatch?.summary, aiData.keyPlayerWatch?.evidence),
+    insightCardHtml('Broadcast Note', 'Caster Angle', aiData.broadcastNote || 'Insufficient data for a broadcast note.', [])
+  ];
+  el('teamInsightCards').innerHTML = cards.join('');
+  return true;
+}
+function renderRuleBasedTeamInsightCards(teamCode, teamRows){
   const stats = calcTeamProfileStats(teamRows);
   const playstyle = getPlaystyleLabel(stats);
   const momentum = getMomentumLabel(stats);
@@ -3251,8 +3352,130 @@ function renderTeamInsightCards(teamCode, teamRows){
     {label:'Win Condition', ...winCon},
     {label:'Risk Factor', ...risk}
   ];
-  el('teamInsightCards').innerHTML = cards.map(c => `<div class="insight-card"><span>${escHtml(c.label)}</span><strong>${escHtml(c.title)}</strong><p>${escHtml(c.desc)}</p></div>`).join('');
+  el('teamInsightCards').innerHTML = cards.map(c => insightCardHtml(c.label, c.title, c.desc, [])).join('');
 }
+function renderTeamInsightCards(teamCode, teamRows){
+  const key = aiInsightCacheKey(teamCode);
+  const cached = AI_INSIGHT_CACHE.get(key);
+  if(cached && renderAiInsightCards(cached)){
+    setAiInsightStatus('Cached AI insights loaded.', 'ok');
+    return;
+  }
+  renderRuleBasedTeamInsightCards(teamCode, teamRows);
+  setAiInsightStatus('Rule-based insights loaded. Click Generate AI Insights.', '');
+}
+function topUsagePayloadFromMap(map, topN=5){
+  return listTopCounts(map, topN).map(x => ({ name: x.name, picks: x.picks }));
+}
+function buildLoadoutUsagePayload(teamRows){
+  const active = new Map(), passive = new Map(), pet = new Map(), loadout = new Map();
+  for(const r of teamRows){
+    const a = getActiveSkillLabel(r); if(a) active.set(a, (active.get(a)||0)+1);
+    for(const pid of getPassiveSkillIds(r)){ const p = mapSkillFromId(pid, `ID ${pid}`); if(p) passive.set(p, (passive.get(p)||0)+1); }
+    const pt = getPetLabel(r); if(pt) pet.set(pt, (pet.get(pt)||0)+1);
+    const lo = getLoadoutLabel(r); if(lo) loadout.set(lo, (loadout.get(lo)||0)+1);
+  }
+  return {
+    topActive: topUsagePayloadFromMap(active, 5),
+    topPassive: topUsagePayloadFromMap(passive, 8),
+    topPet: topUsagePayloadFromMap(pet, 5),
+    topLoadout: topUsagePayloadFromMap(loadout, 5)
+  };
+}
+function buildAiInsightPayload(teamCode, teamRows){
+  const stats = calcTeamProfileStats(teamRows);
+  const players = getPlayerSummaries(teamRows).map(p => ({
+    player: p.player,
+    accountId: p.account,
+    matches: p.matches,
+    elims: p.kills,
+    elimsPerMatch: Number((p.elims_pm || 0).toFixed(2)),
+    damage: p.damage,
+    damagePerMatch: Number((p.dmg_pm || 0).toFixed(0)),
+    assists: p.assists,
+    headshots: p.headshots,
+    hitRate: Number((p.hit_rate || 0).toFixed(3)),
+    topActive: p.topActive?.name || '',
+    topPet: p.topPet?.name || '',
+    topLoadout: p.topLoadout?.name || ''
+  })).slice(0,8);
+
+  return {
+    team: teamCode,
+    scope: {
+      ...insightCacheScopeObject(),
+      label: scopeLine()
+    },
+    teamStats: {
+      matches: stats.matches,
+      booyahs: stats.booyahs,
+      booyahRate: Number((stats.booyah_rate || 0).toFixed(3)),
+      elims: stats.elims,
+      rankPoints: stats.rank,
+      totalPoints: stats.total,
+      damage: stats.damage,
+      averagePointsPerMatch: Number((stats.avg_score || 0).toFixed(2)),
+      elimsPerMatch: Number((stats.elims_pm || 0).toFixed(2)),
+      rankPointsPerMatch: Number((stats.rank_pm || 0).toFixed(2)),
+      damagePerMatch: Number((stats.damage_pm || 0).toFixed(0)),
+      lastThreeAverage: Number((stats.last3_avg || 0).toFixed(2)),
+      bestMatch: stats.best ? {
+        day: stats.best.day || '',
+        matchNumber: stats.best.match_no || '',
+        elims: stats.best.elims || 0,
+        rankPoints: stats.best.ranking_score || 0,
+        total: stats.best.score || 0,
+        damage: stats.best.damage || 0,
+        booyah: !!stats.best.booyah
+      } : null
+    },
+    players,
+    lastMatches: stats.matchList.slice(-6).map(m => ({
+      day: m.day || '',
+      matchNumber: m.match_no || '',
+      elims: m.elims || 0,
+      rankPoints: m.ranking_score || 0,
+      total: m.score || 0,
+      damage: m.damage || 0,
+      assists: m.assists || 0,
+      headshots: m.headshots || 0,
+      booyah: !!m.booyah
+    })),
+    loadoutUsage: buildLoadoutUsagePayload(teamRows)
+  };
+}
+async function generateAiInsightsForCurrentTeam(){
+  if(!CURRENT_TEAM){
+    setAiInsightStatus('Select a team first.', 'err');
+    return;
+  }
+  const rows = FILTERED.filter(r => norm(getVal(r,KEYS.team)).toUpperCase() === CURRENT_TEAM);
+  const btn = el('generateAiInsightsBtn');
+  const key = aiInsightCacheKey(CURRENT_TEAM);
+
+  try{
+    if(btn){ btn.disabled = true; btn.textContent = 'Generating…'; }
+    setAiInsightStatus('Generating AI insights from current stats…', '');
+
+    const payload = buildAiInsightPayload(CURRENT_TEAM, rows);
+    const { data, error } = await client.functions.invoke(TEAM_INSIGHTS_FUNCTION, { body: payload });
+    if(error) throw error;
+    if(!data || typeof data !== 'object') throw new Error('Empty response from team-insights function.');
+
+    AI_INSIGHT_CACHE.set(key, data);
+    saveAiInsightCache();
+    renderAiInsightCards(data);
+    setAiInsightStatus('AI insights loaded.', 'ok');
+  }catch(e){
+    console.error('AI insight generation failed:', e);
+    renderRuleBasedTeamInsightCards(CURRENT_TEAM, rows);
+    const message = e?.message || e?.context?.error || 'Failed to generate AI insights.';
+    setAiInsightStatus(`AI failed: ${message}`, 'err');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Generate AI Insights'; }
+  }
+}
+
 function getPlayerSummaries(teamRows){
   const g = groupBy(teamRows, r => norm(getVal(r, KEYS.player)) || norm(getVal(r, KEYS.accountId)) || '—');
   const out = [];
@@ -3347,6 +3570,7 @@ function clearTeam(){
   el('playersHint').textContent='';
   el('teamProfileHero').innerHTML='';
   el('teamInsightCards').innerHTML='—';
+  setAiInsightStatus('Rule-based insights loaded.', '');
   el('playerCardGrid').innerHTML='';
   el('teamKpis').innerHTML='Select a team.';
   el('teamLoadoutSnap').innerHTML='<span class="muted">—</span>';
@@ -3498,6 +3722,7 @@ function setTeamTab(tab){
 function wireTeamModal(){
   el('teamModalClose')?.addEventListener('click', closeTeamModal);
   el('teamModalBackdrop')?.addEventListener('click', closeTeamModal);
+  el('generateAiInsightsBtn')?.addEventListener('click', generateAiInsightsForCurrentTeam);
   document.querySelectorAll('.team-tab').forEach(btn => btn.addEventListener('click', () => setTeamTab(btn.dataset.tab)));
 }
 function scopeLine(){
@@ -3632,6 +3857,7 @@ function wire(){
 async function init(){
   try{
     clearErr(); el('veil').classList.remove('hide');
+    loadAiInsightCache();
     await headCount();
     RAW = await fetchAllRows();
     setText('diagLoaded', `Loaded: ${RAW.length} rows • ${DASHBOARD_SELECT_COLS.length || 'safe'} selected columns${RAW.length >= MAX_ROWS_TO_LOAD ? ' (latest-row limit reached)' : ''}`);
