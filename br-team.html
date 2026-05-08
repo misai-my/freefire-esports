@@ -221,20 +221,6 @@
 <div class="shell">
   <div id="globalErr" class="gerr"></div>
   <div class="section">
-    <h2>Diagnostics</h2>
-    <div class="bar">
-      <span class="chip" id="diagCount">ff_player_stats_raw rows: —</span>
-      <span class="chip" id="diagLoaded">Loaded: —</span>
-      <span class="chip" id="diagSchema">Detected schema: —</span>
-      <span class="chip" id="diagMap">match_api mapping: —</span>
-      <span class="chip" id="diagSkillLookup">skill lookup: —</span>
-      <span class="chip" id="diagChar">character.json mapping: —</span>
-      <span class="chip" id="diagSkill">skill fields: —</span>
-      <button class="btn secondary" id="reloadBtn">Reload</button>
-    </div>
-    <div class="muted" id="diagNote">This page is formatted for rows created by <strong>server.js</strong> in <code>public.ff_player_stats_raw</code>. It loads safe core columns and avoids heavy JSON fields like <code>row_data</code> and <code>player_stats_weapon_usages</code>.</div>
-  </div>
-  <div class="section">
     <h2>Filters</h2>
     <div class="bar">
       <label>Tournament <select id="fTournament" class="input" style="min-width:250px"><option value="__all__">All</option></select></label>
@@ -343,6 +329,7 @@ const LOADOUT_CODE_MAP = new Map([
 
 let DASHBOARD_SELECT_COLS = [];
 const el = id => document.getElementById(id);
+const setText = (id, text) => { const node = el(id); if(node) node.textContent = text; };
 const n = x => Number(x ?? 0) || 0;
 const norm = v => (v == null ? '' : String(v).trim());
 function normalizeLookupId(value){
@@ -547,7 +534,7 @@ function detectSchema(sample){
     KEYS.petName ? `pet=${KEYS.petName}` : (KEYS.petId ? `petId=${KEYS.petId}` : 'pet=—'),
     KEYS.loadouts ? `loadouts=${KEYS.loadouts}` : 'loadouts=—'
   ].join(' • ');
-  el('diagSchema').textContent = 'Detected schema: ' + summary;
+  setText('diagSchema', 'Detected schema: ' + summary);
 }
 
 function makeLookupAliases(value){
@@ -752,9 +739,9 @@ async function loadMatchApi(){
     }
 
     MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    el('diagMap').textContent = `match_api mapping: fetched=${rows.length} • skill rows(type=2)=${skillRows} • named=${namedRows} • skill IDs=${SKILL_ID_TO_NAME.size} • ${filterNote} • id→name`;
+    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows(type=2)=${skillRows} • named=${namedRows} • skill IDs=${SKILL_ID_TO_NAME.size} • ${filterNote} • id→name`);
   }catch(e){
-    el('diagMap').textContent = 'match_api mapping: unavailable / expected columns: id, type, name';
+    setText('diagMap', 'match_api mapping: unavailable / expected columns: id, type, name');
     console.warn('match_api load failed:', e?.message || e);
   }
 }
@@ -839,10 +826,10 @@ async function loadCharacterJson(){
       name: CHAR_SKILLKEY_TO_CANONICAL.get(key) || key
     }));
     CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
-    el('diagChar').textContent = `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • active=${activeCount} • passive=${passiveCount}`;
+    setText('diagChar', `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • active=${activeCount} • passive=${passiveCount}`);
   }catch(e){
     CHAR_READY = false;
-    el('diagChar').textContent = 'character.json validation: unavailable / fallback mode';
+    setText('diagChar', 'character.json validation: unavailable / fallback mode');
     console.warn('character.json load failed:', e?.message || e);
   }
 }
@@ -851,8 +838,8 @@ async function headCount(){
   try{
     const res = await client.from(TABLE).select('id', { count:'estimated', head:true });
     if(res.error) throw res.error;
-    el('diagCount').textContent = `${TABLE} rows: ${res.count ?? '—'}`;
-  }catch(e){ el('diagCount').textContent = `${TABLE} rows: count blocked`; console.warn('Count failed:', e?.message || e); }
+    setText('diagCount', `${TABLE} rows: ${res.count ?? '—'}`);
+  }catch(e){ setText('diagCount', `${TABLE} rows: count blocked`); console.warn('Count failed:', e?.message || e); }
 }
 async function loadAvailableColumns(){
   const orderCandidates = ['pulled_at','id','created_at','updated_at'];
@@ -918,7 +905,7 @@ async function fetchRowsWithSelect(selectList){
       out.push(...rows);
       from += rows.length;
 
-      el('diagLoaded').textContent = `Loading: ${Math.min(out.length, MAX_ROWS_TO_LOAD)} rows…`;
+      setText('diagLoaded', `Loading: ${Math.min(out.length, MAX_ROWS_TO_LOAD)} rows…`);
 
       if(rows.length < CHUNK_SIZE || out.length >= MAX_ROWS_TO_LOAD) break;
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -1562,15 +1549,16 @@ function updateSkillDiagnostics(){
     const sampleIds = sample ? skillIdsFromRow(sample).slice(0,4).join(',') : 'none';
     const sampleActive = sample ? (getActiveSkillLabel(sample) || getActiveSkillId(sample) || 'none') : 'none';
     const validation = skillValidationSummary(rows);
-    el('diagSkill').textContent = `skill fields: split=${withSplit} • raw=${withRaw} • info=${withInfo} • sample=${sampleIds} • active=${sampleActive} • validated A/P/U=${validation.active}/${validation.passive}/${validation.unknown}`;
+    setText('diagSkill', `skill fields: split=${withSplit} • raw=${withRaw} • info=${withInfo} • sample=${sampleIds} • active=${sampleActive} • validated A/P/U=${validation.active}/${validation.passive}/${validation.unknown}`);
   }catch(e){
-    el('diagSkill').textContent = 'skill fields: diagnostic failed';
+    setText('diagSkill', 'skill fields: diagnostic failed');
     console.warn('Skill diagnostic failed:', e?.message || e);
   }
 }
 
 function wire(){
-  el('reloadBtn').addEventListener('click', ()=>location.reload());
+  const reloadBtn = el('reloadBtn');
+  if(reloadBtn) reloadBtn.addEventListener('click', ()=>location.reload());
   el('overallSortDir').addEventListener('click', ()=>{ const b=el('overallSortDir'); const cur=b.dataset.dir==='desc'?'asc':'desc'; b.dataset.dir=cur; b.textContent=cur==='desc'?'Desc':'Asc'; renderOverall(); });
   el('overallSortKey').addEventListener('change', renderOverall);
   el('teamSearch').addEventListener('input', e=>renderTeamGrid(e.target.value||''));
@@ -1584,7 +1572,7 @@ async function init(){
     clearErr(); el('veil').classList.remove('hide');
     await headCount();
     RAW = await fetchAllRows();
-    el('diagLoaded').textContent = `Loaded: ${RAW.length} rows • ${DASHBOARD_SELECT_COLS.length || 'safe'} selected columns${RAW.length >= MAX_ROWS_TO_LOAD ? ' (latest-row limit reached)' : ''}`;
+    setText('diagLoaded', `Loaded: ${RAW.length} rows • ${DASHBOARD_SELECT_COLS.length || 'safe'} selected columns${RAW.length >= MAX_ROWS_TO_LOAD ? ' (latest-row limit reached)' : ''}`);
     if(!RAW.length){
       el('veil').classList.add('hide');
       gerr(`No rows returned from ${TABLE}.\n\nPossible causes:\n• Table is empty\n• RLS blocks SELECT\n• You are writing to another schema/table\n\nQuick check in Supabase SQL editor:\nselect count(*) from public.${TABLE};`);
