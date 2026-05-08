@@ -546,40 +546,67 @@
   const $ = (id) => document.getElementById(id);
 
   const SERVER_OUTPUT_COLS = [
-    "id","match_id","Mode","Tournament","Stage","Year","Week","Day","MatchNumber",
-    "booyah","eliminated_team_name","final","is_double_kill_score","is_eliminated","is_focus","kill_count","killing_score",
-    "player_stats_account_id","player_stats_alok_heal_hP","player_stats_assists","player_stats_avatar_id","player_stats_bag_inv",
-    "player_stats_be_killed_time","player_stats_chrono_block_damage","player_stats_clothes_skin_headwear","player_stats_clothes_skin_pants",
-    "player_stats_clothes_skin_shoes","player_stats_clothes_skin_top","player_stats_coordinate_info_x_coordinate",
-    "player_stats_coordinate_info_y_coordinate","player_stats_damage","player_stats_dragon_grenade_kill",
-    "player_stats_enable_emulator_check","player_stats_grenade_kill","player_stats_grenade_use","player_stats_headshot_killtimes",
-    "player_stats_headshots","player_stats_helmet_inv","player_stats_hits","player_stats_hp_added","player_stats_hp_info_current_hp",
-    "player_stats_hp_info_current_shield_hp","player_stats_hp_info_total_hp","player_stats_hp_info_total_shield_hp",
-    "player_stats_ice_grenade_kill","player_stats_icewall_destroyed_times","player_stats_icewall_use","player_stats_is_in_bomb_zone",
-    "player_stats_is_in_safe_zone","player_stats_kill_distance","player_stats_kill_info","player_stats_kill_info_kill_distance",
-    "player_stats_kill_info_kill_timestamp","player_stats_kill_info_killer_id","player_stats_kill_info_player_killed_id",
-    "player_stats_kill_info_weapon_used_id","player_stats_kills","player_stats_knock_down","player_stats_knock_down_damage_info",
-    "player_stats_knock_down_damage_info_account_id","player_stats_knock_down_damage_info_damage",
-    "player_stats_knock_down_damage_info_damage_type","player_stats_knock_down_damage_info_nickname",
-    "player_stats_knock_down_damage_info_time_ms","player_stats_knockdown_real_damage","player_stats_leg_hits",
-    "player_stats_loadouts","player_stats_medkit_use","player_stats_moving_distance","player_stats_nb_skill_usages",
-    "player_stats_nickname","player_stats_oil_kill","player_stats_pet_skill_id","player_stats_pet_skill_name",
-    "player_stats_player_state","player_stats_rescue_times","player_stats_revive_teammate_nums","player_stats_revive_teammate_times",
-    "player_stats_revived_times","player_stats_shoots","player_stats_skill_autoflightbomb_hit_num","player_stats_skill_clu_scan_nums",
-    "player_stats_skill_dimitri_revived_nums","player_stats_skill_ids_0","player_stats_skill_ids_1","player_stats_skill_ids_2",
-    "player_stats_skill_ids_3","player_stats_skill_info_active_count","player_stats_skill_info_skill_active",
-    "player_stats_skill_info_skill_id","player_stats_skill_info_skill_name","player_stats_skill_kenta_reduce_damage",
-    "player_stats_skill_markicewall_damage","player_stats_skill_resist_exploded_num","player_stats_skill_silence_num",
-    "player_stats_skill_sonia_fatal_revival_nums","player_stats_skill_villain_damage","player_stats_skill_villain_recover",
-    "player_stats_skyler_ice_wall_destroy","player_stats_survival_time","player_stats_torso_hits","player_stats_vehicle_kill",
-    "player_stats_vehicle_move_distance","player_stats_vest_inv","player_stats_weapon_skin_ids","player_stats_weapon_usages",
-    "player_stats_weapon_usages_damage","player_stats_weapon_usages_headshots","player_stats_weapon_usages_hits",
-    "player_stats_weapon_usages_kills","player_stats_weapon_usages_shoots","player_stats_weapon_usages_weapon_id",
-    "player_stats_weapon_usages_weapon_name","ranking_score","team_id","team_name","win_rate","created_at","updated_at",
-    "owner_id","damage","auth_user_id","auth_email","snapshot_id","pulled_at","row_data","response_hash","duplicate_key","data_source"
+    "id", "match_id", "Mode", "mode", "center", "Tournament", "tournament", "Stage", "stage", "Year", "year",
+    "Week", "week", "Day", "day", "MatchNumber", "match_number", "booyah", "eliminated_team_name", "final",
+    "is_double_kill_score", "is_eliminated", "is_focus", "kill_count", "killing_score",
+    "player_stats_account_id", "player_stats_alok_heal_hP", "player_stats_assists", "player_stats_avatar_id",
+    "player_stats_bag_inv", "player_stats_be_killed_time", "player_stats_chrono_block_damage",
+    "player_stats_clothes_skin_headwear", "player_stats_clothes_skin_pants",
+    "player_stats_clothes_skin_shoes", "player_stats_clothes_skin_top",
+    "player_stats_coordinate_info_x_coordinate", "player_stats_coordinate_info_y_coordinate",
+    "player_stats_damage", "player_stats_dragon_grenade_kill", "player_stats_enable_emulator_check",
+    "player_stats_grenade_kill", "player_stats_grenade_use", "player_stats_headshot_killtimes",
+    "player_stats_headshots", "player_stats_helmet_inv", "player_stats_hits", "player_stats_hp_added",
+    "player_stats_hp_info_current_hp", "player_stats_hp_info_current_shield_hp",
+    "player_stats_hp_info_total_hp", "player_stats_hp_info_total_shield_hp", "player_stats_ice_grenade_kill",
+    "player_stats_icewall_destroyed_times", "player_stats_icewall_use", "player_stats_is_in_bomb_zone",
+    "player_stats_is_in_safe_zone", "player_stats_kill_distance", "player_stats_kill_info",
+    "player_stats_kill_info_kill_distance", "player_stats_kill_info_kill_timestamp",
+    "player_stats_kill_info_killer_id", "player_stats_kill_info_player_killed_id",
+    "player_stats_kill_info_weapon_used_id", "player_stats_kills", "player_stats_knock_down",
+    "player_stats_knock_down_damage_info", "player_stats_knock_down_damage_info_account_id",
+    "player_stats_knock_down_damage_info_damage", "player_stats_knock_down_damage_info_damage_type",
+    "player_stats_knock_down_damage_info_nickname", "player_stats_knock_down_damage_info_time_ms",
+    "player_stats_knockdown_real_damage", "player_stats_leg_hits", "player_stats_loadouts",
+    "player_stats_medkit_use", "player_stats_moving_distance", "player_stats_nb_skill_usages",
+    "player_stats_nickname", "player_stats_oil_kill", "player_stats_pet_skill_id",
+    "player_stats_pet_skill_name", "player_stats_player_state", "player_stats_rescue_times",
+    "player_stats_revive_teammate_nums", "player_stats_revive_teammate_times", "player_stats_revived_times",
+    "player_stats_shoots", "player_stats_skill_autoflightbomb_hit_num", "player_stats_skill_clu_scan_nums",
+    "player_stats_skill_dimitri_revived_nums", "player_stats_skill_ids_0", "player_stats_skill_ids_1",
+    "player_stats_skill_ids_2", "player_stats_skill_ids_3", "player_stats_skill_info_active_count",
+    "player_stats_skill_info_skill_active", "player_stats_skill_info_skill_id",
+    "player_stats_skill_info_skill_name", "player_stats_skill_kenta_reduce_damage",
+    "player_stats_skill_markicewall_damage", "player_stats_skill_resist_exploded_num",
+    "player_stats_skill_silence_num", "player_stats_skill_sonia_fatal_revival_nums",
+    "player_stats_skill_villain_damage", "player_stats_skill_villain_recover",
+    "player_stats_skyler_ice_wall_destroy", "player_stats_survival_time", "player_stats_torso_hits",
+    "player_stats_vehicle_kill", "player_stats_vehicle_move_distance", "player_stats_vest_inv",
+    "player_stats_weapon_skin_ids", "player_stats_weapon_usages", "player_stats_weapon_usages_damage",
+    "player_stats_weapon_usages_headshots", "player_stats_weapon_usages_hits",
+    "player_stats_weapon_usages_kills", "player_stats_weapon_usages_shoots",
+    "player_stats_weapon_usages_weapon_id", "player_stats_weapon_usages_weapon_name", "ranking_score",
+    "team_id", "team_name", "win_rate", "damage", "target_id", "snapshot_id", "pulled_at", "endpoint",
+    "response_hash", "data_source", "duplicate_key", "row_data", "created_at", "updated_at", "owner_id",
+    "auth_user_id", "auth_email"
   ];
 
   const OUTPUT_COL_SET = new Set(SERVER_OUTPUT_COLS);
+
+  const LONG_JSON_COLUMNS = new Set([
+    "row_data",
+    "player_stats_weapon_usages",
+    "player_stats_kill_info",
+    "player_stats_knock_down_damage_info",
+    "match_match_stats_extra_circle_info",
+    "match_match_stats_extra_spector_info",
+    "match_match_stats_extra_round_stats",
+    "team_stats",
+    "response"
+  ]);
+
+  const LONG_JSON_SOFT_LIMIT = 12000;
+  const CELL_CHAR_LIMIT = 45000;
 
   let RAW = null;
   let ROWS = [];
@@ -794,30 +821,61 @@
   }
 
   function buildDuplicateKey(row, meta){
-    const accountId = row.player_stats_account_id || row.player_stats_nickname || "unknown_player";
-    const team = row.team_id || row.team_name || "unknown_team";
-    return [String(meta.matchId || ""), String(meta.modeLower || ""), String(meta.center || ""), String(meta.dataSource || ""), String(team), String(accountId)].join("|");
+    const accountId =
+      row.player_stats_account_id ||
+      row.player_stats_accountid ||
+      row.player_stats_nickname ||
+      "unknown_player";
+
+    const team =
+      row.team_id ||
+      row.team_name ||
+      row.player_stats_team_id ||
+      row.player_stats_team_name ||
+      "unknown_team";
+
+    return [
+      String(meta.matchId || ""),
+      String(meta.modeLower || ""),
+      String(meta.center || ""),
+      String(meta.dataSource || "garena"),
+      String(team),
+      String(accountId)
+    ].join("|");
   }
 
   function addCommonAliases(row, meta){
+    // Mirrors server.js addCommonAliases(). Browser-only/audit fields are not forced here.
+    row.snapshot_id = meta.snapshotId ?? null;
+    row.target_id = meta.targetId ?? null;
+    row.pulled_at = meta.pulledAt || null;
+    row.endpoint = meta.endpoint || null;
+    row.response_hash = meta.responseHash || null;
+    row.data_source = meta.dataSource || "garena";
+
     row.match_id = String(meta.matchId || "");
     row.Mode = meta.modeUpper;
-    row.Tournament = meta.tournament || null;
-    row.Stage = meta.stage || null;
-    row.Year = meta.year ?? null;
-    row.Week = meta.week ?? null;
-    row.Day = meta.day ?? null;
-    row.MatchNumber = meta.matchNumber ?? null;
-    row.snapshot_id = meta.snapshotId ?? null;
-    row.pulled_at = meta.pulledAt || null;
-    row.response_hash = meta.responseHash || null;
-    row.data_source = meta.dataSource || null;
-    row.created_at = meta.createdAt || meta.pulledAt || null;
-    row.updated_at = meta.updatedAt || meta.pulledAt || null;
-    row.owner_id = meta.ownerId || null;
-    row.auth_user_id = meta.authUserId || null;
-    row.auth_email = meta.authEmail || null;
-    row.damage = meta.damageTopLevel ?? null;
+    row.mode = meta.modeLower;
+    row.center = meta.center || "sg";
+
+    row.MatchNumber = meta.matchNumber ?? row.MatchNumber ?? null;
+    row.match_number = meta.matchNumber ?? row.match_number ?? null;
+
+    row.Tournament = meta.tournament || row.Tournament || null;
+    row.tournament = meta.tournament || row.tournament || null;
+
+    row.Stage = meta.stage || row.Stage || null;
+    row.stage = meta.stage || row.stage || null;
+
+    row.Year = meta.year ?? row.Year ?? null;
+    row.year = meta.year ?? row.year ?? null;
+
+    row.Week = meta.week ?? row.Week ?? null;
+    row.week = meta.week ?? row.week ?? null;
+
+    row.Day = meta.day ?? row.Day ?? null;
+    row.day = meta.day ?? row.day ?? null;
+
     return row;
   }
 
@@ -845,19 +903,7 @@
           flattenObjectServer(player, "player_stats", row);
           addCommonAliases(row, meta);
           row.duplicate_key = buildDuplicateKey(row, meta);
-          row.row_data = {
-            ...row,
-            mode: meta.modeLower,
-            center: meta.center,
-            endpoint: meta.endpoint,
-            match_number: meta.matchNumber,
-            tournament: meta.tournament,
-            stage: meta.stage,
-            year: meta.year,
-            week: meta.week,
-            day: meta.day,
-            target_id: null
-          };
+          row.row_data = { ...row };
           rows.push(row);
         }
       }
@@ -870,15 +916,34 @@
 
     walk(responseJson, {});
 
-    if(rows.length === 0 && Array.isArray(responseJson)){
-      for(const item of responseJson){
-        if(isPlainObject(item) && (item.player_stats_account_id !== undefined || item.player_stats_nickname !== undefined)){
-          const row = flattenObjectServer(item);
-          addCommonAliases(row, meta);
-          row.duplicate_key = buildDuplicateKey(row, meta);
-          row.row_data = { ...row, mode: meta.modeLower, center: meta.center, endpoint: meta.endpoint };
-          rows.push(row);
+    if(rows.length === 0){
+      const flatCandidates = [];
+
+      function findFlatRows(node){
+        if(Array.isArray(node)){
+          for(const item of node) findFlatRows(item);
+          return;
         }
+
+        if(!isPlainObject(node)) return;
+
+        if(node.player_stats_account_id !== undefined || node.player_stats_nickname !== undefined){
+          flatCandidates.push(node);
+        }
+
+        for(const value of Object.values(node)){
+          if(isPlainObject(value) || Array.isArray(value)) findFlatRows(value);
+        }
+      }
+
+      findFlatRows(responseJson);
+
+      for(const candidate of flatCandidates){
+        const row = flattenObjectServer(candidate);
+        addCommonAliases(row, meta);
+        row.duplicate_key = buildDuplicateKey(row, meta);
+        row.row_data = { ...row };
+        rows.push(row);
       }
     }
 
@@ -954,6 +1019,7 @@
       createdAt,
       updatedAt,
       responseHash,
+      targetId: null,
       authUserId: userId,
       authEmail: email,
       ownerId: null,
@@ -968,14 +1034,55 @@
     return value;
   }
 
+  function looksLikeJsonText(value){
+    if(value == null) return false;
+    const str = typeof value === "string" ? value.trim() : "";
+    return str.startsWith("{") || str.startsWith("[");
+  }
+
+  function shouldBlankLongJsonCell(column, value){
+    if(value == null) return false;
+    if(LONG_JSON_COLUMNS.has(column)) return true;
+
+    const str = typeof value === "string" ? value : (isPlainObject(value) || Array.isArray(value) ? JSON.stringify(value) : String(value));
+    if(str.length > CELL_CHAR_LIMIT) return true;
+    if(looksLikeJsonText(str) && str.length > LONG_JSON_SOFT_LIMIT) return true;
+    return false;
+  }
+
+  function blankLongJsonCell(column, value){
+    return shouldBlankLongJsonCell(column, value) ? null : value;
+  }
+
+  function getExtractedColumnOrder(serverRows){
+    const ordered = [...SERVER_OUTPUT_COLS];
+    const seen = new Set(ordered);
+
+    for(const row of serverRows){
+      Object.keys(row).forEach((key) => {
+        if(!seen.has(key)){
+          seen.add(key);
+          ordered.push(key);
+        }
+      });
+    }
+
+    return ordered;
+  }
+
   function finalizeRows(serverRows){
-    return serverRows.map((row) => {
-      const out = {};
-      for(const col of SERVER_OUTPUT_COLS){
-        out[col] = Object.prototype.hasOwnProperty.call(row, col) ? coerceOutputValue(row[col]) : null;
-      }
-      return out;
-    });
+    const cols = getExtractedColumnOrder(serverRows);
+    return {
+      cols,
+      rows: serverRows.map((row) => {
+        const out = {};
+        for(const col of cols){
+          const raw = Object.prototype.hasOwnProperty.call(row, col) ? coerceOutputValue(row[col]) : null;
+          out[col] = blankLongJsonCell(col, raw);
+        }
+        return out;
+      })
+    };
   }
 
   function updateMeta(){ $("metaText").textContent = `${ROWS.length} rows • ${COLS.length} cols`; }
@@ -1100,8 +1207,9 @@
       return;
     }
 
-    ROWS = finalizeRows(extracted);
-    COLS = [...SERVER_OUTPUT_COLS];
+    const finalized = finalizeRows(extracted);
+    ROWS = finalized.rows;
+    COLS = finalized.cols;
     COLCFG = {};
     COLS.forEach((c) => {
       COLCFG[c] = { include: c !== "id", name: c };
@@ -1116,6 +1224,7 @@
 `Parsed OK.
 Rows: ${ROWS.length}
 Columns: ${COLS.length}
+Long JSON cells: blanked as requested
 match_id: ${meta.matchId}
 Mode: ${meta.modeUpper}
 Data source: ${meta.dataSource}
@@ -1300,33 +1409,13 @@ response_hash: ${meta.responseHash || "(unavailable)"}`);
     return [header, ...lines].join("\n");
   }
 
-  const GOOGLE_SHEETS_OMIT_COLUMNS = new Set([
-    "row_data",
-    "player_stats_weapon_usages",
-    "player_stats_kill_info",
-    "player_stats_knock_down_damage_info",
-    "match_match_stats_extra_circle_info",
-    "match_match_stats_extra_spector_info",
-    "match_match_stats_extra_round_stats",
-    "team_stats",
-    "response"
-  ]);
-
-  const GOOGLE_SHEETS_CELL_CHAR_LIMIT = 45000;
-  const GOOGLE_SHEETS_JSON_SOFT_LIMIT = 12000;
-
-  function sanitizeSheetsCellValue(value){
+  function sanitizeSheetsCellValue(column, value){
     if (value == null) return { value: "", blanked: false };
 
-    const str = String(value).replace(/\r?\n/g, " ").replace(/\t/g, " ");
-    const trimmed = str.trim();
-    const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+    const raw = coerceOutputValue(value);
+    const str = String(raw).replace(/\r?\n/g, " ").replace(/\t/g, " ");
 
-    if (str.length > GOOGLE_SHEETS_CELL_CHAR_LIMIT) {
-      return { value: "", blanked: true };
-    }
-
-    if (looksJson && str.length > GOOGLE_SHEETS_JSON_SOFT_LIMIT) {
+    if (shouldBlankLongJsonCell(column, str)) {
       return { value: "", blanked: true };
     }
 
@@ -1334,20 +1423,12 @@ response_hash: ${meta.responseHash || "(unavailable)"}`);
   }
 
   function prepareRowsForGoogleSheets(rows, cols){
-    const keptCols = [];
-    const omittedCols = [];
-
-    cols.forEach(col => {
-      if (GOOGLE_SHEETS_OMIT_COLUMNS.has(col)) omittedCols.push(col);
-      else keptCols.push(col);
-    });
-
     let blankedCells = 0;
 
     const preparedRows = rows.map(row => {
       const out = {};
-      keptCols.forEach(col => {
-        const sanitized = sanitizeSheetsCellValue(row[col]);
+      cols.forEach(col => {
+        const sanitized = sanitizeSheetsCellValue(col, row[col]);
         out[col] = sanitized.value;
         if (sanitized.blanked) blankedCells++;
       });
@@ -1356,8 +1437,8 @@ response_hash: ${meta.responseHash || "(unavailable)"}`);
 
     return {
       rows: preparedRows,
-      cols: keptCols,
-      omittedCols,
+      cols,
+      omittedCols: [],
       blankedCells
     };
   }
