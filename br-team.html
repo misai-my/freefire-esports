@@ -566,6 +566,36 @@
       .logout{ padding:8px 9px; }
     }
 
+
+    /* Player table image cells */
+    #tblPlayers .player-visual-cell{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      min-width:0;
+      max-width:220px;
+      overflow:hidden;
+    }
+    #tblPlayers .player-visual-cell.multi{
+      max-width:300px;
+      flex-wrap:nowrap;
+    }
+    #tblPlayers .player-visual-cell .skill-item{
+      flex:0 1 auto;
+      max-width:130px;
+    }
+    #tblPlayers .player-visual-cell.multi .skill-item{
+      max-width:92px;
+    }
+    #tblPlayers .visual-icon-wrap{
+      width:28px;
+      height:28px;
+      min-width:28px;
+    }
+    #tblPlayers .skill-label{
+      max-width:88px;
+    }
+
   </style>
 </head>
 <body>
@@ -2451,24 +2481,98 @@ function renderTeamKpis(teamRows){
   el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active/passive is validated by matching <code>match_api.name</code> against <code>character.json</code> skill names. Loadout codes are displayed as names only.</div>`;
 }
 function renderPlayersTable(teamRows){
-  const g = groupBy(teamRows, r => norm(getVal(r, KEYS.player)) || norm(getVal(r, KEYS.accountId)) || '—'); const out = [];
+  const g = groupBy(teamRows, r => norm(getVal(r, KEYS.player)) || norm(getVal(r, KEYS.accountId)) || '—');
+  const out = [];
+
   for(const [player, list] of g.entries()){
-    const matchSet = new Set(list.map(matchKeyForRow)); const matches = matchSet.size;
-    const kills = list.reduce((a,b)=>a+n(getVal(b,KEYS.kills)),0); const damage = list.reduce((a,b)=>a+n(getVal(b,KEYS.damage)),0); const assists = list.reduce((a,b)=>a+n(getVal(b,KEYS.assists)),0); const headshots = list.reduce((a,b)=>a+n(getVal(b,KEYS.headshots)),0);
-    const account = norm(getVal(list[0], KEYS.accountId)); const active = new Map(), passive = new Map(), pet = new Map(), lo = new Map();
+    const matchSet = new Set(list.map(matchKeyForRow));
+    const matches = matchSet.size;
+
+    const kills = list.reduce((a,b)=>a+n(getVal(b,KEYS.kills)),0);
+    const damage = list.reduce((a,b)=>a+n(getVal(b,KEYS.damage)),0);
+    const assists = list.reduce((a,b)=>a+n(getVal(b,KEYS.assists)),0);
+    const headshots = list.reduce((a,b)=>a+n(getVal(b,KEYS.headshots)),0);
+
+    const account = norm(getVal(list[0], KEYS.accountId));
+    const active = new Map();
+    const passive = new Map();
+    const pet = new Map();
+    const lo = new Map();
+
     for(const r of list){
-      const alabel = getActiveSkillLabel(r); if(alabel) active.set(alabel,(active.get(alabel)||0)+1);
-      for(const pid of getPassiveSkillIds(r)){ const label=mapSkillFromId(pid,`ID ${pid}`); passive.set(label,(passive.get(label)||0)+1); }
-      const pl = getPetLabel(r); if(pl) pet.set(pl,(pet.get(pl)||0)+1);
-      const lr = getLoadoutLabel(r); if(lr) lo.set(lr,(lo.get(lr)||0)+1);
+      const alabel = getActiveSkillLabel(r);
+      if(alabel) active.set(alabel, (active.get(alabel)||0)+1);
+
+      for(const pid of getPassiveSkillIds(r)){
+        const label = mapSkillFromId(pid, `ID ${pid}`);
+        if(label) passive.set(label, (passive.get(label)||0)+1);
+      }
+
+      const pl = getPetLabel(r);
+      if(pl) pet.set(pl, (pet.get(pl)||0)+1);
+
+      const lr = getLoadoutLabel(r);
+      if(lr) lo.set(lr, (lo.get(lr)||0)+1);
     }
-    const topActive=listTopCounts(active,1)[0]; const topPet=listTopCounts(pet,1)[0]; const topPassives=listTopCounts(passive,3); const topLoad=[...lo.entries()].sort((a,b)=>b[1]-a[1])[0]; const topLoadout=topLoad?topLoad[0]:'';
-    out.push({ player, account, matches, kills, assists, headshots, elims_pm:matches?kills/matches:0, damage, dmg_pm:matches?damage/matches:0, active:topActive?`${escHtml(topActive.name)} (${topActive.picks})`:'—', passive:topPassives.length?topPassives.map(p=>`${escHtml(p.name)} (${p.picks})`).join(' • '):'—', pet:topPet?`${escHtml(topPet.name)} (${topPet.picks})`:'—', loadout:topLoadout?`<span class="small"><code title="${escHtml(topLoadout)}">${escHtml(clip(topLoadout,120))}</code></span>`:'—' });
+
+    const topActive = listTopCounts(active, 1)[0];
+    const topPet = listTopCounts(pet, 1)[0];
+    const topPassives = listTopCounts(passive, 3);
+    const topLoad = [...lo.entries()].sort((a,b)=>b[1]-a[1])[0];
+    const topLoadout = topLoad ? { name: topLoad[0], picks: topLoad[1] } : null;
+
+    const activeHtml = topActive
+      ? `<div class="player-visual-cell">${visualItemHtml('skill', topActive)}</div>`
+      : '—';
+
+    const passiveHtml = topPassives.length
+      ? `<div class="player-visual-cell multi">${topPassives.map(p => visualItemHtml('skill', p, true)).join('')}</div>`
+      : '—';
+
+    const petHtml = topPet
+      ? `<div class="player-visual-cell">${visualItemHtml('pet', topPet)}</div>`
+      : '—';
+
+    const loadoutHtml = topLoadout
+      ? `<div class="player-visual-cell">${visualItemHtml('loadout', topLoadout)}</div>`
+      : '—';
+
+    out.push({
+      player,
+      account,
+      matches,
+      kills,
+      assists,
+      headshots,
+      elims_pm: matches ? kills/matches : 0,
+      damage,
+      dmg_pm: matches ? damage/matches : 0,
+      active: activeHtml,
+      passive: passiveHtml,
+      pet: petHtml,
+      loadout: loadoutHtml
+    });
   }
+
   out.sort((a,b)=>b.dmg_pm-a.dmg_pm || b.kills-a.kills || a.player.localeCompare(b.player));
+
   el('tblPlayers').innerHTML = renderSimpleTable(out.map((r,i)=>({...r,rank:i+1})), [
-    {label:'#',key:'rank',right:true}, {label:'Player',key:'player'}, {label:'Account ID',key:'account'}, {label:'Matches',key:'matches',right:true}, {label:'Elims',key:'kills',right:true}, {label:'Elims/m',key:'elims_pm',right:true,format:'1d'}, {label:'Damage',key:'damage',right:true}, {label:'Dmg/m',key:'dmg_pm',right:true,format:'0d'}, {label:'Assists',key:'assists',right:true}, {label:'Headshots',key:'headshots',right:true}, {label:'Top Active',key:'active',escape:false}, {label:'Top Passives',key:'passive',escape:false}, {label:'Top Pet',key:'pet',escape:false}, {label:'Loadout',key:'loadout',escape:false}
+    {label:'#',key:'rank',right:true},
+    {label:'Player',key:'player'},
+    {label:'Account ID',key:'account'},
+    {label:'Matches',key:'matches',right:true},
+    {label:'Elims',key:'kills',right:true},
+    {label:'Elims/m',key:'elims_pm',right:true,format:'1d'},
+    {label:'Damage',key:'damage',right:true},
+    {label:'Dmg/m',key:'dmg_pm',right:true,format:'0d'},
+    {label:'Assists',key:'assists',right:true},
+    {label:'Headshots',key:'headshots',right:true},
+    {label:'Top Active',key:'active',escape:false},
+    {label:'Top Passives',key:'passive',escape:false},
+    {label:'Top Pet',key:'pet',escape:false},
+    {label:'Loadout',key:'loadout',escape:false}
   ]);
+
   applyColumnHeatmap('tblPlayers', ['dmg_pm','elims_pm','damage','kills','assists','headshots']);
 }
 function renderTeamUsageTables(teamRows){
