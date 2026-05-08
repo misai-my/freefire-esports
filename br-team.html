@@ -55,7 +55,9 @@
       <span class="chip" id="diagLoaded">Loaded: —</span>
       <span class="chip" id="diagSchema">Detected schema: —</span>
       <span class="chip" id="diagMap">match_api mapping: —</span>
+      <span class="chip" id="diagSkillLookup">skill lookup: —</span>
       <span class="chip" id="diagChar">character.json mapping: —</span>
+      <span class="chip" id="diagSkill">skill fields: —</span>
       <button class="btn secondary" id="reloadBtn">Reload</button>
     </div>
     <div class="muted" id="diagNote">This page is formatted for rows created by <strong>server.js</strong> in <code>public.ff_player_stats_raw</code>. It loads safe core columns and avoids heavy JSON fields like <code>row_data</code> and <code>player_stats_weapon_usages</code>.</div>
@@ -286,7 +288,7 @@ let KEYS = {
   kills:null, damage:null, assists:null, headshots:null, shoots:null, hits:null, survivalTime:null,
   booyah:null, killCount:null, killingScore:null, rankingScore:null, winRate:null,
   petName:null, petId:null, loadouts:null,
-  skillInfo:null, skillInfoId:null, skillInfoName:null, skillInfoActive:null, skillInfoActiveCount:null,
+  rawSkillIds:null, skillInfo:null, skillInfoId:null, skillInfoName:null, skillInfoActive:null, skillInfoActiveCount:null,
   skillIds:[]
 };
 
@@ -327,6 +329,7 @@ function detectSchema(sample){
   KEYS.petName = pickKey(keys, [/^player_stats_pet_skill_name$/i, /^pet_skill_name$/i]);
   KEYS.petId = pickKey(keys, [/^player_stats_pet_skill_id$/i, /^pet_skill_id$/i]);
   KEYS.loadouts = pickKey(keys, [/^player_stats_loadouts$/i, /^player_stats_loadout$/i, /^loadouts$/i, /^loadout$/i]);
+  KEYS.rawSkillIds = pickKey(keys, [/^player_stats_skill_ids$/i, /^skill_ids$/i]);
   KEYS.skillInfo = pickKey(keys, [/^player_stats_skill_info$/i, /^skill_info$/i]);
   KEYS.skillInfoId = pickKey(keys, [/^player_stats_skill_info_skill_id$/i, /^skill_info_skill_id$/i]);
   KEYS.skillInfoName = pickKey(keys, [/^player_stats_skill_info_skill_name$/i, /^skill_info_skill_name$/i]);
@@ -345,7 +348,7 @@ function detectSchema(sample){
     KEYS.damage ? `dmg=${KEYS.damage}` : 'dmg=—',
     KEYS.rankingScore ? `ranking=${KEYS.rankingScore}` : 'ranking=—',
     KEYS.killingScore ? `killing=${KEYS.killingScore}` : 'killing=—',
-    KEYS.skillIds.length ? `skills=${KEYS.skillIds.join(',')}` : 'skills=—',
+    KEYS.skillIds.length ? `skills=${KEYS.skillIds.join(',')}` : (KEYS.rawSkillIds ? `skills=${KEYS.rawSkillIds}` : 'skills=—'),
     KEYS.skillInfoId ? `active=${KEYS.skillInfoId}` : (KEYS.skillInfoName ? `activeName=${KEYS.skillInfoName}` : 'active=—'),
     KEYS.petName ? `pet=${KEYS.petName}` : (KEYS.petId ? `petId=${KEYS.petId}` : 'pet=—'),
     KEYS.loadouts ? `loadouts=${KEYS.loadouts}` : 'loadouts=—'
@@ -353,18 +356,61 @@ function detectSchema(sample){
   el('diagSchema').textContent = 'Detected schema: ' + summary;
 }
 
+function makeLookupAliases(value){
+  const aliases = [];
+  const add = v => {
+    const id = normalizeLookupId(v);
+    if(!id) return;
+    if(!aliases.includes(id)) aliases.push(id);
+  };
+
+  const raw = norm(value);
+  if(!raw) return aliases;
+  add(raw);
+
+  // Pull numeric tokens out of strings such as "ID 2006", JSON fragments,
+  // or values that arrive with a decimal suffix from CSV/Sheet exports.
+  const tokens = raw.match(/\d+(?:\.0+)?/g) || [];
+  tokens.forEach(add);
+
+  for(const token of tokens){
+    const clean = normalizeLookupId(token);
+    if(!clean || !/^\d+$/.test(clean)) continue;
+
+    add(clean.replace(/^0+/, '') || clean);
+
+    // Some reference tables store a longer API code while live data stores the
+    // compact equipped skill id. Try suffix aliases so 2006 can resolve against
+    // columns like xxxx2006 without changing the visible player data.
+    if(clean.length > 4) add(clean.slice(-4));
+    if(clean.length > 5) add(clean.slice(-5));
+    if(clean.length > 6) add(clean.slice(-6));
+  }
+
+  return aliases;
+}
+
+function lookupInMap(map, value){
+  for(const alias of makeLookupAliases(value)){
+    const found = map.get(alias);
+    if(found) return found;
+  }
+  return '';
+}
+
 function mapNameFromId(id, fallback=''){
   const key = normalizeLookupId(id);
   if(!key) return fallback || '—';
-  return ID_TO_NAME.get(key) || fallback || `ID ${key}`;
+  return lookupInMap(ID_TO_NAME, key) || fallback || `ID ${key}`;
 }
 function mapSkillFromId(id, fallback=''){
   const key = normalizeLookupId(id);
   if(!key) return fallback || '—';
 
-  // Skills are stored in match_api with type = 2. If a table has a slightly
-  // different schema, loadMatchApi maps every ID-like column from those type=2 rows.
-  return SKILL_ID_TO_NAME.get(key) || ID_TO_NAME.get(key) || fallback || `ID ${key}`;
+  // Skill lookup is intentionally exact:
+  // ff_player_stats_raw skill ID -> match_api.id, with match_api.type = 2.
+  // Do not fall back to non-skill rows, because that can display the wrong name.
+  return SKILL_ID_TO_NAME.get(key) || fallback || `ID ${key}`;
 }
 function firstNonEmptyFromKeys(row, keys){
   for(const key of keys){
@@ -373,23 +419,70 @@ function firstNonEmptyFromKeys(row, keys){
   }
   return '';
 }
-function getIdCandidatesFromMatchApiRow(row, idKeys){
-  const out = [];
-  const push = value => {
-    const id = normalizeLookupId(value);
-    if(!id) return;
-    // Avoid mapping tiny status/type values as IDs.
-    if(/^\d+$/.test(id) && id.length < 3) return;
-    if(!out.includes(id)) out.push(id);
-  };
-
-  for(const key of idKeys){
-    const value = row?.[key];
-    if(Array.isArray(value)) value.forEach(push);
-    else push(value);
+function isNumericLike(value){
+  return /^[-+]?\d+(?:\.0+)?$/.test(norm(value));
+}
+function isLikelyNameValue(value){
+  const s = norm(value);
+  if(!s) return false;
+  if(isNumericLike(s)) return false;
+  if(s.startsWith('{') || s.startsWith('[')) return false;
+  if(/^https?:\/\//i.test(s)) return false;
+  if(s.length > 120) return false;
+  return /[A-Za-z]/.test(s);
+}
+function getBestNameFromMatchApiRow(row, nameKeys, idKeys, typeKeys){
+  for(const key of nameKeys){
+    const v = row?.[key];
+    if(isLikelyNameValue(v)) return norm(v);
   }
 
-  return out;
+  // Fallback for schemas that use generic columns like value/text instead of name.
+  const blocked = new Set([...idKeys, ...typeKeys]);
+  for(const [key, value] of Object.entries(row || {})){
+    if(blocked.has(key)) continue;
+    if(/id|code|type|created|updated|uuid|owner|email/i.test(key)) continue;
+    if(isLikelyNameValue(value)) return norm(value);
+  }
+
+  return '';
+}
+function collectNumericCandidates(value, out){
+  if(value == null) return;
+  if(Array.isArray(value)){
+    value.forEach(v => collectNumericCandidates(v, out));
+    return;
+  }
+  if(typeof value === 'object'){
+    for(const [key, v] of Object.entries(value)){
+      if(/id|code|key|api|skill|item|resource/i.test(key)) collectNumericCandidates(v, out);
+    }
+    return;
+  }
+  for(const alias of makeLookupAliases(value)){
+    if(/^\d+$/.test(alias) && alias.length >= 3) out.add(alias);
+  }
+}
+function getIdCandidatesFromMatchApiRow(row, idKeys, typeKeys, nameKeys){
+  const out = new Set();
+  const blocked = new Set([...typeKeys, ...nameKeys]);
+
+  // First pass: columns that look like the actual API/item/skill/code id.
+  for(const key of idKeys){
+    if(blocked.has(key)) continue;
+    collectNumericCandidates(row?.[key], out);
+  }
+
+  // Second pass: generic schemas. Only scan scalar fields that are not clearly
+  // names/types/timestamps. This catches tables with columns like value_id/key.
+  for(const [key, value] of Object.entries(row || {})){
+    if(blocked.has(key)) continue;
+    if(/type|name|title|label|desc|created|updated|uuid|owner|email/i.test(key)) continue;
+    if(typeof value === 'object' && value !== null && !Array.isArray(value)) continue;
+    collectNumericCandidates(value, out);
+  }
+
+  return [...out];
 }
 function isSkillTypeValue(value){
   const raw = norm(value).toLowerCase();
@@ -397,13 +490,25 @@ function isSkillTypeValue(value){
   if(Number(raw) === 2) return true;
   return raw === 'skill' || raw === 'skills' || raw.includes('skill');
 }
+function isSkillMatchApiRow(row, typeKeys){
+  for(const key of typeKeys){
+    if(isSkillTypeValue(row?.[key])) return true;
+  }
+  return false;
+}
 async function loadMatchApi(){
   MAP_READY = false;
   ID_TO_NAME.clear();
   SKILL_ID_TO_NAME.clear();
 
   try{
-    const { data, error } = await client.from(MAP_TABLE).select('*').limit(20000);
+    // Exact lookup requested:
+    // match_api.id === player skill ID, match_api.type === 2, display match_api.name.
+    const { data, error } = await client
+      .from(MAP_TABLE)
+      .select('id,type,name')
+      .limit(50000);
+
     if(error) throw error;
 
     const rows = data || [];
@@ -412,41 +517,29 @@ async function loadMatchApi(){
       return;
     }
 
-    const allKeys = [...new Set(rows.flatMap(r => Object.keys(r || {})))];
-    const typeKey = pickKey(allKeys, [/^type$/i, /^api_type$/i, /^item_type$/i, /^kind$/i, /^category$/i, /\btype\b/i]) || 'type';
-
-    const preferredNameKeys = allKeys.filter(k => /^(name|title|label)$/i.test(k));
-    const fallbackNameKeys = allKeys.filter(k => /(name|title|label|display|description|desc)/i.test(k));
-    const nameKeys = [...new Set([...preferredNameKeys, ...fallbackNameKeys])];
-
-    const preferredIdKeys = allKeys.filter(k => /^(api_id|item_id|skill_id|resource_id|match_api_id|game_id|code)$/i.test(k));
-    const fallbackIdKeys = allKeys.filter(k => /(^id$|_id$|id$|code$)/i.test(k));
-    const idKeys = [...new Set([...preferredIdKeys, ...fallbackIdKeys])];
-
     let namedRows = 0;
     let skillRows = 0;
 
     for(const r of rows){
-      const nm = firstNonEmptyFromKeys(r, nameKeys);
-      if(!nm) continue;
+      const id = normalizeLookupId(r?.id);
+      const name = norm(r?.name);
+      const type = Number(r?.type);
 
-      const ids = getIdCandidatesFromMatchApiRow(r, idKeys);
-      if(!ids.length) continue;
+      if(!id || !name) continue;
 
       namedRows++;
-      const isSkill = isSkillTypeValue(r?.[typeKey]);
-      if(isSkill) skillRows++;
+      ID_TO_NAME.set(id, name);
 
-      for(const id of ids){
-        if(!ID_TO_NAME.has(id)) ID_TO_NAME.set(id, nm);
-        if(isSkill && !SKILL_ID_TO_NAME.has(id)) SKILL_ID_TO_NAME.set(id, nm);
+      if(type === 2){
+        skillRows++;
+        SKILL_ID_TO_NAME.set(id, name);
       }
     }
 
     MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    el('diagMap').textContent = `match_api mapping: rows=${rows.length} • named=${namedRows} • typeKey=${typeKey} • skill rows(type=2)=${skillRows} • skill IDs=${SKILL_ID_TO_NAME.size}`;
+    el('diagMap').textContent = `match_api mapping: rows=${rows.length} • named=${namedRows} • skill rows(type=2)=${skillRows} • skill IDs=${SKILL_ID_TO_NAME.size} • exact id→name`;
   }catch(e){
-    el('diagMap').textContent = 'match_api mapping: unavailable';
+    el('diagMap').textContent = 'match_api mapping: unavailable / expected columns: id, type, name';
     console.warn('match_api load failed:', e?.message || e);
   }
 }
@@ -465,18 +558,49 @@ function fuzzyKindLookup(key){
   for(const item of CHAR_SKILLKEY_LIST){ const ck = item.key; if(key.includes(ck) || ck.includes(key)){ const score = Math.min(key.length, ck.length); if(!best || score > best.score) best = { kind:item.kind, score }; } }
   return best?.kind || '';
 }
+function firstCharacterValue(row, patterns){
+  const keys = Object.keys(row || {});
+  const key = pickKey(keys, patterns);
+  return key ? row?.[key] : '';
+}
 async function loadCharacterJson(){
-  CHAR_READY = false; CHAR_SKILLKEY_TO_KIND.clear(); CHAR_SKILLKEY_LIST = [];
+  CHAR_READY = false;
+  CHAR_SKILLKEY_TO_KIND.clear();
+  CHAR_SKILLKEY_LIST = [];
+
   try{
     const res = await fetch(`${CHARACTER_JSON_URL}?v=${Date.now()}`, { cache:'no-store' });
     if(!res.ok) throw new Error(`character.json fetch failed: ${res.status}`);
+
     const data = await res.json();
-    const arr = Array.isArray(data) ? data : Array.isArray(data?.characters) ? data.characters : Array.isArray(data?.data) ? data.data : [];
-    for(const ch of arr){ const kind = normKind(ch?.skill_type); if(!kind) continue; for(const k of skillKeyVariants(ch?.skill)){ if(!CHAR_SKILLKEY_TO_KIND.has(k)) CHAR_SKILLKEY_TO_KIND.set(k, kind); } }
+    const arr = Array.isArray(data) ? data :
+      Array.isArray(data?.characters) ? data.characters :
+      Array.isArray(data?.data) ? data.data :
+      [];
+
+    for(const ch of arr){
+      const kind = normKind(
+        ch?.skill_type ?? ch?.skillType ?? ch?.skill_kind ?? ch?.type ?? ch?.category ??
+        firstCharacterValue(ch, [/skill.*type/i, /type/i, /kind/i, /category/i])
+      );
+      if(!kind) continue;
+
+      const skillName = ch?.skill ?? ch?.skill_name ?? ch?.skillName ?? ch?.ability ?? ch?.ability_name ??
+        firstCharacterValue(ch, [/^skill$/i, /skill.*name/i, /ability/i]);
+
+      for(const k of skillKeyVariants(skillName)){
+        if(!CHAR_SKILLKEY_TO_KIND.has(k)) CHAR_SKILLKEY_TO_KIND.set(k, kind);
+      }
+    }
+
     CHAR_SKILLKEY_LIST = [...CHAR_SKILLKEY_TO_KIND.entries()].map(([key,kind])=>({key,kind}));
     CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
     el('diagChar').textContent = `character.json mapping: skills=${CHAR_SKILLKEY_TO_KIND.size}`;
-  }catch(e){ el('diagChar').textContent = 'character.json mapping: unavailable'; console.warn('character.json load failed:', e?.message || e); }
+  }catch(e){
+    CHAR_READY = false;
+    el('diagChar').textContent = 'character.json mapping: unavailable / fallback mode';
+    console.warn('character.json load failed:', e?.message || e);
+  }
 }
 
 async function headCount(){
@@ -840,7 +964,7 @@ function skillIdFromRow(r, idx){
 }
 function skillIdsFromRow(r){
   const splitIds = (KEYS.skillIds || []).map((_,idx)=>skillIdFromRow(r, idx)).filter(Boolean);
-  const rawIds = parseSkillIdsFromValue(r?.player_stats_skill_ids);
+  const rawIds = parseSkillIdsFromValue(KEYS.rawSkillIds ? r?.[KEYS.rawSkillIds] : r?.player_stats_skill_ids);
   return [...new Set([...splitIds, ...rawIds])].filter(Boolean);
 }
 function parseSkillInfoIds(raw){
@@ -909,58 +1033,73 @@ function getSkillInfoActiveFlag(r){
 
 function classifySkillsFromRow(r){
   const ids = skillIdsFromRow(r);
-  const uniq = [...new Set(ids)];
+  const uniq = [...new Set(ids)].filter(Boolean);
   const activeName = norm(getVal(r, KEYS.skillInfoName));
   const activeInfoIds = getSkillInfoIdsForRow(r);
   const flatActiveId = activeInfoIds.find(Boolean) || '';
   const flatFlag = getSkillInfoActiveFlag(r);
 
-  // Important fix:
-  // skill_ids_0..3 is only the equipped skill list; slot order is not reliable.
-  // skill_info_skill_id/name is only trusted as active when the API flag says active,
-  // or when character.json classifies that skill/name as active. If character.json says
-  // it is passive, it is not allowed into the active bucket.
+  // Diagnosis/fix:
+  // In server.js rows, player_stats_skill_ids is the equipped list, not a guaranteed
+  // active/passive ordered list. The safest active source is the flattened
+  // player_stats_skill_info_skill_id/name. We trust that source unless character.json
+  // clearly says it is passive. If the external maps are incomplete, we still show IDs
+  // instead of blanking the table.
   const flatIdKind = flatActiveId ? kindOfSkillId(flatActiveId) : '';
   const flatNameKind = activeName ? skillKindFromName(activeName) : '';
-  const canTrustFlatActive = Boolean(flatActiveId || activeName) && (
-    flatFlag === true ||
-    flatIdKind === 'active' ||
-    flatNameKind === 'active' ||
-    (!CHAR_READY || !MAP_READY) && flatFlag !== false && flatIdKind !== 'passive' && flatNameKind !== 'passive'
-  );
 
   let active = '';
   let activeLabel = '';
 
-  if(canTrustFlatActive){
+  const flatLooksPassive = flatIdKind === 'passive' || flatNameKind === 'passive';
+  const flatLooksActive = flatFlag === true || flatIdKind === 'active' || flatNameKind === 'active';
+
+  if((flatActiveId || activeName) && !flatLooksPassive){
     active = flatActiveId || uniq.find(id => sameSkillName(id, activeName)) || '';
     activeLabel = activeName || (active ? skillLabelFromId(active) : '');
   }
 
+  // If character.json can confidently identify one active skill, use it only when the
+  // flat skill_info source is absent or unusable.
   if(!active && CHAR_READY && MAP_READY){
     active = uniq.find(id => kindOfSkillId(id) === 'active') || '';
     activeLabel = active ? skillLabelFromId(active) : '';
   }
 
-  if(!active && !CHAR_READY && !MAP_READY){
+  // Final fallback: never hide the whole skill section. Use the flat skill ID/name,
+  // then the first equipped skill ID. This makes mapping/data issues visible instead
+  // of making the dashboard look empty.
+  if(!active && !activeLabel){
     active = flatActiveId || uniq[0] || '';
     activeLabel = activeName || (active ? skillLabelFromId(active) : '');
   }
 
-  const passives = uniq.filter(id => {
+  const remaining = uniq.filter(id => {
     if(active && id === active) return false;
     if(activeLabel && sameSkillName(id, activeLabel)) return false;
-    if(activeName && canTrustFlatActive && sameSkillName(id, activeName)) return false;
-
-    const kind = kindOfSkillId(id);
-    if(kind === 'active') return false;
-
-    // When character.json and match_api are available, only count confirmed passive skills.
-    // This prevents active skills or unknown IDs from leaking into the passive table.
-    if(CHAR_READY && MAP_READY) return kind === 'passive';
-
+    if(activeName && sameSkillName(id, activeName)) return false;
     return true;
   });
+
+  const confirmedPassives = [];
+  const unknownPassives = [];
+
+  for(const id of remaining){
+    const kind = kindOfSkillId(id);
+    if(kind === 'active') continue;
+    if(kind === 'passive') confirmedPassives.push(id);
+    else unknownPassives.push(id);
+  }
+
+  // Prefer confirmed passive skills, but if the lookup maps are incomplete or names
+  // do not match character.json exactly, show the remaining IDs/names rather than blanking.
+  let passives = confirmedPassives.length ? confirmedPassives : unknownPassives;
+
+  // In the common 4-skill loadout case, active + 3 remaining skills should still show
+  // as passives even when character.json classification fails.
+  if(!passives.length && remaining.length){
+    passives = remaining.filter(id => kindOfSkillId(id) !== 'active');
+  }
 
   return { active, activeLabel, passives };
 }
@@ -971,6 +1110,23 @@ function getActiveSkillLabel(r){
 }
 function getActiveSkillId(r){ return classifySkillsFromRow(r).active; }
 function getPassiveSkillIds(r){ return classifySkillsFromRow(r).passives; }
+function updateSkillLookupDiagnostics(){
+  const box = el('diagSkillLookup');
+  if(!box) return;
+
+  const ids = new Set();
+  for(const r of RAW || []){
+    skillIdsFromRow(r).forEach(id => ids.add(id));
+    getSkillInfoIdsForRow(r).forEach(id => ids.add(id));
+  }
+
+  const all = [...ids].filter(Boolean);
+  const mapped = all.filter(id => lookupInMap(SKILL_ID_TO_NAME, id) || lookupInMap(ID_TO_NAME, id));
+  const missing = all.filter(id => !(lookupInMap(SKILL_ID_TO_NAME, id) || lookupInMap(ID_TO_NAME, id)));
+
+  const missingText = missing.length ? ` • missing: ${missing.slice(0,12).join(', ')}${missing.length > 12 ? '…' : ''}` : '';
+  box.textContent = `skill lookup: ${mapped.length}/${all.length} IDs mapped${missingText}`;
+}
 function getPetLabel(r){
   const name = norm(getVal(r, KEYS.petName));
   if(name) return name;
@@ -1121,6 +1277,22 @@ function renderAllTeamsSkillSummary(){
   el('collapseAllTeamsBtn').onclick = () => { document.querySelectorAll('details.team-exp').forEach(d=>d.open=false); };
 }
 
+function updateSkillDiagnostics(){
+  try{
+    const rows = RAW || [];
+    const withSplit = rows.filter(r => (KEYS.skillIds || []).some((_,idx)=>skillIdFromRow(r, idx))).length;
+    const withRaw = rows.filter(r => parseSkillIdsFromValue(KEYS.rawSkillIds ? r?.[KEYS.rawSkillIds] : r?.player_stats_skill_ids).length).length;
+    const withInfo = rows.filter(r => getSkillInfoIdsForRow(r).length || norm(getVal(r, KEYS.skillInfoName))).length;
+    const sample = rows.find(r => skillIdsFromRow(r).length || getSkillInfoIdsForRow(r).length || norm(getVal(r, KEYS.skillInfoName)));
+    const sampleIds = sample ? skillIdsFromRow(sample).slice(0,4).join(',') : 'none';
+    const sampleActive = sample ? (getActiveSkillLabel(sample) || getActiveSkillId(sample) || 'none') : 'none';
+    el('diagSkill').textContent = `skill fields: split=${withSplit} • raw=${withRaw} • info=${withInfo} • sample=${sampleIds} • active=${sampleActive}`;
+  }catch(e){
+    el('diagSkill').textContent = 'skill fields: diagnostic failed';
+    console.warn('Skill diagnostic failed:', e?.message || e);
+  }
+}
+
 function wire(){
   el('reloadBtn').addEventListener('click', ()=>location.reload());
   el('overallSortDir').addEventListener('click', ()=>{ const b=el('overallSortDir'); const cur=b.dataset.dir==='desc'?'asc':'desc'; b.dataset.dir=cur; b.textContent=cur==='desc'?'Desc':'Asc'; renderOverall(); });
@@ -1145,6 +1317,7 @@ async function init(){
     detectSchema(RAW[0]);
     await loadMatchApi();
     await loadCharacterJson();
+    updateSkillDiagnostics();
     populateTopDropdowns();
     resetToLatest();
     wire();
