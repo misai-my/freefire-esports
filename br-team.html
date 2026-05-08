@@ -136,16 +136,30 @@ const client = supabase.createClient(
 const TABLE = 'ff_player_stats_raw';
 const MAP_TABLE = 'match_api';
 const CHARACTER_JSON_URL = 'character.json';
-const MAX_ROWS_TO_LOAD = 20000;
-const CORE_SELECT_COLS = [
-  'id','match_id','Mode','mode','Tournament','tournament','Stage','stage','Year','year','Week','week','Day','day','MatchNumber','match_number',
-  'team_id','team_name','booyah','kill_count','killing_score','ranking_score','win_rate','final','is_eliminated','is_focus',
+const MAX_ROWS_TO_LOAD = 5000;
+const CHUNK_SIZE = 1000;
+
+// Columns used by this dashboard only. Heavy JSON/text columns such as row_data,
+// player_stats_weapon_usages, kill_info, and knock_down_damage_info are intentionally excluded.
+const DASHBOARD_DESIRED_COLS = [
+  'id','match_id','Mode','Tournament','Stage','Year','Week','Day','MatchNumber',
+  'booyah','eliminated_team_name','final','is_double_kill_score','is_eliminated','is_focus','kill_count','killing_score','ranking_score','win_rate',
+  'team_id','team_name',
   'player_stats_account_id','player_stats_nickname','player_stats_kills','player_stats_damage','player_stats_assists','player_stats_headshots','player_stats_shoots','player_stats_hits',
-  'player_stats_pet_skill_id','player_stats_pet_skill_name','player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
+  'player_stats_pet_skill_id','player_stats_pet_skill_name',
+  'player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
   'player_stats_skill_info_active_count','player_stats_skill_info_skill_active','player_stats_skill_info_skill_id','player_stats_skill_info_skill_name',
-  'player_stats_loadouts','player_stats_survival_time','pulled_at','data_source','center','snapshot_id','response_hash','duplicate_key'
+  'player_stats_loadouts','player_stats_survival_time',
+  'created_at','updated_at','snapshot_id','pulled_at','response_hash','duplicate_key','data_source'
 ];
 
+const HEAVY_COLS = new Set([
+  'row_data','response','team_stats','player_stats_weapon_usages','player_stats_kill_info',
+  'player_stats_knock_down_damage_info','match_match_stats_extra_circle_info',
+  'match_match_stats_extra_spector_info','match_match_stats_extra_round_stats'
+]);
+
+let DASHBOARD_SELECT_COLS = [];
 const el = id => document.getElementById(id);
 const n = x => Number(x ?? 0) || 0;
 const norm = v => (v == null ? '' : String(v).trim());
@@ -349,49 +363,111 @@ async function loadCharacterJson(){
 
 async function headCount(){
   try{
-    const res = await client.from(TABLE).select('id', { count:'exact', head:true });
+    const res = await client.from(TABLE).select('id', { count:'estimated', head:true });
     if(res.error) throw res.error;
     el('diagCount').textContent = `${TABLE} rows: ${res.count ?? '—'}`;
   }catch(e){ el('diagCount').textContent = `${TABLE} rows: count blocked`; console.warn('Count failed:', e?.message || e); }
 }
+async function loadAvailableColumns(){
+  const orderCandidates = ['pulled_at','id','created_at','updated_at'];
+
+  for(const orderCol of orderCandidates){
+    try{
+      const { data, error } = await client
+        .from(TABLE)
+        .select('*')
+        .order(orderCol, { ascending:false })
+        .limit(1);
+
+      if(error){
+        console.warn(`Schema sample failed ordering by ${orderCol}:`, error.message || error);
+        continue;
+      }
+
+      const sample = data?.[0] || null;
+      if(!sample) return [];
+
+      return Object.keys(sample).filter(k => !HEAVY_COLS.has(k));
+    }catch(e){
+      console.warn(`Schema sample exception ordering by ${orderCol}:`, e?.message || e);
+    }
+  }
+
+  try{
+    const { data, error } = await client.from(TABLE).select('*').limit(1);
+    if(error) throw error;
+    const sample = data?.[0] || null;
+    return sample ? Object.keys(sample).filter(k => !HEAVY_COLS.has(k)) : [];
+  }catch(e){
+    console.warn('Schema sample failed without ordering:', e?.message || e);
+    return [];
+  }
+}
+
 async function fetchRowsWithSelect(selectList){
-  const CHUNK = 1000;
   const out = [];
   const orderCandidates = ['pulled_at','id','created_at','updated_at'];
+
   for(const orderCol of orderCandidates){
     out.length = 0;
     let from = 0;
     let ok = true;
+
     for(;;){
-      const { data, error } = await client.from(TABLE).select(selectList).order(orderCol, { ascending:false }).range(from, from + CHUNK - 1);
-      if(error){ ok = false; console.warn(`Fetch failed ordering/selecting by ${orderCol}:`, error.message || error); break; }
+      const { data, error } = await client
+        .from(TABLE)
+        .select(selectList)
+        .order(orderCol, { ascending:false })
+        .range(from, from + CHUNK_SIZE - 1);
+
+      if(error){
+        ok = false;
+        console.warn(`Fetch failed ordering by ${orderCol}:`, error.message || error);
+        break;
+      }
+
       const rows = data || [];
       if(!rows.length) break;
+
       out.push(...rows);
       from += rows.length;
-      if(rows.length < CHUNK || out.length >= MAX_ROWS_TO_LOAD) break;
+
+      el('diagLoaded').textContent = `Loading: ${Math.min(out.length, MAX_ROWS_TO_LOAD)} rows…`;
+
+      if(rows.length < CHUNK_SIZE || out.length >= MAX_ROWS_TO_LOAD) break;
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
+
     if(ok) return out.slice(0, MAX_ROWS_TO_LOAD);
   }
-  throw new Error('All fetch order attempts failed. Check RLS and columns.');
+
+  throw new Error('All fetch order attempts failed. Check RLS and indexes for pulled_at/id.');
 }
+
 async function fetchAllRows(){
-  try{
-    USED_CORE_SELECT = true;
-    return await fetchRowsWithSelect(CORE_SELECT_COLS.join(','));
-  }catch(e){
+  const availableCols = await loadAvailableColumns();
+
+  if(!availableCols.length){
     USED_CORE_SELECT = false;
-    console.warn('Core select failed, falling back to select(*):', e?.message || e);
-    const rows = await fetchRowsWithSelect('*');
-    return rows.map(r => {
-      const copy = { ...r };
-      delete copy.row_data;
-      delete copy.player_stats_weapon_usages;
-      delete copy.player_stats_kill_info;
-      delete copy.player_stats_knock_down_damage_info;
-      return copy;
-    });
+    DASHBOARD_SELECT_COLS = [];
+    return [];
   }
+
+  const available = new Set(availableCols);
+  DASHBOARD_SELECT_COLS = DASHBOARD_DESIRED_COLS.filter(c => available.has(c) && !HEAVY_COLS.has(c));
+
+  // Include any safe server.js metadata aliases if your table has them, without forcing them to exist.
+  for(const optional of ['mode','center','target_id','endpoint','match_number','tournament','stage','year','week','day']){
+    if(available.has(optional) && !DASHBOARD_SELECT_COLS.includes(optional)) DASHBOARD_SELECT_COLS.push(optional);
+  }
+
+  if(!DASHBOARD_SELECT_COLS.length){
+    USED_CORE_SELECT = false;
+    return [];
+  }
+
+  USED_CORE_SELECT = true;
+  return await fetchRowsWithSelect(DASHBOARD_SELECT_COLS.join(','));
 }
 
 function toBool(v){ const s = norm(v).toLowerCase(); return v === true || s === '1' || s === 'true' || s === 'yes' || s === 'y'; }
@@ -700,7 +776,7 @@ async function init(){
     clearErr(); el('veil').classList.remove('hide');
     await headCount();
     RAW = await fetchAllRows();
-    el('diagLoaded').textContent = `Loaded: ${RAW.length}${USED_CORE_SELECT ? ' core rows' : ' rows via fallback'}${RAW.length >= MAX_ROWS_TO_LOAD ? ' (limit reached)' : ''}`;
+    el('diagLoaded').textContent = `Loaded: ${RAW.length} rows • ${DASHBOARD_SELECT_COLS.length || 'safe'} selected columns${RAW.length >= MAX_ROWS_TO_LOAD ? ' (latest-row limit reached)' : ''}`;
     if(!RAW.length){
       el('veil').classList.add('hide');
       gerr(`No rows returned from ${TABLE}.\n\nPossible causes:\n• Table is empty\n• RLS blocks SELECT\n• You are writing to another schema/table\n\nQuick check in Supabase SQL editor:\nselect count(*) from public.${TABLE};`);
