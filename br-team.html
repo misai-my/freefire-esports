@@ -639,6 +639,118 @@
       font-size:.62rem;
     }
 
+
+    /* Compact player table: keep badges, hide passive names, reduce horizontal scroll */
+    #tblPlayers .table-wrap{
+      overflow-x:hidden;
+      max-width:100%;
+    }
+    #tblPlayers .table-wrap table{
+      width:100%;
+      min-width:0;
+      max-width:100%;
+      table-layout:fixed;
+      font-size:.70rem;
+      border-spacing:0 5px;
+    }
+    #tblPlayers th,
+    #tblPlayers td{
+      padding:4px 4px;
+      line-height:1.12;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    #tblPlayers th[data-key="rank"],#tblPlayers td[data-key="rank"]{width:28px;max-width:28px}
+    #tblPlayers th[data-key="player"],#tblPlayers td[data-key="player"]{width:88px;max-width:88px;text-align:left}
+    #tblPlayers th[data-key="account"],#tblPlayers td[data-key="account"]{width:72px;max-width:72px}
+    #tblPlayers th[data-key="matches"],#tblPlayers td[data-key="matches"]{width:42px;max-width:42px}
+    #tblPlayers th[data-key="kills"],#tblPlayers td[data-key="kills"]{width:42px;max-width:42px}
+    #tblPlayers th[data-key="elims_pm"],#tblPlayers td[data-key="elims_pm"]{width:46px;max-width:46px}
+    #tblPlayers th[data-key="damage"],#tblPlayers td[data-key="damage"]{width:60px;max-width:60px}
+    #tblPlayers th[data-key="dmg_pm"],#tblPlayers td[data-key="dmg_pm"]{width:52px;max-width:52px}
+    #tblPlayers th[data-key="assists"],#tblPlayers td[data-key="assists"]{width:44px;max-width:44px}
+    #tblPlayers th[data-key="headshots"],#tblPlayers td[data-key="headshots"]{width:46px;max-width:46px}
+
+    #tblPlayers th[data-key="active"],#tblPlayers td[data-key="active"]{width:104px;max-width:104px;text-align:left}
+    #tblPlayers th[data-key="passive"],#tblPlayers td[data-key="passive"]{width:106px;max-width:106px;text-align:left}
+    #tblPlayers th[data-key="pet"],#tblPlayers td[data-key="pet"]{width:86px;max-width:86px;text-align:left}
+    #tblPlayers th[data-key="loadout"],#tblPlayers td[data-key="loadout"]{width:86px;max-width:86px;text-align:left}
+
+    #tblPlayers .player-visual-cell{
+      max-width:100%;
+      gap:4px;
+      overflow:hidden;
+    }
+    #tblPlayers .player-visual-cell.multi{
+      max-width:104px;
+      gap:3px;
+      justify-content:flex-start;
+    }
+
+    #tblPlayers .player-visual-cell .skill-item{
+      max-width:96px;
+      min-width:0;
+      padding:2px 4px 2px 2px;
+      gap:4px;
+    }
+    #tblPlayers .player-visual-cell.multi .skill-item{
+      flex:0 0 31px;
+      width:31px;
+      max-width:31px;
+      padding:1px;
+      border-radius:9px;
+      justify-content:center;
+    }
+
+    #tblPlayers .visual-icon-wrap{
+      width:26px;
+      height:26px;
+      min-width:26px;
+      border-radius:8px;
+    }
+    #tblPlayers .skill-icon-stack{
+      min-width:26px;
+    }
+    #tblPlayers .skill-count-badge{
+      right:-4px;
+      bottom:-4px;
+      min-width:14px;
+      height:14px;
+      padding:0 3px;
+      font-size:.54rem;
+    }
+
+    #tblPlayers .skill-label{
+      max-width:58px;
+      font-size:.64rem;
+    }
+    #tblPlayers td[data-key="passive"] .skill-label{
+      display:none;
+    }
+    #tblPlayers td[data-key="passive"] .skill-item{
+      background:transparent;
+      border-color:transparent;
+    }
+    #tblPlayers td[data-key="passive"] .visual-icon-wrap{
+      box-shadow:0 2px 10px rgba(0,0,0,.25);
+    }
+
+    #tblPlayers td[data-key="pet"] .skill-label,
+    #tblPlayers td[data-key="loadout"] .skill-label{
+      max-width:46px;
+    }
+
+    @media (max-width:1100px){
+      #tblPlayers .table-wrap{
+        overflow-x:auto;
+      }
+      #tblPlayers .table-wrap table{
+        min-width:980px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1689,7 +1801,7 @@ function visualItemHtml(kind, item, compact=false){
       ${visualIconHtml(kind, label, itemId)}
       ${picks ? `<span class="skill-count-badge">${escHtml(picks)}</span>` : ''}
     </span>
-    <span class="skill-label">${escHtml(label)}${picks ? `<span class="skill-count inline">×${escHtml(picks)}</span>` : ''}</span>
+    <span class="skill-label">${escHtml(label)}</span>
   </div>`;
 }
 function visualColumnHtml(title, kind, items, compact=false){
