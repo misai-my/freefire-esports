@@ -3176,14 +3176,37 @@ function buildOverallRowsFromTeamMatches(teamMatches){
   return rows;
 }
 
+function rowsForMovementReference(latestOrder){
+  // Movement is now calculated per match, not just inside the already-filtered table rows.
+  // This lets Match # filters still compare against the immediately previous match in the
+  // same Tournament / Mode / Source / Year / Week / Day scope.
+  const f = currentFilter();
+  const maxOrder = Number(latestOrder || 0);
+
+  return RAW.filter(r => {
+    if(f.t !== '__all__' && KEYS.tournament && norm(getVal(r, KEYS.tournament)) !== f.t) return false;
+    if(f.mode !== '__all__' && KEYS.mode && norm(getVal(r, KEYS.mode)).toUpperCase() !== f.mode.toUpperCase()) return false;
+    if(f.source !== '__all__' && KEYS.dataSource && norm(getVal(r, KEYS.dataSource)) !== f.source) return false;
+    if(f.y !== '__all__' && KEYS.year && norm(getVal(r, KEYS.year)) !== f.y) return false;
+    if(f.w !== '__all__' && KEYS.week && norm(getVal(r, KEYS.week)) !== f.w) return false;
+    if(f.d !== '__all__' && KEYS.day && norm(getVal(r, KEYS.day)) !== f.d) return false;
+
+    // Do not apply Match # here. We need all matches before the selected/latest match
+    // so the movement arrow reflects movement from match to match.
+    if(maxOrder && matchOrderValueForRow(r) > maxOrder) return false;
+    return true;
+  });
+}
+
 function rankMovementHtml(row){
   const move = row?.rank_move || 'same';
   const delta = Number(row?.rank_delta || 0);
+  const ref = row?.rank_ref_label || 'previous match';
 
-  if(move === 'new') return '<span class="rank-move new" title="New in this selected round">NEW</span>';
-  if(move === 'up') return `<span class="rank-move up" title="Moved up ${Math.abs(delta)} rank${Math.abs(delta) === 1 ? '' : 's'} from the previous round">▲${Math.abs(delta)}</span>`;
-  if(move === 'down') return `<span class="rank-move down" title="Moved down ${Math.abs(delta)} rank${Math.abs(delta) === 1 ? '' : 's'} from the previous round">▼${Math.abs(delta)}</span>`;
-  return '<span class="rank-move same" title="No movement from the previous round">—</span>';
+  if(move === 'new') return `<span class="rank-move new" title="No ranking available before the ${escHtml(ref)}">NEW</span>`;
+  if(move === 'up') return `<span class="rank-move up" title="Moved up ${Math.abs(delta)} rank${Math.abs(delta) === 1 ? '' : 's'} from the ${escHtml(ref)}">▲${Math.abs(delta)}</span>`;
+  if(move === 'down') return `<span class="rank-move down" title="Moved down ${Math.abs(delta)} rank${Math.abs(delta) === 1 ? '' : 's'} from the ${escHtml(ref)}">▼${Math.abs(delta)}</span>`;
+  return `<span class="rank-move same" title="No movement from the ${escHtml(ref)}">—</span>`;
 }
 
 function renderOverall(){
@@ -3195,19 +3218,29 @@ function renderOverall(){
 
   sortOverallRows(rows, sortKey, dir);
 
-  // Movement compares the current displayed standings against the standings before
-  // the latest round/match in the selected scope. If there is no earlier round,
-  // the indicator shows NEW for teams appearing in the current table.
-  const latestOrder = tm.length ? Math.max(...tm.map(r => Number(r.match_order || 0))) : 0;
-  const previousTm = latestOrder ? tm.filter(r => Number(r.match_order || 0) < latestOrder) : [];
+  // Movement compares the current displayed standings against the standings after
+  // the immediately previous match in the same Tournament / Mode / Source / Year / Week / Day scope.
+  // Match # is intentionally ignored for the reference set, so selecting Match 5 can compare
+  // against Match 4 instead of showing every team as NEW.
+  const currentOrders = [...new Set(tm.map(r => Number(r.match_order || 0)).filter(v => Number.isFinite(v) && v > 0))].sort((a,b)=>a-b);
+  const latestOrder = currentOrders.length ? currentOrders[currentOrders.length - 1] : 0;
+  const movementReferenceRows = rowsForMovementReference(latestOrder);
+  const movementTm = teamMatchAgg(movementReferenceRows);
+  const referenceOrders = [...new Set(movementTm.map(r => Number(r.match_order || 0)).filter(v => Number.isFinite(v) && v > 0))]
+    .filter(v => v < latestOrder)
+    .sort((a,b)=>a-b);
+  const previousMatchOrder = referenceOrders.length ? referenceOrders[referenceOrders.length - 1] : 0;
+  const previousTm = previousMatchOrder ? movementTm.filter(r => Number(r.match_order || 0) <= previousMatchOrder) : [];
   const previousRows = buildOverallRowsFromTeamMatches(previousTm);
   sortOverallRows(previousRows, sortKey, dir);
   const previousRankByTeam = new Map(previousRows.map((r, index) => [r.team, index + 1]));
+  const rankRefLabel = previousMatchOrder ? 'previous match' : 'previous match';
 
   rows.forEach((row, index) => {
     const currentRank = index + 1;
     const previousRank = previousRankByTeam.get(row.team);
     row.display_rank = currentRank;
+    row.rank_ref_label = rankRefLabel;
 
     if(!previousRank){
       row.rank_delta = 0;
