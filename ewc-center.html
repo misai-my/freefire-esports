@@ -1730,6 +1730,13 @@
     #tblPlayerDataRows .player-visual-cell.multi{max-width:260px;}
     #tblPlayerDataRows .skill-item{max-width:130px;}
 
+
+
+    /* Skill icon reliability pass */
+    .visual-icon-wrap{background:linear-gradient(135deg,rgba(60,140,255,.22),rgba(255,79,111,.12));}
+    .visual-icon-wrap img{display:block;opacity:1;transition:opacity .16s ease;}
+    .visual-icon-wrap.no-img{background:linear-gradient(135deg,rgba(60,140,255,.20),rgba(255,255,255,.06));}
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -2842,7 +2849,13 @@ function firstCharacterValue(row, patterns){
 function normalizeImageUrl(value){
   const raw = norm(value);
   if(!raw) return '';
-  if(/^https?:\/\//i.test(raw) || raw.startsWith('/') || raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('assets/')) return raw;
+  if(/^https?:\/\//i.test(raw) || raw.startsWith('/') || raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('assets/') || raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+
+  // Some local JSON files store image paths without the assets/ prefix, such as
+  // img/characters/alok.png, character/alok.webp, or just alok.png. Treat any
+  // image-like path as usable so character.json can drive the skill icons directly.
+  if(/\.(png|webp|jpe?g|gif|svg)(\?.*)?$/i.test(raw)) return raw;
+  if(/[\/]/.test(raw) && !/[{}\[\]]/.test(raw)) return raw;
   return '';
 }
 function firstImageValue(row){
@@ -2858,6 +2871,16 @@ function firstImageValue(row){
   for(const rx of priority){
     const k = keys.find(key => rx.test(key) && normalizeImageUrl(row?.[key]));
     if(k) return normalizeImageUrl(row?.[k]);
+  }
+
+  // Nested fallback for structures like { image: { url: '...' } }.
+  for(const key of keys){
+    if(!/(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)/i.test(key)) continue;
+    const value = row?.[key];
+    if(value && typeof value === 'object'){
+      const nested = firstImageValue(value);
+      if(nested) return nested;
+    }
   }
   return '';
 }
@@ -2985,11 +3008,13 @@ function visualImageCandidates(kind, label, id=''){
     const firstKey = firstSkillNameTokenKey(name);
     const firstSlug = firstKey ? slugAssetName(firstKey) : '';
 
+    // Prefer character portrait folders first. This avoids multiple slow 404s when
+    // character.json does not provide a direct image but your repo has character art.
     if(firstSlug && firstSlug !== slug){
-      candidates.push(`assets/img/skills/${firstSlug}.png`, `assets/img/skill/${firstSlug}.png`, `assets/img/characters/${firstSlug}.png`, `assets/img/character/${firstSlug}.png`);
+      candidates.push(`assets/img/characters/${firstSlug}.png`, `assets/img/character/${firstSlug}.png`, `assets/img/skills/${firstSlug}.png`, `assets/img/skill/${firstSlug}.png`);
     }
     if(slug){
-      candidates.push(`assets/img/skills/${slug}.png`, `assets/img/skill/${slug}.png`, `assets/img/characters/${slug}.png`, `assets/img/character/${slug}.png`);
+      candidates.push(`assets/img/characters/${slug}.png`, `assets/img/character/${slug}.png`, `assets/img/skills/${slug}.png`, `assets/img/skill/${slug}.png`);
     }
   }else if(kind === 'pet'){
     // Pets must use pet.json image fields first, by ID then by name.
@@ -3494,9 +3519,6 @@ function applyFilters(){
   if(el('heroScopeMirror')){
     const scopeRows = [
       ['Tournament', f.t !== '__all__' ? f.t : 'All'],
-      ['Mode', f.mode !== '__all__' ? f.mode : 'All'],
-      ['Source', f.source !== '__all__' ? f.source : 'All'],
-      ['Year', f.y !== '__all__' ? f.y : 'All'],
       ['Week', f.w !== '__all__' ? f.w : 'All'],
       ['Day', f.d !== '__all__' ? f.d : 'All'],
       ['Match', f.m !== '__all__' ? f.m : 'All']
@@ -4827,7 +4849,6 @@ function scopeLine(){
   const f = currentFilter();
   return [
     f.t !== '__all__' ? f.t : 'All tournaments',
-    f.y !== '__all__' ? `Y${f.y}` : '',
     f.w !== '__all__' ? `W${f.w}` : '',
     f.d !== '__all__' ? `D${f.d}` : '',
     f.m !== '__all__' ? `M${f.m}` : 'All matches'
