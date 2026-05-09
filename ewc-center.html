@@ -1943,7 +1943,7 @@
           <button class="theme-swatch" type="button" data-accent="purple" title="Purple theme" aria-label="Purple theme"></button>
           <button class="theme-swatch" type="button" data-accent="gray" title="Black/gray theme" aria-label="Black/gray theme"></button>
         </div>
-        <div class="userchip"><div class="avatar"></div><div class="usertext"><b id="user-info">Checking login…</b><span>Supabase session</span></div></div>
+        <div class="userchip"><div class="avatar"></div><div class="usertext"><b id="user-info">Checking login…</b><span id="connection-status">Connection checking…</span></div></div>
         <button class="logout" id="logoutBtn">Logout</button>
       </div>
     </div>
@@ -2390,12 +2390,25 @@ function applyColumnHeatmap(containerId, keys, options = {}){
   }
 }
 
+function updateConnectionBadge(session){
+  const loggedIn = !!session?.user?.email;
+  setText('user-info', loggedIn ? session.user.email : 'Not logged in');
+  setText('connection-status', loggedIn ? 'Connection active' : 'Connection inactive');
+  document.body.classList.toggle('is-logged-in', loggedIn);
+}
+
 (async () => {
   try{
     const { data: { session } } = await client.auth.getSession();
-    el('user-info').textContent = session?.user?.email ? `Logged in: ${session.user.email}` : 'Anon access';
-  }catch{ el('user-info').textContent = 'Anon access'; }
+    updateConnectionBadge(session);
+  }catch{
+    setText('user-info', 'Login check failed');
+    setText('connection-status', 'Connection inactive');
+    document.body.classList.remove('is-logged-in');
+  }
 })();
+
+client.auth.onAuthStateChange((_event, session) => updateConnectionBadge(session));
 el('logoutBtn').onclick = async () => { await client.auth.signOut(); location.reload(); };
 
 
@@ -2511,6 +2524,8 @@ let CHAR_SKILLKEY_TO_KIND = new Map();
 let CHAR_SKILLKEY_TO_CANONICAL = new Map();
 let CHAR_SKILLKEY_LIST = [];
 let SKILL_NAME_TO_IMAGE = new Map();
+let CHAR_NAME_TO_IMAGE = new Map();
+let CHAR_ID_TO_IMAGE = new Map();
 let CHAR_READY = false;
 
 let PET_NAME_TO_IMAGE = new Map();
@@ -2849,27 +2864,51 @@ function firstCharacterValue(row, patterns){
 }
 
 function normalizeImageUrl(value){
-  if(value && typeof value === 'object'){
-    const nested =
-      value.url ?? value.src ?? value.path ?? value.href ??
-      value.image_url ?? value.imageUrl ?? value.icon_url ?? value.iconUrl ??
-      value?.image?.url ?? value?.icon?.url ?? value?.img?.url ?? '';
-    if(nested) return normalizeImageUrl(nested);
+  if(value == null) return '';
+
+  if(Array.isArray(value)){
+    for(const item of value){
+      const found = normalizeImageUrl(item);
+      if(found) return found;
+    }
     return '';
   }
 
-  const raw = norm(value);
+  if(value && typeof value === 'object'){
+    const nested =
+      value.url ?? value.src ?? value.path ?? value.href ?? value.file ?? value.asset ??
+      value.image_url ?? value.imageUrl ?? value.icon_url ?? value.iconUrl ??
+      value.download_url ?? value.downloadUrl ?? value.publicUrl ?? value.public_url ??
+      value?.image?.url ?? value?.image?.src ?? value?.icon?.url ?? value?.icon?.src ?? value?.img?.url ?? value?.img?.src ?? '';
+    if(nested) return normalizeImageUrl(nested);
+
+    for(const [key, nestedValue] of Object.entries(value)){
+      if(!/(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path|asset|file)/i.test(key)) continue;
+      const found = normalizeImageUrl(nestedValue);
+      if(found) return found;
+    }
+    return '';
+  }
+
+  let raw = norm(value);
   if(!raw) return '';
 
-  // GitHub Pages can load full URLs, protocol-relative URLs, repo-relative paths,
-  // and local asset paths. character.json commonly uses image.url, sometimes as
-  // //cdn... or ./assets/...; normalize those cases here.
-  if(/^\/\//.test(raw)) return `https:${raw}`;
-  if(/^https?:\/\//i.test(raw) || raw.startsWith('/') || raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('assets/') || raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+  // Some JSON exports HTML-escape URLs.
+  raw = raw.replace(/&amp;/g, '&').replace(/^['"]+|['"]+$/g, '').trim();
 
-  // Some local JSON files store image paths without the assets/ prefix, such as
-  // img/characters/alok.png, character/alok.webp, or just alok.png. Treat any
-  // image-like path as usable so character.json can drive the skill icons directly.
+  if(/^\/\//.test(raw)) return `https:${raw}`;
+  if(/^https?:\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+
+  // GitHub Pages project sites usually break root-relative /assets/... paths.
+  // Convert common root-relative local paths to repo-relative paths.
+  if(/^\/(assets|img|images|character|characters|skills|skill|pets|pet|loadouts|loadout|weapons|weapon)\//i.test(raw)){
+    raw = raw.replace(/^\/+/, '');
+  }
+
+  if(raw.startsWith('./')) raw = raw.slice(2);
+  if(raw.startsWith('../')) return raw;
+  if(raw.startsWith('assets/') || raw.startsWith('img/') || raw.startsWith('images/')) return raw;
+
   if(/\.(png|webp|jpe?g|gif|svg)(\?.*)?$/i.test(raw)) return raw;
   if(/[\/]/.test(raw) && !/[{}\[\]]/.test(raw)) return raw;
   return '';
@@ -2891,7 +2930,6 @@ function firstTextFromPaths(obj, paths=[]){
 function firstImageValue(row){
   if(!row) return '';
 
-  // Direct object support for structures like { image: { url: '...' } }.
   const direct = normalizeImageUrl(row);
   if(direct) return direct;
 
@@ -2901,40 +2939,51 @@ function firstImageValue(row){
     /^ability.*(icon|image|img|photo)$/i,
     /skill.*(icon|image|img|photo)/i,
     /ability.*(icon|image|img|photo)/i,
-    /^(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)$/i,
-    /(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)/i
+    /^(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path|asset|file)$/i,
+    /(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path|asset|file)/i
   ];
 
-  // Handles flat keys like "image.url" or "skill.image.url".
   for(const rx of priority){
     const k = keys.find(key => rx.test(key) && normalizeImageUrl(row?.[key]));
     if(k) return normalizeImageUrl(row?.[k]);
   }
 
-  // Handles nested keys like image.url, skill.image.url, icon.url, etc.
   const nestedPaths = [
-    'image.url','image.src','image.path','image.href',
-    'img.url','img.src','img.path',
-    'icon.url','icon.src','icon.path',
-    'skill.image.url','skill.image.src','skill.icon.url','skill.icon.src',
-    'ability.image.url','ability.image.src','ability.icon.url','ability.icon.src',
-    'portrait.url','portrait.src','avatar.url','avatar.src','thumbnail.url','thumbnail.src'
+    'image.url','image.src','image.path','image.href','image.file','image.asset',
+    'img.url','img.src','img.path','img.file',
+    'icon.url','icon.src','icon.path','icon.file',
+    'skill.image.url','skill.image.src','skill.icon.url','skill.icon.src','skill.img.url','skill.img.src',
+    'ability.image.url','ability.image.src','ability.icon.url','ability.icon.src','ability.img.url','ability.img.src',
+    'portrait.url','portrait.src','avatar.url','avatar.src','thumbnail.url','thumbnail.src',
+    'images.url','images.src','media.url','media.src'
   ];
   for(const path of nestedPaths){
     const found = normalizeImageUrl(valueAtPath(row, path));
     if(found) return found;
   }
 
-  // Recursive fallback for any nested object with an image-like key.
-  for(const key of keys){
-    if(!/(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)/i.test(key)) continue;
-    const value = row?.[key];
-    if(value && typeof value === 'object'){
-      const nested = firstImageValue(value);
-      if(nested) return nested;
+  function deepFindImage(obj, depth=0){
+    if(!obj || depth > 5) return '';
+    if(Array.isArray(obj)){
+      for(const item of obj){
+        const found = deepFindImage(item, depth + 1);
+        if(found) return found;
+      }
+      return '';
     }
+    if(typeof obj !== 'object') return normalizeImageUrl(obj);
+
+    const entries = Object.entries(obj);
+    const imageLike = entries.filter(([key]) => /(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path|asset|file)/i.test(key));
+    const other = entries.filter(([key]) => !/(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path|asset|file)/i.test(key));
+    for(const [, value] of [...imageLike, ...other]){
+      const found = deepFindImage(value, depth + 1);
+      if(found) return found;
+    }
+    return '';
   }
-  return '';
+
+  return deepFindImage(row);
 }
 function firstValueByPatterns(row, patterns){
   const keys = Object.keys(row || {});
@@ -2993,7 +3042,7 @@ function skillImageLookupKeys(value){
 function lookupSkillImageFromCharacterJson(label){
   const keys = skillImageLookupKeys(label);
   for(const key of keys){
-    const img = SKILL_NAME_TO_IMAGE.get(key);
+    const img = SKILL_NAME_TO_IMAGE.get(key) || CHAR_NAME_TO_IMAGE.get(key);
     if(img) return img;
   }
 
@@ -3054,7 +3103,9 @@ function visualImageCandidates(kind, label, id=''){
   if(kind === 'skill'){
     // Skills must use character.json image fields first.
     // For names like "Moco Awakened" / "Alok Awakened", lookup the first name in character.json.
+    const byId = normalizedId ? CHAR_ID_TO_IMAGE.get(normalizedId) : '';
     const mapped = lookupSkillImageFromCharacterJson(name);
+    if(byId) candidates.push(byId);
     if(mapped) candidates.push(mapped);
 
     const firstKey = firstSkillNameTokenKey(name);
@@ -3146,6 +3197,8 @@ async function loadCharacterJson(){
   CHAR_SKILLKEY_TO_CANONICAL.clear();
   CHAR_SKILLKEY_LIST = [];
   SKILL_NAME_TO_IMAGE.clear();
+  CHAR_NAME_TO_IMAGE.clear();
+  CHAR_ID_TO_IMAGE.clear();
 
   try{
     const res = await fetch(`${CHARACTER_JSON_URL}?v=${Date.now()}`, { cache:'no-store' });
@@ -3211,6 +3264,17 @@ async function loadCharacterJson(){
         ...characterNames.map(v => norm(v).split(/\s+/)[0])
       ]);
 
+      if(skillImage){
+        for(const alias of lookupNames){
+          for(const k of skillImageLookupKeys(alias)){
+            if(k && !CHAR_NAME_TO_IMAGE.has(k)) CHAR_NAME_TO_IMAGE.set(k, skillImage);
+          }
+        }
+        for(const id of idCandidatesFromRow(ch)){
+          if(id && !CHAR_ID_TO_IMAGE.has(id)) CHAR_ID_TO_IMAGE.set(id, skillImage);
+        }
+      }
+
       for(const skillName of lookupNames){
         for(const k of skillImageLookupKeys(skillName)){
           if(!k) continue;
@@ -3234,7 +3298,7 @@ async function loadCharacterJson(){
       name: CHAR_SKILLKEY_TO_CANONICAL.get(key) || key
     }));
     CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
-    setText('diagChar', `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • active=${activeCount} • passive=${passiveCount}`);
+    setText('diagChar', `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • images=${SKILL_NAME_TO_IMAGE.size + CHAR_NAME_TO_IMAGE.size + CHAR_ID_TO_IMAGE.size} • active=${activeCount} • passive=${passiveCount}`);
   }catch(e){
     CHAR_READY = false;
     setText('diagChar', 'character.json validation: unavailable / fallback mode');
