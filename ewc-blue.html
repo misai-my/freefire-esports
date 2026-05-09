@@ -1487,7 +1487,8 @@
     .chart-point-value{font-size:9.2px;font-weight:1000;font-family:Roboto,system-ui,sans-serif;paint-order:stroke;stroke-width:3px;stroke:rgba(3,10,28,.92);stroke-linejoin:round;}
     .chart-point-value.total{fill:#8ec2ff;}
     .chart-point-value.elims{fill:#ff778d;}
-    .chart-crown{font-size:11px;paint-order:stroke;stroke:rgba(3,10,28,.9);stroke-width:2.4px;}
+    .chart-crown-badge circle{fill:rgba(255,205,72,.96);stroke:#fff0a8;stroke-width:1.4px;filter:url(#teamElimGlow);}
+    .chart-crown{font-size:13px;paint-order:stroke;stroke:rgba(3,10,28,.72);stroke-width:1.6px;}
     .chart-legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-1px 0 6px;color:rgba(220,246,255,.78);font-size:.62rem;font-weight:1000;text-transform:uppercase;letter-spacing:.05em;}
     .chart-legend span{display:inline-flex;align-items:center;gap:5px;}
     .chart-legend i{width:18px;height:3px;border-radius:99px;display:inline-block;box-shadow:0 0 10px currentColor;}
@@ -1845,8 +1846,8 @@
 
     <div class="team-modal-tabs" role="tablist" aria-label="Team profile sections">
       <button class="team-tab active" type="button" data-tab="overview">Overview</button>
-      <button class="team-tab" type="button" data-tab="players">Players</button>
-      <button class="team-tab" type="button" data-tab="skills">Skills + Loadout</button>
+      <button class="team-tab" type="button" data-tab="players">Player</button>
+      <button class="team-tab" type="button" data-tab="skills">Skill + Loadout</button>
       <button class="team-tab" type="button" data-tab="matches">Match Log</button>
     </div>
 
@@ -4101,7 +4102,10 @@ function renderTeamProgressChart(matches){
     <circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.2 : 2.8}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Eliminations: ${fmtNum(p.elims)}</title></circle>
     <text class="chart-point-value elims" x="${p.x.toFixed(2)}" y="${Math.min(h - padBottom - 2, p.y + 13).toFixed(2)}" text-anchor="middle">${fmtNum(p.elims)}</text>
   `).join('');
-  const crownNodes = totalPoints.filter(p => n(p.rank) === 12).map((p) => `<text class="chart-crown" x="${p.x.toFixed(2)}" y="${Math.max(10, p.y - 28).toFixed(2)}" text-anchor="middle">👑<title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Perfect placement (12 rank points)</title></text>`).join('');
+  const crownNodes = totalPoints.filter(p => n(p.rank) === 12).map((p) => {
+    const cy = Math.min(h - padBottom - 15, Math.max(padTop + 14, p.y + 25));
+    return `<g class="chart-crown-badge" transform="translate(${p.x.toFixed(2)} ${cy.toFixed(2)})"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Perfect placement (12 rank points)</title><circle cx="0" cy="0" r="10"></circle><text class="chart-crown" x="0" y="4" text-anchor="middle">👑</text></g>`;
+  }).join('');
   const allLabels = totalPoints.map((p, i) => `<text class="chart-label all-match" x="${p.x.toFixed(2)}" y="${h - 10}" text-anchor="middle">${escHtml(p.label)}</text>`).join('');
 
   return `
@@ -4364,8 +4368,18 @@ function renderTeamKpis(teamRows){
   const totalScore = elims + ranking;
 
   el('teamKpis').innerHTML = matches ? `<div class="kpis"><div class="kpi">Matches <strong>${matches}</strong></div><div class="kpi">Total Score <strong>${totalScore}</strong></div><div class="kpi">Booyahs <strong>${booyahs}</strong> <span class="muted">(${fmtPct(matches?booyahs/matches:0)})</span></div><div class="kpi">Elims <strong>${elims}</strong> <span class="muted">(${(elims/matches).toFixed(1)}/m)</span></div><div class="kpi">Rank Score <strong>${ranking}</strong> <span class="muted">(${(ranking/matches).toFixed(1)}/m)</span></div><div class="kpi">Damage <strong>${damage}</strong> <span class="muted">(${(damage/matches).toFixed(0)}/m)</span></div></div>` : '<div class="muted">No team rows in this scope.</div>';
-  const snap = summarizeTeamLoadout(teamRows);
-  el('teamLoadoutSnap').innerHTML = `<div class="kpis"><div class="kpi">Top Active <strong>${snap.topAct}</strong></div><div class="kpi">Top Passive <strong>${snap.topPas}</strong></div><div class="kpi">Top Pet <strong>${snap.topPet}</strong></div><div class="kpi">Top Loadout <strong>${escHtml(snap.topLoadout)}</strong></div></div><div class="muted" style="margin-top:6px">Active/passive is validated by matching <code>match_api.name</code> against <code>character.json</code> skill names. Loadout codes are displayed as names only.</div>`;
+  const usageSnap = getLoadoutUsageSummary(teamRows);
+  const snapItem = (kind, item, compact=false) => item ? visualItemHtml(kind, item, compact) : '<span class="skill-empty">—</span>';
+  const snapItems = (kind, items, compact=false, limit=3) => (items && items.length)
+    ? items.slice(0, limit).map(item => snapItem(kind, item, compact)).join('')
+    : '<span class="skill-empty">—</span>';
+  el('teamLoadoutSnap').innerHTML = `
+    <div class="snap-visual-grid">
+      <div class="snap-visual-card"><span>Top Active</span><div class="snap-visual-items">${snapItems('skill', usageSnap.active, false, 1)}</div></div>
+      <div class="snap-visual-card"><span>Top Pet</span><div class="snap-visual-items">${snapItems('pet', usageSnap.pet, false, 1)}</div></div>
+      <div class="snap-visual-card passive"><span>Top Passive</span><div class="snap-visual-items">${snapItems('skill', usageSnap.passive, true, 6)}</div></div>
+      <div class="snap-visual-card"><span>Top Loadout</span><div class="snap-visual-items">${snapItems('loadout', usageSnap.loadout, false, 2)}</div></div>
+    </div>`;
 }
 function renderPlayersTable(teamRows){
   const out = buildPlayerSummaryRows(teamRows);
@@ -4452,14 +4466,15 @@ function renderTeamStory(teamRows){
   const bestElim = matches.slice().sort((a,b)=>(b.elims||0)-(a.elims||0))[0];
   const bestDmg = matches.slice().sort((a,b)=>(b.damage||0)-(a.damage||0))[0];
 
+  const bestStatSource = (m) => m ? `D${escHtml(m.day || '—')} M${escHtml(m.match_no || '—')}` : '—';
   const story = matches.length ? `
     <div class="kpis">
       <div class="kpi">Opening Match <strong>D${escHtml(first?.day || '—')} M${escHtml(first?.match_no || '—')}</strong></div>
       <div class="kpi">Latest Match <strong>D${escHtml(last?.day || '—')} M${escHtml(last?.match_no || '—')}</strong></div>
       <div class="kpi">Total Score <strong>${fmtNum(totalScore)}</strong></div>
       <div class="kpi">Elim / Rank Split <strong>${fmtNum(totalElims)} / ${fmtNum(totalRank)}</strong></div>
-      <div class="kpi">Best Elim Game <strong>${bestElim ? fmtNum(bestElim.elims) : '—'}</strong></div>
-      <div class="kpi">Best Damage Game <strong>${bestDmg ? fmtNum(bestDmg.damage) : '—'}</strong></div>
+      <div class="kpi">Best Elim Game <strong>${bestElim ? `${fmtNum(bestElim.elims)} • ${bestStatSource(bestElim)}` : '—'}</strong></div>
+      <div class="kpi">Best Damage Game <strong>${bestDmg ? `${fmtNum(bestDmg.damage)} • ${bestStatSource(bestDmg)}` : '—'}</strong></div>
     </div>
     <div class="muted">This profile is based on the current filter scope: ${escHtml(scopeLine())}.</div>
   ` : '<div class="muted">No match data available for this team in the current scope.</div>';
