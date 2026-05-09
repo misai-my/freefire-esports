@@ -2034,7 +2034,6 @@
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetActiveRow"></div></div>
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="muted">3 slots</span></div><div class="preset-row" id="presetPassiveRow"></div></div>
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetPetRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot weapon"></span> Weapons</span><span class="muted">2 slots</span></div><div class="preset-row" id="presetWeaponRow"></div></div>
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="muted">4 slots</span></div><div class="preset-row" id="presetLoadoutRow"></div></div>
     </div>
   </details>
@@ -2261,7 +2260,7 @@ const RESOURCE_TITLES = {
   maps: ['Maps', 'Map references for rotations and path planning']
 };
 const MINI_PRESET_KEY = 'ewc_mini_preset_v1';
-let MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], weapon:[null,null], loadout:[null,null,null,null] };
+let MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
 let RESOURCE_MODAL_KIND = 'skills';
 let RESOURCE_PICK_TARGET = null;
 
@@ -2390,26 +2389,52 @@ function applyColumnHeatmap(containerId, keys, options = {}){
   }
 }
 
+function isSecureSupabaseSession(session){
+  if(!session || !session.user || !session.access_token) return false;
+  const expiresAtMs = Number(session.expires_at || 0) * 1000;
+  if(expiresAtMs && expiresAtMs <= Date.now()) return false;
+  return true;
+}
+function redirectToLogin(){
+  const current = (location.pathname.split('/').pop() || '').toLowerCase();
+  if(current !== 'index.html') location.replace('index.html');
+}
 function updateConnectionBadge(session){
-  const loggedIn = !!session?.user?.email;
+  const loggedIn = isSecureSupabaseSession(session);
   setText('user-info', loggedIn ? session.user.email : 'Not logged in');
   setText('connection-status', loggedIn ? 'Connection active' : 'Connection inactive');
   document.body.classList.toggle('is-logged-in', loggedIn);
 }
-
-(async () => {
+async function requireSecureSession(){
   try{
-    const { data: { session } } = await client.auth.getSession();
+    const { data: { session }, error } = await client.auth.getSession();
+    if(error) throw error;
+    if(!isSecureSupabaseSession(session)){
+      updateConnectionBadge(null);
+      try{ await client.auth.signOut(); }catch(_e){}
+      redirectToLogin();
+      return null;
+    }
     updateConnectionBadge(session);
-  }catch{
+    return session;
+  }catch(err){
     setText('user-info', 'Login check failed');
     setText('connection-status', 'Connection inactive');
     document.body.classList.remove('is-logged-in');
+    redirectToLogin();
+    return null;
   }
-})();
+}
 
-client.auth.onAuthStateChange((_event, session) => updateConnectionBadge(session));
-el('logoutBtn').onclick = async () => { await client.auth.signOut(); location.reload(); };
+requireSecureSession();
+
+client.auth.onAuthStateChange((event, session) => {
+  updateConnectionBadge(session);
+  if((event === 'SIGNED_OUT' || !isSecureSupabaseSession(session)) && (location.pathname.split('/').pop() || '').toLowerCase() !== 'index.html'){
+    redirectToLogin();
+  }
+});
+el('logoutBtn').onclick = async () => { await client.auth.signOut(); redirectToLogin(); };
 
 
 /* ============ Sidebar + Theme controls ============ */
@@ -3025,14 +3050,17 @@ function skillImageLookupKeys(value){
   const raw = norm(value);
   if(!raw) return [];
   const keys = [];
+
+  // Exact lookup first: match_api.name -> character.json skill/name keys.
   for(const k of skillKeyVariants(raw)){
     if(k) keys.push(k);
   }
 
-  // For match_api names like "Moco Awakened" or "Alok Awakened",
-  // character.json usually stores the image under the base character name.
-  // Use only the first name for image lookup while keeping the displayed skill name unchanged.
-  if(shouldUseFirstNameForSkillLookup(raw)){
+  // Requested fallback: if the captured match_api name has multiple words,
+  // also search character.json by the first word. This fixes names like
+  // "Oscar Awakened", "Moco Awakened", or other two-word variants.
+  const words = raw.replace(/[()]/g, ' ').replace(/[-–—_:|•]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if(words.length >= 2){
     const firstKey = firstSkillNameTokenKey(raw);
     if(firstKey) keys.unshift(firstKey);
   }
@@ -3046,12 +3074,20 @@ function lookupSkillImageFromCharacterJson(label){
     if(img) return img;
   }
 
-  // Fuzzy fallback: if the display name is "Moco Awakened" and character.json has "Moco",
-  // use the "Moco" image. This is intentionally image-only and does not change the label.
+  // First-word hard fallback for any multi-word match_api.name.
+  const firstKey = firstSkillNameTokenKey(label);
+  if(firstKey){
+    const img = SKILL_NAME_TO_IMAGE.get(firstKey) || CHAR_NAME_TO_IMAGE.get(firstKey);
+    if(img) return img;
+  }
+
+  // Fuzzy fallback against both skill names and character names in character.json.
   for(const key of keys){
-    for(const [storedKey, img] of SKILL_NAME_TO_IMAGE.entries()){
-      if(!storedKey || !img) continue;
-      if(key.includes(storedKey) || storedKey.includes(key)) return img;
+    for(const source of [SKILL_NAME_TO_IMAGE, CHAR_NAME_TO_IMAGE]){
+      for(const [storedKey, img] of source.entries()){
+        if(!storedKey || !img) continue;
+        if(key.includes(storedKey) || storedKey.includes(key)) return img;
+      }
     }
   }
 
@@ -3260,7 +3296,9 @@ async function loadCharacterJson(){
       const lookupNames = uniqueList([
         ...possibleNames,
         ...characterNames,
-        ...possibleNames.map(v => shouldUseFirstNameForSkillLookup(v) ? norm(v).split(/\s+/)[0] : ''),
+        // Store first-word aliases for every multi-word skill/character name so
+        // match_api.name can resolve to character.json images even with variants.
+        ...possibleNames.map(v => norm(v).split(/\s+/)[0]),
         ...characterNames.map(v => norm(v).split(/\s+/)[0])
       ]);
 
@@ -5424,7 +5462,6 @@ function renderMiniPresetBuilder(){
   renderPresetRow('presetActiveRow','active');
   renderPresetRow('presetPassiveRow','passive');
   renderPresetRow('presetPetRow','pet');
-  renderPresetRow('presetWeaponRow','weapon');
   renderPresetRow('presetLoadoutRow','loadout');
 }
 function applyPresetPick(kind, index, item){
@@ -5434,7 +5471,7 @@ function applyPresetPick(kind, index, item){
   renderMiniPresetBuilder();
 }
 function resetMiniPreset(){
-  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], weapon:[null,null], loadout:[null,null,null,null] };
+  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
@@ -5575,6 +5612,8 @@ function wireTeamCardFilterControls(){
 async function init(){
   try{
     clearErr(); el('veil').classList.remove('hide');
+    const activeSession = await requireSecureSession();
+    if(!activeSession) return;
     await headCount();
     RAW = await fetchAllRows();
     setText('diagLoaded', `Loaded: ${RAW.length} rows • ${DASHBOARD_SELECT_COLS.length || 'safe'} selected columns${RAW.length >= MAX_ROWS_TO_LOAD ? ' (latest-row limit reached)' : ''}`);
