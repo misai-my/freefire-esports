@@ -1415,6 +1415,16 @@
       background:linear-gradient(180deg,rgba(5,17,43,.78),rgba(2,8,24,.76));
       overflow:hidden;
     }
+    .team-progress-card.full-width{
+      grid-column:1 / -1;
+      margin-top:0;
+      padding:14px 14px 12px;
+      border-radius:20px;
+      background:
+        radial-gradient(520px 180px at 12% 14%,rgba(60,190,255,.15),transparent 62%),
+        radial-gradient(460px 170px at 92% 18%,rgba(255,207,90,.10),transparent 60%),
+        linear-gradient(180deg,rgba(5,17,43,.86),rgba(2,8,24,.80));
+    }
     .progress-chart-head{
       display:flex;
       align-items:flex-start;
@@ -1443,10 +1453,21 @@
         radial-gradient(180px 80px at 72% 28%,rgba(47,210,255,.16),transparent 70%),
         linear-gradient(180deg,rgba(8,32,77,.52),rgba(4,12,31,.45));
       border:1px solid rgba(111,196,255,.10);
-      overflow:hidden;
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
     }
+    .team-progress-card.full-width .team-progress-svg-wrap{
+      height:190px;
+      border-radius:16px;
+    }
+    .team-progress-svg-wrap::-webkit-scrollbar{height:8px;}
+    .team-progress-svg-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,.04);border-radius:99px;}
+    .team-progress-svg-wrap::-webkit-scrollbar-thumb{background:rgba(74,231,255,.28);border-radius:99px;}
     .team-progress-svg{
       width:100%;
+      min-width:100%;
       height:100%;
       display:block;
     }
@@ -1461,6 +1482,7 @@
     .chart-point.last.total{fill:#ffffff;stroke:#4ae7ff;stroke-width:2.4;}
     .chart-point.last.elims{fill:#fff4ca;stroke:#ffcf5a;stroke-width:2.2;}
     .chart-label{fill:rgba(220,246,255,.72);font-size:9px;font-weight:800;font-family:Roboto,system-ui,sans-serif;}
+    .chart-label.all-match{font-size:8.3px;fill:rgba(220,246,255,.62);}
     .chart-value-label{fill:#ffffff;font-size:10px;font-weight:1000;font-family:Roboto,system-ui,sans-serif;}
     .chart-legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-1px 0 6px;color:rgba(220,246,255,.78);font-size:.62rem;font-weight:1000;text-transform:uppercase;letter-spacing:.05em;}
     .chart-legend span{display:inline-flex;align-items:center;gap:5px;}
@@ -1498,6 +1520,7 @@
       body.betting-experiment .hero-blue-panel h2{font-size:2.15rem;}
       body.betting-experiment .hero-blue-panel::after{font-size:3.9rem;}
       .team-progress-svg-wrap,.progress-chart-empty{height:104px;}
+      .team-progress-card.full-width .team-progress-svg-wrap{height:150px;}
     }
 
   </style>
@@ -4009,19 +4032,21 @@ function renderTeamProgressChart(matches){
     const elims = n(m.elims);
     const rank = n(m.ranking_score);
     const total = elims + rank;
-    const label = `D${m.day || '—'} M${m.match_no || index + 1}`;
-    return { total, elims, rank, label };
+    const playedLabel = `M${index + 1}`;
+    const sourceLabel = `D${m.day || '—'} M${m.match_no || index + 1}`;
+    return { total, elims, rank, label: playedLabel, sourceLabel };
   }).filter(item => Number.isFinite(item.total) || Number.isFinite(item.elims));
 
   if(!clean.length){
     return `<div class="progress-chart-empty">No per-match data yet</div>`;
   }
 
-  const w = 360;
-  const h = 132;
-  const padX = 24;
-  const padTop = 18;
-  const padBottom = 22;
+  // X-axis uses only played matches. No blank date/day gaps are inserted.
+  const w = Math.max(760, clean.length * 72);
+  const h = 168;
+  const padX = 38;
+  const padTop = 22;
+  const padBottom = 32;
   const innerW = w - (padX * 2);
   const innerH = h - padTop - padBottom;
   const maxValue = Math.max(1, ...clean.map(p => Math.max(n(p.total), n(p.elims))));
@@ -4038,23 +4063,40 @@ function renderTeamProgressChart(matches){
 
   const totalPoints = makePoints('total');
   const elimPoints = makePoints('elims');
-  const pathFor = pts => pts.map((p, i) => `${i ? 'L' : 'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-  const totalLinePath = pathFor(totalPoints);
-  const elimLinePath = pathFor(elimPoints);
+
+  function smoothPathFor(pts){
+    if(!pts.length) return '';
+    if(pts.length === 1) return `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for(let i = 0; i < pts.length - 1; i++){
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+    }
+    return d;
+  }
+
+  const totalLinePath = smoothPathFor(totalPoints);
+  const elimLinePath = smoothPathFor(elimPoints);
   const areaPath = `${totalLinePath} L ${totalPoints[totalPoints.length - 1].x.toFixed(2)} ${h - padBottom} L ${totalPoints[0].x.toFixed(2)} ${h - padBottom} Z`;
   const lastTotal = totalPoints[totalPoints.length - 1];
   const lastElim = elimPoints[elimPoints.length - 1];
   const highTotal = clean.reduce((best, p) => p.total > best.total ? p : best, clean[0]);
   const highElims = clean.reduce((best, p) => p.elims > best.elims ? p : best, clean[0]);
-  const firstLabel = escHtml(totalPoints[0]?.label || 'Match 1');
-  const lastLabel = escHtml(lastTotal?.label || `Match ${totalPoints.length}`);
-  const totalPointNodes = totalPoints.map((p, i) => `<circle class="chart-point total ${i === totalPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === totalPoints.length - 1 ? 4.6 : 3.4}"><title>${escHtml(p.label)} • Total: ${fmtNum(p.total)} pts (${fmtNum(p.elims)} elim + ${fmtNum(p.rank)} rank)</title></circle>`).join('');
-  const elimPointNodes = elimPoints.map((p, i) => `<circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.1 : 3.0}"><title>${escHtml(p.label)} • Eliminations: ${fmtNum(p.elims)}</title></circle>`).join('');
+  const totalPointNodes = totalPoints.map((p, i) => `<circle class="chart-point total ${i === totalPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === totalPoints.length - 1 ? 4.8 : 3.2}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Total: ${fmtNum(p.total)} pts (${fmtNum(p.elims)} elim + ${fmtNum(p.rank)} rank)</title></circle>`).join('');
+  const elimPointNodes = elimPoints.map((p, i) => `<circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.2 : 2.8}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Eliminations: ${fmtNum(p.elims)}</title></circle>`).join('');
+  const allLabels = totalPoints.map((p, i) => `<text class="chart-label all-match" x="${p.x.toFixed(2)}" y="${h - 10}" text-anchor="middle">${escHtml(p.label)}</text>`).join('');
 
   return `
-    <div class="chart-legend" aria-hidden="true"><span class="total"><i></i>Total Points</span><span class="elims"><i></i>Eliminations</span></div>
+    <div class="chart-legend" aria-hidden="true"><span class="total"><i></i>Total Points</span><span class="elims"><i></i>Eliminations</span><span>Played matches only</span></div>
     <div class="team-progress-svg-wrap">
-      <svg class="team-progress-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Per match total points and eliminations progress chart">
+      <svg class="team-progress-svg" style="width:${w}px;min-width:100%;" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Per played match total points and eliminations progress chart">
         <defs>
           <linearGradient id="teamProgressArea" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#4ae7ff" stop-opacity=".34"/>
@@ -4077,9 +4119,8 @@ function renderTeamProgressChart(matches){
         <path class="chart-line elims" d="${elimLinePath}"/>
         ${totalPointNodes}
         ${elimPointNodes}
-        <text class="chart-label" x="${padX}" y="${h - 7}">${firstLabel}</text>
-        <text class="chart-label" x="${w - padX}" y="${h - 7}" text-anchor="end">${lastLabel}</text>
-        <text class="chart-value-label" x="${Math.min(w - 40, Math.max(38, lastTotal.x))}" y="${Math.max(12, lastTotal.y - 9)}" text-anchor="middle">${fmtNum(lastTotal.total)}</text>
+        ${allLabels}
+        <text class="chart-value-label" x="${Math.min(w - 44, Math.max(44, lastTotal.x))}" y="${Math.max(13, lastTotal.y - 9)}" text-anchor="middle">${fmtNum(lastTotal.total)}</text>
       </svg>
     </div>
     <div class="progress-mini-stats"><span>Latest: <b>${fmtNum(lastTotal.total)} pts</b> / <b>${fmtNum(lastElim.elims)} elim</b></span><span>Peak: <b>${fmtNum(highTotal.total)} pts</b> / <b>${fmtNum(highElims.elims)} elim</b></span></div>
@@ -4121,11 +4162,11 @@ function renderTeamProfileHero(teamCode, teamRows){
       <div class="profile-form-card">
         <div class="profile-meta"><span>Status</span><b>${escHtml(status)}</b></div>
         <div class="profile-meta"><span>Best Match</span><b>${escHtml(best)}</b></div>
-        <div class="team-progress-card">
-          <div class="progress-chart-head"><span>Per Match Progress</span><b>Total + Elims</b></div>
-          ${progressChart}
-        </div>
         <div class="profile-meta"><span>Last 3 Match Form</span><div class="form-pill-row">${last3}</div></div>
+      </div>
+      <div class="team-progress-card full-width">
+        <div class="progress-chart-head"><span>Per Match Progress</span><b>Total Points + Eliminations</b></div>
+        ${progressChart}
       </div>
     </div>
   `;
