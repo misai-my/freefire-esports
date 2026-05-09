@@ -1614,6 +1614,66 @@
     .chart-crown-badge circle{fill:#ffd84b!important;stroke:#fff7b8!important;stroke-width:2px!important;}
     .chart-crown{font-size:15px!important;}
 
+
+    /* ===== Full-page accent theme sweep ===== */
+    html[data-accent="red"]{--ewc-bg-1:#210610;--ewc-bg-2:#08020a;--ewc-panel-tint:rgba(70,12,28,.72);--ewc-panel-tint-2:rgba(29,5,14,.86);--ewc-border:rgba(255,94,120,.22);}
+    html[data-accent="blue"]{--ewc-bg-1:#061b3e;--ewc-bg-2:#020916;--ewc-panel-tint:rgba(7,28,66,.72);--ewc-panel-tint-2:rgba(4,13,31,.86);--ewc-border:rgba(91,198,255,.22);}
+    html[data-accent="purple"]{--ewc-bg-1:#1b0b37;--ewc-bg-2:#070513;--ewc-panel-tint:rgba(39,15,75,.72);--ewc-panel-tint-2:rgba(16,8,35,.88);--ewc-border:rgba(190,111,255,.24);}
+    html[data-accent="gray"]{--ewc-bg-1:#161b24;--ewc-bg-2:#05070b;--ewc-panel-tint:rgba(24,29,38,.76);--ewc-panel-tint-2:rgba(10,12,17,.9);--ewc-border:rgba(209,216,228,.18);}
+    html[data-accent] body.betting-experiment{
+      background:
+        radial-gradient(920px 560px at 18% 4%, color-mix(in srgb, var(--ewc-accent) 26%, transparent), transparent 62%),
+        radial-gradient(820px 500px at 92% 18%, color-mix(in srgb, var(--ewc-accent-2) 16%, transparent), transparent 64%),
+        linear-gradient(180deg,var(--ewc-bg-1),var(--ewc-bg-2))!important;
+    }
+    body.betting-experiment .topbar,
+    body.betting-experiment .section,
+    body.betting-experiment details.accordion,
+    body.betting-experiment .card,
+    body.betting-experiment .profile-id-card,
+    body.betting-experiment .profile-score-card,
+    body.betting-experiment .profile-form-card,
+    body.betting-experiment .insight-card,
+    body.betting-experiment .roster-card,
+    body.betting-experiment .team-modal-card,
+    body.betting-experiment .resource-modal-card,
+    body.betting-experiment .item-detail-card,
+    body.betting-experiment .preset-row-wrap,
+    body.betting-experiment .preset-slot,
+    body.betting-experiment .asset-rail{
+      background:linear-gradient(180deg,var(--ewc-panel-tint),var(--ewc-panel-tint-2))!important;
+      border-color:var(--ewc-border)!important;
+      box-shadow:0 22px 70px color-mix(in srgb, var(--ewc-accent) 10%, rgba(0,0,0,.58))!important;
+    }
+    body.betting-experiment thead th,
+    body.betting-experiment tbody tr td,
+    body.betting-experiment .profile-meta,
+    body.betting-experiment .big-stat,
+    body.betting-experiment .kpi,
+    body.betting-experiment .resource-card,
+    body.betting-experiment .snap-visual-card,
+    body.betting-experiment .team-card-filter{
+      border-color:color-mix(in srgb, var(--ewc-accent) 24%, rgba(255,255,255,.08))!important;
+      background:color-mix(in srgb, var(--ewc-accent) 8%, rgba(8,15,34,.74))!important;
+    }
+    body.betting-experiment .chip,
+    body.betting-experiment .btn,
+    body.betting-experiment .input,
+    body.betting-experiment .theme-palette{
+      border-color:color-mix(in srgb, var(--ewc-accent) 26%, rgba(255,255,255,.10))!important;
+    }
+    body.betting-experiment .team-tile{
+      background:linear-gradient(180deg,color-mix(in srgb, var(--ewc-accent) 16%, rgba(9,24,58,.96)),rgba(4,10,26,.96))!important;
+      border-color:color-mix(in srgb, var(--ewc-accent) 28%, rgba(255,255,255,.08))!important;
+    }
+    body.betting-experiment .team-tile.active,
+    body.betting-experiment .team-tile:hover{
+      border-color:color-mix(in srgb, var(--ewc-accent-2) 54%, transparent)!important;
+      box-shadow:0 16px 48px color-mix(in srgb, var(--ewc-accent) 26%, transparent)!important;
+    }
+    body.betting-experiment .team-tab{align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1!important;}
+    body.betting-experiment .team-modal-tabs{justify-content:flex-start!important;align-items:center!important;}
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -4612,6 +4672,36 @@ function renderTeamStory(teamRows){
   ]);
   applyColumnHeatmap('teamMatchLog',['elims','rankScore','total','damage','assists','headshots']);
 }
+
+function selectTeam(team, keepCurrentModalState=false){
+  const teamCode = norm(team).toUpperCase();
+  if(!teamCode) return;
+
+  const teamRows = FILTERED.filter(r => norm(getVal(r, KEYS.team)).toUpperCase() === teamCode);
+  CURRENT_TEAM = teamCode;
+  LAST_SELECTED_TEAM_ROWS = teamRows;
+  LAST_PLAYER_SUMMARY_ROWS = [];
+
+  setText('selectedTeamChip', teamCode);
+  setText('selectedTeamChipModal', teamCode);
+  setText('teamTitle', `Team Overview — ${teamCode}`);
+  setText('modalTeamMeta', scopeLine());
+  setText('playersHint', teamRows.length ? `• ${teamRows.length} rows` : '• no rows');
+  setText('aiInsightStatus','Rule-based insights loaded.');
+
+  renderTeamProfileHero(teamCode, teamRows);
+  renderRuleBasedInsights(teamCode, teamRows);
+  renderTeamKpis(teamRows);
+  renderRosterCards(teamRows);
+  renderPlayersTable(teamRows);
+  renderTeamUsageTables(teamRows);
+  renderTeamStory(teamRows);
+  syncTeamCardFilterControls?.();
+  highlightActiveTile();
+
+  if(!keepCurrentModalState || !isTeamModalOpen()) openTeamModal();
+}
+
 function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
 function tidyBlock(v){
   if(v == null) return '';
