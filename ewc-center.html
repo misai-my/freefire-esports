@@ -4612,6 +4612,106 @@ function renderTeamStory(teamRows){
   ]);
   applyColumnHeatmap('teamMatchLog',['elims','rankScore','total','damage','assists','headshots']);
 }
+function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+function tidyBlock(v){
+  if(v == null) return '';
+  if(Array.isArray(v)) return v.map(tidyBlock).filter(Boolean).join('\n');
+  if(isPlainObject(v)) return Object.entries(v).map(([k,val]) => `${String(k).toUpperCase()}: ${tidyBlock(val)}`).filter(Boolean).join('\n\n');
+  return String(v).replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function pickObjectValue(obj, keys=['br','cs']){
+  if(!isPlainObject(obj)) return tidyBlock(obj);
+  for(const k of keys){ const v = tidyBlock(obj[k]); if(v) return v; }
+  for(const v of Object.values(obj)){ const t = tidyBlock(v); if(t) return t; }
+  return '';
+}
+function getGalleryName(item, kind){
+  return norm(
+    item?.name ?? item?.title ?? item?.label ??
+    item?.character ?? item?.character_name ?? item?.characterName ?? item?.hero ?? item?.hero_name ??
+    item?.skill_name ?? item?.skillName ?? item?.skill ?? item?.ability ?? item?.ability_name ??
+    item?.pet_name ?? item?.petName ?? item?.loadout_name ?? item?.loadoutName ??
+    item?.weapon_name ?? item?.weaponName ?? item?.gun_name ?? item?.gunName ??
+    firstValueByPatterns(item || {}, [/^name$/i, /^title$/i, /^label$/i, /character.*name/i, /hero.*name/i, /skill.*name/i, /^skill$/i, /^ability$/i, /pet.*name/i, /loadout.*name/i, /weapon.*name/i, /gun.*name/i])
+  );
+}
+function getGallerySub(item, kind){
+  if(kind === 'skills') return norm(item?.skill_type ?? item?.skillType ?? item?.type ?? item?.role ?? item?.category) || 'Skill';
+  if(kind === 'pets') return norm(item?.type ?? item?.category ?? item?.role) || 'Pet';
+  if(kind === 'weapons') return norm(item?.category ?? item?.type ?? item?.weapon_type ?? item?.weaponType) || 'Weapon';
+  if(kind === 'loadouts') return norm(item?.mode ?? item?.category ?? item?.type) || 'Loadout';
+  if(kind === 'maps') return norm(item?.category ?? item?.type ?? item?.sub) || 'Map';
+  return '';
+}
+function getLoadoutDescParts(item){
+  const raw = item?.raw || item || {};
+  const en = raw.description ?? raw.description_en ?? raw.desc ?? raw.details ?? raw.effect;
+  const ms = raw.description_ms;
+  let br = '';
+  let cs = '';
+
+  if(isPlainObject(en)){
+    br = tidyBlock(en.br) || tidyBlock(en.BR) || tidyBlock(en.battle_royale);
+    cs = tidyBlock(en.cs) || tidyBlock(en.CS) || tidyBlock(en.clash_squad);
+  }else{
+    br = tidyBlock(en);
+  }
+
+  // Keep Malay text available if English is missing. Do not mix languages if EN exists.
+  if(!br && isPlainObject(ms)) br = tidyBlock(ms.br) || tidyBlock(ms.BR) || tidyBlock(ms.battle_royale);
+  if(!cs && isPlainObject(ms)) cs = tidyBlock(ms.cs) || tidyBlock(ms.CS) || tidyBlock(ms.clash_squad);
+  if(!br && !cs && ms && !isPlainObject(ms)) br = tidyBlock(ms);
+
+  // Legacy schemas sometimes use direct fields.
+  br = br || tidyBlock(raw.br_description) || tidyBlock(raw.description_br) || tidyBlock(raw.br);
+  cs = cs || tidyBlock(raw.cs_description) || tidyBlock(raw.description_cs) || tidyBlock(raw.cs);
+
+  const fallback = tidyBlock(raw.summary) || tidyBlock(raw.info) || tidyBlock(raw.notes);
+  if(!br && !cs && fallback) br = fallback;
+
+  return { br, cs };
+}
+function getGalleryDesc(item, kind){
+  if(kind === 'loadouts'){
+    const parts = getLoadoutDescParts(item);
+    return parts.br || parts.cs || 'No loadout description yet.';
+  }
+  return tidyBlock(
+    item?.description ?? item?.desc ?? item?.details ?? item?.effect ?? item?.skill_description ?? item?.skillDescription ??
+    item?.description_en ?? item?.description_ms ?? item?.br_description ?? item?.cs_description ?? item?.ability_description ??
+    firstValueByPatterns(item || {}, [/description/i, /^desc$/i, /effect/i, /details/i])
+  );
+}
+function normalizeGalleryItem(item, kind){
+  if(!item || typeof item !== 'object') return null;
+  const name = getGalleryName(item, kind);
+  if(!name) return null;
+  return { kind, name, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
+}
+async function loadWeaponJson(){
+  RESOURCE_DATA.weapons = [];
+  let lastErr = null;
+  for(const url of WEAPON_JSON_URLS){
+    try{
+      const res = await fetch(`${url}?v=${Date.now()}`, { cache:'no-store' });
+      if(!res.ok) throw new Error(`${url} fetch failed: ${res.status}`);
+      const data = await res.json();
+      const arr = jsonArrayFromData(data, ['weapons','weapon','data','items','guns']);
+      RESOURCE_DATA.weapons = arr.map(item => normalizeGalleryItem(item, 'weapons')).filter(Boolean);
+      if(RESOURCE_DATA.weapons.length) return;
+    }catch(e){
+      lastErr = e;
+      console.warn('weapon data load failed:', e?.message || e);
+    }
+  }
+  RESOURCE_DATA.weapons = [
+    {kind:'weapons', name:'M82B', sub:'Sniper Rifle', desc:'Sample weapon card. Replace with weapon.json data when available.', img:'', raw:{}},
+    {kind:'weapons', name:'M1887', sub:'Shotgun', desc:'Sample close-range weapon reference.', img:'', raw:{}},
+    {kind:'weapons', name:'PARAFAL', sub:'Assault Rifle', desc:'Sample rifle reference for preset planning.', img:'', raw:{}},
+    {kind:'weapons', name:'Groza', sub:'Assault Rifle', desc:'Sample rifle reference for preset planning.', img:'', raw:{}}
+  ];
+  if(lastErr) console.warn('Using sample weapon data:', lastErr?.message || lastErr);
+}
 function isTeamModalOpen(){ return el('teamModal')?.classList.contains('show'); }
 function isResourceModalOpen(){ return el('resourceModal')?.classList.contains('show'); }
 function isItemDetailOpen(){ return el('itemDetailModal')?.classList.contains('show'); }
