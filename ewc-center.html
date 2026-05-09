@@ -805,6 +805,8 @@
     .big-stat{border:1px solid rgba(255,255,255,.08);background:linear-gradient(135deg,rgba(255,189,89,.08),rgba(77,211,255,.04));border-radius:14px;padding:9px 8px;text-align:center;min-width:0}
     .big-stat span{display:block;color:var(--muted);font-size:.65rem;text-transform:uppercase;font-weight:1000;letter-spacing:.05em}
     .big-stat strong{display:block;font-family:Orbitron,sans-serif;color:var(--brand);font-size:1.12rem;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .big-stat small{display:block;margin-top:3px;color:rgba(220,232,255,.68);font-size:.58rem;font-weight:1000;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .big-stat.best{background:linear-gradient(135deg,rgba(77,211,255,.10),rgba(255,189,89,.06));border-color:rgba(77,211,255,.16)}
     .form-pill-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
     .form-pill{display:inline-flex;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);border-radius:999px;padding:5px 8px;font-size:.72rem;font-weight:900;color:rgba(244,246,255,.90)}
     .insight-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -2847,8 +2849,22 @@ function firstCharacterValue(row, patterns){
 }
 
 function normalizeImageUrl(value){
+  if(value && typeof value === 'object'){
+    const nested =
+      value.url ?? value.src ?? value.path ?? value.href ??
+      value.image_url ?? value.imageUrl ?? value.icon_url ?? value.iconUrl ??
+      value?.image?.url ?? value?.icon?.url ?? value?.img?.url ?? '';
+    if(nested) return normalizeImageUrl(nested);
+    return '';
+  }
+
   const raw = norm(value);
   if(!raw) return '';
+
+  // GitHub Pages can load full URLs, protocol-relative URLs, repo-relative paths,
+  // and local asset paths. character.json commonly uses image.url, sometimes as
+  // //cdn... or ./assets/...; normalize those cases here.
+  if(/^\/\//.test(raw)) return `https:${raw}`;
   if(/^https?:\/\//i.test(raw) || raw.startsWith('/') || raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('assets/') || raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
 
   // Some local JSON files store image paths without the assets/ prefix, such as
@@ -2858,7 +2874,27 @@ function normalizeImageUrl(value){
   if(/[\/]/.test(raw) && !/[{}\[\]]/.test(raw)) return raw;
   return '';
 }
+function valueAtPath(obj, path){
+  if(!obj || !path) return '';
+  return String(path).split('.').reduce((acc, key) => acc && acc[key] != null ? acc[key] : undefined, obj);
+}
+function firstTextFromPaths(obj, paths=[]){
+  for(const path of paths){
+    const value = valueAtPath(obj, path);
+    if(value == null) continue;
+    if(typeof value === 'object') continue;
+    const txt = norm(value);
+    if(txt && txt !== '[object Object]') return txt;
+  }
+  return '';
+}
 function firstImageValue(row){
+  if(!row) return '';
+
+  // Direct object support for structures like { image: { url: '...' } }.
+  const direct = normalizeImageUrl(row);
+  if(direct) return direct;
+
   const keys = Object.keys(row || {});
   const priority = [
     /^skill.*(icon|image|img|photo)$/i,
@@ -2868,12 +2904,28 @@ function firstImageValue(row){
     /^(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)$/i,
     /(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)/i
   ];
+
+  // Handles flat keys like "image.url" or "skill.image.url".
   for(const rx of priority){
     const k = keys.find(key => rx.test(key) && normalizeImageUrl(row?.[key]));
     if(k) return normalizeImageUrl(row?.[k]);
   }
 
-  // Nested fallback for structures like { image: { url: '...' } }.
+  // Handles nested keys like image.url, skill.image.url, icon.url, etc.
+  const nestedPaths = [
+    'image.url','image.src','image.path','image.href',
+    'img.url','img.src','img.path',
+    'icon.url','icon.src','icon.path',
+    'skill.image.url','skill.image.src','skill.icon.url','skill.icon.src',
+    'ability.image.url','ability.image.src','ability.icon.url','ability.icon.src',
+    'portrait.url','portrait.src','avatar.url','avatar.src','thumbnail.url','thumbnail.src'
+  ];
+  for(const path of nestedPaths){
+    const found = normalizeImageUrl(valueAtPath(row, path));
+    if(found) return found;
+  }
+
+  // Recursive fallback for any nested object with an image-like key.
   for(const key of keys){
     if(!/(icon|image|img|photo|avatar|portrait|thumbnail|thumb|url|src|path)/i.test(key)) continue;
     const value = row?.[key];
@@ -3119,6 +3171,8 @@ async function loadCharacterJson(){
 
       const skillImage = firstImageValue(ch);
       const possibleNames = [
+        firstTextFromPaths(ch, ['skill.name','skill.title','skill.label','skill.skill_name','skill.skillName','skill.ability_name','skill.abilityName']),
+        firstTextFromPaths(ch, ['ability.name','ability.title','ability.label','ability.skill_name','ability.skillName']),
         ch?.skill,
         ch?.skill_name,
         ch?.skillName,
@@ -3131,9 +3185,10 @@ async function loadCharacterJson(){
         ch?.character_skill,
         ch?.characterSkill,
         firstCharacterValue(ch, [/^skill$/i, /skill.*name/i, /ability.*name/i, /^ability$/i])
-      ].filter(v => norm(v));
+      ].filter(v => norm(v) && norm(v) !== '[object Object]');
 
       const characterNames = [
+        firstTextFromPaths(ch, ['character.name','character.title','character.label','hero.name','hero.title','hero.label']),
         ch?.character,
         ch?.character_name,
         ch?.characterName,
@@ -3147,7 +3202,7 @@ async function loadCharacterJson(){
         ch?.title,
         ch?.label,
         firstCharacterValue(ch, [/^character$/i, /character.*name/i, /^hero$/i, /hero.*name/i, /^name$/i, /^title$/i, /^label$/i])
-      ].filter(v => norm(v));
+      ].filter(v => norm(v) && norm(v) !== '[object Object]');
 
       const lookupNames = uniqueList([
         ...possibleNames,
@@ -4502,6 +4557,11 @@ function renderTeamProfileHero(teamCode, teamRows){
   const best = stats.best ? `D${stats.best.day || '—'} • M${stats.best.match_no || '—'} • ${fmtNum((stats.best.elims||0)+(stats.best.ranking_score||0))} pts` : '—';
   const last3 = stats.last3.length ? stats.last3.map(m => `<span class="form-pill">D${escHtml(m.day)} M${escHtml(m.matchNumber)} <b>${fmtNum(m.total)}</b></span>`).join('') : '<span class="form-pill">No recent matches</span>';
   const progressChart = renderTeamProgressChart(stats.matches, teamRows);
+  const statSource = (m) => m ? `D${m.day || '—'} • M${m.match_no || '—'}` : '—';
+  const matchTotal = (m) => n(m?.elims) + n(m?.ranking_score);
+  const bestTotalMatch = stats.matches.length ? stats.matches.slice().sort((a,b)=>matchTotal(b)-matchTotal(a))[0] : null;
+  const bestElimsMatch = stats.matches.length ? stats.matches.slice().sort((a,b)=>n(b.elims)-n(a.elims))[0] : null;
+  const bestDamageMatch = stats.matches.length ? stats.matches.slice().sort((a,b)=>n(b.damage)-n(a.damage))[0] : null;
   el('teamProfileHero').innerHTML = `
     <div class="profile-hero-card">
       <div class="profile-id-card">
@@ -4526,6 +4586,9 @@ function renderTeamProfileHero(teamCode, teamRows){
           <div class="big-stat"><span>Booyah</span><strong>${fmtNum(stats.booyahs)}</strong></div>
           <div class="big-stat"><span>Pts/m</span><strong>${fmtNum(stats.avgPoints,1)}</strong></div>
           <div class="big-stat"><span>Damage/m</span><strong>${fmtNum(stats.damagePerMatch,0)}</strong></div>
+          <div class="big-stat best"><span>Best Total</span><strong>${bestTotalMatch ? fmtNum(matchTotal(bestTotalMatch)) : '—'}</strong><small>${escHtml(statSource(bestTotalMatch))}</small></div>
+          <div class="big-stat best"><span>Best Elims</span><strong>${bestElimsMatch ? fmtNum(bestElimsMatch.elims) : '—'}</strong><small>${escHtml(statSource(bestElimsMatch))}</small></div>
+          <div class="big-stat best"><span>Best Damage</span><strong>${bestDamageMatch ? fmtNum(bestDamageMatch.damage) : '—'}</strong><small>${escHtml(statSource(bestDamageMatch))}</small></div>
         </div>
       </div>
       <div class="profile-form-card">
@@ -4955,6 +5018,12 @@ function pickObjectValue(obj, keys=['br','cs']){
 }
 function getGalleryName(item, kind){
   return norm(
+    firstTextFromPaths(item, [
+      'skill.name','skill.title','skill.label',
+      'ability.name','ability.title','ability.label',
+      'character.name','character.title','character.label',
+      'hero.name','hero.title','hero.label'
+    ]) ||
     item?.name ?? item?.title ?? item?.label ??
     item?.character ?? item?.character_name ?? item?.characterName ?? item?.hero ?? item?.hero_name ??
     item?.skill_name ?? item?.skillName ?? item?.skill ?? item?.ability ?? item?.ability_name ??
