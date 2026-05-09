@@ -17,6 +17,7 @@
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = saved || (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-accent', localStorage.getItem('ewc_team_center_color_theme_v1') || 'blue');
     })();
   </script>
   <style>
@@ -1528,6 +1529,91 @@
       .team-progress-card.full-width .team-progress-svg-wrap{height:150px;}
     }
 
+
+
+    /* ===== Neptune clean layout pass: no sidebar, saved color themes, cleaner cards ===== */
+    :root{
+      --ewc-accent:#2f9dff;
+      --ewc-accent-2:#4ad8ff;
+      --ewc-accent-soft:rgba(47,157,255,.18);
+      --ewc-panel:#07152f;
+      --ewc-panel-2:#040b1d;
+    }
+    html[data-accent="red"]{--ewc-accent:#ff405d;--ewc-accent-2:#ff7a42;--ewc-accent-soft:rgba(255,64,93,.18);--brand:#ff647a;--brand2:#ff8b52;--accent:#ff405d;}
+    html[data-accent="blue"]{--ewc-accent:#2f9dff;--ewc-accent-2:#4ad8ff;--ewc-accent-soft:rgba(47,157,255,.18);--brand:#5ed6ff;--brand2:#56a7ff;--accent:#4ad8ff;}
+    html[data-accent="purple"]{--ewc-accent:#9b5cff;--ewc-accent-2:#cf6bff;--ewc-accent-soft:rgba(155,92,255,.20);--brand:#c49cff;--brand2:#e07cff;--accent:#ba66ff;}
+    html[data-accent="gray"]{--ewc-accent:#a8b3c7;--ewc-accent-2:#f0f4ff;--ewc-accent-soft:rgba(168,179,199,.16);--brand:#d6deec;--brand2:#a8b3c7;--accent:#c7d2e5;}
+
+    body.betting-experiment .sidebar,
+    body.betting-experiment .sb-overlay{display:none!important;}
+    body.betting-experiment .app{display:block;max-width:1320px;width:100%;padding:20px 18px 44px;margin:0 auto;}
+    body.betting-experiment .main{width:100%;display:block;}
+    body.betting-experiment .topbar{top:14px;margin-bottom:14px;}
+    body.betting-experiment #sbToggle{display:none!important;}
+    body.betting-experiment .page-title{min-width:220px;}
+
+    body.betting-experiment .hero-blue-panel{
+      background:
+        radial-gradient(420px 220px at 88% 18%,rgba(255,255,255,.26),transparent 58%),
+        linear-gradient(135deg,var(--ewc-accent-2) 0%,var(--ewc-accent) 45%,#102969 100%)!important;
+      box-shadow:0 28px 82px color-mix(in srgb, var(--ewc-accent) 24%, transparent), inset 0 1px 0 rgba(255,255,255,.28)!important;
+      border-color:color-mix(in srgb, var(--ewc-accent-2) 42%, transparent)!important;
+    }
+    html[data-accent="gray"] body.betting-experiment .hero-blue-panel{
+      background:linear-gradient(135deg,#374151 0%,#111827 52%,#05070c 100%)!important;
+    }
+    body.betting-experiment .btn.brand,
+    body.betting-experiment .team-tab.active,
+    body.betting-experiment .nav-item.active .nav-ico{
+      background:linear-gradient(135deg,var(--ewc-accent-2),var(--ewc-accent))!important;
+      border-color:color-mix(in srgb, var(--ewc-accent-2) 42%, transparent)!important;
+      box-shadow:0 12px 30px color-mix(in srgb, var(--ewc-accent) 24%, transparent)!important;
+    }
+    body.betting-experiment .team-modal-head,
+    body.betting-experiment .resource-modal-top,
+    body.betting-experiment .item-detail-top{
+      background:linear-gradient(135deg,var(--ewc-accent-soft),rgba(3,11,27,.85) 56%,rgba(255,255,255,.04))!important;
+    }
+
+    .theme-palette{display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid rgba(111,196,255,.13);background:rgba(6,18,44,.64);border-radius:999px;padding:5px 7px;}
+    .theme-palette-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;font-weight:1000;color:rgba(218,241,255,.72);padding:0 2px;}
+    .theme-swatch{width:24px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.22);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.18);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;}
+    .theme-swatch:hover{transform:translateY(-1px) scale(1.04);}
+    .theme-swatch.active{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.10),0 0 20px color-mix(in srgb, var(--ewc-accent) 48%, transparent);}
+    .theme-swatch[data-accent="red"]{background:linear-gradient(135deg,#ff405d,#ff7a42);}
+    .theme-swatch[data-accent="blue"]{background:linear-gradient(135deg,#4ad8ff,#2f6eff);}
+    .theme-swatch[data-accent="purple"]{background:linear-gradient(135deg,#9b5cff,#d85dff);}
+    .theme-swatch[data-accent="gray"]{background:linear-gradient(135deg,#d1d5db,#111827);}
+
+    body.betting-experiment .team-modal-tabs{display:flex;align-items:center;gap:10px;padding:12px 16px;overflow-x:auto;}
+    body.betting-experiment .team-tab{min-width:112px;height:36px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;text-align:center;font-size:.82rem;line-height:1;font-weight:1000;border-radius:999px;white-space:nowrap;letter-spacing:.01em;}
+
+    .team-card-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid rgba(101,190,255,.12);background:rgba(4,14,34,.82);}
+    .team-card-filter-title{font-size:.67rem;text-transform:uppercase;letter-spacing:.12em;font-weight:1000;color:var(--brand);margin-right:2px;}
+    .team-card-filter label{display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:900;color:rgba(214,235,255,.76);}
+    .team-card-filter .input{min-height:34px;height:34px;padding:6px 10px;border-radius:11px;font-size:.78rem;}
+
+    body.betting-experiment .team-grid{grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:12px;}
+    body.betting-experiment .team-tile{height:136px;align-items:center;justify-content:center;text-align:center;padding:14px 12px;gap:10px;}
+    body.betting-experiment .team-tile-logo{width:70px!important;height:70px!important;border-radius:20px!important;align-self:center;}
+    body.betting-experiment .team-tile-logo img{padding:5px;}
+    body.betting-experiment .team-code{text-align:center;width:100%;font-size:.84rem;line-height:1.05;}
+
+    .snap-visual-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch;}
+    .snap-visual-card{min-width:0;border:1px solid rgba(101,190,255,.13);background:linear-gradient(180deg,rgba(10,26,61,.72),rgba(5,11,28,.78));border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;}
+    .snap-visual-card>span{display:block;color:rgba(192,219,246,.78);font-weight:1000;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;}
+    .snap-visual-items{display:flex;gap:8px;align-items:center;min-height:40px;overflow:hidden;}
+    .snap-visual-items .skill-item{width:100%;max-width:none;padding:6px;border-radius:13px;}
+    .snap-visual-items .visual-icon-wrap{width:42px;height:42px;min-width:42px;border-radius:13px;}
+    .snap-visual-items .skill-label{max-width:100%;font-size:.72rem;font-weight:900;}
+    .snap-visual-items .skill-count.inline{display:none;}
+    .snap-visual-items .skill-count-badge{right:-5px;bottom:-5px;min-width:18px;height:18px;font-size:.62rem;background:#ffc857;color:#08101f;}
+    @media(max-width:980px){.snap-visual-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.theme-palette{order:3;width:100%;justify-content:flex-start;}.team-card-filter{align-items:flex-start}.team-card-filter label{width:calc(50% - 8px);}.team-card-filter label select{width:100%;}}
+    @media(max-width:620px){.snap-visual-grid{grid-template-columns:1fr}.team-card-filter label{width:100%;}.team-modal-tabs{gap:8px!important}.team-tab{min-width:96px!important;font-size:.76rem!important;padding:0 12px!important;}}
+
+    .chart-crown-badge circle{fill:#ffd84b!important;stroke:#fff7b8!important;stroke-width:2px!important;}
+    .chart-crown{font-size:15px!important;}
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -1726,6 +1812,13 @@
       <div class="page-title"><h1>EWC Team Center</h1><span>Team Summary + Interactive Team Profiles</span></div>
       <span class="chip" id="scopeChip">Scope: —</span>
       <div class="top-actions">
+        <div class="theme-palette" id="colorThemePalette" aria-label="Color theme">
+          <span class="theme-palette-label">Color</span>
+          <button class="theme-swatch" type="button" data-accent="red" title="Red theme" aria-label="Red theme"></button>
+          <button class="theme-swatch" type="button" data-accent="blue" title="Blue theme" aria-label="Blue theme"></button>
+          <button class="theme-swatch" type="button" data-accent="purple" title="Purple theme" aria-label="Purple theme"></button>
+          <button class="theme-swatch" type="button" data-accent="gray" title="Black/gray theme" aria-label="Black/gray theme"></button>
+        </div>
         <button class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"><span id="themeIcon"></span></button>
         <div class="userchip"><div class="avatar"></div><div class="usertext"><b id="user-info">Checking login…</b><span>Supabase session</span></div></div>
         <button class="logout" id="logoutBtn">Logout</button>
@@ -1858,6 +1951,14 @@
       <button class="btn secondary" type="button" data-open-resource="weapons"><span class="dot weapon"></span>Weapons</button>
       <button class="btn secondary" type="button" data-open-resource="loadouts"><span class="dot loadout"></span>Loadout</button>
       <button class="btn secondary" type="button" data-open-resource="maps"><span class="dot map"></span>Map</button>
+    </div>
+
+    <div class="team-card-filter" id="teamCardFilter">
+      <span class="team-card-filter-title">Team Card Filter</span>
+      <label>Tournament <select id="teamCardTournament" class="input"><option value="__all__">All</option></select></label>
+      <label>Day <select id="teamCardDay" class="input"><option value="__all__">All</option></select></label>
+      <label>Match # <select id="teamCardMatchNo" class="input"><option value="__all__">All</option></select></label>
+      <button class="btn secondary" type="button" id="teamCardResetLatest">Reset to Latest</button>
     </div>
 
     <div class="team-modal-body">
@@ -3238,6 +3339,7 @@ function applyFilters(){
   el('filterHint').textContent = `Rows: ${FILTERED.length} • Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
   el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
   renderOverall(); renderTeamGrid(el('teamSearch').value || '');
+  setText('heroScopeMirror', f.t !== '__all__' ? f.t : 'All tournaments');
 
   const teams = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean));
   if(CURRENT_TEAM){
@@ -4103,7 +4205,7 @@ function renderTeamProgressChart(matches){
     <text class="chart-point-value elims" x="${p.x.toFixed(2)}" y="${Math.min(h - padBottom - 2, p.y + 13).toFixed(2)}" text-anchor="middle">${fmtNum(p.elims)}</text>
   `).join('');
   const crownNodes = totalPoints.filter(p => n(p.rank) === 12).map((p) => {
-    const cy = Math.min(h - padBottom - 15, Math.max(padTop + 14, p.y + 25));
+    const cy = Math.min(h - padBottom - 13, Math.max(padTop + 18, p.y + 34));
     return `<g class="chart-crown-badge" transform="translate(${p.x.toFixed(2)} ${cy.toFixed(2)})"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Perfect placement (12 rank points)</title><circle cx="0" cy="0" r="10"></circle><text class="chart-crown" x="0" y="4" text-anchor="middle">👑</text></g>`;
   }).join('');
   const allLabels = totalPoints.map((p, i) => `<text class="chart-label all-match" x="${p.x.toFixed(2)}" y="${h - 10}" text-anchor="middle">${escHtml(p.label)}</text>`).join('');
@@ -4132,9 +4234,9 @@ function renderTeamProgressChart(matches){
         <path class="chart-area" d="${areaPath}"/>
         <path class="chart-line total" d="${totalLinePath}"/>
         <path class="chart-line elims" d="${elimLinePath}"/>
-        ${crownNodes}
         ${totalPointNodes}
         ${elimPointNodes}
+        ${crownNodes}
         ${allLabels}
         <text class="chart-value-label" x="${Math.min(w - 44, Math.max(44, lastTotal.x))}" y="${Math.max(13, lastTotal.y - 9)}" text-anchor="middle">${fmtNum(lastTotal.total)}</text>
       </svg>
@@ -4377,8 +4479,8 @@ function renderTeamKpis(teamRows){
     <div class="snap-visual-grid">
       <div class="snap-visual-card"><span>Top Active</span><div class="snap-visual-items">${snapItems('skill', usageSnap.active, false, 1)}</div></div>
       <div class="snap-visual-card"><span>Top Pet</span><div class="snap-visual-items">${snapItems('pet', usageSnap.pet, false, 1)}</div></div>
-      <div class="snap-visual-card passive"><span>Top Passive</span><div class="snap-visual-items">${snapItems('skill', usageSnap.passive, true, 6)}</div></div>
-      <div class="snap-visual-card"><span>Top Loadout</span><div class="snap-visual-items">${snapItems('loadout', usageSnap.loadout, false, 2)}</div></div>
+      <div class="snap-visual-card passive"><span>Top Passive</span><div class="snap-visual-items">${snapItems('skill', usageSnap.passive, true, 1)}</div></div>
+      <div class="snap-visual-card"><span>Top Loadout</span><div class="snap-visual-items">${snapItems('loadout', usageSnap.loadout, false, 1)}</div></div>
     </div>`;
 }
 function renderPlayersTable(teamRows){
@@ -4397,7 +4499,6 @@ function renderPlayersTable(teamRows){
   el('tblPlayers').innerHTML = renderSimpleTable(tableRows, [
     {label:'#',key:'rank',right:true},
     {label:'Player',key:'player'},
-    {label:'Account ID',key:'account'},
     {label:'Matches',key:'matches',right:true},
     {label:'Elims',key:'kills',right:true},
     {label:'Elims/m',key:'elims_pm',right:true,format:'1d'},
@@ -4463,16 +4564,21 @@ function renderTeamStory(teamRows){
   const totalElims = matches.reduce((a,b)=>a+(b.elims||0),0);
   const totalRank = matches.reduce((a,b)=>a+(b.ranking_score||0),0);
   const totalScore = totalElims + totalRank;
+  const bestTotal = matches.slice().sort((a,b)=>(((b.elims||0)+(b.ranking_score||0))-((a.elims||0)+(a.ranking_score||0))))[0];
+  const bestRank = matches.slice().sort((a,b)=>(b.ranking_score||0)-(a.ranking_score||0))[0];
   const bestElim = matches.slice().sort((a,b)=>(b.elims||0)-(a.elims||0))[0];
   const bestDmg = matches.slice().sort((a,b)=>(b.damage||0)-(a.damage||0))[0];
 
   const bestStatSource = (m) => m ? `D${escHtml(m.day || '—')} M${escHtml(m.match_no || '—')}` : '—';
+  const bestTotalValue = (m) => m ? (n(m.elims) + n(m.ranking_score)) : 0;
   const story = matches.length ? `
     <div class="kpis">
       <div class="kpi">Opening Match <strong>D${escHtml(first?.day || '—')} M${escHtml(first?.match_no || '—')}</strong></div>
       <div class="kpi">Latest Match <strong>D${escHtml(last?.day || '—')} M${escHtml(last?.match_no || '—')}</strong></div>
       <div class="kpi">Total Score <strong>${fmtNum(totalScore)}</strong></div>
       <div class="kpi">Elim / Rank Split <strong>${fmtNum(totalElims)} / ${fmtNum(totalRank)}</strong></div>
+      <div class="kpi">Best Total Game <strong>${bestTotal ? `${fmtNum(bestTotalValue(bestTotal))} • ${bestStatSource(bestTotal)}` : '—'}</strong></div>
+      <div class="kpi">Best Rank Game <strong>${bestRank ? `${fmtNum(bestRank.ranking_score)} • ${bestStatSource(bestRank)}` : '—'}</strong></div>
       <div class="kpi">Best Elim Game <strong>${bestElim ? `${fmtNum(bestElim.elims)} • ${bestStatSource(bestElim)}` : '—'}</strong></div>
       <div class="kpi">Best Damage Game <strong>${bestDmg ? `${fmtNum(bestDmg.damage)} • ${bestStatSource(bestDmg)}` : '—'}</strong></div>
     </div>
@@ -4493,213 +4599,18 @@ function renderTeamStory(teamRows){
     assists:r.assists,
     headshots:r.headshots
   })), [
-    {label:'#', key:'rank', right:true},
-    {label:'Day', key:'day', right:true},
-    {label:'Match #', key:'matchNo', right:true},
-    {label:'Match Key', key:'match'},
-    {label:'Booyah', key:'booyah'},
-    {label:'Elims', key:'elims', right:true},
-    {label:'Rank', key:'rankScore', right:true},
-    {label:'Total', key:'total', right:true},
-    {label:'Damage', key:'damage', right:true},
-    {label:'Assists', key:'assists', right:true},
-    {label:'HS', key:'headshots', right:true}
+    {label:'#',key:'rank',right:true},
+    {label:'Day',key:'day',right:true},
+    {label:'Match #',key:'matchNo',right:true},
+    {label:'Booyah',key:'booyah'},
+    {label:'Elims',key:'elims',right:true},
+    {label:'Rank',key:'rankScore',right:true},
+    {label:'Total',key:'total',right:true},
+    {label:'Damage',key:'damage',right:true},
+    {label:'Assists',key:'assists',right:true},
+    {label:'HS',key:'headshots',right:true}
   ]);
-  applyColumnHeatmap('teamMatchLog', ['elims','rankScore','total','damage','assists','headshots']);
-}
-
-function selectTeam(teamCode, silent=false){
-  CURRENT_TEAM = teamCode;
-  el('selectedTeamChip').textContent = teamCode;
-  setText('selectedTeamChipModal', teamCode);
-  el('teamTitle').textContent = `Team Overview — ${teamCode}`;
-  setText('modalTeamMeta', scopeLine());
-  el('playersHint').textContent = `• ${teamCode}`;
-
-  const rows = FILTERED.filter(r => norm(getVal(r,KEYS.team)).toUpperCase() === teamCode);
-  LAST_SELECTED_TEAM_ROWS = rows;
-  renderTeamKpis(rows);
-  renderPlayersTable(rows);
-  renderTeamProfileHero(teamCode, rows);
-  renderRosterCards(rows);
-  renderRuleBasedInsights(teamCode, rows);
-  renderTeamUsageTables(rows);
-  renderTeamStory(rows);
-  highlightActiveTile();
-
-  const url = new URL(window.location.href);
-  url.searchParams.set('team', teamCode);
-  history.replaceState(null, '', url.toString());
-
-  if(!silent) openTeamModal();
-}
-function renderAllTeamsSkillSummary(){ /* All Teams Skill Summary removed from EWC page. */ }
-
-function skillValidationSummary(rows){
-  const seen = new Set();
-  const out = { active: 0, passive: 0, unknown: 0 };
-  for(const r of rows || []){
-    for(const id of skillIdsFromRow(r)){
-      if(!id || seen.has(id)) continue;
-      seen.add(id);
-      const kind = kindOfSkillId(id);
-      if(kind === 'active') out.active++;
-      else if(kind === 'passive') out.passive++;
-      else out.unknown++;
-    }
-  }
-  return out;
-}
-
-
-/***********************
- * Quick resource popups + Mini Preset Builder
- ***********************/
-function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
-function tidyBlock(v){
-  if(v == null) return '';
-  if(Array.isArray(v)) return v.map(tidyBlock).filter(Boolean).join('\n');
-  if(isPlainObject(v)) return Object.entries(v).map(([k,val]) => `${String(k).toUpperCase()}: ${tidyBlock(val)}`).filter(Boolean).join('\n\n');
-  return String(v).replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
-}
-function pickObjectValue(obj, keys=['br','cs']){
-  if(!isPlainObject(obj)) return tidyBlock(obj);
-  for(const k of keys){ const v = tidyBlock(obj[k]); if(v) return v; }
-  for(const v of Object.values(obj)){ const t = tidyBlock(v); if(t) return t; }
-  return '';
-}
-function getGalleryName(item, kind){
-  return norm(
-    item?.name ?? item?.title ?? item?.label ??
-    item?.character ?? item?.character_name ?? item?.characterName ?? item?.hero ?? item?.hero_name ??
-    item?.skill_name ?? item?.skillName ?? item?.skill ?? item?.ability ?? item?.ability_name ??
-    item?.pet_name ?? item?.petName ?? item?.loadout_name ?? item?.loadoutName ??
-    item?.weapon_name ?? item?.weaponName ?? item?.gun_name ?? item?.gunName ??
-    firstValueByPatterns(item || {}, [/^name$/i, /^title$/i, /^label$/i, /character.*name/i, /hero.*name/i, /skill.*name/i, /^skill$/i, /^ability$/i, /pet.*name/i, /loadout.*name/i, /weapon.*name/i, /gun.*name/i])
-  );
-}
-function getGallerySub(item, kind){
-  if(kind === 'skills') return norm(item?.skill_type ?? item?.skillType ?? item?.type ?? item?.role ?? item?.category) || 'Skill';
-  if(kind === 'pets') return norm(item?.type ?? item?.category ?? item?.role) || 'Pet';
-  if(kind === 'weapons') return norm(item?.category ?? item?.type ?? item?.weapon_type ?? item?.weaponType) || 'Weapon';
-  if(kind === 'loadouts') return norm(item?.mode ?? item?.category ?? item?.type) || 'Loadout';
-  if(kind === 'maps') return norm(item?.category ?? item?.type ?? item?.sub) || 'Map';
-  return '';
-}
-function getLoadoutDescParts(item){
-  const raw = item?.raw || item || {};
-  const en = raw.description ?? raw.description_en ?? raw.desc ?? raw.details ?? raw.effect;
-  const ms = raw.description_ms;
-  let br = '';
-  let cs = '';
-
-  if(isPlainObject(en)){
-    br = tidyBlock(en.br) || tidyBlock(en.BR) || tidyBlock(en.battle_royale);
-    cs = tidyBlock(en.cs) || tidyBlock(en.CS) || tidyBlock(en.clash_squad);
-  }else{
-    br = tidyBlock(en);
-  }
-
-  // Keep Malay text available if English is missing. Do not mix languages if EN exists.
-  if(!br && isPlainObject(ms)) br = tidyBlock(ms.br) || tidyBlock(ms.BR) || tidyBlock(ms.battle_royale);
-  if(!cs && isPlainObject(ms)) cs = tidyBlock(ms.cs) || tidyBlock(ms.CS) || tidyBlock(ms.clash_squad);
-  if(!br && !cs && ms && !isPlainObject(ms)) br = tidyBlock(ms);
-
-  // Legacy schemas sometimes use direct fields.
-  br = br || tidyBlock(raw.br_description) || tidyBlock(raw.description_br) || tidyBlock(raw.br);
-  cs = cs || tidyBlock(raw.cs_description) || tidyBlock(raw.description_cs) || tidyBlock(raw.cs);
-
-  const fallback = tidyBlock(raw.summary) || tidyBlock(raw.info) || tidyBlock(raw.notes);
-  if(!br && !cs && fallback) br = fallback;
-
-  return { br, cs };
-}
-function getGalleryDesc(item, kind){
-  if(kind === 'loadouts'){
-    const parts = getLoadoutDescParts(item);
-    return parts.br || parts.cs || 'No loadout description yet.';
-  }
-  return tidyBlock(
-    item?.description ?? item?.desc ?? item?.details ?? item?.effect ?? item?.skill_description ?? item?.skillDescription ??
-    item?.description_en ?? item?.description_ms ?? item?.br_description ?? item?.cs_description ?? item?.ability_description ??
-    firstValueByPatterns(item || {}, [/description/i, /^desc$/i, /effect/i, /details/i])
-  );
-}
-function normalizeGalleryItem(item, kind){
-  if(!item || typeof item !== 'object') return null;
-  const name = getGalleryName(item, kind);
-  if(!name) return null;
-  return { kind, name, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
-}
-async function loadWeaponJson(){
-  RESOURCE_DATA.weapons = [];
-  let lastErr = null;
-  for(const url of WEAPON_JSON_URLS){
-    try{
-      const res = await fetch(`${url}?v=${Date.now()}`, { cache:'no-store' });
-      if(!res.ok) throw new Error(`${url} fetch failed: ${res.status}`);
-      const data = await res.json();
-      const arr = jsonArrayFromData(data, ['weapons','weapon','data','items','guns']);
-      RESOURCE_DATA.weapons = arr.map(item => normalizeGalleryItem(item, 'weapons')).filter(Boolean);
-      if(RESOURCE_DATA.weapons.length) return;
-    }catch(e){
-      lastErr = e;
-      console.warn('weapon data load failed:', e?.message || e);
-    }
-  }
-  RESOURCE_DATA.weapons = [
-    {kind:'weapons', name:'M82B', sub:'Sniper Rifle', desc:'Sample weapon card. Replace with weapon.json data when available.', img:'', raw:{}},
-    {kind:'weapons', name:'M1887', sub:'Shotgun', desc:'Sample close-range weapon reference.', img:'', raw:{}},
-    {kind:'weapons', name:'PARAFAL', sub:'Assault Rifle', desc:'Sample rifle reference for preset planning.', img:'', raw:{}},
-    {kind:'weapons', name:'Groza', sub:'Assault Rifle', desc:'Sample rifle reference for preset planning.', img:'', raw:{}}
-  ];
-  if(lastErr) console.warn('Using sample weapon data:', lastErr?.message || lastErr);
-}
-function resourceKindToPresetKind(kind){ return kind === 'skills' ? 'active' : kind === 'pets' ? 'pet' : kind === 'weapons' ? 'weapon' : kind === 'loadouts' ? 'loadout' : kind; }
-function getResourceList(kind){
-  const list = RESOURCE_DATA[kind] || [];
-  if(kind === 'skills' && RESOURCE_PICK_TARGET?.kind === 'active') return list.filter(item => /active/i.test(item.sub || '') || skillKindFromName(item.name) === 'active');
-  if(kind === 'skills' && RESOURCE_PICK_TARGET?.kind === 'passive') return list.filter(item => /passive/i.test(item.sub || '') || skillKindFromName(item.name) === 'passive');
-  return list;
-}
-function resourceInitials(name){ const words = norm(name).split(/\s+/).filter(Boolean); if(!words.length) return '?'; if(words.length === 1) return words[0].slice(0,2).toUpperCase(); return (words[0][0] + words[1][0]).toUpperCase(); }
-function resourceKindSingular(kind){ return kind === 'skills' ? 'Skill' : kind === 'pets' ? 'Pet' : kind === 'weapons' ? 'Weapon' : kind === 'loadouts' ? 'Loadout' : kind === 'maps' ? 'Map' : 'Item'; }
-function resourceImageHtml(item, kind){
-  const alt = escHtml(item?.name || 'Item');
-  if(item?.img) return `<img src="${escHtml(item.img)}" alt="${alt}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=&quot;resource-fallback&quot;>${escHtml(resourceInitials(item.name))}</span>'">`;
-  return `<span class="resource-fallback">${escHtml(resourceInitials(item?.name))}</span>`;
-}
-function renderResourceGrid(query=''){
-  const q = query.trim().toLowerCase();
-  const list = getResourceList(RESOURCE_MODAL_KIND).filter(item => {
-    const hay = `${item.name} ${item.sub} ${item.desc}`.toLowerCase();
-    return !q || hay.includes(q);
-  });
-  setText('resourceCount', `${list.length} item${list.length === 1 ? '' : 's'}`);
-  const grid = el('resourceGrid');
-  if(!grid) return;
-  if(!list.length){ grid.innerHTML = '<div class="empty-msg">No matching items.</div>'; return; }
-  grid.innerHTML = list.map((item, idx) => `
-    <div class="resource-card" data-kind="${escHtml(RESOURCE_MODAL_KIND)}" data-index="${idx}" title="${escHtml(item.name)}">
-      <div class="resource-thumb">${resourceImageHtml(item, RESOURCE_MODAL_KIND)}</div>
-      <div class="resource-name">${escHtml(item.name)}</div>
-      <div class="resource-sub"><span class="resource-chip">${escHtml(item.sub || resourceKindSingular(RESOURCE_MODAL_KIND))}</span></div>
-      <div class="resource-desc">${escHtml(item.desc || 'No description yet.')}</div>
-      <div class="resource-actions">
-        <button class="resource-mini-btn details" type="button" data-details-index="${idx}">Details</button>
-        ${RESOURCE_PICK_TARGET ? `<button class="resource-mini-btn pick" type="button" data-pick-index="${idx}">Pick</button>` : ''}
-      </div>
-    </div>`).join('');
-
-  grid.querySelectorAll('.resource-card').forEach(card => {
-    card.addEventListener('click', e => {
-      const target = e.target;
-      const idx = Number(card.getAttribute('data-index')) || 0;
-      const item = list[idx];
-      if(target?.matches?.('[data-pick-index]')){ pickResourceItem(item); return; }
-      openItemDetailPopup(item, RESOURCE_MODAL_KIND, RESOURCE_PICK_TARGET ? 'picker' : 'resource');
-    });
-  });
+  applyColumnHeatmap('teamMatchLog',['elims','rankScore','total','damage','assists','headshots']);
 }
 function isTeamModalOpen(){ return el('teamModal')?.classList.contains('show'); }
 function isResourceModalOpen(){ return el('resourceModal')?.classList.contains('show'); }
@@ -4921,13 +4832,103 @@ function wire(){
   el('overallSortDir').addEventListener('click', ()=>{ const b=el('overallSortDir'); const cur=b.dataset.dir==='desc'?'asc':'desc'; b.dataset.dir=cur; b.textContent=cur==='desc'?'Desc':'Asc'; renderOverall(); });
   el('overallSortKey').addEventListener('change', renderOverall);
   el('teamSearch').addEventListener('input', e=>renderTeamGrid(e.target.value||''));
-  for(const [id, changed] of [['fTournament','tournament'],['fMode','mode'],['fSource','source'],['fYear','year'],['fWeek','week'],['fDay','day']]) el(id).addEventListener('change', ()=>{ refreshCascadeOptions(changed); applyFilters(); });
-  el('fMatchNo').addEventListener('change', applyFilters);
-  el('resetFilters').addEventListener('click', resetToLatest);
+  for(const [id, changed] of [['fTournament','tournament'],['fMode','mode'],['fSource','source'],['fYear','year'],['fWeek','week'],['fDay','day']]) el(id).addEventListener('change', ()=>{ refreshCascadeOptions(changed); applyFilters(); saveFilterState(); syncTeamCardFilterControls(); });
+  el('fMatchNo').addEventListener('change', ()=>{ applyFilters(); saveFilterState(); syncTeamCardFilterControls(); });
+  el('resetFilters').addEventListener('click', ()=>{ resetToLatest(); saveFilterState(); syncTeamCardFilterControls(); });
   el('generateAiInsightsBtn')?.addEventListener('click', generateAiInsightsForCurrentTeam);
   wireTeamModal();
   wireResourceTools();
 }
+
+
+/* ===== Saved filters + team-card filters + color theme controls ===== */
+const EWC_FILTER_STATE_KEY = 'ewc_team_center_filter_state_v3';
+const EWC_COLOR_THEME_KEY = 'ewc_team_center_color_theme_v1';
+function readSelectValue(id){ return el(id)?.value || '__all__'; }
+function getFilterState(){
+  return {
+    t: readSelectValue('fTournament'), mode: readSelectValue('fMode'), source: readSelectValue('fSource'),
+    y: readSelectValue('fYear'), w: readSelectValue('fWeek'), d: readSelectValue('fDay'), m: readSelectValue('fMatchNo')
+  };
+}
+function saveFilterState(){
+  try{ localStorage.setItem(EWC_FILTER_STATE_KEY, JSON.stringify(getFilterState())); }catch(_e){}
+}
+function optionExists(selectId, value){
+  const node = el(selectId);
+  return !!node && [...node.options].some(o => o.value === value);
+}
+function setSelectIfExists(selectId, value){
+  if(value && optionExists(selectId, value)) el(selectId).value = value;
+}
+function applySavedFilterState(state){
+  if(!state || typeof state !== 'object') return false;
+  populateTopDropdowns();
+  setSelectIfExists('fTournament', state.t || '__all__');
+  setSelectIfExists('fMode', state.mode || '__all__');
+  setSelectIfExists('fSource', state.source || '__all__');
+  refreshCascadeOptions('tournament');
+  setSelectIfExists('fYear', state.y || '__all__');
+  refreshCascadeOptions('year');
+  setSelectIfExists('fWeek', state.w || '__all__');
+  refreshCascadeOptions('week');
+  setSelectIfExists('fDay', state.d || '__all__');
+  refreshCascadeOptions('day');
+  setSelectIfExists('fMatchNo', state.m || '__all__');
+  applyFilters();
+  syncTeamCardFilterControls();
+  return true;
+}
+function initFiltersFromStorageOrLatest(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(EWC_FILTER_STATE_KEY) || 'null'); }catch(_e){ saved = null; }
+  if(saved && applySavedFilterState(saved)) return;
+  resetToLatest();
+  saveFilterState();
+  syncTeamCardFilterControls();
+}
+function syncSelectOptions(targetId, sourceId){
+  const target = el(targetId), source = el(sourceId);
+  if(!target || !source) return;
+  const current = target.value;
+  target.innerHTML = source.innerHTML;
+  target.value = optionExists(targetId, current) ? current : source.value;
+}
+function syncTeamCardFilterControls(){
+  syncSelectOptions('teamCardTournament','fTournament');
+  syncSelectOptions('teamCardDay','fDay');
+  syncSelectOptions('teamCardMatchNo','fMatchNo');
+  if(el('teamCardTournament')) el('teamCardTournament').value = el('fTournament')?.value || '__all__';
+  if(el('teamCardDay')) el('teamCardDay').value = el('fDay')?.value || '__all__';
+  if(el('teamCardMatchNo')) el('teamCardMatchNo').value = el('fMatchNo')?.value || '__all__';
+}
+function applyTeamCardFilter(){
+  if(el('teamCardTournament')) el('fTournament').value = el('teamCardTournament').value;
+  refreshCascadeOptions('tournament');
+  if(el('teamCardDay') && optionExists('fDay', el('teamCardDay').value)) el('fDay').value = el('teamCardDay').value;
+  refreshCascadeOptions('day');
+  if(el('teamCardMatchNo') && optionExists('fMatchNo', el('teamCardMatchNo').value)) el('fMatchNo').value = el('teamCardMatchNo').value;
+  applyFilters();
+  saveFilterState();
+  syncTeamCardFilterControls();
+}
+function applyColorTheme(accent){
+  const value = ['red','blue','purple','gray'].includes(accent) ? accent : 'blue';
+  document.documentElement.setAttribute('data-accent', value);
+  try{ localStorage.setItem(EWC_COLOR_THEME_KEY, value); }catch(_e){}
+  document.querySelectorAll('.theme-swatch').forEach(btn => btn.classList.toggle('active', btn.dataset.accent === value));
+}
+function wireColorThemeControls(){
+  const saved = (() => { try{return localStorage.getItem(EWC_COLOR_THEME_KEY) || 'blue';}catch(_e){return 'blue';} })();
+  applyColorTheme(saved);
+  document.querySelectorAll('.theme-swatch').forEach(btn => btn.addEventListener('click', () => applyColorTheme(btn.dataset.accent)));
+}
+function wireTeamCardFilterControls(){
+  ['teamCardTournament','teamCardDay','teamCardMatchNo'].forEach(id => el(id)?.addEventListener('change', applyTeamCardFilter));
+  el('teamCardResetLatest')?.addEventListener('click', () => { resetToLatest(); saveFilterState(); syncTeamCardFilterControls(); });
+  syncTeamCardFilterControls();
+}
+
 async function init(){
   try{
     clearErr(); el('veil').classList.remove('hide');
@@ -4946,8 +4947,10 @@ async function init(){
     updateSkillDiagnostics();
     updateSkillLookupDiagnostics();
     populateTopDropdowns();
-    resetToLatest();
+    initFiltersFromStorageOrLatest();
     wire();
+    wireColorThemeControls();
+    wireTeamCardFilterControls();
     const url = new URL(window.location.href); const qt=(url.searchParams.get('team')||'').trim().toUpperCase();
     if(qt){ const teams=new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(qt)) selectTeam(qt,false); }
     el('veil').classList.add('hide');
