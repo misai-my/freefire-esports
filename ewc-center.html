@@ -5017,20 +5017,19 @@ function pickObjectValue(obj, keys=['br','cs']){
   return '';
 }
 function getGalleryName(item, kind){
-  return norm(
-    firstTextFromPaths(item, [
-      'skill.name','skill.title','skill.label',
-      'ability.name','ability.title','ability.label',
-      'character.name','character.title','character.label',
-      'hero.name','hero.title','hero.label'
-    ]) ||
-    item?.name ?? item?.title ?? item?.label ??
+  const nestedName = firstTextFromPaths(item, [
+    'skill.name','skill.title','skill.label',
+    'ability.name','ability.title','ability.label',
+    'character.name','character.title','character.label',
+    'hero.name','hero.title','hero.label'
+  ]);
+  const directName = item?.name ?? item?.title ?? item?.label ??
     item?.character ?? item?.character_name ?? item?.characterName ?? item?.hero ?? item?.hero_name ??
     item?.skill_name ?? item?.skillName ?? item?.skill ?? item?.ability ?? item?.ability_name ??
     item?.pet_name ?? item?.petName ?? item?.loadout_name ?? item?.loadoutName ??
     item?.weapon_name ?? item?.weaponName ?? item?.gun_name ?? item?.gunName ??
-    firstValueByPatterns(item || {}, [/^name$/i, /^title$/i, /^label$/i, /character.*name/i, /hero.*name/i, /skill.*name/i, /^skill$/i, /^ability$/i, /pet.*name/i, /loadout.*name/i, /weapon.*name/i, /gun.*name/i])
-  );
+    firstValueByPatterns(item || {}, [/^name$/i, /^title$/i, /^label$/i, /character.*name/i, /hero.*name/i, /skill.*name/i, /^skill$/i, /^ability$/i, /pet.*name/i, /loadout.*name/i, /weapon.*name/i, /gun.*name/i]);
+  return norm(nestedName || directName);
 }
 function getGallerySub(item, kind){
   if(kind === 'skills') return norm(item?.skill_type ?? item?.skillType ?? item?.type ?? item?.role ?? item?.category) || 'Skill';
