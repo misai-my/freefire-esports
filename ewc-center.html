@@ -1702,6 +1702,34 @@
     body.betting-experiment .resource-thumb .resource-fallback{position:absolute;inset:0;}
     body.betting-experiment .resource-thumb img + .resource-fallback{display:none;}
 
+
+
+    /* ===== Latest requested layout fixes ===== */
+    .scope-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:5px;min-width:210px;}
+    .scope-list li{display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.16);border-radius:10px;padding:6px 8px;color:rgba(235,248,255,.88);font-size:.78rem;font-weight:900;}
+    .scope-list span{color:rgba(180,214,238,.86);text-transform:uppercase;font-size:.64rem;letter-spacing:.06em;}
+    .scope-list b{color:#fff;text-align:right;white-space:normal;}
+    .skills-usage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;}
+    .skills-usage-grid .card{min-width:0;}
+    @media(max-width:980px){.skills-usage-grid{grid-template-columns:1fr;}}
+    .chart-click-target{cursor:pointer;}
+    .chart-click-target:hover{filter:drop-shadow(0 0 8px rgba(255,255,255,.75));}
+    .chart-day-label{font-size:7.7px;fill:rgba(220,246,255,.74);font-weight:1000;letter-spacing:.02em;}
+    .chart-crown-badge{cursor:pointer;}
+    .chart-crown-badge circle{fill:rgba(255,190,64,.95);stroke:rgba(255,255,255,.72);stroke-width:1.4;filter:drop-shadow(0 0 6px rgba(255,190,64,.70));}
+    .chart-crown{font-size:11px;paint-order:stroke;stroke:rgba(3,10,28,.9);stroke-width:2.2px;}
+    .match-detail-player-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
+    .match-detail-player-card{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);border-radius:16px;padding:10px;min-width:0;}
+    .match-detail-player-card h4{margin:0 0 8px;font-size:.88rem;font-family:Orbitron,sans-serif;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .match-detail-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px;}
+    .match-detail-stat{border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.16);border-radius:10px;padding:5px;text-align:center;}
+    .match-detail-stat span{display:block;color:var(--muted);font-size:.56rem;text-transform:uppercase;font-weight:1000;}
+    .match-detail-stat b{display:block;color:#fff;font-size:.78rem;margin-top:1px;}
+    .match-detail-loadout{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+    #tblPlayerDataRows .player-visual-cell{display:flex;gap:5px;align-items:center;overflow:hidden;}
+    #tblPlayerDataRows .player-visual-cell.multi{max-width:260px;}
+    #tblPlayerDataRows .skill-item{max-width:130px;}
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -2074,11 +2102,11 @@
       </section>
 
       <section class="team-tab-panel" id="panel-skills" data-panel="skills">
-        <div class="grid2">
+        <div class="skills-usage-grid">
           <div class="card"><h3>Team Active Skill Usage</h3><div id="tblActive">—</div></div>
           <div class="card"><h3>Team Passive Skill Usage</h3><div id="tblPassive">—</div></div>
+          <div class="card"><h3>Team Pet Usage</h3><div id="tblPet">—</div></div>
         </div>
-        <div class="card" style="margin-top:12px"><h3>Team Pet Usage</h3><div id="tblPet">—</div></div>
       </section>
 
       <section class="team-tab-panel" id="panel-matches" data-panel="matches">
@@ -3463,9 +3491,20 @@ function applyFilters(){
     f.m !== '__all__' ? `M${f.m}` : 'All matches'
   ].join(' • ');
   if(el('scopeChip')) el('scopeChip').textContent = 'Scope: ' + scopeText;
-  if(el('heroScopeMirror')) el('heroScopeMirror').textContent = scopeText;
-  if(el('heroScopeSub')) el('heroScopeSub').textContent = `${FILTERED.length} rows • ${countMatchesIn(FILTERED)} matches`;
-  el('filterHint').textContent = `Rows: ${FILTERED.length} • Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
+  if(el('heroScopeMirror')){
+    const scopeRows = [
+      ['Tournament', f.t !== '__all__' ? f.t : 'All'],
+      ['Mode', f.mode !== '__all__' ? f.mode : 'All'],
+      ['Source', f.source !== '__all__' ? f.source : 'All'],
+      ['Year', f.y !== '__all__' ? f.y : 'All'],
+      ['Week', f.w !== '__all__' ? f.w : 'All'],
+      ['Day', f.d !== '__all__' ? f.d : 'All'],
+      ['Match', f.m !== '__all__' ? f.m : 'All']
+    ];
+    el('heroScopeMirror').innerHTML = `<ul class="scope-list">${scopeRows.map(([k,v]) => `<li><span>${escHtml(k)}</span><b>${escHtml(v)}</b></li>`).join('')}</ul>`;
+  }
+  if(el('heroScopeSub')) el('heroScopeSub').textContent = `${countMatchesIn(FILTERED)} matches`;
+  el('filterHint').textContent = `Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
   el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
   renderOverall(); renderTeamGrid(el('teamSearch').value || '');
 
@@ -4263,26 +4302,50 @@ function playerImpactTag(row, teamStats){
   return 'Watch Factor';
 }
 
-function renderTeamProgressChart(matches){
+function renderTeamProgressChart(matches, teamRows=[]){
   const clean = (matches || []).map((m, index) => {
     const elims = n(m.elims);
     const rank = n(m.ranking_score);
     const total = elims + rank;
-    const playedLabel = `M${index + 1}`;
-    const sourceLabel = `D${m.day || '—'} M${m.match_no || index + 1}`;
-    return { total, elims, rank, label: playedLabel, sourceLabel };
+    const playedLabel = `D${m.day || '—'} M${m.match_no || index + 1}`;
+    const shortLabel = `D${m.day || '—'}\nM${m.match_no || index + 1}`;
+    const sourceLabel = playedLabel;
+    return { ...m, total, elims, rank, label: playedLabel, shortLabel, sourceLabel, detailIndex:index };
   }).filter(item => Number.isFinite(item.total) || Number.isFinite(item.elims));
+
+  window.EWC_MATCH_CHART_DETAILS = clean.map((m, index) => {
+    const players = (teamRows || [])
+      .filter(r => matchKeyForRow(r) === m.mk)
+      .map(r => {
+        const activeId = getActiveSkillId(r);
+        const activeName = getActiveSkillLabel(r) || (activeId ? skillLabelFromId(activeId) : '');
+        const passiveItems = getPassiveSkillIds(r).map(id => ({ id, name: skillLabelFromId(id) })).filter(x => x.name);
+        const petName = getPetLabel(r);
+        const loadoutName = getLoadoutLabel(r);
+        return {
+          player: norm(getVal(r, KEYS.player)) || '—',
+          elims: n(getVal(r, KEYS.kills)),
+          damage: n(getVal(r, KEYS.damage)),
+          assists: n(getVal(r, KEYS.assists)),
+          headshots: n(getVal(r, KEYS.headshots)),
+          activeItem: activeName ? { id: activeId, name: activeName } : null,
+          passiveItems,
+          petItem: petName ? { name: petName, id: normalizeMatchApiNumericId(getVal(r, KEYS.petId)) || normalizeLookupId(getVal(r, KEYS.petId)) } : null,
+          loadoutItem: loadoutName ? { name: loadoutName } : null
+        };
+      });
+    return { ...m, index, players };
+  });
 
   if(!clean.length){
     return `<div class="progress-chart-empty">No per-match data yet</div>`;
   }
 
-  // X-axis uses only played matches. No blank date/day gaps are inserted.
-  const w = Math.max(760, clean.length * 72);
-  const h = 168;
-  const padX = 38;
-  const padTop = 22;
-  const padBottom = 32;
+  const w = Math.max(760, clean.length * 82);
+  const h = 188;
+  const padX = 42;
+  const padTop = 26;
+  const padBottom = 46;
   const innerW = w - (padX * 2);
   const innerH = h - padTop - padBottom;
   const maxValue = Math.max(1, ...clean.map(p => Math.max(n(p.total), n(p.elims))));
@@ -4294,7 +4357,7 @@ function renderTeamProgressChart(matches){
     const value = n(p[seriesKey]);
     const x = clean.length === 1 ? w / 2 : padX + (i / denom) * innerW;
     const y = padTop + (1 - ((value - minValue) / span)) * innerH;
-    return { ...p, value, x, y };
+    return { ...p, value, x, y, index:i };
   });
 
   const totalPoints = makePoints('total');
@@ -4325,37 +4388,35 @@ function renderTeamProgressChart(matches){
   const lastElim = elimPoints[elimPoints.length - 1];
   const highTotal = clean.reduce((best, p) => p.total > best.total ? p : best, clean[0]);
   const highElims = clean.reduce((best, p) => p.elims > best.elims ? p : best, clean[0]);
+
+  const clickCircle = p => `<circle class="chart-click-target" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="13" fill="transparent" onclick="openChartMatchDetail(${p.index})"><title>${escHtml(p.sourceLabel)} • Total: ${fmtNum(p.total)} • Elims: ${fmtNum(p.elims)} • Rank: ${fmtNum(p.rank)}</title></circle>`;
   const totalPointNodes = totalPoints.map((p, i) => `
-    <circle class="chart-point total ${i === totalPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === totalPoints.length - 1 ? 4.8 : 3.2}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Total: ${fmtNum(p.total)} pts (${fmtNum(p.elims)} elim + ${fmtNum(p.rank)} rank)</title></circle>
-    <text class="chart-point-value total" x="${p.x.toFixed(2)}" y="${Math.max(12, p.y - (p.rank === 12 ? 18 : 10)).toFixed(2)}" text-anchor="middle">${fmtNum(p.total)}</text>
+    ${clickCircle(p)}
+    <circle class="chart-point total ${i === totalPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === totalPoints.length - 1 ? 4.8 : 3.2}"></circle>
+    <text class="chart-point-value total" x="${p.x.toFixed(2)}" y="${Math.max(12, p.y - 10).toFixed(2)}" text-anchor="middle">${fmtNum(p.total)}</text>
   `).join('');
   const elimPointNodes = elimPoints.map((p, i) => `
-    <circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.2 : 2.8}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Eliminations: ${fmtNum(p.elims)}</title></circle>
-    <text class="chart-point-value elims" x="${p.x.toFixed(2)}" y="${Math.min(h - padBottom - 2, p.y + 13).toFixed(2)}" text-anchor="middle">${fmtNum(p.elims)}</text>
+    ${clickCircle(p)}
+    <circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.2 : 2.8}"></circle>
+    <text class="chart-point-value elims" x="${p.x.toFixed(2)}" y="${Math.min(h - padBottom - 4, p.y + 14).toFixed(2)}" text-anchor="middle">${fmtNum(p.elims)}</text>
   `).join('');
   const crownNodes = totalPoints.filter(p => n(p.rank) === 12).map((p) => {
-    const cy = Math.min(h - padBottom - 13, Math.max(padTop + 18, p.y + 34));
-    return `<g class="chart-crown-badge" transform="translate(${p.x.toFixed(2)} ${cy.toFixed(2)})"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Perfect placement (12 rank points)</title><circle cx="0" cy="0" r="10"></circle><text class="chart-crown" x="0" y="4" text-anchor="middle">👑</text></g>`;
+    const cy = Math.min(h - padBottom - 10, Math.max(padTop + 20, p.y + 34));
+    return `<g class="chart-crown-badge" transform="translate(${p.x.toFixed(2)} ${cy.toFixed(2)})" onclick="openChartMatchDetail(${p.index})"><title>${escHtml(p.sourceLabel)} • Perfect placement (12 rank points)</title><circle cx="0" cy="0" r="10"></circle><text class="chart-crown" x="0" y="4" text-anchor="middle">👑</text></g>`;
   }).join('');
-  const allLabels = totalPoints.map((p, i) => `<text class="chart-label all-match" x="${p.x.toFixed(2)}" y="${h - 10}" text-anchor="middle">${escHtml(p.label)}</text>`).join('');
+  const allLabels = totalPoints.map((p) => {
+    const parts = String(p.shortLabel).split('\n');
+    return `<text class="chart-label all-match" x="${p.x.toFixed(2)}" y="${h - 20}" text-anchor="middle"><tspan x="${p.x.toFixed(2)}">${escHtml(parts[0])}</tspan><tspan class="chart-day-label" x="${p.x.toFixed(2)}" dy="10">${escHtml(parts[1] || '')}</tspan></text>`;
+  }).join('');
 
   return `
-    <div class="chart-legend" aria-hidden="true"><span class="total"><i></i>Total Points</span><span class="elims"><i></i>Eliminations</span><span>Played matches only</span></div>
+    <div class="chart-legend" aria-hidden="true"><span class="total"><i></i>Total Points</span><span class="elims"><i></i>Eliminations</span><span>Played matches only</span><span>Click any point for details</span></div>
     <div class="team-progress-svg-wrap">
       <svg class="team-progress-svg" style="width:${w}px;min-width:100%;" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Per played match total points and eliminations progress chart">
         <defs>
-          <linearGradient id="teamProgressArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#5a9dff" stop-opacity=".34"/>
-            <stop offset="100%" stop-color="#0d5dff" stop-opacity="0"/>
-          </linearGradient>
-          <filter id="teamProgressGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <filter id="teamElimGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="2.4" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
+          <linearGradient id="teamProgressArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a9dff" stop-opacity=".34"/><stop offset="100%" stop-color="#0d5dff" stop-opacity="0"/></linearGradient>
+          <filter id="teamProgressGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="teamElimGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
         <line class="chart-grid-line" x1="${padX}" y1="${padTop}" x2="${w - padX}" y2="${padTop}"/>
         <line class="chart-grid-line" x1="${padX}" y1="${padTop + innerH/2}" x2="${w - padX}" y2="${padTop + innerH/2}"/>
@@ -4367,11 +4428,50 @@ function renderTeamProgressChart(matches){
         ${elimPointNodes}
         ${crownNodes}
         ${allLabels}
-        <text class="chart-value-label" x="${Math.min(w - 44, Math.max(44, lastTotal.x))}" y="${Math.max(13, lastTotal.y - 9)}" text-anchor="middle">${fmtNum(lastTotal.total)}</text>
       </svg>
     </div>
     <div class="progress-mini-stats"><span>Latest: <b>${fmtNum(lastTotal.total)} pts</b> / <b>${fmtNum(lastElim.elims)} elim</b></span><span>Peak: <b>${fmtNum(highTotal.total)} pts</b> / <b>${fmtNum(highElims.elims)} elim</b></span></div>
   `;
+}
+
+function renderChartPlayerCard(p){
+  const active = p.activeItem ? visualItemHtml('skill', p.activeItem) : '<span class="skill-empty">—</span>';
+  const passive = p.passiveItems?.length ? p.passiveItems.map(x => visualItemHtml('skill', x, true)).join('') : '<span class="skill-empty">—</span>';
+  const pet = p.petItem ? visualItemHtml('pet', p.petItem) : '<span class="skill-empty">—</span>';
+  const loadout = p.loadoutItem ? visualItemHtml('loadout', p.loadoutItem) : '<span class="skill-empty">—</span>';
+  return `<div class="match-detail-player-card">
+    <h4>${escHtml(p.player)}</h4>
+    <div class="match-detail-stats">
+      <div class="match-detail-stat"><span>Elims</span><b>${fmtNum(p.elims)}</b></div>
+      <div class="match-detail-stat"><span>Damage</span><b>${fmtNum(p.damage)}</b></div>
+      <div class="match-detail-stat"><span>AST</span><b>${fmtNum(p.assists)}</b></div>
+      <div class="match-detail-stat"><span>HS</span><b>${fmtNum(p.headshots)}</b></div>
+    </div>
+    <div class="match-detail-loadout">${active}${passive}${pet}${loadout}</div>
+  </div>`;
+}
+
+function openChartMatchDetail(index){
+  const detail = window.EWC_MATCH_CHART_DETAILS?.[index];
+  if(!detail) return;
+  setText('itemDetailTitle', `${detail.sourceLabel} — Match Detail`);
+  setText('itemDetailSub', 'Team chart point breakdown');
+  const body = el('itemDetailBody');
+  const detailCard = el('itemDetailModal')?.querySelector('.item-detail-card');
+  detailCard?.classList.remove('map-view');
+  body.innerHTML = `
+    <div class="item-detail-extra">
+      <div class="item-detail-meta"><span>Day</span><b>${escHtml(detail.day || '—')}</b></div>
+      <div class="item-detail-meta"><span>Match</span><b>${escHtml(detail.match_no || '—')}</b></div>
+      <div class="item-detail-meta"><span>Total Points</span><b>${fmtNum(detail.total)}</b></div>
+      <div class="item-detail-meta"><span>Elims</span><b>${fmtNum(detail.elims)}</b></div>
+      <div class="item-detail-meta"><span>Rank</span><b>${fmtNum(detail.rank)}</b></div>
+    </div>
+    <div class="item-detail-desc-block"><b>PLAYERS</b><div class="match-detail-player-grid">${detail.players?.length ? detail.players.map(renderChartPlayerCard).join('') : '<div class="muted">No player rows for this match.</div>'}</div></div>
+  `;
+  el('itemDetailModal')?.classList.add('show');
+  el('itemDetailModal')?.setAttribute('aria-hidden','false');
+  document.body.classList.add('sb-open');
 }
 function renderTeamProfileHero(teamCode, teamRows){
   const profile = getTeamProfile(teamCode);
@@ -4379,7 +4479,7 @@ function renderTeamProfileHero(teamCode, teamRows){
   const status = stats.count ? (stats.avgPoints >= 15 ? 'High Output' : stats.avgPoints >= 9 ? 'Contender Pace' : 'Needs Surge') : 'Insufficient Data';
   const best = stats.best ? `D${stats.best.day || '—'} • M${stats.best.match_no || '—'} • ${fmtNum((stats.best.elims||0)+(stats.best.ranking_score||0))} pts` : '—';
   const last3 = stats.last3.length ? stats.last3.map(m => `<span class="form-pill">D${escHtml(m.day)} M${escHtml(m.matchNumber)} <b>${fmtNum(m.total)}</b></span>`).join('') : '<span class="form-pill">No recent matches</span>';
-  const progressChart = renderTeamProgressChart(stats.matches);
+  const progressChart = renderTeamProgressChart(stats.matches, teamRows);
   el('teamProfileHero').innerHTML = `
     <div class="profile-hero-card">
       <div class="profile-id-card">
@@ -4655,7 +4755,9 @@ function renderPlayerDataRows(teamRows){
   const tableRows = rows.map((r,i)=>{
     const activeId = getActiveSkillId(r);
     const activeLabel = getActiveSkillLabel(r) || (activeId ? skillLabelFromId(activeId) : '');
-    const passives = getPassiveSkillIds(r).map(id => skillLabelFromId(id)).filter(Boolean).join(' • ');
+    const passiveItems = getPassiveSkillIds(r).map(id => ({ id, name: skillLabelFromId(id) })).filter(x => x.name);
+    const petName = getPetLabel(r);
+    const loadoutName = getLoadoutLabel(r);
     return {
       row:i+1,
       day:norm(getVal(r, KEYS.day)) || '—',
@@ -4665,10 +4767,10 @@ function renderPlayerDataRows(teamRows){
       damage:n(getVal(r, KEYS.damage)),
       assists:n(getVal(r, KEYS.assists)),
       headshots:n(getVal(r, KEYS.headshots)),
-      active:activeLabel || '—',
-      passive:passives || '—',
-      pet:getPetLabel(r) || '—',
-      loadout:getLoadoutLabel(r) || '—'
+      active:activeLabel ? `<div class="player-visual-cell">${visualItemHtml('skill', { id:activeId, name:activeLabel })}</div>` : '—',
+      passive:passiveItems.length ? `<div class="player-visual-cell multi">${passiveItems.map(p => visualItemHtml('skill', p, true)).join('')}</div>` : '—',
+      pet:petName ? `<div class="player-visual-cell">${visualItemHtml('pet', { name:petName, id:normalizeMatchApiNumericId(getVal(r, KEYS.petId)) || normalizeLookupId(getVal(r, KEYS.petId)) })}</div>` : '—',
+      loadout:loadoutName ? `<div class="player-visual-cell">${visualItemHtml('loadout', { name:loadoutName })}</div>` : '—'
     };
   });
 
@@ -4681,10 +4783,10 @@ function renderPlayerDataRows(teamRows){
     {label:'Damage',key:'damage',right:true},
     {label:'Assists',key:'assists',right:true},
     {label:'HS',key:'headshots',right:true},
-    {label:'Active',key:'active'},
-    {label:'Passives',key:'passive'},
-    {label:'Pet',key:'pet'},
-    {label:'Loadout',key:'loadout'}
+    {label:'Active',key:'active',escape:false},
+    {label:'Passives',key:'passive',escape:false},
+    {label:'Pet',key:'pet',escape:false},
+    {label:'Loadout',key:'loadout',escape:false}
   ]);
   applyColumnHeatmap('tblPlayerDataRows', ['elims','damage','assists','headshots']);
 }
