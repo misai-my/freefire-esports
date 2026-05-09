@@ -1674,6 +1674,27 @@
     body.betting-experiment .team-tab{align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1!important;}
     body.betting-experiment .team-modal-tabs{justify-content:flex-start!important;align-items:center!important;}
 
+
+    /* ===== Final fixes: scope box, color contrast, heatmap, popups ===== */
+    body.betting-experiment .topbar{justify-content:space-between;}
+    body.betting-experiment .top-actions{margin-left:auto;}
+    body.betting-experiment .scope-market-card b{white-space:normal;line-height:1.15;font-size:.98rem;max-width:330px;display:block;}
+    body.betting-experiment .scope-market-card small{color:rgba(220,242,255,.82);font-weight:900;}
+    body.betting-experiment .btn,
+    body.betting-experiment .team-tab,
+    body.betting-experiment .resource-mini-btn,
+    body.betting-experiment .input,
+    body.betting-experiment select,
+    body.betting-experiment .chip{color:#eef7ff!important;text-shadow:0 1px 2px rgba(0,0,0,.42);}
+    body.betting-experiment .btn.brand,
+    body.betting-experiment .team-tab.active{color:#ffffff!important;text-shadow:0 1px 2px rgba(0,0,0,.45);}
+    body.betting-experiment tbody tr td[data-heat]{font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.50);}
+    body.betting-experiment .resource-modal.show{display:grid!important;z-index:11000!important;}
+    body.betting-experiment .item-detail-modal.show{display:grid!important;z-index:12000!important;}
+    body.betting-experiment .resource-thumb{position:relative;}
+    body.betting-experiment .resource-thumb .resource-fallback{position:absolute;inset:0;}
+    body.betting-experiment .resource-thumb img + .resource-fallback{display:none;}
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -1870,7 +1891,6 @@
         <svg viewBox="0 0 24 24" fill="none"><path id="sbTogglePath" d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <div class="page-title"><h1>EWC Team Center</h1><span>Team Summary + Interactive Team Profiles</span></div>
-      <span class="chip" id="scopeChip">Scope: —</span>
       <div class="top-actions">
         <div class="theme-palette" id="colorThemePalette" aria-label="Color theme">
           <span class="theme-palette-label">Color</span>
@@ -1879,7 +1899,6 @@
           <button class="theme-swatch" type="button" data-accent="purple" title="Purple theme" aria-label="Purple theme"></button>
           <button class="theme-swatch" type="button" data-accent="gray" title="Black/gray theme" aria-label="Black/gray theme"></button>
         </div>
-        <button class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"><span id="themeIcon"></span></button>
         <div class="userchip"><div class="avatar"></div><div class="usertext"><b id="user-info">Checking login…</b><span>Supabase session</span></div></div>
         <button class="logout" id="logoutBtn">Logout</button>
       </div>
@@ -1901,7 +1920,7 @@
       </div>
     </div>
     <div class="hero-market-board compact" aria-label="EWC quick status card">
-      <div class="market-card"><span>Scope</span><b id="heroScopeMirror">Live Filters</b><small>synced from top controls</small></div>
+      <div class="market-card scope-market-card"><span>Scope</span><b id="heroScopeMirror">Live Filters</b><small id="heroScopeSub">synced from filters</small></div>
     </div>
   </section>
   <details class="accordion" id="accFilters">
@@ -2272,8 +2291,9 @@ function applyColumnHeatmap(containerId, keys, options = {}){
   if(!table) return;
 
   table.querySelectorAll('td[data-key]').forEach(td => {
-    td.style.backgroundColor = '';
-    td.style.color = '';
+    td.style.removeProperty('background-color');
+    td.style.removeProperty('color');
+    td.removeAttribute('data-heat');
     td.classList.remove('heat-top');
   });
 
@@ -2317,8 +2337,9 @@ function applyColumnHeatmap(containerId, keys, options = {}){
         const p = reverse ? (max - e.v) / (max - min) : (e.v - min) / (max - min);
         band = Math.max(0, Math.min(BANDS - 1, Math.floor(p * BANDS)));
       }
-      e.td.style.backgroundColor = palette[band];
-      e.td.style.color = textPalette[band];
+      e.td.style.setProperty('background-color', palette[band], 'important');
+      e.td.style.setProperty('color', textPalette[band], 'important');
+      e.td.setAttribute('data-heat', String(band));
       if(e.v === topVal) e.td.classList.add('heat-top');
     });
   }
@@ -3394,12 +3415,12 @@ function applyFilters(){
     f.d !== '__all__' ? `D${f.d}` : 'All days',
     f.m !== '__all__' ? `M${f.m}` : 'All matches'
   ].join(' • ');
-  el('scopeChip').textContent = 'Scope: ' + scopeText;
-  if(el('heroScopeMirror')) el('heroScopeMirror').textContent = scopeText.split(' • ')[0] || 'Live Filters';
+  if(el('scopeChip')) el('scopeChip').textContent = 'Scope: ' + scopeText;
+  if(el('heroScopeMirror')) el('heroScopeMirror').textContent = scopeText;
+  if(el('heroScopeSub')) el('heroScopeSub').textContent = `${FILTERED.length} rows • ${countMatchesIn(FILTERED)} matches`;
   el('filterHint').textContent = `Rows: ${FILTERED.length} • Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
   el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
   renderOverall(); renderTeamGrid(el('teamSearch').value || '');
-  setText('heroScopeMirror', f.t !== '__all__' ? f.t : 'All tournaments');
 
   const teams = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean));
   if(CURRENT_TEAM){
@@ -4777,6 +4798,89 @@ function normalizeGalleryItem(item, kind){
   const name = getGalleryName(item, kind);
   if(!name) return null;
   return { kind, name, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
+}
+function resourceKindSingular(kind){
+  return ({ skills:'Skill', pets:'Pet', weapons:'Weapon', loadouts:'Loadout', maps:'Map' })[kind] || 'Item';
+}
+function resourceImageHtml(item, kind){
+  const name = item?.name || resourceKindSingular(kind);
+  const rawImg = normalizeImageUrl(item?.img || item?.image || item?.icon || item?.src || '');
+  let candidates = [];
+  if(rawImg) candidates.push(rawImg);
+  const slug = slugAssetName(name);
+  if(kind === 'maps'){
+    if(slug) candidates.push(`assets/img/maps/${slug}.png`, `assets/img/map/${slug}.png`, `assets/maps/${slug}.png`);
+  }else if(kind === 'weapons'){
+    if(slug) candidates.push(`assets/img/weapons/${slug}.png`, `assets/img/weapon/${slug}.png`, `assets/weapons/${slug}.png`);
+  }else if(kind === 'pets'){
+    candidates = candidates.concat(visualImageCandidates('pet', name, item?.raw?.id || item?.raw?.pet_id || ''));
+  }else if(kind === 'loadouts'){
+    candidates = candidates.concat(visualImageCandidates('loadout', name, item?.raw?.id || item?.raw?.loadout_id || item?.raw?.code || ''));
+  }else if(kind === 'skills'){
+    candidates = candidates.concat(visualImageCandidates('skill', name, item?.raw?.id || item?.raw?.skill_id || ''));
+  }
+  candidates = uniqueList(candidates);
+  const fallback = initialsFromLabel(name);
+  if(!candidates.length) return `<span class="resource-fallback">${escHtml(fallback)}</span>`;
+  const [first, ...rest] = candidates;
+  return `<img src="${escHtml(first)}" alt="${escHtml(name)}" loading="lazy" data-fallbacks="${escHtml(rest.join('|'))}" data-fallback-index="0" onerror="tryResourceImageFallback(this)"><span class="resource-fallback">${escHtml(fallback)}</span>`;
+}
+function tryResourceImageFallback(img){
+  const fallbacks = String(img.dataset.fallbacks || '').split('|').filter(Boolean);
+  const index = Number(img.dataset.fallbackIndex || 0);
+  if(index < fallbacks.length){
+    img.dataset.fallbackIndex = String(index + 1);
+    img.src = fallbacks[index];
+    return;
+  }
+  img.remove();
+}
+function renderResourceGrid(query=''){
+  const q = norm(query).toLowerCase();
+  const kind = RESOURCE_MODAL_KIND || 'skills';
+  const data = (RESOURCE_DATA[kind] || []).filter(item => {
+    const hay = [item.name, item.sub, item.desc].join(' ').toLowerCase();
+    return !q || hay.includes(q);
+  });
+  setText('resourceCount', `${data.length} item${data.length === 1 ? '' : 's'}`);
+  const grid = el('resourceGrid');
+  if(!grid) return;
+  if(!data.length){
+    grid.innerHTML = `<div class="muted" style="grid-column:1/-1">No ${escHtml(resourceKindSingular(kind).toLowerCase())} items found.</div>`;
+    return;
+  }
+  grid.innerHTML = data.map((item, index) => `
+    <article class="resource-card" data-kind="${escHtml(kind)}" data-index="${index}">
+      <div class="resource-thumb">${resourceImageHtml(item, kind)}</div>
+      <div class="resource-name" title="${escHtml(item.name)}">${escHtml(item.name)}</div>
+      <div class="resource-sub"><span class="resource-chip">${escHtml(item.sub || resourceKindSingular(kind))}</span></div>
+      <div class="resource-desc">${escHtml(item.desc || 'No description yet.')}</div>
+      <div class="resource-actions">
+        <button class="resource-mini-btn" type="button" data-detail-index="${index}">Details</button>
+        ${RESOURCE_PICK_TARGET ? `<button class="resource-mini-btn pick" type="button" data-pick-index="${index}">Pick</button>` : ''}
+      </div>
+    </article>
+  `).join('');
+  grid.querySelectorAll('[data-detail-index]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const item = data[Number(btn.getAttribute('data-detail-index'))];
+      openItemDetailPopup(item, kind, 'resource');
+    });
+  });
+  grid.querySelectorAll('[data-pick-index]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const item = data[Number(btn.getAttribute('data-pick-index'))];
+      pickResourceItem(item);
+    });
+  });
+  grid.querySelectorAll('.resource-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const item = data[Number(card.getAttribute('data-index'))];
+      openItemDetailPopup(item, kind, 'resource');
+    });
+  });
 }
 async function loadWeaponJson(){
   RESOURCE_DATA.weapons = [];
