@@ -1474,21 +1474,25 @@
     .chart-grid-line{stroke:rgba(151,216,255,.12);stroke-width:1;vector-effect:non-scaling-stroke;}
     .chart-area{fill:url(#teamProgressArea);opacity:.58;}
     .chart-line{fill:none;stroke-width:3.1;stroke-linecap:round;stroke-linejoin:round;filter:url(#teamProgressGlow);vector-effect:non-scaling-stroke;}
-    .chart-line.total{stroke:#4ae7ff;}
-    .chart-line.elims{stroke:#ffcf5a;stroke-width:2.7;filter:url(#teamElimGlow);}
+    .chart-line.total{stroke:#3f8cff;}
+    .chart-line.elims{stroke:#ff4f6f;stroke-width:2.7;filter:url(#teamElimGlow);}
     .chart-point{stroke-width:2;filter:url(#teamProgressGlow);}
-    .chart-point.total{fill:#b8fbff;stroke:#0c55d9;}
-    .chart-point.elims{fill:#ffe9a8;stroke:#d78a00;filter:url(#teamElimGlow);}
-    .chart-point.last.total{fill:#ffffff;stroke:#4ae7ff;stroke-width:2.4;}
-    .chart-point.last.elims{fill:#fff4ca;stroke:#ffcf5a;stroke-width:2.2;}
+    .chart-point.total{fill:#d8ecff;stroke:#1a5fff;}
+    .chart-point.elims{fill:#ffd8df;stroke:#d92a49;filter:url(#teamElimGlow);}
+    .chart-point.last.total{fill:#ffffff;stroke:#3f8cff;stroke-width:2.4;}
+    .chart-point.last.elims{fill:#fff0f4;stroke:#ff4f6f;stroke-width:2.2;}
     .chart-label{fill:rgba(220,246,255,.72);font-size:9px;font-weight:800;font-family:Roboto,system-ui,sans-serif;}
     .chart-label.all-match{font-size:8.3px;fill:rgba(220,246,255,.62);}
     .chart-value-label{fill:#ffffff;font-size:10px;font-weight:1000;font-family:Roboto,system-ui,sans-serif;}
+    .chart-point-value{font-size:9.2px;font-weight:1000;font-family:Roboto,system-ui,sans-serif;paint-order:stroke;stroke-width:3px;stroke:rgba(3,10,28,.92);stroke-linejoin:round;}
+    .chart-point-value.total{fill:#8ec2ff;}
+    .chart-point-value.elims{fill:#ff778d;}
+    .chart-crown{font-size:11px;paint-order:stroke;stroke:rgba(3,10,28,.9);stroke-width:2.4px;}
     .chart-legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-1px 0 6px;color:rgba(220,246,255,.78);font-size:.62rem;font-weight:1000;text-transform:uppercase;letter-spacing:.05em;}
     .chart-legend span{display:inline-flex;align-items:center;gap:5px;}
     .chart-legend i{width:18px;height:3px;border-radius:99px;display:inline-block;box-shadow:0 0 10px currentColor;}
-    .chart-legend .total i{background:#4ae7ff;color:#4ae7ff;}
-    .chart-legend .elims i{background:#ffcf5a;color:#ffcf5a;}
+    .chart-legend .total i{background:#3f8cff;color:#3f8cff;}
+    .chart-legend .elims i{background:#ff4f6f;color:#ff4f6f;}
     .progress-chart-empty{
       height:112px;
       border-radius:13px;
@@ -4089,8 +4093,15 @@ function renderTeamProgressChart(matches){
   const lastElim = elimPoints[elimPoints.length - 1];
   const highTotal = clean.reduce((best, p) => p.total > best.total ? p : best, clean[0]);
   const highElims = clean.reduce((best, p) => p.elims > best.elims ? p : best, clean[0]);
-  const totalPointNodes = totalPoints.map((p, i) => `<circle class="chart-point total ${i === totalPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === totalPoints.length - 1 ? 4.8 : 3.2}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Total: ${fmtNum(p.total)} pts (${fmtNum(p.elims)} elim + ${fmtNum(p.rank)} rank)</title></circle>`).join('');
-  const elimPointNodes = elimPoints.map((p, i) => `<circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.2 : 2.8}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Eliminations: ${fmtNum(p.elims)}</title></circle>`).join('');
+  const totalPointNodes = totalPoints.map((p, i) => `
+    <circle class="chart-point total ${i === totalPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === totalPoints.length - 1 ? 4.8 : 3.2}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Total: ${fmtNum(p.total)} pts (${fmtNum(p.elims)} elim + ${fmtNum(p.rank)} rank)</title></circle>
+    <text class="chart-point-value total" x="${p.x.toFixed(2)}" y="${Math.max(12, p.y - (p.rank === 12 ? 18 : 10)).toFixed(2)}" text-anchor="middle">${fmtNum(p.total)}</text>
+  `).join('');
+  const elimPointNodes = elimPoints.map((p, i) => `
+    <circle class="chart-point elims ${i === elimPoints.length - 1 ? 'last' : ''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${i === elimPoints.length - 1 ? 4.2 : 2.8}"><title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Eliminations: ${fmtNum(p.elims)}</title></circle>
+    <text class="chart-point-value elims" x="${p.x.toFixed(2)}" y="${Math.min(h - padBottom - 2, p.y + 13).toFixed(2)}" text-anchor="middle">${fmtNum(p.elims)}</text>
+  `).join('');
+  const crownNodes = totalPoints.filter(p => n(p.rank) === 12).map((p) => `<text class="chart-crown" x="${p.x.toFixed(2)}" y="${Math.max(10, p.y - 28).toFixed(2)}" text-anchor="middle">👑<title>${escHtml(p.label)} • ${escHtml(p.sourceLabel)} • Perfect placement (12 rank points)</title></text>`).join('');
   const allLabels = totalPoints.map((p, i) => `<text class="chart-label all-match" x="${p.x.toFixed(2)}" y="${h - 10}" text-anchor="middle">${escHtml(p.label)}</text>`).join('');
 
   return `
@@ -4099,7 +4110,7 @@ function renderTeamProgressChart(matches){
       <svg class="team-progress-svg" style="width:${w}px;min-width:100%;" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Per played match total points and eliminations progress chart">
         <defs>
           <linearGradient id="teamProgressArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#4ae7ff" stop-opacity=".34"/>
+            <stop offset="0%" stop-color="#5a9dff" stop-opacity=".34"/>
             <stop offset="100%" stop-color="#0d5dff" stop-opacity="0"/>
           </linearGradient>
           <filter id="teamProgressGlow" x="-30%" y="-30%" width="160%" height="160%">
@@ -4117,6 +4128,7 @@ function renderTeamProgressChart(matches){
         <path class="chart-area" d="${areaPath}"/>
         <path class="chart-line total" d="${totalLinePath}"/>
         <path class="chart-line elims" d="${elimLinePath}"/>
+        ${crownNodes}
         ${totalPointNodes}
         ${elimPointNodes}
         ${allLabels}
