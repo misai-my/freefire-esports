@@ -607,6 +607,13 @@
     #tblPlayers .player-visual-cell.multi .skill-label{
       max-width:36px;
     }
+    #tblPlayerDataRows .table-wrap{width:100%;}
+    #tblPlayerDataRows .table-wrap table{min-width:1180px;max-width:none;font-size:.72rem;}
+    #tblPlayerDataRows th[data-key="player"],#tblPlayerDataRows td[data-key="player"]{width:110px;max-width:110px;text-align:left;}
+    #tblPlayerDataRows th[data-key="active"],#tblPlayerDataRows td[data-key="active"]{width:130px;max-width:130px;text-align:left;}
+    #tblPlayerDataRows th[data-key="passive"],#tblPlayerDataRows td[data-key="passive"]{width:220px;max-width:220px;text-align:left;}
+    #tblPlayerDataRows th[data-key="pet"],#tblPlayerDataRows td[data-key="pet"]{width:115px;max-width:115px;text-align:left;}
+    #tblPlayerDataRows th[data-key="loadout"],#tblPlayerDataRows td[data-key="loadout"]{width:150px;max-width:150px;text-align:left;}
     .skill-icon-stack{
       position:relative;
       display:inline-flex;
@@ -2063,6 +2070,7 @@
       <section class="team-tab-panel" id="panel-players" data-panel="players">
         <div id="rosterCards" class="roster-grid">Select a team…</div>
         <div class="card"><h3>Players — Stats + Loadout <span class="muted" id="playersHint"></span></h3><div id="tblPlayers">Select a team…</div></div>
+        <div class="card" style="margin-top:12px"><h3>Player Data Rows</h3><div id="tblPlayerDataRows">Select a team…</div></div>
       </section>
 
       <section class="team-tab-panel" id="panel-skills" data-panel="skills">
@@ -2703,41 +2711,80 @@ async function loadMatchApi(){
   ID_TO_NAME.clear();
   SKILL_ID_TO_NAME.clear();
 
+  async function fetchGenericMatchApiRows(){
+    const rows = [];
+    const size = 1000;
+    let from = 0;
+    for(;;){
+      const { data, error } = await client
+        .from(MAP_TABLE)
+        .select('*')
+        .range(from, from + size - 1);
+      if(error) throw error;
+      const batch = data || [];
+      rows.push(...batch);
+      if(batch.length < size || rows.length >= 5000) break;
+      from += size;
+    }
+    return rows;
+  }
+
+  function ingestMatchApiRows(rows, note){
+    let skillRows = 0;
+    let namedRows = 0;
+    const sample = rows.find(r => r && typeof r === 'object') || {};
+    const keys = Object.keys(sample);
+    const idKeys = keys.filter(k => /(^id$|_id$|id$|code|key|api_id|item_id|skill_id)/i.test(k));
+    const nameKeys = keys.filter(k => /(^name$|name$|title|label|skill_name|skillName)/i.test(k));
+    const typeKeys = keys.filter(k => /(^type$|type$|category|kind)/i.test(k));
+
+    for(const r of rows){
+      const exactType = Number(norm(r?.type));
+      const looksSkill = exactType === 2 || isSkillMatchApiRow(r, typeKeys);
+      if(!looksSkill) continue;
+      skillRows++;
+
+      const name = norm(r?.name) || getBestNameFromMatchApiRow(r, nameKeys, idKeys, typeKeys);
+      if(!name) continue;
+
+      const ids = new Set();
+      const primaryId = normalizeMatchApiNumericId(r?.id) || normalizeLookupId(r?.id);
+      if(primaryId) ids.add(primaryId);
+      getIdCandidatesFromMatchApiRow(r, idKeys, typeKeys, nameKeys).forEach(id => ids.add(id));
+
+      for(const id of ids){
+        if(!id) continue;
+        namedRows++;
+        ID_TO_NAME.set(id, name);
+        SKILL_ID_TO_NAME.set(id, name);
+      }
+    }
+
+    MAP_READY = SKILL_ID_TO_NAME.size > 0;
+    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows=${skillRows} • mapped IDs=${SKILL_ID_TO_NAME.size} • ${note}`);
+    return { skillRows, namedRows, mapped: SKILL_ID_TO_NAME.size };
+  }
+
   try{
-    // Exact requested lookup path:
-    // match_api.id is a plain number, match_api.type must be 2, and match_api.name is displayed.
-    // Querying type=2 first avoids loading unrelated API rows and avoids missing skills when match_api is large.
     let rows = [];
-    let filterNote = 'type=2 numeric';
+    let note = 'type=2 numeric';
 
     try{
       rows = await fetchMatchApiSkillRowsByType(2);
     }catch(firstErr){
       console.warn('match_api type=2 numeric fetch failed, trying string type:', firstErr?.message || firstErr);
       rows = await fetchMatchApiSkillRowsByType('2');
-      filterNote = 'type="2" string';
+      note = 'type="2" string';
     }
 
-    let skillRows = 0;
-    let namedRows = 0;
+    let stats = ingestMatchApiRows(rows, note);
 
-    for(const r of rows){
-      const id = normalizeMatchApiNumericId(r?.id);
-      const name = norm(r?.name);
-      const type = Number(norm(r?.type));
-
-      if(type !== 2) continue;
-      skillRows++;
-
-      if(!id || !name) continue;
-      namedRows++;
-
-      ID_TO_NAME.set(id, name);
-      SKILL_ID_TO_NAME.set(id, name);
+    // Safety fallback: if type=2 returns nothing or schema/type values changed,
+    // scan match_api generically and detect skill rows by type/category/name fields.
+    if(!stats.mapped){
+      const genericRows = await fetchGenericMatchApiRows();
+      stats = ingestMatchApiRows(genericRows, 'generic match_api fallback');
     }
-
-    MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows(type=2)=${skillRows} • named=${namedRows} • skill IDs=${SKILL_ID_TO_NAME.size} • ${filterNote} • id→name`);
   }catch(e){
     setText('diagMap', 'match_api mapping: unavailable / expected columns: id, type, name');
     console.warn('match_api load failed:', e?.message || e);
@@ -3994,6 +4041,7 @@ function clearTeam(){
   el('teamMatchLog').innerHTML='—';
   el('rosterCards').innerHTML='<div class="muted">Select a team…</div>';
   el('tblPlayers').innerHTML='<div class="muted">Select a team…</div>';
+  if(el('tblPlayerDataRows')) el('tblPlayerDataRows').innerHTML='<div class="muted">Select a team…</div>';
   el('tblActive').innerHTML='—';
   el('tblPassive').innerHTML='—';
   el('tblPet').innerHTML='—';
@@ -4595,6 +4643,51 @@ function renderPlayersTable(teamRows){
 
   applyColumnHeatmap('tblPlayers', ['dmg_pm','elims_pm','damage','kills','assists','headshots']);
 }
+
+function renderPlayerDataRows(teamRows){
+  const rows = (teamRows || []).slice().sort((a,b)=>matchOrderValueForRow(a)-matchOrderValueForRow(b));
+  if(!el('tblPlayerDataRows')) return;
+  if(!rows.length){
+    el('tblPlayerDataRows').innerHTML = '<div class="muted">No player rows in this scope.</div>';
+    return;
+  }
+
+  const tableRows = rows.map((r,i)=>{
+    const activeId = getActiveSkillId(r);
+    const activeLabel = getActiveSkillLabel(r) || (activeId ? skillLabelFromId(activeId) : '');
+    const passives = getPassiveSkillIds(r).map(id => skillLabelFromId(id)).filter(Boolean).join(' • ');
+    return {
+      row:i+1,
+      day:norm(getVal(r, KEYS.day)) || '—',
+      matchNo:norm(getVal(r, KEYS.matchNo)) || '—',
+      player:norm(getVal(r, KEYS.player)) || '—',
+      elims:n(getVal(r, KEYS.kills)),
+      damage:n(getVal(r, KEYS.damage)),
+      assists:n(getVal(r, KEYS.assists)),
+      headshots:n(getVal(r, KEYS.headshots)),
+      active:activeLabel || '—',
+      passive:passives || '—',
+      pet:getPetLabel(r) || '—',
+      loadout:getLoadoutLabel(r) || '—'
+    };
+  });
+
+  el('tblPlayerDataRows').innerHTML = renderSimpleTable(tableRows, [
+    {label:'#',key:'row',right:true},
+    {label:'Day',key:'day',right:true},
+    {label:'Match #',key:'matchNo',right:true},
+    {label:'Player',key:'player'},
+    {label:'Elims',key:'elims',right:true},
+    {label:'Damage',key:'damage',right:true},
+    {label:'Assists',key:'assists',right:true},
+    {label:'HS',key:'headshots',right:true},
+    {label:'Active',key:'active'},
+    {label:'Passives',key:'passive'},
+    {label:'Pet',key:'pet'},
+    {label:'Loadout',key:'loadout'}
+  ]);
+  applyColumnHeatmap('tblPlayerDataRows', ['elims','damage','assists','headshots']);
+}
 function renderTeamUsageTables(teamRows){
   const act=new Map(), pas=new Map(), pet=new Map();
   for(const r of teamRows){ const alabel = getActiveSkillLabel(r); if(alabel) act.set(alabel,(act.get(alabel)||0)+1); for(const pid of getPassiveSkillIds(r)){ const label=mapSkillFromId(pid,`ID ${pid}`); pas.set(label,(pas.get(label)||0)+1); } const pl=getPetLabel(r); if(pl) pet.set(pl,(pet.get(pl)||0)+1); }
@@ -4715,6 +4808,7 @@ function selectTeam(team, keepCurrentModalState=false){
   renderTeamKpis(teamRows);
   renderRosterCards(teamRows);
   renderPlayersTable(teamRows);
+  renderPlayerDataRows(teamRows);
   renderTeamUsageTables(teamRows);
   renderTeamStory(teamRows);
   syncTeamCardFilterControls?.();
