@@ -3204,6 +3204,9 @@ function teamLogoImageCandidates(teamCode, profile={}){
     }
   }
 
+  // Final default logo when a team-specific asset is not available.
+  addPath('assets/logo/ff.png');
+
   return out;
 }
 function tryTeamLogoFallback(img){
@@ -3377,12 +3380,6 @@ function renderRosterCards(teamRows){
   if(!rows.length){ el('rosterCards').innerHTML = '<div class="muted">No player rows for this team.</div>'; return; }
   el('rosterCards').innerHTML = rows.map((r, i) => {
     const profile = getPlayerProfile(r.player, i);
-    const loadoutBits = [
-      r.activeItem ? visualItemHtml('skill', r.activeItem) : '',
-      ...(r.passiveItems || []).slice(0,2).map(x => visualItemHtml('skill', x, true)),
-      r.petItem ? visualItemHtml('pet', r.petItem) : '',
-      r.loadoutItem ? visualItemHtml('loadout', r.loadoutItem) : ''
-    ].filter(Boolean).join('');
     return `<div class="roster-card">
       <div class="roster-head">
         ${playerAvatarHtml(r.player, profile)}
@@ -3396,7 +3393,6 @@ function renderRosterCards(teamRows){
         <div class="roster-stat"><span>HS</span><b>${fmtNum(r.headshots)}</b></div>
         <div class="roster-stat"><span>Matches</span><b>${fmtNum(r.matches)}</b></div>
       </div>
-      <div class="roster-loadout">${loadoutBits || '<span class="muted">No loadout data</span>'}</div>
       <div class="roster-tag">${escHtml(playerImpactTag(r, teamStats))}</div>
     </div>`;
   }).join('');
