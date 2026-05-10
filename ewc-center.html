@@ -5653,8 +5653,10 @@ function getActiveTeamTab(){
   return document.querySelector('.team-tab.active')?.dataset?.tab || 'overview';
 }
 function updateAutoRefreshStatus(message){
+  // Keep this label visually stable during 5-second refreshes.
+  // Dynamic timestamps/retry text caused the header width to shift.
   const node = el('connection-status');
-  if(node) node.textContent = message || 'Connection active';
+  if(node) node.textContent = 'Connection active';
 }
 async function refreshDashboardData(){
   if(EWC_AUTO_REFRESH_BUSY) return;
@@ -5702,10 +5704,10 @@ async function refreshDashboardData(){
       }
     }
 
-    updateAutoRefreshStatus(`Connection active • updated ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`);
+    updateAutoRefreshStatus('Connection active');
   }catch(err){
     console.warn('Auto refresh failed:', err?.message || err);
-    updateAutoRefreshStatus('Connection active • refresh retrying');
+    updateAutoRefreshStatus('Connection active');
   }finally{
     EWC_AUTO_REFRESH_BUSY = false;
   }
