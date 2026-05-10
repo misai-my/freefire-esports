@@ -5643,7 +5643,7 @@ function wireTeamCardFilterControls(){
 }
 
 
-/* ===== 5-second Supabase auto refresh ===== */
+/* ===== 5-second Supabase auto refresh — UI-safe ===== */
 const EWC_AUTO_REFRESH_MS = 5000;
 let EWC_AUTO_REFRESH_TIMER = null;
 let EWC_AUTO_REFRESH_BUSY = false;
@@ -5652,24 +5652,103 @@ let EWC_AUTO_REFRESH_TICK = 0;
 function getActiveTeamTab(){
   return document.querySelector('.team-tab.active')?.dataset?.tab || 'overview';
 }
-function updateAutoRefreshStatus(message){
+function updateAutoRefreshStatus(_message){
   // Keep this label visually stable during 5-second refreshes.
-  // Dynamic timestamps/retry text caused the header width to shift.
   const node = el('connection-status');
   if(node) node.textContent = 'Connection active';
 }
+function isUserEditingControl(){
+  const active = document.activeElement;
+  if(!active) return false;
+  const tag = active.tagName;
+  if(['INPUT','SELECT','TEXTAREA'].includes(tag)) return true;
+  if(active.isContentEditable) return true;
+  return false;
+}
+function captureAutoRefreshUiState(){
+  const active = document.activeElement;
+  return {
+    selectedTeam: CURRENT_TEAM,
+    teamModalOpen: isTeamModalOpen(),
+    resourceModalOpen: isResourceModalOpen(),
+    itemDetailOpen: isItemDetailOpen(),
+    activeTab: getActiveTeamTab(),
+    savedFilter: getFilterState(),
+    teamSearch: el('teamSearch')?.value || '',
+    pageX: window.scrollX || 0,
+    pageY: window.scrollY || 0,
+    modalScrollTop: document.querySelector('.team-modal-body')?.scrollTop || 0,
+    resourceScrollTop: document.querySelector('.resource-modal-body')?.scrollTop || 0,
+    itemScrollTop: document.querySelector('.item-detail-body')?.scrollTop || 0,
+    tableScrolls: [...document.querySelectorAll('.table-wrap')].map((node, index) => ({ index, left: node.scrollLeft || 0, top: node.scrollTop || 0 })),
+    activeId: active?.id || '',
+    activeTag: active?.tagName || '',
+    selectionStart: typeof active?.selectionStart === 'number' ? active.selectionStart : null,
+    selectionEnd: typeof active?.selectionEnd === 'number' ? active.selectionEnd : null
+  };
+}
+function restoreAutoRefreshUiState(state){
+  if(!state) return;
+
+  if(el('teamSearch')) el('teamSearch').value = state.teamSearch || '';
+
+  const teamModal = el('teamModal');
+  if(teamModal){
+    teamModal.classList.toggle('show', !!state.teamModalOpen);
+    teamModal.setAttribute('aria-hidden', state.teamModalOpen ? 'false' : 'true');
+  }
+  const resourceModal = el('resourceModal');
+  if(resourceModal){
+    resourceModal.classList.toggle('show', !!state.resourceModalOpen);
+    resourceModal.setAttribute('aria-hidden', state.resourceModalOpen ? 'false' : 'true');
+  }
+  const itemDetailModal = el('itemDetailModal');
+  if(itemDetailModal){
+    itemDetailModal.classList.toggle('show', !!state.itemDetailOpen);
+    itemDetailModal.setAttribute('aria-hidden', state.itemDetailOpen ? 'false' : 'true');
+  }
+
+  if(state.activeTab) setTeamTab(state.activeTab);
+
+  const modalBody = document.querySelector('.team-modal-body');
+  if(modalBody) modalBody.scrollTop = state.modalScrollTop || 0;
+  const resourceBody = document.querySelector('.resource-modal-body');
+  if(resourceBody) resourceBody.scrollTop = state.resourceScrollTop || 0;
+  const itemBody = document.querySelector('.item-detail-body');
+  if(itemBody) itemBody.scrollTop = state.itemScrollTop || 0;
+
+  [...document.querySelectorAll('.table-wrap')].forEach((node, index) => {
+    const saved = state.tableScrolls?.find(x => x.index === index);
+    if(saved){
+      node.scrollLeft = saved.left || 0;
+      node.scrollTop = saved.top || 0;
+    }
+  });
+
+  window.scrollTo(state.pageX || 0, state.pageY || 0);
+
+  if(state.activeId){
+    const active = el(state.activeId);
+    if(active && document.contains(active)){
+      try{ active.focus({ preventScroll:true }); }catch(_e){ active.focus(); }
+      if(typeof state.selectionStart === 'number' && typeof active.setSelectionRange === 'function'){
+        try{ active.setSelectionRange(state.selectionStart, state.selectionEnd ?? state.selectionStart); }catch(_e){}
+      }
+    }
+  }
+
+  document.body.classList.toggle('sb-open', !!(state.teamModalOpen || state.resourceModalOpen || state.itemDetailOpen));
+}
 async function refreshDashboardData(){
   if(EWC_AUTO_REFRESH_BUSY) return;
+  if(document.hidden) return;
+  if(isUserEditingControl()) return;
+
+  const uiState = captureAutoRefreshUiState();
   EWC_AUTO_REFRESH_BUSY = true;
   try{
     const activeSession = await requireSecureSession();
     if(!activeSession) return;
-
-    const selectedTeam = CURRENT_TEAM;
-    const teamModalWasOpen = isTeamModalOpen();
-    const activeTab = getActiveTeamTab();
-    const savedFilter = getFilterState();
-    const searchText = el('teamSearch')?.value || '';
 
     const freshRows = await fetchAllRows();
     if(!freshRows || !freshRows.length) return;
@@ -5677,10 +5756,10 @@ async function refreshDashboardData(){
     RAW = freshRows;
     detectSchema(RAW[0]);
 
-    // Lightweight recurring refresh: reload table rows every 5 seconds.
-    // Reference data is refreshed less often to avoid overloading Supabase/GitHub Pages.
+    // Reload reference libraries less often, and never while resource/detail popups are open.
     EWC_AUTO_REFRESH_TICK++;
-    if(EWC_AUTO_REFRESH_TICK % 24 === 0){
+    const canRefreshReferences = !uiState.resourceModalOpen && !uiState.itemDetailOpen;
+    if(canRefreshReferences && EWC_AUTO_REFRESH_TICK % 24 === 0){
       await loadMatchApi();
       await loadCharacterJson();
       await Promise.all([loadPetJson(), loadLoadoutJson(), loadWeaponJson()]);
@@ -5689,27 +5768,24 @@ async function refreshDashboardData(){
     }
 
     populateTopDropdowns();
-    applySavedFilterState(savedFilter);
-    if(el('teamSearch')) el('teamSearch').value = searchText;
-    renderTeamGrid(searchText);
+    applySavedFilterState(uiState.savedFilter);
+    if(el('teamSearch')) el('teamSearch').value = uiState.teamSearch || '';
+    renderTeamGrid(uiState.teamSearch || '');
     syncTeamCardFilterControls();
 
-    if(selectedTeam){
+    if(uiState.selectedTeam){
       const teams = new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean));
-      if(teams.has(selectedTeam)){
-        if(teamModalWasOpen){
-          // Refresh the open profile without changing the user's modal state.
-          selectTeam(selectedTeam, true);
-          setTeamTab(activeTab);
+      if(teams.has(uiState.selectedTeam)){
+        CURRENT_TEAM = uiState.selectedTeam;
+        setText('selectedTeamChip', uiState.selectedTeam);
+        setText('selectedTeamChipModal', uiState.selectedTeam);
+        if(uiState.teamModalOpen){
+          selectTeam(uiState.selectedTeam, true);
+          setTeamTab(uiState.activeTab);
         }else{
-          // The user closed the popup. Keep the selected team/tile state,
-          // but do not reopen the team modal on the 5-second refresh.
-          CURRENT_TEAM = selectedTeam;
-          setText('selectedTeamChip', selectedTeam);
-          setText('selectedTeamChipModal', selectedTeam);
           if(el('modalTeamSelect')){
             populateModalTeamSelect();
-            el('modalTeamSelect').value = selectedTeam;
+            el('modalTeamSelect').value = uiState.selectedTeam;
           }
           highlightActiveTile();
         }
@@ -5718,9 +5794,11 @@ async function refreshDashboardData(){
       }
     }
 
+    restoreAutoRefreshUiState(uiState);
     updateAutoRefreshStatus('Connection active');
   }catch(err){
     console.warn('Auto refresh failed:', err?.message || err);
+    restoreAutoRefreshUiState(uiState);
     updateAutoRefreshStatus('Connection active');
   }finally{
     EWC_AUTO_REFRESH_BUSY = false;
@@ -5729,6 +5807,9 @@ async function refreshDashboardData(){
 function startAutoRefresh(){
   if(EWC_AUTO_REFRESH_TIMER) clearInterval(EWC_AUTO_REFRESH_TIMER);
   EWC_AUTO_REFRESH_TIMER = setInterval(refreshDashboardData, EWC_AUTO_REFRESH_MS);
+  window.addEventListener('beforeunload', () => {
+    if(EWC_AUTO_REFRESH_TIMER) clearInterval(EWC_AUTO_REFRESH_TIMER);
+  }, { once:true });
 }
 
 async function init(){
