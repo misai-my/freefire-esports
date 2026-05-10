@@ -5642,6 +5642,79 @@ function wireTeamCardFilterControls(){
   syncTeamCardFilterControls();
 }
 
+
+/* ===== 5-second Supabase auto refresh ===== */
+const EWC_AUTO_REFRESH_MS = 5000;
+let EWC_AUTO_REFRESH_TIMER = null;
+let EWC_AUTO_REFRESH_BUSY = false;
+let EWC_AUTO_REFRESH_TICK = 0;
+
+function getActiveTeamTab(){
+  return document.querySelector('.team-tab.active')?.dataset?.tab || 'overview';
+}
+function updateAutoRefreshStatus(message){
+  const node = el('connection-status');
+  if(node) node.textContent = message || 'Connection active';
+}
+async function refreshDashboardData(){
+  if(EWC_AUTO_REFRESH_BUSY) return;
+  EWC_AUTO_REFRESH_BUSY = true;
+  try{
+    const activeSession = await requireSecureSession();
+    if(!activeSession) return;
+
+    const selectedTeam = CURRENT_TEAM;
+    const teamModalWasOpen = isTeamModalOpen();
+    const activeTab = getActiveTeamTab();
+    const savedFilter = getFilterState();
+    const searchText = el('teamSearch')?.value || '';
+
+    const freshRows = await fetchAllRows();
+    if(!freshRows || !freshRows.length) return;
+
+    RAW = freshRows;
+    detectSchema(RAW[0]);
+
+    // Lightweight recurring refresh: reload table rows every 5 seconds.
+    // Reference data is refreshed less often to avoid overloading Supabase/GitHub Pages.
+    EWC_AUTO_REFRESH_TICK++;
+    if(EWC_AUTO_REFRESH_TICK % 24 === 0){
+      await loadMatchApi();
+      await loadCharacterJson();
+      await Promise.all([loadPetJson(), loadLoadoutJson(), loadWeaponJson()]);
+      updateSkillDiagnostics();
+      updateSkillLookupDiagnostics();
+    }
+
+    populateTopDropdowns();
+    applySavedFilterState(savedFilter);
+    if(el('teamSearch')) el('teamSearch').value = searchText;
+    renderTeamGrid(searchText);
+    syncTeamCardFilterControls();
+
+    if(selectedTeam){
+      const teams = new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean));
+      if(teams.has(selectedTeam)){
+        selectTeam(selectedTeam, teamModalWasOpen);
+        setTeamTab(activeTab);
+      }else{
+        clearTeam();
+      }
+    }
+
+    updateAutoRefreshStatus(`Connection active • updated ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`);
+  }catch(err){
+    console.warn('Auto refresh failed:', err?.message || err);
+    updateAutoRefreshStatus('Connection active • refresh retrying');
+  }finally{
+    EWC_AUTO_REFRESH_BUSY = false;
+  }
+}
+function startAutoRefresh(){
+  if(EWC_AUTO_REFRESH_TIMER) clearInterval(EWC_AUTO_REFRESH_TIMER);
+  EWC_AUTO_REFRESH_TIMER = setInterval(refreshDashboardData, EWC_AUTO_REFRESH_MS);
+}
+
 async function init(){
   try{
     clearErr(); el('veil').classList.remove('hide');
@@ -5668,6 +5741,7 @@ async function init(){
     wireTeamCardFilterControls();
     const url = new URL(window.location.href); const qt=(url.searchParams.get('team')||'').trim().toUpperCase();
     if(qt){ const teams=new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(qt)) selectTeam(qt,false); }
+    startAutoRefresh();
     el('veil').classList.add('hide');
   }catch(e){ el('veil').classList.add('hide'); gerr('Fatal init error:\n\n' + (e?.message || e)); }
 }
