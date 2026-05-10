@@ -5697,8 +5697,22 @@ async function refreshDashboardData(){
     if(selectedTeam){
       const teams = new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean));
       if(teams.has(selectedTeam)){
-        selectTeam(selectedTeam, teamModalWasOpen);
-        setTeamTab(activeTab);
+        if(teamModalWasOpen){
+          // Refresh the open profile without changing the user's modal state.
+          selectTeam(selectedTeam, true);
+          setTeamTab(activeTab);
+        }else{
+          // The user closed the popup. Keep the selected team/tile state,
+          // but do not reopen the team modal on the 5-second refresh.
+          CURRENT_TEAM = selectedTeam;
+          setText('selectedTeamChip', selectedTeam);
+          setText('selectedTeamChipModal', selectedTeam);
+          if(el('modalTeamSelect')){
+            populateModalTeamSelect();
+            el('modalTeamSelect').value = selectedTeam;
+          }
+          highlightActiveTile();
+        }
       }else{
         clearTeam();
       }
