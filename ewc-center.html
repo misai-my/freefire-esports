@@ -5643,173 +5643,171 @@ function wireTeamCardFilterControls(){
 }
 
 
-/* ===== 5-second Supabase auto refresh — UI-safe ===== */
-const EWC_AUTO_REFRESH_MS = 5000;
-let EWC_AUTO_REFRESH_TIMER = null;
-let EWC_AUTO_REFRESH_BUSY = false;
-let EWC_AUTO_REFRESH_TICK = 0;
 
-function getActiveTeamTab(){
-  return document.querySelector('.team-tab.active')?.dataset?.tab || 'overview';
+/* ===== Data-only 5-second refresh: updates Supabase rows without rebuilding the whole page ===== */
+const EWC_DATA_REFRESH_MS = 5000;
+let EWC_DATA_REFRESH_TIMER = null;
+let EWC_DATA_REFRESH_BUSY = false;
+let EWC_LAST_DATA_SIGNATURE = '';
+
+function isUserEditingField(){
+  const a = document.activeElement;
+  if(!a) return false;
+  const tag = (a.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'select' || tag === 'textarea' || a.isContentEditable;
 }
-function updateAutoRefreshStatus(_message){
-  // Keep this label visually stable during 5-second refreshes.
-  const node = el('connection-status');
-  if(node) node.textContent = 'Connection active';
+function getStableRowSignature(row){
+  // Only include fields that affect visible stats/filter/team views.
+  // This prevents harmless timestamp-only updates from causing scroll-resetting re-renders.
+  const parts = [
+    row?.id,
+    getVal(row, KEYS.team), getVal(row, KEYS.player), getVal(row, KEYS.accountId),
+    getVal(row, KEYS.tournament), getVal(row, KEYS.year), getVal(row, KEYS.week), getVal(row, KEYS.day), getVal(row, KEYS.matchNo), getVal(row, KEYS.matchId),
+    getVal(row, KEYS.mode), getVal(row, KEYS.dataSource),
+    getVal(row, KEYS.kills), getVal(row, KEYS.damage), getVal(row, KEYS.assists), getVal(row, KEYS.headshots), getVal(row, KEYS.shoots), getVal(row, KEYS.hits),
+    getVal(row, KEYS.booyah), getVal(row, KEYS.killCount), getVal(row, KEYS.killingScore), getVal(row, KEYS.rankingScore),
+    getVal(row, KEYS.petName), getVal(row, KEYS.petId), getVal(row, KEYS.loadouts),
+    getVal(row, KEYS.rawSkillIds), getVal(row, KEYS.skillInfoId), getVal(row, KEYS.skillInfoName),
+    ...(KEYS.skillIds || []).map(k => row?.[k])
+  ];
+  return parts.map(v => norm(v)).join('~');
 }
-function isUserEditingControl(){
-  const active = document.activeElement;
-  if(!active) return false;
-  const tag = active.tagName;
-  if(['INPUT','SELECT','TEXTAREA'].includes(tag)) return true;
-  if(active.isContentEditable) return true;
-  return false;
+function makeDataSignature(rows){
+  if(!Array.isArray(rows) || !rows.length) return 'empty';
+  const newest = rows[0] || {};
+  const oldest = rows[rows.length - 1] || {};
+  const sample = rows.slice(0, 80).map(getStableRowSignature).join('|');
+  return `${rows.length}::${norm(newest.id)}::${norm(oldest.id)}::${sample}`;
 }
-function captureAutoRefreshUiState(){
-  const active = document.activeElement;
+function tableScrollKey(node, idx){
+  const parentId = node.parentElement?.id || '';
+  const grandId = node.parentElement?.parentElement?.id || '';
+  const closestId = node.closest('[id]')?.id || '';
+  return parentId || grandId || closestId || `idx:${idx}`;
+}
+function captureDashboardViewState(){
+  const tableScrolls = [];
+  document.querySelectorAll('.table-wrap').forEach((node, idx) => {
+    tableScrolls.push({ idx, key: tableScrollKey(node, idx), left: node.scrollLeft, top: node.scrollTop });
+  });
   return {
-    selectedTeam: CURRENT_TEAM,
-    teamModalOpen: isTeamModalOpen(),
-    resourceModalOpen: isResourceModalOpen(),
-    itemDetailOpen: isItemDetailOpen(),
-    activeTab: getActiveTeamTab(),
-    savedFilter: getFilterState(),
-    teamSearch: el('teamSearch')?.value || '',
     pageX: window.scrollX || 0,
     pageY: window.scrollY || 0,
-    modalScrollTop: document.querySelector('.team-modal-body')?.scrollTop || 0,
-    resourceScrollTop: document.querySelector('.resource-modal-body')?.scrollTop || 0,
-    itemScrollTop: document.querySelector('.item-detail-body')?.scrollTop || 0,
-    tableScrolls: [...document.querySelectorAll('.table-wrap')].map((node, index) => ({ index, left: node.scrollLeft || 0, top: node.scrollTop || 0 })),
-    activeId: active?.id || '',
-    activeTag: active?.tagName || '',
-    selectionStart: typeof active?.selectionStart === 'number' ? active.selectionStart : null,
-    selectionEnd: typeof active?.selectionEnd === 'number' ? active.selectionEnd : null
+    teamSearch: el('teamSearch')?.value || '',
+    activeTab: document.querySelector('.team-tab.active')?.dataset?.tab || 'overview',
+    teamModalOpen: isTeamModalOpen(),
+    teamModalScroll: document.querySelector('.team-modal-body')?.scrollTop || 0,
+    resourceModalOpen: (typeof isResourceModalOpen === 'function' ? isResourceModalOpen() : false),
+    resourceSearch: el('resourceSearch')?.value || '',
+    resourceScroll: document.querySelector('.resource-modal-body')?.scrollTop || 0,
+    itemDetailOpen: (typeof isItemDetailOpen === 'function' ? isItemDetailOpen() : false),
+    itemScroll: el('itemDetailBody')?.scrollTop || 0,
+    tableScrolls
   };
 }
-function restoreAutoRefreshUiState(state){
+function restoreDashboardViewState(state){
   if(!state) return;
-
   if(el('teamSearch')) el('teamSearch').value = state.teamSearch || '';
+  if(el('resourceSearch')) el('resourceSearch').value = state.resourceSearch || '';
+  if(state.teamModalOpen && typeof setTeamTab === 'function') setTeamTab(state.activeTab || 'overview');
 
-  const teamModal = el('teamModal');
-  if(teamModal){
-    teamModal.classList.toggle('show', !!state.teamModalOpen);
-    teamModal.setAttribute('aria-hidden', state.teamModalOpen ? 'false' : 'true');
-  }
-  const resourceModal = el('resourceModal');
-  if(resourceModal){
-    resourceModal.classList.toggle('show', !!state.resourceModalOpen);
-    resourceModal.setAttribute('aria-hidden', state.resourceModalOpen ? 'false' : 'true');
-  }
-  const itemDetailModal = el('itemDetailModal');
-  if(itemDetailModal){
-    itemDetailModal.classList.toggle('show', !!state.itemDetailOpen);
-    itemDetailModal.setAttribute('aria-hidden', state.itemDetailOpen ? 'false' : 'true');
-  }
-
-  if(state.activeTab) setTeamTab(state.activeTab);
-
-  const modalBody = document.querySelector('.team-modal-body');
-  if(modalBody) modalBody.scrollTop = state.modalScrollTop || 0;
+  const teamBody = document.querySelector('.team-modal-body');
+  if(teamBody) teamBody.scrollTop = state.teamModalScroll || 0;
   const resourceBody = document.querySelector('.resource-modal-body');
-  if(resourceBody) resourceBody.scrollTop = state.resourceScrollTop || 0;
-  const itemBody = document.querySelector('.item-detail-body');
-  if(itemBody) itemBody.scrollTop = state.itemScrollTop || 0;
+  if(resourceBody) resourceBody.scrollTop = state.resourceScroll || 0;
+  if(el('itemDetailBody')) el('itemDetailBody').scrollTop = state.itemScroll || 0;
 
-  [...document.querySelectorAll('.table-wrap')].forEach((node, index) => {
-    const saved = state.tableScrolls?.find(x => x.index === index);
+  const byKey = new Map((state.tableScrolls || []).map(item => [item.key, item]));
+  document.querySelectorAll('.table-wrap').forEach((node, idx) => {
+    const key = tableScrollKey(node, idx);
+    const saved = byKey.get(key) || (state.tableScrolls || []).find(x => x.idx === idx);
     if(saved){
       node.scrollLeft = saved.left || 0;
       node.scrollTop = saved.top || 0;
     }
   });
-
   window.scrollTo(state.pageX || 0, state.pageY || 0);
-
-  if(state.activeId){
-    const active = el(state.activeId);
-    if(active && document.contains(active)){
-      try{ active.focus({ preventScroll:true }); }catch(_e){ active.focus(); }
-      if(typeof state.selectionStart === 'number' && typeof active.setSelectionRange === 'function'){
-        try{ active.setSelectionRange(state.selectionStart, state.selectionEnd ?? state.selectionStart); }catch(_e){}
-      }
-    }
-  }
-
-  document.body.classList.toggle('sb-open', !!(state.teamModalOpen || state.resourceModalOpen || state.itemDetailOpen));
 }
-async function refreshDashboardData(){
-  if(EWC_AUTO_REFRESH_BUSY) return;
+function currentFilterSnapshot(){
+  return {
+    t: el('fTournament')?.value || '__all__',
+    mode: el('fMode')?.value || '__all__',
+    source: el('fSource')?.value || '__all__',
+    y: el('fYear')?.value || '__all__',
+    w: el('fWeek')?.value || '__all__',
+    d: el('fDay')?.value || '__all__',
+    m: el('fMatchNo')?.value || '__all__'
+  };
+}
+function setSelectValueIfAvailable(id, value){
+  const node = el(id);
+  if(!node) return;
+  node.value = [...node.options].some(o => o.value === value) ? value : '__all__';
+}
+function rebuildFilterOptionsPreservingCurrent(){
+  const f = currentFilterSnapshot();
+  populateTopDropdowns();
+  setSelectValueIfAvailable('fTournament', f.t);
+  setSelectValueIfAvailable('fMode', f.mode);
+  setSelectValueIfAvailable('fSource', f.source);
+  refreshCascadeOptions('tournament');
+  setSelectValueIfAvailable('fYear', f.y);
+  refreshCascadeOptions('year');
+  setSelectValueIfAvailable('fWeek', f.w);
+  refreshCascadeOptions('week');
+  setSelectValueIfAvailable('fDay', f.d);
+  refreshCascadeOptions('day');
+  setSelectValueIfAvailable('fMatchNo', f.m);
+}
+async function refreshDataOnly(){
+  if(EWC_DATA_REFRESH_BUSY) return;
   if(document.hidden) return;
-  if(isUserEditingControl()) return;
+  if(isUserEditingField()) return;
 
-  const uiState = captureAutoRefreshUiState();
-  EWC_AUTO_REFRESH_BUSY = true;
+  EWC_DATA_REFRESH_BUSY = true;
+  const state = captureDashboardViewState();
   try{
     const activeSession = await requireSecureSession();
     if(!activeSession) return;
 
     const freshRows = await fetchAllRows();
-    if(!freshRows || !freshRows.length) return;
+    if(!freshRows?.length) return;
+
+    const newSignature = makeDataSignature(freshRows);
+    if(newSignature === EWC_LAST_DATA_SIGNATURE) return;
+    EWC_LAST_DATA_SIGNATURE = newSignature;
 
     RAW = freshRows;
-    detectSchema(RAW[0]);
+    rebuildFilterOptionsPreservingCurrent();
+    applyFilters();
 
-    // Reload reference libraries less often, and never while resource/detail popups are open.
-    EWC_AUTO_REFRESH_TICK++;
-    const canRefreshReferences = !uiState.resourceModalOpen && !uiState.itemDetailOpen;
-    if(canRefreshReferences && EWC_AUTO_REFRESH_TICK % 24 === 0){
-      await loadMatchApi();
-      await loadCharacterJson();
-      await Promise.all([loadPetJson(), loadLoadoutJson(), loadWeaponJson()]);
-      updateSkillDiagnostics();
-      updateSkillLookupDiagnostics();
+    // If the modal is open, refresh it in place. If the user closed it,
+    // keep it closed and only preserve the selected team/highlight state.
+    if(CURRENT_TEAM && state.teamModalOpen){
+      selectTeam(CURRENT_TEAM, true);
+      setTeamTab(state.activeTab || 'overview');
+      el('teamModal')?.classList.add('show');
+      el('teamModal')?.setAttribute('aria-hidden', 'false');
+    }else if(CURRENT_TEAM){
+      highlightActiveTile();
+      el('teamModal')?.classList.remove('show');
+      el('teamModal')?.setAttribute('aria-hidden', 'true');
     }
 
-    populateTopDropdowns();
-    applySavedFilterState(uiState.savedFilter);
-    if(el('teamSearch')) el('teamSearch').value = uiState.teamSearch || '';
-    renderTeamGrid(uiState.teamSearch || '');
-    syncTeamCardFilterControls();
-
-    if(uiState.selectedTeam){
-      const teams = new Set(FILTERED.map(r => norm(getVal(r, KEYS.team)).toUpperCase()).filter(Boolean));
-      if(teams.has(uiState.selectedTeam)){
-        CURRENT_TEAM = uiState.selectedTeam;
-        setText('selectedTeamChip', uiState.selectedTeam);
-        setText('selectedTeamChipModal', uiState.selectedTeam);
-        if(uiState.teamModalOpen){
-          selectTeam(uiState.selectedTeam, true);
-          setTeamTab(uiState.activeTab);
-        }else{
-          if(el('modalTeamSelect')){
-            populateModalTeamSelect();
-            el('modalTeamSelect').value = uiState.selectedTeam;
-          }
-          highlightActiveTile();
-        }
-      }else{
-        clearTeam();
-      }
-    }
-
-    restoreAutoRefreshUiState(uiState);
-    updateAutoRefreshStatus('Connection active');
+    requestAnimationFrame(() => restoreDashboardViewState(state));
   }catch(err){
-    console.warn('Auto refresh failed:', err?.message || err);
-    restoreAutoRefreshUiState(uiState);
-    updateAutoRefreshStatus('Connection active');
+    console.warn('Data-only refresh failed:', err?.message || err);
   }finally{
-    EWC_AUTO_REFRESH_BUSY = false;
+    EWC_DATA_REFRESH_BUSY = false;
   }
 }
-function startAutoRefresh(){
-  if(EWC_AUTO_REFRESH_TIMER) clearInterval(EWC_AUTO_REFRESH_TIMER);
-  EWC_AUTO_REFRESH_TIMER = setInterval(refreshDashboardData, EWC_AUTO_REFRESH_MS);
+function startDataOnlyAutoRefresh(){
+  EWC_LAST_DATA_SIGNATURE = makeDataSignature(RAW);
+  if(EWC_DATA_REFRESH_TIMER) clearInterval(EWC_DATA_REFRESH_TIMER);
+  EWC_DATA_REFRESH_TIMER = setInterval(refreshDataOnly, EWC_DATA_REFRESH_MS);
   window.addEventListener('beforeunload', () => {
-    if(EWC_AUTO_REFRESH_TIMER) clearInterval(EWC_AUTO_REFRESH_TIMER);
-  }, { once:true });
+    if(EWC_DATA_REFRESH_TIMER) clearInterval(EWC_DATA_REFRESH_TIMER);
+  });
 }
 
 async function init(){
@@ -5838,7 +5836,7 @@ async function init(){
     wireTeamCardFilterControls();
     const url = new URL(window.location.href); const qt=(url.searchParams.get('team')||'').trim().toUpperCase();
     if(qt){ const teams=new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(qt)) selectTeam(qt,false); }
-    startAutoRefresh();
+    startDataOnlyAutoRefresh();
     el('veil').classList.add('hide');
   }catch(e){ el('veil').classList.add('hide'); gerr('Fatal init error:\n\n' + (e?.message || e)); }
 }
