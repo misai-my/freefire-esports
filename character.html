@@ -1505,7 +1505,7 @@
     }
     html[data-theme="light"] select option{
       background: #fff;
-      color: var(--ink);
+      color:var(--ink);
     }
 
     html[data-theme="light"] .modal-card{
@@ -1832,8 +1832,6 @@
     </main>
   </div>
 
-
-
   <div class="modal" id="presetPickerModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Preset Picker">
       <div class="modal-top">
@@ -1900,6 +1898,9 @@
       PET_CACHE_KEY: 'ff_pet_cache_v1',
       LOADOUT_CACHE_KEY: 'ff_loadout_cache_v1',
       PRESET_STORE_KEY: 'ff_character_preset_builder_v1',
+      EDGE_FUNCTION_NAME: 'team-insights',
+      EDGE_FUNCTION_ENABLED: true,
+      AI_INSIGHTS_CACHE_KEY: 'ff_character_preset_ai_cache_v1',
       CACHE_TTL_MS: 1000 * 60 * 60 * 6,
       SIDEBAR_KEY: 'ff_sidebar_collapsed_v1'
     });
@@ -2037,7 +2038,6 @@
     const mergeToggleBtn = document.getElementById('mergeToggleBtn');
     const metaSectionTitle = document.getElementById('metaSectionTitle');
     const nonMetaSectionTitle = document.getElementById('nonMetaSectionTitle');
-
     const presetBuilder = document.getElementById('presetBuilder');
     const presetToggleBtn = document.getElementById('presetToggleBtn');
     const presetSummaryText = document.getElementById('presetSummaryText');
@@ -2138,6 +2138,7 @@
       useMS = !useMS;
       localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
       syncLangToggleUI();
+      renderPresetBuilder();
       if (infoModal.classList.contains('show') && lastOpenedChar){
         openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
       }
@@ -2171,7 +2172,6 @@
         getMSDesc(c)
       ].filter(Boolean).join(' ').toLowerCase();
     }
-
 
     const PRESET_KIND_LABELS = Object.freeze({
       active: 'Active Skill',
@@ -2507,7 +2507,240 @@
       return 'balanced flex setup';
     }
 
-    function analyzePresetBuild(){
+    function serializePresetItemForEdge(item, kind){
+      if (!item) return null;
+      return {
+        kind,
+        name: getPresetName(item),
+        role: presetTidy(item?.role),
+        skill_type: presetTidy(item?.skill_type),
+        skill: getPresetSkillLine(item, kind),
+        description: getPresetDesc(item, kind),
+        category: presetTidy(item?.category || item?.type)
+      };
+    }
+
+    function getPresetMissingSlots(){
+      const missing = [];
+      if (!presetState.active) missing.push('Active Skill');
+      presetState.passive.forEach((x,i) => { if (!x) missing.push(`Passive ${i+1}`); });
+      if (!presetState.pet) missing.push('Pet');
+      if (!presetState.loadout) missing.push('Loadout');
+      return missing;
+    }
+
+    function getPresetAiCache(){
+      try{ return JSON.parse(localStorage.getItem(CFG.AI_INSIGHTS_CACHE_KEY) || '{}') || {}; }catch(_e){ return {}; }
+    }
+
+    function setPresetAiCache(key, value){
+      try{
+        const cache = getPresetAiCache();
+        cache[key] = { value, at: Date.now() };
+        localStorage.setItem(CFG.AI_INSIGHTS_CACHE_KEY, JSON.stringify(cache));
+      }catch(_e){}
+    }
+
+    function currentPresetAiCacheKey(){
+      const names = [
+        presetState.active ? getPresetName(presetState.active) : '',
+        ...presetState.passive.map(x => x ? getPresetName(x) : ''),
+        presetState.pet ? getPresetName(presetState.pet) : '',
+        presetState.loadout ? getPresetName(presetState.loadout) : ''
+      ];
+      return `character-preset-br::${names.map(presetKey).join('|')}`;
+    }
+
+    function buildPresetEdgePayload(){
+      const active = serializePresetItemForEdge(presetState.active, 'active');
+      const passives = presetState.passive.map(x => serializePresetItemForEdge(x, 'passive')).filter(Boolean);
+      const pet = serializePresetItemForEdge(presetState.pet, 'pet');
+      const loadout = serializePresetItemForEdge(presetState.loadout, 'loadout');
+
+      return {
+        request_type: 'free_fire_br_preset_analysis',
+        page: 'character.html',
+        mode: 'battle_royale_competitive',
+        team: 'Preset Builder',
+        scope: {
+          text: 'Character page preset builder • Battle Royale competitive build',
+          tournament: 'N/A',
+          mode: 'Battle Royale',
+          source: 'character.json + pet.json + loadout.json',
+          year: '',
+          week: '',
+          day: '',
+          matchNumber: ''
+        },
+        instruction: 'Analyze this Free Fire Battle Royale preset as an esports analyst. Explain why the build is effective or risky for competitive BR. Focus on role identity, synergy between active/passive/pet/loadout, fight conversion, sustain, information/rotation value, team utility, and risk management. Return either the existing team-insights card schema or a plain analysis.',
+        expected_output_schema: {
+          playstyle: { label: 'string', summary: 'string', evidence: ['string'] },
+          momentum: { label: 'string', summary: 'string', evidence: ['string'] },
+          winCondition: { label: 'string', summary: 'string', evidence: ['string'] },
+          riskFactor: { label: 'string', summary: 'string', evidence: ['string'] },
+          keyPlayerWatch: { player: 'Preset User', label: 'string', summary: 'string', evidence: ['string'] },
+          broadcastNote: 'string'
+        },
+        build: { active, passives, pet, loadout },
+        loadoutUsage: {
+          topActive: active ? [active] : [],
+          topPassive: passives,
+          topPet: pet ? [pet] : [],
+          topLoadout: loadout ? [loadout] : []
+        },
+        players: [{
+          player: 'Preset User',
+          topActive: active?.name || '',
+          topPet: pet?.name || '',
+          topLoadout: loadout?.name || '',
+          passives: passives.map(p => p.name)
+        }],
+        teamStats: {
+          matches: 0,
+          booyahs: 0,
+          elims: 0,
+          rankPoints: 0,
+          totalPoints: 0,
+          damage: 0,
+          damagePerMatch: 0,
+          elimsPerMatch: 0,
+          rankPerMatch: 0,
+          pointsPerMatch: 0,
+          recentPointsPerMatch: 0
+        },
+        lastMatches: []
+      };
+    }
+
+    function normalizePresetEvidence(evidence){
+      if (!evidence) return [];
+      if (Array.isArray(evidence)) return evidence.map(presetTidy).filter(Boolean);
+      const text = presetTidy(evidence);
+      return text ? [text] : [];
+    }
+
+    function presetInsightCardHtml(label, title, desc, evidence=[]){
+      const ev = normalizePresetEvidence(evidence).slice(0, 3);
+      return `
+        <div class="info-block" style="padding:12px 14px;">
+          <b style="color:var(--brand)!important;margin-bottom:6px;">${presetEscape(label)} — ${presetEscape(title || 'Insight')}</b>
+          <p class="txt" style="font-size:.9rem;line-height:1.38rem;">${presetEscape(desc || 'No analysis returned for this card.')}</p>
+          ${ev.length ? `<div class="preset-score-row" style="margin:8px 0 0 0;">${ev.map(x => `<span class="preset-score-pill" title="${presetEscape(x)}">${presetEscape(x)}</span>`).join('')}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function renderPresetAiCards(aiData){
+      if (!aiData || typeof aiData !== 'object') return false;
+      const hasCardSchema = aiData.playstyle || aiData.momentum || aiData.winCondition || aiData.riskFactor || aiData.keyPlayerWatch || aiData.broadcastNote;
+      if (!hasCardSchema) return false;
+
+      const keyPlayer = aiData.keyPlayerWatch || {};
+      const keyPlayerTitle = keyPlayer.player && keyPlayer.label ? `${keyPlayer.player} — ${keyPlayer.label}` : keyPlayer.label || keyPlayer.player || 'Preset User';
+      const cards = [
+        presetInsightCardHtml('Playstyle Read', aiData.playstyle?.label, aiData.playstyle?.summary, aiData.playstyle?.evidence),
+        presetInsightCardHtml('Momentum', aiData.momentum?.label, aiData.momentum?.summary, aiData.momentum?.evidence),
+        presetInsightCardHtml('Win Condition', aiData.winCondition?.label, aiData.winCondition?.summary, aiData.winCondition?.evidence),
+        presetInsightCardHtml('Risk Factor', aiData.riskFactor?.label, aiData.riskFactor?.summary, aiData.riskFactor?.evidence),
+        presetInsightCardHtml('Key Player Watch', keyPlayerTitle, keyPlayer.summary, keyPlayer.evidence),
+        presetInsightCardHtml('Broadcast Note', 'Caster Angle', aiData.broadcastNote || 'No broadcast note returned.', [])
+      ];
+      presetAnalysisOutput.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;">${cards.join('')}</div>`;
+      return true;
+    }
+
+    function edgeAnalysisToHTML(data){
+      const value = data?.analysis || data?.insight || data?.output || data?.result || data?.text || data?.message || data;
+
+      if (Array.isArray(value)){
+        return `<ul>${value.map(x => `<li>${presetEscape(x)}</li>`).join('')}</ul>`;
+      }
+
+      if (value && typeof value === 'object'){
+        const parts = [];
+        for (const [key, val] of Object.entries(value)){
+          if (val == null) continue;
+          if (Array.isArray(val)){
+            parts.push(`<p><b>${presetEscape(key)}:</b></p><ul>${val.map(x => `<li>${presetEscape(x)}</li>`).join('')}</ul>`);
+          }else{
+            parts.push(`<p><b>${presetEscape(key)}:</b> ${presetEscape(val)}</p>`);
+          }
+        }
+        return parts.join('') || '';
+      }
+
+      const text = presetTidy(value);
+      if (!text) return '';
+      return text
+        .split(/
+{2,}|
+?
+/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => `<p>${presetEscape(line)}</p>`)
+        .join('');
+    }
+
+    async function generatePresetAiInsights(){
+      const missing = getPresetMissingSlots();
+      if (missing.length || !CFG.EDGE_FUNCTION_ENABLED){
+        analyzePresetBuildLocal();
+        return;
+      }
+
+      const cacheKey = currentPresetAiCacheKey();
+      const cached = getPresetAiCache()[cacheKey]?.value;
+      if (cached){
+        if (renderPresetAiCards(cached)) return;
+        const cachedHtml = edgeAnalysisToHTML(cached);
+        if (cachedHtml){ presetAnalysisOutput.innerHTML = cachedHtml; return; }
+      }
+
+      const btn = presetAnalyzeBtn;
+      const fnUrl = `${CFG.SUPABASE_URL}/functions/v1/${CFG.EDGE_FUNCTION_NAME}`;
+      const oldHTML = presetAnalysisOutput.innerHTML;
+      presetAnalysisOutput.innerHTML = '<p><b>Generating AI insights…</b></p><p>Sending this BR preset to the same Supabase Edge Function flow used by the EWC page.</p>';
+
+      try{
+        if (btn) btn.disabled = true;
+        const response = await fetch(fnUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': CFG.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${CFG.SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify(buildPresetEdgePayload())
+        });
+
+        const text = await response.text();
+        let data = {};
+        try{ data = JSON.parse(text); }catch(_e){ data = { error: text }; }
+        if (!response.ok) throw new Error(data?.details || data?.error || `HTTP ${response.status}`);
+
+        const rendered = renderPresetAiCards(data);
+        if (!rendered){
+          const html = edgeAnalysisToHTML(data);
+          if (!html) throw new Error('AI returned an invalid or empty insight payload.');
+          presetAnalysisOutput.innerHTML = html;
+        }
+
+        setPresetAiCache(cacheKey, data);
+      }catch(e){
+        console.error('AI preset analysis failed:', e);
+        presetAnalysisOutput.innerHTML = oldHTML;
+        analyzePresetBuildLocal();
+      }finally{
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function analyzePresetBuild(){
+      await generatePresetAiInsights();
+    }
+
+    function analyzePresetBuildLocal(){
       const missing = [];
       if (!presetState.active) missing.push('Active Skill');
       presetState.passive.forEach((x,i) => { if (!x) missing.push(`Passive ${i+1}`); });
@@ -2775,7 +3008,6 @@
         clearTimeout(t);
       }
     }
-
 
     async function loadPets(){
       const cached = readCache(CFG.PET_CACHE_KEY);
@@ -3072,7 +3304,6 @@
       currentSearchTerm = (e.target.value || '');
       scheduleSearchApply(currentSearchTerm);
     });
-
 
     presetToggleBtn?.addEventListener('click', () => {
       const collapsed = presetBuilder.classList.toggle('is-collapsed');
