@@ -1505,7 +1505,7 @@
     }
     html[data-theme="light"] select option{
       background: #fff;
-      color:var(--ink);
+      color: var(--ink);
     }
 
     html[data-theme="light"] .modal-card{
@@ -1832,6 +1832,8 @@
     </main>
   </div>
 
+
+
   <div class="modal" id="presetPickerModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Preset Picker">
       <div class="modal-top">
@@ -2038,6 +2040,7 @@
     const mergeToggleBtn = document.getElementById('mergeToggleBtn');
     const metaSectionTitle = document.getElementById('metaSectionTitle');
     const nonMetaSectionTitle = document.getElementById('nonMetaSectionTitle');
+
     const presetBuilder = document.getElementById('presetBuilder');
     const presetToggleBtn = document.getElementById('presetToggleBtn');
     const presetSummaryText = document.getElementById('presetSummaryText');
@@ -2138,7 +2141,6 @@
       useMS = !useMS;
       localStorage.setItem(KEY_LANG, useMS ? '1' : '0');
       syncLangToggleUI();
-      renderPresetBuilder();
       if (infoModal.classList.contains('show') && lastOpenedChar){
         openInfo(lastOpenedChar, lastOpenedMetaFlag, true);
       }
@@ -2172,6 +2174,7 @@
         getMSDesc(c)
       ].filter(Boolean).join(' ').toLowerCase();
     }
+
 
     const PRESET_KIND_LABELS = Object.freeze({
       active: 'Active Skill',
@@ -2672,10 +2675,7 @@
       const text = presetTidy(value);
       if (!text) return '';
       return text
-        .split(/
-{2,}|
-?
-/)
+        .split(/\n{2,}|\r?\n/)
         .map(line => line.trim())
         .filter(Boolean)
         .map(line => `<p>${presetEscape(line)}</p>`)
@@ -2700,16 +2700,18 @@
       const btn = presetAnalyzeBtn;
       const fnUrl = `${CFG.SUPABASE_URL}/functions/v1/${CFG.EDGE_FUNCTION_NAME}`;
       const oldHTML = presetAnalysisOutput.innerHTML;
-      presetAnalysisOutput.innerHTML = '<p><b>Generating AI insights…</b></p><p>Sending this BR preset to the same Supabase Edge Function flow used by the EWC page.</p>';
+      presetAnalysisOutput.innerHTML = '<p><b>Generating AI insights…</b></p><p>Sending this BR preset to the Supabase Edge Function flow.</p>';
 
       try{
         if (btn) btn.disabled = true;
+        const { data: { session } } = await client.auth.getSession();
+        const token = session?.access_token || CFG.SUPABASE_ANON_KEY;
         const response = await fetch(fnUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': CFG.SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${CFG.SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(buildPresetEdgePayload())
         });
@@ -3009,6 +3011,7 @@
       }
     }
 
+
     async function loadPets(){
       const cached = readCache(CFG.PET_CACHE_KEY);
       if (cached){
@@ -3304,6 +3307,7 @@
       currentSearchTerm = (e.target.value || '');
       scheduleSearchApply(currentSearchTerm);
     });
+
 
     presetToggleBtn?.addEventListener('click', () => {
       const collapsed = presetBuilder.classList.toggle('is-collapsed');
