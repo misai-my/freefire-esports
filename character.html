@@ -1900,7 +1900,7 @@
       PET_CACHE_KEY: 'ff_pet_cache_v1',
       LOADOUT_CACHE_KEY: 'ff_loadout_cache_v1',
       PRESET_STORE_KEY: 'ff_character_preset_builder_v1',
-      EDGE_FUNCTION_NAME: 'team-insights',
+      EDGE_FUNCTION_NAME: 'preset-insights',
       EDGE_FUNCTION_ENABLED: true,
       AI_INSIGHTS_CACHE_KEY: 'ff_character_preset_ai_cache_v1',
       CACHE_TTL_MS: 1000 * 60 * 60 * 6,
@@ -2575,43 +2575,18 @@
           day: '',
           matchNumber: ''
         },
-        instruction: 'Analyze this Free Fire Battle Royale preset as an esports analyst. Explain why the build is effective or risky for competitive BR. Focus on role identity, synergy between active/passive/pet/loadout, fight conversion, sustain, information/rotation value, team utility, and risk management. Return either the existing team-insights card schema or a plain analysis.',
+        instruction: 'Analyze this Free Fire Battle Royale preset as an esports analyst. Explain why the build is effective or risky for competitive BR. Focus on build identity, active/passive/pet/loadout synergy, fight conversion, sustain, information/rotation value, team utility, risk management, best player role assignment, and caster-friendly notes. Return the preset-insights JSON schema.',
         expected_output_schema: {
-          playstyle: { label: 'string', summary: 'string', evidence: ['string'] },
-          momentum: { label: 'string', summary: 'string', evidence: ['string'] },
-          winCondition: { label: 'string', summary: 'string', evidence: ['string'] },
-          riskFactor: { label: 'string', summary: 'string', evidence: ['string'] },
-          keyPlayerWatch: { player: 'Preset User', label: 'string', summary: 'string', evidence: ['string'] },
-          broadcastNote: 'string'
+          buildIdentity: { label: 'string', summary: 'string' },
+          synergy: { rating: 'Strong | Good | Situational | Weak', summary: 'string' },
+          strengths: ['string'],
+          weaknesses: ['string'],
+          bestFor: ['Rusher | Entry Fragger | Flex | Support | Scout | Anchor | IGL'],
+          competitiveUse: 'string',
+          riskManagement: 'string',
+          casterNote: 'string'
         },
-        build: { active, passives, pet, loadout },
-        loadoutUsage: {
-          topActive: active ? [active] : [],
-          topPassive: passives,
-          topPet: pet ? [pet] : [],
-          topLoadout: loadout ? [loadout] : []
-        },
-        players: [{
-          player: 'Preset User',
-          topActive: active?.name || '',
-          topPet: pet?.name || '',
-          topLoadout: loadout?.name || '',
-          passives: passives.map(p => p.name)
-        }],
-        teamStats: {
-          matches: 0,
-          booyahs: 0,
-          elims: 0,
-          rankPoints: 0,
-          totalPoints: 0,
-          damage: 0,
-          damagePerMatch: 0,
-          elimsPerMatch: 0,
-          rankPerMatch: 0,
-          pointsPerMatch: 0,
-          recentPointsPerMatch: 0
-        },
-        lastMatches: []
+        build: { active, passives, pet, loadout }
       };
     }
 
@@ -2631,6 +2606,36 @@
           ${ev.length ? `<div class="preset-score-row" style="margin:8px 0 0 0;">${ev.map(x => `<span class="preset-score-pill" title="${presetEscape(x)}">${presetEscape(x)}</span>`).join('')}</div>` : ''}
         </div>
       `;
+    }
+
+    function renderPresetAiResult(data){
+      if (!data || typeof data !== 'object') return false;
+      const hasPresetSchema = data.buildIdentity || data.synergy || data.strengths || data.weaknesses || data.bestFor || data.competitiveUse || data.riskManagement || data.casterNote;
+      if (!hasPresetSchema) return false;
+
+      const strengths = Array.isArray(data.strengths) ? data.strengths : [];
+      const weaknesses = Array.isArray(data.weaknesses) ? data.weaknesses : [];
+      const bestFor = Array.isArray(data.bestFor) ? data.bestFor : [];
+
+      presetAnalysisOutput.innerHTML = `
+        <div class="preset-score-row">
+          <span class="preset-score-pill">Identity: ${presetEscape(data.buildIdentity?.label || '—')}</span>
+          <span class="preset-score-pill">Synergy: ${presetEscape(data.synergy?.rating || '—')}</span>
+          <span class="preset-score-pill">Best For: ${presetEscape(bestFor.join(', ') || '—')}</span>
+        </div>
+        <p><b>Build Identity:</b> ${presetEscape(data.buildIdentity?.label || '—')}</p>
+        <p>${presetEscape(data.buildIdentity?.summary || '')}</p>
+        <p><b>Synergy:</b> ${presetEscape(data.synergy?.rating || '—')}</p>
+        <p>${presetEscape(data.synergy?.summary || '')}</p>
+        <p><b>Strengths:</b></p>
+        <ul>${strengths.map(x => `<li>${presetEscape(x)}</li>`).join('')}</ul>
+        <p><b>Weaknesses:</b></p>
+        <ul>${weaknesses.map(x => `<li>${presetEscape(x)}</li>`).join('')}</ul>
+        <p><b>Competitive Use:</b> ${presetEscape(data.competitiveUse || '')}</p>
+        <p><b>Risk Management:</b> ${presetEscape(data.riskManagement || '')}</p>
+        <p><b>Caster Note:</b> ${presetEscape(data.casterNote || '')}</p>
+      `;
+      return true;
     }
 
     function renderPresetAiCards(aiData){
@@ -2692,6 +2697,7 @@
       const cacheKey = currentPresetAiCacheKey();
       const cached = getPresetAiCache()[cacheKey]?.value;
       if (cached){
+        if (renderPresetAiResult(cached)) return;
         if (renderPresetAiCards(cached)) return;
         const cachedHtml = edgeAnalysisToHTML(cached);
         if (cachedHtml){ presetAnalysisOutput.innerHTML = cachedHtml; return; }
@@ -2700,7 +2706,7 @@
       const btn = presetAnalyzeBtn;
       const fnUrl = `${CFG.SUPABASE_URL}/functions/v1/${CFG.EDGE_FUNCTION_NAME}`;
       const oldHTML = presetAnalysisOutput.innerHTML;
-      presetAnalysisOutput.innerHTML = '<p><b>Generating AI insights…</b></p><p>Sending this BR preset to the Supabase Edge Function flow.</p>';
+      presetAnalysisOutput.innerHTML = '<p><b>Generating AI insights…</b></p><p>Sending this BR preset to the preset-insights Supabase Edge Function.</p>';
 
       try{
         if (btn) btn.disabled = true;
@@ -2721,7 +2727,7 @@
         try{ data = JSON.parse(text); }catch(_e){ data = { error: text }; }
         if (!response.ok) throw new Error(data?.details || data?.error || `HTTP ${response.status}`);
 
-        const rendered = renderPresetAiCards(data);
+        const rendered = renderPresetAiResult(data) || renderPresetAiCards(data);
         if (!rendered){
           const html = edgeAnalysisToHTML(data);
           if (!html) throw new Error('AI returned an invalid or empty insight payload.');
