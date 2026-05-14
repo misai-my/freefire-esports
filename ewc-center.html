@@ -5193,9 +5193,8 @@ function compactLoadoutText(row) {
   return `${active} • ${pet}`;
 }
 
-function matchupStatsHtml(row, side = 'left') {
-  const isLeft = side === 'left';
 
+function matchupStatsHtml(row, side = 'left') {
   if (!row) {
     return `
       <div class="player-matchup-stats ${side}">
@@ -5234,6 +5233,28 @@ function matchupStatsHtml(row, side = 'left') {
       <div class="matchup-stat-line">
         <span>HS</span>
         <b>${fmtNum(row.headshots)}</b>
+      </div>
+    </div>
+  `;
+}
+
+function matchupPlayerHtml(row, side = 'left') {
+  if (!row) {
+    return `
+      <div class="player-matchup-player ${side}">
+        <div class="player-matchup-team">—</div>
+        <div class="player-matchup-name">No Match</div>
+        <div class="player-matchup-loadout">—</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="player-matchup-player ${side}">
+      <div class="player-matchup-team">${escHtml(getPlayerTeamLabel(row))}</div>
+      <div class="player-matchup-name" title="${escHtml(row.player)}">${escHtml(row.player)}</div>
+      <div class="player-matchup-loadout" title="${escHtml(compactLoadoutText(row))}">
+        ${escHtml(compactLoadoutText(row))}
       </div>
     </div>
   `;
@@ -5719,10 +5740,7 @@ function selectTeam(team, keepCurrentModalState=false){
   renderTeamUsageTables(teamRows);
   renderTeamStory(teamRows);
   syncTeamCardFilterControls?.();
-
-  // Refreshes comparison dropdown, head-to-head, and automatic player comparison
   renderComparisonPanel();
-
   highlightActiveTile();
 
   if(!keepCurrentModalState || !isTeamModalOpen()) openTeamModal();
@@ -6187,7 +6205,10 @@ function wire(){
     if (nextTeam) selectTeam(nextTeam, true);
   });
 
-  el('teamCompareSelect')?.addEventListener('change', renderTeamHeadToHead);
+  el('teamCompareSelect')?.addEventListener('change', () => {
+    renderTeamHeadToHead();
+    renderPlayerComparison();
+  });
 
   wireResourceTools();
 }
