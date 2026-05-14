@@ -2181,7 +2181,7 @@
 
         <div class="player-compare-head">
           <h3>Player Comparison</h3>
-          <div class="muted">Use the Compare buttons on player cards to select or deselect players. Ordered by role.</div>
+          <div class="muted">Automatically lists all players from the selected team and comparison team, ordered by role.</div>
         </div>
 
         <div id="playerCompareBox" class="player-compare-grid">
@@ -4355,7 +4355,7 @@ function clearTeam(){
   el('tblPassive').innerHTML='—';
   el('tblPet').innerHTML='—';
   if(el('teamHeadToHeadBox')) el('teamHeadToHeadBox').innerHTML = '<div class="muted">Select a comparison team.</div>';
-  if(el('playerCompareBox')) el('playerCompareBox').innerHTML = '<div class="muted">No players selected for comparison.</div>';
+  if(el('playerCompareBox')) el('playerCompareBox').innerHTML = '<div class="muted">Select a comparison team to automatically list both rosters.</div>';
   highlightActiveTile();
   closeTeamModal();
 }
@@ -4858,9 +4858,11 @@ function renderTeamHeadToHead(){
   const compareTeam = norm(el('teamCompareSelect')?.value).toUpperCase();
   if(!compareTeam){
     box.innerHTML = renderH2HCard(buildTeamCompareStats(CURRENT_TEAM), true) + `<div class="h2h-card"><div class="muted">Select another team to compare against ${escHtml(CURRENT_TEAM)}.</div></div>`;
+    renderPlayerComparison();
     return;
   }
   box.innerHTML = renderH2HCard(buildTeamCompareStats(CURRENT_TEAM), true) + renderH2HCard(buildTeamCompareStats(compareTeam), false);
+  renderPlayerComparison();
 }
 function togglePlayerCompare(playerName){
   const key = `${CURRENT_TEAM || 'TEAM'}::${norm(playerName).toUpperCase()}`;
@@ -4876,16 +4878,47 @@ function isPlayerSelectedForCompare(playerName){
 function renderPlayerComparison(){
   const box = el('playerCompareBox');
   if(!box) return;
-  const rows = (LAST_PLAYER_SUMMARY_ROWS || [])
-    .filter(r => isPlayerSelectedForCompare(r.player))
-    .sort((a,b)=>roleOrderValue(a.role)-roleOrderValue(b.role) || b.kills-a.kills || b.damage-a.damage || a.player.localeCompare(b.player));
-  if(!rows.length){
-    box.innerHTML = '<div class="muted">No players selected for comparison.</div>';
+
+  const compareTeam = norm(el('teamCompareSelect')?.value).toUpperCase();
+  const teams = [CURRENT_TEAM, compareTeam].filter(Boolean);
+
+  if(!CURRENT_TEAM){
+    box.innerHTML = '<div class="muted">Select a team first.</div>';
     return;
   }
+
+  if(!compareTeam){
+    box.innerHTML = '<div class="muted">Select a comparison team to automatically list players from both teams.</div>';
+    return;
+  }
+
+  const rows = teams.flatMap(teamCode =>
+    buildPlayerSummaryRows(getTeamRowsByCode(teamCode)).map(player => ({
+      ...player,
+      compareTeam: teamCode
+    }))
+  ).sort((a,b) =>
+    roleOrderValue(a.role) - roleOrderValue(b.role) ||
+    String(a.compareTeam || '').localeCompare(String(b.compareTeam || '')) ||
+    b.kills - a.kills ||
+    b.damage - a.damage ||
+    a.player.localeCompare(b.player)
+  );
+
+  if(!rows.length){
+    box.innerHTML = '<div class="muted">No player rows found for these two teams in the current scope.</div>';
+    return;
+  }
+
   box.innerHTML = rows.map(r => `
     <div class="player-compare-card">
-      <div class="player-compare-top"><strong title="${escHtml(r.player)}">${escHtml(r.player)}</strong><span class="player-role-pill">${escHtml(r.role || 'TBD')}</span></div>
+      <div class="player-compare-top">
+        <strong title="${escHtml(r.player)}">${escHtml(r.player)}</strong>
+        <div class="player-compare-badges">
+          <span class="player-team-pill">${escHtml(r.compareTeam || '—')}</span>
+          <span class="player-role-pill">${escHtml(r.role || 'TBD')}</span>
+        </div>
+      </div>
       <div class="player-compare-stats">
         <div class="player-compare-stat"><span>Matches</span><b>${fmtNum(r.matches)}</b></div>
         <div class="player-compare-stat"><span>Elims</span><b>${fmtNum(r.kills)}</b></div>
@@ -4919,7 +4952,6 @@ function renderRosterCards(teamRows){
   }
   el('rosterCards').innerHTML = rows.map((r, i) => {
     const profile = getPlayerProfile(r.player, i);
-    const selected = isPlayerSelectedForCompare(r.player);
     return `<div class="roster-card">
       <div class="roster-head">
         ${playerAvatarHtml(r.player, profile)}
@@ -4934,14 +4966,8 @@ function renderRosterCards(teamRows){
         <div class="roster-stat"><span>Matches</span><b>${fmtNum(r.matches)}</b></div>
       </div>
       <div class="roster-tag">${escHtml(playerImpactTag(r, teamStats))}</div>
-      <button type="button" class="btn secondary roster-compare-btn ${selected ? 'active' : ''}" data-compare-player="${escHtml(r.player)}">
-        ${selected ? 'Selected for Compare' : 'Compare Player'}
-      </button>
     </div>`;
   }).join('');
-  el('rosterCards').querySelectorAll('[data-compare-player]').forEach(btn => {
-    btn.addEventListener('click', () => togglePlayerCompare(btn.getAttribute('data-compare-player') || ''));
-  });
   renderPlayerComparison();
 }
 
