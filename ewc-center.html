@@ -4900,7 +4900,18 @@ function buildLiveFeedTeams(rows){
     })).sort((a,b) => b.kills - a.kills || b.damage - a.damage || b.assists - a.assists || a.player.localeCompare(b.player));
     teams.push({ team, day, matchNo, matchId, rankScore, teamElims, total, booyah, alivePlayers, eliminatedPlayers, eliminated, players });
   }
-  teams.sort((a,b) => b.total - a.total || b.booyah - a.booyah || b.teamElims - a.teamElims || b.rankScore - a.rankScore || a.team.localeCompare(b.team));
+  // Live feed order: alive teams first, then total score descending.
+  // Booyah teams count as alive because eliminated is false when booyah is true.
+  teams.sort((a,b) => {
+    const aliveA = a.eliminated ? 0 : 1;
+    const aliveB = b.eliminated ? 0 : 1;
+    return (aliveB - aliveA) ||
+      (b.total - a.total) ||
+      (b.booyah - a.booyah) ||
+      (b.teamElims - a.teamElims) ||
+      (b.rankScore - a.rankScore) ||
+      a.team.localeCompare(b.team);
+  });
   teams.forEach((t, index) => t.position = index + 1);
   return teams;
 }
@@ -4934,7 +4945,7 @@ function renderLiveFeed(){
     <div class="live-feed-toolbar">
       <div>
         <div class="live-feed-title">${label}</div>
-        <div class="live-feed-sub">Sorted by total score descending. Player rows show K / Damage / Assist / status.</div>
+        <div class="live-feed-sub">Sorted by alive teams first, then total score descending. Player rows show K / Damage / Assist / status.</div>
       </div>
       <div class="live-feed-status-row">
         <span class="live-feed-status alive">${fmtNum(aliveTeams)} Alive Teams</span>
