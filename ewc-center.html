@@ -3551,6 +3551,82 @@ body.betting-experiment .team-code,
   .team-code{font-size:.52rem!important;}
 }
 
+
+
+/* ===== Live Feed preset badge detail popup ===== */
+.live-feed-preset-badge{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.045);
+  color:inherit;
+  cursor:pointer;
+}
+.live-feed-preset-badge:hover{
+  border-color:color-mix(in srgb,var(--ewc-accent) 40%,rgba(255,255,255,.12));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--ewc-accent) 14%,transparent);
+  transform:translateY(-1px);
+}
+.live-feed-preset-badge.empty{
+  cursor:default;
+}
+.live-feed-preset-badge.empty:hover{
+  transform:none;
+  box-shadow:none;
+}
+.live-feed-detail-grid{
+  display:grid;
+  gap:10px;
+}
+.live-feed-detail-card{
+  display:grid;
+  grid-template-columns:54px minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.045);
+  border-radius:16px;
+  padding:10px;
+}
+.live-feed-detail-thumb{
+  width:54px;
+  height:54px;
+  border-radius:14px;
+  overflow:hidden;
+  background:linear-gradient(135deg,rgba(77,211,255,.12),rgba(255,189,89,.10));
+  display:grid;
+  place-items:center;
+}
+.live-feed-detail-thumb .resource-fallback,
+.live-feed-detail-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.live-feed-detail-copy{min-width:0;}
+.live-feed-detail-copy b{
+  display:block;
+  color:var(--brand);
+  font-family:Orbitron,sans-serif;
+  font-size:.88rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.live-feed-detail-copy span{
+  display:block;
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:900;
+  margin:2px 0 6px;
+}
+.live-feed-detail-copy p{
+  margin:0;
+  color:rgba(244,246,255,.84);
+  font-size:.82rem;
+  line-height:1.35;
+  white-space:pre-line;
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -5763,20 +5839,106 @@ function liveFeedPlayerHeaderHtml(){
     <span></span>
   </div>`;
 }
+const LIVE_FEED_PRESET_DETAIL_STORE = [];
+function resetLiveFeedPresetDetailStore(){
+  LIVE_FEED_PRESET_DETAIL_STORE.length = 0;
+}
+function addLiveFeedPresetDetail(payload){
+  LIVE_FEED_PRESET_DETAIL_STORE.push(payload);
+  return LIVE_FEED_PRESET_DETAIL_STORE.length - 1;
+}
+function liveFeedResourceKind(kind){
+  if(kind === 'skill' || kind === 'passives') return 'skills';
+  if(kind === 'pet') return 'pets';
+  if(kind === 'loadout') return 'loadouts';
+  return kind || 'skills';
+}
+function findLiveFeedResourceItem(kind, item){
+  if(!item || !norm(item.name)) return null;
+  const resourceKind = liveFeedResourceKind(kind);
+  const list = RESOURCE_DATA[resourceKind] || [];
+  const wantedNameKey = assetLookupKey(item.name);
+  const wantedId = normalizeLookupId(item.id || item.code || item.loadout_id || item.pet_id || item.skill_id || '');
+
+  const found = list.find(resource => {
+    const raw = resource?.raw || {};
+    const resourceNameKey = assetLookupKey(resource?.name);
+    const rawIds = idCandidatesFromRow(raw).map(normalizeLookupId).filter(Boolean);
+    if(wantedId && rawIds.includes(wantedId)) return true;
+    if(wantedNameKey && resourceNameKey === wantedNameKey) return true;
+    if(wantedNameKey && resourceNameKey && (resourceNameKey.includes(wantedNameKey) || wantedNameKey.includes(resourceNameKey))) return true;
+    return false;
+  });
+
+  return found || null;
+}
+function makeLiveFeedDetailItem(kind, item){
+  const resourceKind = liveFeedResourceKind(kind);
+  const found = findLiveFeedResourceItem(kind, item);
+  if(found) return found;
+  return {
+    kind: resourceKind,
+    name: item?.name || 'Preset Item',
+    sub: resourceKindSingular(resourceKind),
+    img: '',
+    desc: 'No description found in the reference JSON for this preset item.',
+    raw: {
+      id: item?.id || '',
+      name: item?.name || ''
+    }
+  };
+}
+function openLiveFeedPresetDetail(index){
+  const payload = LIVE_FEED_PRESET_DETAIL_STORE[index];
+  if(!payload) return;
+
+  if(payload.type === 'passiveGroup'){
+    const items = (payload.items || []).map(item => makeLiveFeedDetailItem('skill', item));
+    setText('itemDetailTitle', `${payload.player || 'Player'} — Passive Skills`);
+    setText('itemDetailSub', 'Live Feed Preset • Passive Skills');
+    const body = el('itemDetailBody');
+    const detailCard = el('itemDetailModal')?.querySelector('.item-detail-card');
+    detailCard?.classList.remove('map-view');
+    body.innerHTML = items.length ? `
+      <div class="live-feed-detail-grid">
+        ${items.map(item => `
+          <div class="live-feed-detail-card">
+            <div class="live-feed-detail-thumb">${resourceImageHtml(item, 'skills')}</div>
+            <div class="live-feed-detail-copy">
+              <b>${escHtml(item.name || 'Passive Skill')}</b>
+              <span>${escHtml(item.sub || 'Skill')}</span>
+              <p>${escHtml(item.desc || getGalleryDesc(item.raw || item, 'skills') || 'No description yet.')}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>` : '<div class="muted">No passive skills found for this player.</div>';
+    el('itemDetailModal')?.classList.add('show');
+    el('itemDetailModal')?.setAttribute('aria-hidden','false');
+    document.body.classList.add('sb-open');
+    return;
+  }
+
+  openItemDetailPopup(payload.item, payload.resourceKind, 'liveFeedPreset');
+}
 function liveFeedPresetBadgeHtml(kind, item, label=''){
   if(!item || !norm(item.name)) return `<span class="live-feed-preset-badge ${kind} empty" title="No ${escHtml(kind)}">—</span>`;
   const name = norm(item.name);
-  return `<span class="live-feed-preset-badge ${kind}" title="${escHtml(name)}">${visualIconHtml(kind, name, item.id || '')}</span>`;
+  const resourceKind = liveFeedResourceKind(kind);
+  const detailItem = makeLiveFeedDetailItem(kind, item);
+  const detailIndex = addLiveFeedPresetDetail({ type:'single', resourceKind, item:detailItem });
+  return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(name)} — click for details" onclick="event.stopPropagation();openLiveFeedPresetDetail(${detailIndex})">${visualIconHtml(kind, name, item.id || '')}</button>`;
 }
-function liveFeedPassiveBadgeHtml(items){
+function liveFeedPassiveBadgeHtml(items, playerName=''){
   const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
+  if(!clean.length) return `<span class="live-feed-preset-badge passives empty" title="No passive skills">—</span>`;
+  const detailIndex = addLiveFeedPresetDetail({ type:'passiveGroup', player:playerName, items:clean });
   const icons = clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('');
-  return `<span class="live-feed-preset-badge passives ${clean.length ? '' : 'empty'}" title="${escHtml(clean.map(x => x.name).join(' • ') || 'No passive skills')}">${icons || '—'}</span>`;
+  return `<button class="live-feed-preset-badge passives" type="button" title="${escHtml(clean.map(x => x.name).join(' • '))} — click for details" onclick="event.stopPropagation();openLiveFeedPresetDetail(${detailIndex})">${icons}</button>`;
 }
 function liveFeedPlayerPresetHtml(player){
   const badges = [
     liveFeedPresetBadgeHtml('skill', player.activeItem),
-    liveFeedPassiveBadgeHtml(player.passiveItems),
+    liveFeedPassiveBadgeHtml(player.passiveItems, player.player),
     liveFeedPresetBadgeHtml('pet', player.petItem),
     liveFeedPresetBadgeHtml('loadout', player.loadoutItem)
   ].join('');
@@ -5806,6 +5968,7 @@ function renderLiveFeed(){
     box.innerHTML = 'No latest match rows found for the current filter.';
     return;
   }
+  resetLiveFeedPresetDetailStore();
   const teams = buildLiveFeedTeams(rows);
   const first = rows[0] || {};
   const label = `D${escHtml(norm(getVal(first, KEYS.day)) || '—')} • M${escHtml(norm(getVal(first, KEYS.matchNo)) || '—')}`;
