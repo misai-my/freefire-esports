@@ -2639,6 +2639,61 @@
       }
     }
 
+  
+
+    /* ===== Minor updates: red modal close buttons + preset add slots ===== */
+    .team-modal .icon-btn#teamModalClose,
+    .resource-modal .icon-btn#resourceModalClose,
+    .item-detail-modal .icon-btn#itemDetailClose{
+      background:linear-gradient(135deg,rgba(255,63,93,.28),rgba(170,20,45,.22))!important;
+      border-color:rgba(255,88,115,.55)!important;
+      color:#ffdce2!important;
+      box-shadow:0 10px 24px rgba(255,63,93,.16), inset 0 1px 0 rgba(255,255,255,.08)!important;
+    }
+    .team-modal .icon-btn#teamModalClose:hover,
+    .resource-modal .icon-btn#resourceModalClose:hover,
+    .item-detail-modal .icon-btn#itemDetailClose:hover{
+      background:linear-gradient(135deg,rgba(255,63,93,.42),rgba(190,24,55,.34))!important;
+      border-color:rgba(255,115,136,.78)!important;
+      color:#fff!important;
+      box-shadow:0 12px 30px rgba(255,63,93,.24),0 0 0 3px rgba(255,63,93,.12)!important;
+    }
+    .team-modal .icon-btn#teamModalClose svg,
+    .resource-modal .icon-btn#resourceModalClose svg,
+    .item-detail-modal .icon-btn#itemDetailClose svg{color:inherit!important;}
+
+    .preset-row-controls{
+      display:inline-flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:7px;
+      flex-wrap:wrap;
+    }
+    .preset-add-slot{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      color:rgba(244,246,255,.92);
+      border-radius:999px;
+      padding:5px 8px;
+      font-size:.62rem;
+      line-height:1;
+      font-weight:1000;
+      cursor:pointer;
+      transition:transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+    .preset-add-slot:hover{
+      transform:translateY(-1px);
+      border-color:color-mix(in srgb,var(--ewc-accent) 48%,rgba(255,255,255,.12));
+      background:color-mix(in srgb,var(--ewc-accent) 18%,rgba(255,255,255,.06));
+      box-shadow:0 0 0 3px color-mix(in srgb,var(--ewc-accent) 13%,transparent);
+    }
+    @media(max-width:620px){
+      .preset-row-title{align-items:flex-start;}
+      .preset-row-controls{gap:5px;}
+      .preset-add-slot{padding:4px 7px;font-size:.58rem;}
+    }
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -2932,10 +2987,10 @@
           <a class="btn brand" href="preset.html">Open Full Builder</a>
         </div>
       </div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetActiveRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="muted">3 slots</span></div><div class="preset-row" id="presetPassiveRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="muted">1 slot</span></div><div class="preset-row" id="presetPetRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="muted">4 slots</span></div><div class="preset-row" id="presetLoadoutRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="preset-row-controls"><span class="muted" id="presetActiveCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="active">+ Slot</button></span></div><div class="preset-row" id="presetActiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="preset-row-controls"><span class="muted" id="presetPassiveCount">3 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="passive">+ Slot</button></span></div><div class="preset-row" id="presetPassiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="preset-row-controls"><span class="muted" id="presetPetCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="pet">+ Slot</button></span></div><div class="preset-row" id="presetPetRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="preset-row-controls"><span class="muted" id="presetLoadoutCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="loadout">+ Slot</button></span></div><div class="preset-row" id="presetLoadoutRow"></div></div>
     </div>
   </details>
 </div>
@@ -6384,7 +6439,7 @@ function renderTeamStory(teamRows){
     day:r.day || '—',
     matchNo:r.match_no || '—',
     match:r.mk,
-    booyah:r.booyah ? 'YES' : '',
+    booyah:r.booyah ? '👑' : '',
     elims:r.elims,
     rankScore:r.ranking_score,
     total:(r.elims||0)+(r.ranking_score||0),
@@ -6757,11 +6812,24 @@ function pickResourceItem(item){
   closeResourcePopup();
   openItemDetailPopup(item, RESOURCE_MODAL_KIND, 'preset');
 }
+function normalizeMiniPresetSlots(){
+  if(!Array.isArray(MINI_PRESET.active)) MINI_PRESET.active = [null];
+  if(!Array.isArray(MINI_PRESET.passive)) MINI_PRESET.passive = [null,null,null];
+  if(!Array.isArray(MINI_PRESET.pet)) MINI_PRESET.pet = [null];
+  if(!Array.isArray(MINI_PRESET.loadout)) MINI_PRESET.loadout = [null,null,null,null];
+
+  // Minimum slot layout: 1 active, 3 passive, 1 pet, and all 4 loadout slots.
+  while(MINI_PRESET.active.length < 1) MINI_PRESET.active.push(null);
+  while(MINI_PRESET.passive.length < 3) MINI_PRESET.passive.push(null);
+  while(MINI_PRESET.pet.length < 1) MINI_PRESET.pet.push(null);
+  while(MINI_PRESET.loadout.length < 4) MINI_PRESET.loadout.push(null);
+}
 function loadMiniPreset(){
   try{
     const parsed = JSON.parse(localStorage.getItem(MINI_PRESET_KEY) || 'null');
     if(parsed && typeof parsed === 'object') MINI_PRESET = Object.assign(MINI_PRESET, parsed);
   }catch(_e){}
+  normalizeMiniPresetSlots();
 }
 function saveMiniPreset(){ try{ localStorage.setItem(MINI_PRESET_KEY, JSON.stringify(MINI_PRESET)); }catch(_e){} }
 function emptyPresetSlotLabel(kind, index){
@@ -6798,11 +6866,29 @@ function renderPresetRow(rowId, kind){
     });
   });
 }
+function presetSlotCountText(kind){
+  const count = (MINI_PRESET[kind] || []).length;
+  return `${count} slot${count === 1 ? '' : 's'}`;
+}
+function updateMiniPresetSlotCounts(){
+  setText('presetActiveCount', presetSlotCountText('active'));
+  setText('presetPassiveCount', presetSlotCountText('passive'));
+  setText('presetPetCount', presetSlotCountText('pet'));
+  setText('presetLoadoutCount', presetSlotCountText('loadout'));
+}
+function addMiniPresetSlot(kind){
+  if(!MINI_PRESET[kind]) return;
+  MINI_PRESET[kind].push(null);
+  saveMiniPreset();
+  renderMiniPresetBuilder();
+}
 function renderMiniPresetBuilder(){
+  normalizeMiniPresetSlots();
   renderPresetRow('presetActiveRow','active');
   renderPresetRow('presetPassiveRow','passive');
   renderPresetRow('presetPetRow','pet');
   renderPresetRow('presetLoadoutRow','loadout');
+  updateMiniPresetSlotCounts();
 }
 function applyPresetPick(kind, index, item){
   if(!MINI_PRESET[kind]) return;
@@ -6827,6 +6913,9 @@ function wireResourceTools(){
   el('itemDetailClose')?.addEventListener('click', closeItemDetailPopup);
   el('itemDetailBackdrop')?.addEventListener('click', closeItemDetailPopup);
   el('presetResetBtn')?.addEventListener('click', resetMiniPreset);
+  document.querySelectorAll('[data-add-preset-slot]').forEach(btn => {
+    btn.addEventListener('click', () => addMiniPresetSlot(btn.getAttribute('data-add-preset-slot')));
+  });
   loadMiniPreset();
   renderMiniPresetBuilder();
 }
