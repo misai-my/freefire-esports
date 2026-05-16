@@ -3627,6 +3627,36 @@ body.betting-experiment .team-code,
   white-space:pre-line;
 }
 
+
+
+/* ===== Requested final layout updates ===== */
+.team-grid{
+  grid-template-columns:repeat(var(--team-cols, 12), minmax(0, 1fr)) !important;
+  gap:6px !important;
+}
+.team-tile{
+  height:86px !important;
+  min-width:0 !important;
+  padding:6px !important;
+  gap:5px !important;
+}
+.team-tile-logo{
+  width:42px !important;
+  height:42px !important;
+  border-radius:12px !important;
+}
+.team-code{font-size:.68rem !important;line-height:1.05 !important;}
+@media(max-width:980px){
+  .team-grid{grid-template-columns:repeat(auto-fit,minmax(70px,1fr)) !important;}
+  .team-tile{height:82px !important;}
+}
+.preset-clear{right:6px;bottom:6px;width:auto;min-width:42px;height:24px;padding:0 7px;border-radius:9px;font-size:.58rem;}
+.preset-slot .preset-change{left:6px;bottom:6px;}
+.preset-slot .preset-clear + .preset-change{left:56px;}
+.snap-visual-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}
+.snap-visual-items{flex-wrap:wrap;min-height:44px;}
+.player-compare-head .muted,.player-compare-note{display:none !important;}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -3860,6 +3890,7 @@ body.betting-experiment .team-code,
     <div class="accordion-body">
       <div class="bar">
         <label>Tournament <select id="fTournament" class="input" style="min-width:250px"><option value="__all__">All</option></select></label>
+        <label>Stage <select id="fStage" class="input" style="min-width:180px"><option value="__all__">All</option></select></label>
         <label>Mode <select id="fMode" class="input" style="min-width:100px"><option value="__all__">All</option></select></label>
         <label>Source <select id="fSource" class="input" style="min-width:130px"><option value="__all__">All</option></select></label>
         <label>Year <select id="fYear" class="input" style="min-width:110px"><option value="__all__">All</option></select></label>
@@ -3923,16 +3954,16 @@ body.betting-experiment .team-code,
     <summary><span>Mini Preset Builder</span><span class="muted">Quick build reference</span></summary>
     <div class="accordion-body">
       <div class="preset-mini-head">
-        <div class="muted" style="font-size:.82rem;margin-top:4px">Click an empty slot to pick from the popup library. Click a filled slot for details.</div>
+        <div class="muted" style="font-size:.82rem;margin-top:4px">Click an empty slot to pick from the popup library. Click a filled slot for details. Use + Slot and Delete Slot to adjust rows.</div>
         <div class="preset-pills">
           <button class="btn secondary" id="presetResetBtn" type="button">Reset Preset</button>
           <a class="btn brand" href="preset.html">Open Full Builder</a>
         </div>
       </div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="preset-row-controls"><span class="muted" id="presetActiveCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="active">+ Slot</button></span></div><div class="preset-row" id="presetActiveRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="preset-row-controls"><span class="muted" id="presetPassiveCount">3 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="passive">+ Slot</button></span></div><div class="preset-row" id="presetPassiveRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="preset-row-controls"><span class="muted" id="presetPetCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="pet">+ Slot</button></span></div><div class="preset-row" id="presetPetRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="preset-row-controls"><span class="muted" id="presetLoadoutCount">Fixed 4 slots</span></span></div><div class="preset-row fixed-loadout-row" id="presetLoadoutRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="preset-row-controls"><span class="muted" id="presetActiveCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="active">+ Slot</button></span></div><div class="preset-row" id="presetActiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="preset-row-controls"><span class="muted" id="presetPassiveCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="passive">+ Slot</button></span></div><div class="preset-row" id="presetPassiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="preset-row-controls"><span class="muted" id="presetPetCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="pet">+ Slot</button></span></div><div class="preset-row" id="presetPetRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="preset-row-controls"><span class="muted" id="presetLoadoutCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="loadout">+ Slot</button></span></div><div class="preset-row fixed-loadout-row" id="presetLoadoutRow"></div></div>
     </div>
   </details>
 </div>
@@ -4003,7 +4034,7 @@ body.betting-experiment .team-code,
           <div class="card"><h3>Key KPIs</h3><div id="teamKpis">Select a team.</div></div>
           <div class="card"><h3>Loadout Snapshot (Team)</h3><div id="teamLoadoutSnap" class="muted">—</div></div>
         </div>
-        <div class="card" style="margin-top:12px"><h3>Team Story</h3><div id="teamStory" class="small muted">—</div></div>
+        <div id="teamStory" class="small muted" style="display:none"></div>
       </section>
 
       <section class="team-tab-panel" id="panel-players" data-panel="players">
@@ -4043,7 +4074,6 @@ body.betting-experiment .team-code,
 
         <div class="player-compare-head">
           <h3>Player Comparison</h3>
-          <div class="muted">Automatically lists all players from the selected team and comparison team, ordered by role.</div>
         </div>
 
         <div id="playerCompareBox" class="player-compare-grid">
@@ -4270,7 +4300,7 @@ function switchResourcePopup(kind){
 }
 
 const MINI_PRESET_KEY = 'ewc_mini_preset_v1';
-let MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
+let MINI_PRESET = { version: 2, active:[null,null,null,null], passive:[null,null,null,null], pet:[null,null,null,null], loadout:[null,null,null,null] };
 const FIXED_MINI_LOADOUTS = [
   { code:'500000008', name:'Enhance Hammer', aliases:['Enhance Hammer','Enhance Ha'] },
   { code:'500000003', name:'Super Leg Pockets', aliases:['Super Leg Pockets','Super Leg Pocket','Super Leg'] },
@@ -4550,7 +4580,7 @@ let CURRENT_TEAM = null;
 let USED_CORE_SELECT = true;
 let KEYS = {
   team:null, teamId:null, player:null, accountId:null,
-  tournament:null, year:null, week:null, day:null, matchNo:null, matchId:null, mode:null, dataSource:null, center:null,
+  tournament:null, stage:null, year:null, week:null, day:null, matchNo:null, matchId:null, mode:null, dataSource:null, center:null,
   kills:null, damage:null, assists:null, headshots:null, shoots:null, hits:null, survivalTime:null,
   booyah:null, killCount:null, killingScore:null, rankingScore:null, winRate:null,
   petName:null, petId:null, loadouts:null,
@@ -4563,6 +4593,7 @@ let SKILL_ID_TO_NAME = new Map();
 let MAP_READY = false;
 let CHAR_SKILLKEY_TO_KIND = new Map();
 let CHAR_SKILLKEY_TO_CANONICAL = new Map();
+let CHAR_SKILLKEY_TO_DISPLAY = new Map();
 let CHAR_SKILLKEY_LIST = [];
 let SKILL_NAME_TO_IMAGE = new Map();
 let CHAR_NAME_TO_IMAGE = new Map();
@@ -4586,6 +4617,7 @@ function detectSchema(sample){
   KEYS.player = pickKey(keys, [/^player_stats_nickname$/i, /^nickname$/i, /player.*name/i, /^name$/i]);
   KEYS.accountId = pickKey(keys, [/^player_stats_account_id$/i, /^account_id$/i, /account.*id/i]);
   KEYS.tournament = pickKey(keys, [/^Tournament$/, /^tournament$/i]);
+  KEYS.stage = pickKey(keys, [/^Stage$/, /^stage$/i]);
   KEYS.year = pickKey(keys, [/^Year$/, /^year$/i]);
   KEYS.week = pickKey(keys, [/^Week$/, /^week$/i]);
   KEYS.day = pickKey(keys, [/^Day$/, /^day$/i]);
@@ -4623,6 +4655,7 @@ function detectSchema(sample){
     KEYS.player ? `player=${KEYS.player}` : 'player=—',
     KEYS.accountId ? `account=${KEYS.accountId}` : 'account=—',
     KEYS.tournament ? `tournament=${KEYS.tournament}` : 'tournament=—',
+    KEYS.stage ? `stage=${KEYS.stage}` : 'stage=—',
     KEYS.matchNo ? `matchNo=${KEYS.matchNo}` : 'matchNo=—',
     KEYS.kills ? `kills=${KEYS.kills}` : 'kills=—',
     KEYS.damage ? `dmg=${KEYS.damage}` : 'dmg=—',
@@ -5218,7 +5251,7 @@ function visualIconHtml(kind, label, id=''){
 }
 function visualItemHtml(kind, item, compact=false){
   if(!item || !norm(item.name)) return '';
-  const label = norm(item.name);
+  const label = kind === 'skill' ? formatSkillDisplayName(item.name) : norm(item.name);
   const picks = item.picks ? Number(item.picks) || item.picks : '';
   const countTitle = picks ? ` (${escHtml(picks)})` : '';
   let itemId = item.id || '';
@@ -5243,10 +5276,58 @@ function topVisualRowHtml(activeItems, passiveItems, petItems, loadoutItems){
   return `<div class="skill-summary-scroll"><div class="skill-visual-row team-top">${visualColumnHtml('Top Active', 'skill', activeItems)}${visualColumnHtml('Top Passive', 'skill', passiveItems, true)}${visualColumnHtml('Top Pet', 'pet', petItems)}${visualColumnHtml('Top Loadout', 'loadout', loadoutItems)}</div></div>`;
 }
 
+function cleanDisplayNamePart(value){
+  const v = norm(value).replace(/\s+/g, ' ').trim();
+  if(!v || v === '[object Object]') return '';
+  return v;
+}
+function makeCharacterSkillDisplayName(characterName, skillName, fallbackName=''){
+  const character = cleanDisplayNamePart(characterName);
+  const skill = cleanDisplayNamePart(skillName);
+  const fallback = cleanDisplayNamePart(fallbackName);
+
+  if(character && skill && skillKey(character) !== skillKey(skill)) return `${character} - ${skill}`;
+  if(fallback && character && skillKey(fallback) !== skillKey(character) && (!skill || skillKey(fallback) !== skillKey(skill))) return `${character || fallback} - ${fallback}`;
+  if(character) return character;
+  if(skill) return skill;
+  return fallback;
+}
+function formatSkillDisplayName(name){
+  const raw = norm(name);
+  if(!raw) return '';
+  if(raw.includes(' - ')) return raw;
+
+  const keys = skillImageLookupKeys(raw);
+  for(const key of keys){
+    const display = CHAR_SKILLKEY_TO_DISPLAY.get(key);
+    if(display) return display;
+  }
+
+  const firstKey = firstSkillNameTokenKey(raw);
+  if(firstKey){
+    const display = CHAR_SKILLKEY_TO_DISPLAY.get(firstKey);
+    if(display) return display;
+  }
+
+  for(const key of keys){
+    for(const [storedKey, display] of CHAR_SKILLKEY_TO_DISPLAY.entries()){
+      if(!storedKey || !display) continue;
+      if(key.includes(storedKey) || storedKey.includes(key)) return display;
+    }
+  }
+
+  return raw;
+}
+function normalizeSkillItemForDisplay(item){
+  if(!item || !norm(item.name)) return item;
+  return { ...item, name: formatSkillDisplayName(item.name) };
+}
+
 async function loadCharacterJson(){
   CHAR_READY = false;
   CHAR_SKILLKEY_TO_KIND.clear();
   CHAR_SKILLKEY_TO_CANONICAL.clear();
+  CHAR_SKILLKEY_TO_DISPLAY.clear();
   CHAR_SKILLKEY_LIST = [];
   SKILL_NAME_TO_IMAGE.clear();
   CHAR_NAME_TO_IMAGE.clear();
@@ -5275,6 +5356,19 @@ async function loadCharacterJson(){
       if(!kind) continue;
 
       const skillImage = firstImageValue(ch);
+      const primarySkillName = cleanDisplayNamePart(
+        firstTextFromPaths(ch, ['skill.name','skill.title','skill.label','skill.skill_name','skill.skillName','skill.ability_name','skill.abilityName']) ||
+        firstTextFromPaths(ch, ['ability.name','ability.title','ability.label','ability.skill_name','ability.skillName']) ||
+        ch?.skill_name || ch?.skillName || ch?.ability_name || ch?.abilityName || ch?.skill || ch?.ability ||
+        firstCharacterValue(ch, [/skill.*name/i, /ability.*name/i, /^skill$/i, /^ability$/i])
+      );
+      const primaryCharacterName = cleanDisplayNamePart(
+        firstTextFromPaths(ch, ['character.name','character.title','character.label','hero.name','hero.title','hero.label']) ||
+        ch?.character_name || ch?.characterName || ch?.hero_name || ch?.heroName || ch?.character || ch?.hero || ch?.code_name || ch?.codeName || ch?.code || ch?.name || ch?.title || ch?.label ||
+        firstCharacterValue(ch, [/^character$/i, /character.*name/i, /^hero$/i, /hero.*name/i, /^name$/i, /^title$/i, /^label$/i])
+      );
+      const skillDisplayName = makeCharacterSkillDisplayName(primaryCharacterName, primarySkillName, ch?.name || ch?.title || ch?.label);
+
       const possibleNames = [
         firstTextFromPaths(ch, ['skill.name','skill.title','skill.label','skill.skill_name','skill.skillName','skill.ability_name','skill.abilityName']),
         firstTextFromPaths(ch, ['ability.name','ability.title','ability.label','ability.skill_name','ability.skillName']),
@@ -5339,6 +5433,9 @@ async function loadCharacterJson(){
             if(kind === 'active') activeCount++;
             if(kind === 'passive') passiveCount++;
           }
+          if(skillDisplayName && !CHAR_SKILLKEY_TO_DISPLAY.has(k)){
+            CHAR_SKILLKEY_TO_DISPLAY.set(k, skillDisplayName);
+          }
           if(skillImage && !SKILL_NAME_TO_IMAGE.has(k)){
             SKILL_NAME_TO_IMAGE.set(k, skillImage);
           }
@@ -5351,6 +5448,7 @@ async function loadCharacterJson(){
       kind,
       name: CHAR_SKILLKEY_TO_CANONICAL.get(key) || key
     }));
+    RESOURCE_DATA.skills = (RESOURCE_DATA.skills || []).map(item => normalizeSkillItemForDisplay(item));
     CHAR_READY = CHAR_SKILLKEY_TO_KIND.size > 0;
     setText('diagChar', `character.json validation: ${CHAR_SKILLKEY_TO_KIND.size} skill names • images=${SKILL_NAME_TO_IMAGE.size + CHAR_NAME_TO_IMAGE.size + CHAR_ID_TO_IMAGE.size} • active=${activeCount} • passive=${passiveCount}`);
   }catch(e){
@@ -5573,7 +5671,7 @@ function matchKeyForRow(r){
   const t = norm(getVal(r, KEYS.tournament)); const y = norm(getVal(r, KEYS.year)); const w = norm(getVal(r, KEYS.week)); const d = norm(getVal(r, KEYS.day)); const m = norm(getVal(r, KEYS.matchNo)); const mid = norm(getVal(r, KEYS.matchId));
   return mid ? `${t}|${mid}` : `${t}|Y${y}|W${w}|D${d}|M${m}`;
 }
-function currentFilter(){ return { t:el('fTournament').value, mode:el('fMode').value, source:el('fSource').value, y:el('fYear').value, w:el('fWeek').value, d:el('fDay').value, m:el('fMatchNo').value }; }
+function currentFilter(){ return { t:el('fTournament').value, stage:el('fStage')?.value || '__all__', mode:el('fMode').value, source:el('fSource').value, y:el('fYear').value, w:el('fWeek').value, d:el('fDay').value, m:el('fMatchNo').value }; }
 function countMatchesIn(rows){ return new Set(rows.map(matchKeyForRow)).size; }
 function uniqSorted(values, descNumeric=true){
   const arr = [...new Set(values.map(v => norm(v)).filter(Boolean))];
@@ -5587,8 +5685,9 @@ function setSelectOptions(selectEl, values, keepCurrent=true){
 }
 function rowsForCascade(){
   let rows = RAW.slice();
-  const t = el('fTournament').value, mode = el('fMode').value, source = el('fSource').value, y = el('fYear').value, w = el('fWeek').value, d = el('fDay').value;
+  const t = el('fTournament').value, stage = el('fStage')?.value || '__all__', mode = el('fMode').value, source = el('fSource').value, y = el('fYear').value, w = el('fWeek').value, d = el('fDay').value;
   if(t !== '__all__' && KEYS.tournament) rows = rows.filter(r => norm(getVal(r, KEYS.tournament)) === t);
+  if(stage !== '__all__' && KEYS.stage) rows = rows.filter(r => norm(getVal(r, KEYS.stage)) === stage);
   if(mode !== '__all__' && KEYS.mode) rows = rows.filter(r => norm(getVal(r, KEYS.mode)).toUpperCase() === mode.toUpperCase());
   if(source !== '__all__' && KEYS.dataSource) rows = rows.filter(r => norm(getVal(r, KEYS.dataSource)) === source);
   const rBase = rows.slice();
@@ -5601,7 +5700,8 @@ function rowsForCascade(){
 }
 function refreshCascadeOptions(changed){
   const { rBase, rY, rW, rD } = rowsForCascade();
-  if(['tournament','mode','source'].includes(changed)){
+  if(['tournament','stage','mode','source'].includes(changed)){
+    if(KEYS.stage) setSelectOptions(el('fStage'), uniqSorted(rBase.map(r=>getVal(r,KEYS.stage))), false);
     if(KEYS.year) setSelectOptions(el('fYear'), uniqSorted(rBase.map(r=>getVal(r,KEYS.year))), false);
     if(KEYS.week) setSelectOptions(el('fWeek'), uniqSorted(rY.map(r=>getVal(r,KEYS.week))), false);
     if(KEYS.day) setSelectOptions(el('fDay'), uniqSorted(rW.map(r=>getVal(r,KEYS.day))), false);
@@ -5626,15 +5726,16 @@ function refreshCascadeOptions(changed){
 function latestKeyFrom(rows){
   let best = null;
   for(const r of rows){
-    const y=n(getVal(r,KEYS.year)), w=n(getVal(r,KEYS.week)), d=n(getVal(r,KEYS.day)), m=n(getVal(r,KEYS.matchNo));
+    const stage=norm(getVal(r,KEYS.stage)); const y=n(getVal(r,KEYS.year)), w=n(getVal(r,KEYS.week)), d=n(getVal(r,KEYS.day)), m=n(getVal(r,KEYS.matchNo));
     const pulled = Date.parse(norm(r.pulled_at || '')) || 0;
     const key=(y*1e10)+(w*1e8)+(d*1e6)+(m*1e4)+Math.min(9999, Math.floor(pulled/100000000));
-    if(!best || key > best.key) best={key,y:norm(getVal(r,KEYS.year)),w:norm(getVal(r,KEYS.week)),d:norm(getVal(r,KEYS.day)),m:norm(getVal(r,KEYS.matchNo))};
+    if(!best || key > best.key) best={key,stage,y:norm(getVal(r,KEYS.year)),w:norm(getVal(r,KEYS.week)),d:norm(getVal(r,KEYS.day)),m:norm(getVal(r,KEYS.matchNo))};
   }
   return best;
 }
 function populateTopDropdowns(){
   if(KEYS.tournament) setSelectOptions(el('fTournament'), uniqSorted(RAW.map(r=>getVal(r,KEYS.tournament))), false);
+  if(KEYS.stage) setSelectOptions(el('fStage'), uniqSorted(RAW.map(r=>getVal(r,KEYS.stage))), false);
   if(KEYS.mode) setSelectOptions(el('fMode'), uniqSorted(RAW.map(r=>String(getVal(r,KEYS.mode)).toUpperCase())), false);
   if(KEYS.dataSource) setSelectOptions(el('fSource'), uniqSorted(RAW.map(r=>getVal(r,KEYS.dataSource))), false);
 }
@@ -5658,6 +5759,8 @@ function resetToLatest(){
 
   const latest = latestKeyFrom(tRows);
   refreshCascadeOptions('tournament');
+  if(latest?.stage && [...el('fStage').options].some(o=>o.value===latest.stage)) el('fStage').value = latest.stage;
+  refreshCascadeOptions('stage');
   if(latest?.y && [...el('fYear').options].some(o=>o.value===latest.y)) el('fYear').value = latest.y;
   refreshCascadeOptions('year');
   if(latest?.w && [...el('fWeek').options].some(o=>o.value===latest.w)) el('fWeek').value = latest.w;
@@ -5671,6 +5774,7 @@ function applyFilters(){
   const f = currentFilter();
   FILTERED = RAW.filter(r => {
     if(f.t !== '__all__' && KEYS.tournament && norm(getVal(r,KEYS.tournament)) !== f.t) return false;
+    if(f.stage !== '__all__' && KEYS.stage && norm(getVal(r,KEYS.stage)) !== f.stage) return false;
     if(f.mode !== '__all__' && KEYS.mode && norm(getVal(r,KEYS.mode)).toUpperCase() !== f.mode.toUpperCase()) return false;
     if(f.source !== '__all__' && KEYS.dataSource && norm(getVal(r,KEYS.dataSource)) !== f.source) return false;
     if(f.y !== '__all__' && KEYS.year && norm(getVal(r,KEYS.year)) !== f.y) return false;
@@ -5681,6 +5785,7 @@ function applyFilters(){
   });
   const scopeText = [
     f.t !== '__all__' ? f.t : 'All tournaments',
+    f.stage !== '__all__' ? f.stage : 'All stages',
     f.mode !== '__all__' ? f.mode : 'All modes',
     f.source !== '__all__' ? f.source : 'All sources',
     f.y !== '__all__' ? `Y${f.y}` : 'All years',
@@ -5692,6 +5797,7 @@ function applyFilters(){
   if(el('heroScopeMirror')){
     const scopeRows = [
       ['Tournament', f.t !== '__all__' ? f.t : 'All'],
+      ['Stage', f.stage !== '__all__' ? f.stage : 'All'],
       ['Week', f.w !== '__all__' ? f.w : 'All'],
       ['Day', f.d !== '__all__' ? f.d : 'All'],
       ['Match', f.m !== '__all__' ? f.m : 'All']
@@ -5878,7 +5984,7 @@ function makeLiveFeedDetailItem(kind, item){
   if(found) return found;
   return {
     kind: resourceKind,
-    name: item?.name || 'Preset Item',
+    name: resourceKind === 'skills' ? formatSkillDisplayName(item?.name || 'Preset Item') : (item?.name || 'Preset Item'),
     sub: resourceKindSingular(resourceKind),
     img: '',
     desc: 'No description found in the reference JSON for this preset item.',
@@ -5922,14 +6028,14 @@ function openLiveFeedPresetDetail(index){
 }
 function liveFeedPresetBadgeHtml(kind, item, label=''){
   if(!item || !norm(item.name)) return `<span class="live-feed-preset-badge ${kind} empty" title="No ${escHtml(kind)}">—</span>`;
-  const name = norm(item.name);
+  const name = kind === 'skill' ? formatSkillDisplayName(item.name) : norm(item.name);
   const resourceKind = liveFeedResourceKind(kind);
   const detailItem = makeLiveFeedDetailItem(kind, item);
   const detailIndex = addLiveFeedPresetDetail({ type:'single', resourceKind, item:detailItem });
   return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(name)} — click for details" onclick="event.stopPropagation();openLiveFeedPresetDetail(${detailIndex})">${visualIconHtml(kind, name, item.id || '')}</button>`;
 }
 function liveFeedPassiveBadgeHtml(items, playerName=''){
-  const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
+  const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3).map(normalizeSkillItemForDisplay);
   if(!clean.length) return `<span class="live-feed-preset-badge passives empty" title="No passive skills">—</span>`;
   const detailIndex = addLiveFeedPresetDetail({ type:'passiveGroup', player:playerName, items:clean });
   const icons = clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('');
@@ -6103,6 +6209,7 @@ function rowsForMovementReference(latestOrder){
 
   return RAW.filter(r => {
     if(f.t !== '__all__' && KEYS.tournament && norm(getVal(r, KEYS.tournament)) !== f.t) return false;
+    if(f.stage !== '__all__' && KEYS.stage && norm(getVal(r, KEYS.stage)) !== f.stage) return false;
     if(f.mode !== '__all__' && KEYS.mode && norm(getVal(r, KEYS.mode)).toUpperCase() !== f.mode.toUpperCase()) return false;
     if(f.source !== '__all__' && KEYS.dataSource && norm(getVal(r, KEYS.dataSource)) !== f.source) return false;
     if(f.y !== '__all__' && KEYS.year && norm(getVal(r, KEYS.year)) !== f.y) return false;
@@ -6343,7 +6450,8 @@ function sameSkillName(id, name){
 
 function skillLabelFromId(id){
   if(!id) return '';
-  return mapSkillFromId(id, `ID ${id}`);
+  const rawName = mapSkillFromId(id, `ID ${id}`);
+  return formatSkillDisplayName(rawName);
 }
 
 function getSkillInfoActiveFlag(r){
@@ -6436,7 +6544,8 @@ function classifySkillsFromRow(r){
 
 function getActiveSkillLabel(r){
   const cls = classifySkillsFromRow(r);
-  return cls.activeLabel || (cls.active ? skillLabelFromId(cls.active) : '');
+  const label = cls.activeLabel || (cls.active ? skillLabelFromId(cls.active) : '');
+  return formatSkillDisplayName(label);
 }
 function getActiveSkillId(r){ return classifySkillsFromRow(r).active; }
 function getPassiveSkillIds(r){ return classifySkillsFromRow(r).passives; }
@@ -6551,6 +6660,8 @@ function renderTeamGrid(filter=''){
   const teams = getScopedTeamList().filter(t=>t.toLowerCase().includes(q));
   populateModalTeamSelect();
   if(!teams.length){ el('teamGrid').innerHTML = '<div class="muted">No teams found in this scope.</div>'; return; }
+  const cols = Math.max(1, Math.min(12, teams.length > 12 ? Math.ceil(teams.length / 2) : teams.length));
+  el('teamGrid').style.setProperty('--team-cols', String(cols));
   el('teamGrid').innerHTML = teams.map(t=>{
     const profile = getTeamProfile(t);
     return `<div class="team-tile" data-team="${escHtml(t)}">${teamLogoHtml(t, profile, 'team-tile-logo')}<div class="team-code" title="${escHtml(t)}">${escHtml(t)}</div></div>`;
@@ -7329,10 +7440,6 @@ function renderPlayerComparison() {
   }
 
   box.innerHTML = `
-    <div class="player-compare-note">
-      Role matchup view: left stats and right stats are mirrored for quick caster comparison.
-    </div>
-
     ${rows.map(row => {
       const edge = matchupEdge(row.left, row.right);
       const unmatched = !row.left || !row.right;
@@ -7561,10 +7668,10 @@ function renderTeamKpis(teamRows){
     : '<span class="skill-empty">—</span>';
   el('teamLoadoutSnap').innerHTML = `
     <div class="snap-visual-grid">
-      <div class="snap-visual-card"><span>Top Active</span><div class="snap-visual-items">${snapItems('skill', usageSnap.active, false, 1)}</div></div>
-      <div class="snap-visual-card"><span>Top Pet</span><div class="snap-visual-items">${snapItems('pet', usageSnap.pet, false, 1)}</div></div>
-      <div class="snap-visual-card passive"><span>Top Passive</span><div class="snap-visual-items">${snapItems('skill', usageSnap.passive, true, 1)}</div></div>
-      <div class="snap-visual-card"><span>Top Loadout</span><div class="snap-visual-items">${snapItems('loadout', usageSnap.loadout, false, 1)}</div></div>
+      <div class="snap-visual-card"><span>Top Active</span><div class="snap-visual-items">${snapItems('skill', usageSnap.active, false, 3)}</div></div>
+      <div class="snap-visual-card"><span>Top Pet</span><div class="snap-visual-items">${snapItems('pet', usageSnap.pet, false, 3)}</div></div>
+      <div class="snap-visual-card passive"><span>Top Passive</span><div class="snap-visual-items">${snapItems('skill', usageSnap.passive, true, 3)}</div></div>
+      <div class="snap-visual-card"><span>Top Loadout</span><div class="snap-visual-items">${snapItems('loadout', usageSnap.loadout, false, 2)}</div></div>
     </div>`;
 }
 function renderPlayersTable(teamRows){
@@ -7636,6 +7743,7 @@ function scopeLine(){
   const f = currentFilter();
   return [
     f.t !== '__all__' ? f.t : 'All tournaments',
+    f.stage !== '__all__' ? f.stage : '',
     f.w !== '__all__' ? `W${f.w}` : '',
     f.d !== '__all__' ? `D${f.d}` : '',
     f.m !== '__all__' ? `M${f.m}` : 'All matches'
@@ -7669,7 +7777,7 @@ function renderTeamStory(teamRows){
     <div class="muted">This profile is based on the current filter scope: ${escHtml(scopeLine())}.</div>
   ` : '<div class="muted">No match data available for this team in the current scope.</div>';
 
-  el('teamStory').innerHTML = story;
+  if(el('teamStory')) el('teamStory').innerHTML = story;
   el('teamMatchLog').innerHTML = renderSimpleTable(matches.map((r,i)=>({
     rank:i+1,
     day:r.day || '—',
@@ -8078,17 +8186,27 @@ function enforceFixedMiniLoadouts(){
   MINI_PRESET.loadout = getFixedMiniLoadouts();
 }
 function normalizeMiniPresetSlots(){
-  if(!Array.isArray(MINI_PRESET.active)) MINI_PRESET.active = [null];
-  if(!Array.isArray(MINI_PRESET.passive)) MINI_PRESET.passive = [null,null,null];
-  if(!Array.isArray(MINI_PRESET.pet)) MINI_PRESET.pet = [null];
-  if(!Array.isArray(MINI_PRESET.loadout)) MINI_PRESET.loadout = [null,null,null,null];
+  if(!MINI_PRESET || typeof MINI_PRESET !== 'object') MINI_PRESET = {};
+  const wasOldVersion = MINI_PRESET.version !== 2;
 
-  // Minimum slot layout: 1 active, 3 passive, 1 pet.
-  // Loadout is fixed to the four official loadout slots below.
-  while(MINI_PRESET.active.length < 1) MINI_PRESET.active.push(null);
-  while(MINI_PRESET.passive.length < 3) MINI_PRESET.passive.push(null);
-  while(MINI_PRESET.pet.length < 1) MINI_PRESET.pet.push(null);
-  enforceFixedMiniLoadouts();
+  if(!Array.isArray(MINI_PRESET.active)) MINI_PRESET.active = [null,null,null,null];
+  if(!Array.isArray(MINI_PRESET.passive)) MINI_PRESET.passive = [null,null,null,null];
+  if(!Array.isArray(MINI_PRESET.pet)) MINI_PRESET.pet = [null,null,null,null];
+  if(!Array.isArray(MINI_PRESET.loadout)) MINI_PRESET.loadout = getFixedMiniLoadouts();
+
+  // Default layout is 4 slots per section. Older local presets are upgraded once,
+  // but after that user-added/deleted slot counts are preserved.
+  if(wasOldVersion){
+    while(MINI_PRESET.active.length < 4) MINI_PRESET.active.push(null);
+    while(MINI_PRESET.passive.length < 4) MINI_PRESET.passive.push(null);
+    while(MINI_PRESET.pet.length < 4) MINI_PRESET.pet.push(null);
+    if(MINI_PRESET.loadout.length < 4) MINI_PRESET.loadout = getFixedMiniLoadouts();
+    MINI_PRESET.version = 2;
+    saveMiniPreset?.();
+  }
+
+  // If the loadout row is empty, restore the four default fixed loadouts.
+  if(!MINI_PRESET.loadout.length) MINI_PRESET.loadout = getFixedMiniLoadouts();
 }
 function loadMiniPreset(){
   try{
@@ -8112,12 +8230,12 @@ function renderPresetRow(rowId, kind){
   const slots = MINI_PRESET[kind] || [];
   row.innerHTML = slots.map((item, index) => {
     const has = !!item;
-    const fixedLoadout = kind === 'loadout';
+    const fixedLoadout = kind === 'loadout' && has && FIXED_MINI_LOADOUTS.some(x => assetLookupKey(x.name) === assetLookupKey(item.name));
     const label = emptyPresetSlotLabel(kind, index);
     const thumb = has ? resourceImageHtml(item, presetKindToResourceKind(kind)) : `<span class="resource-fallback">+</span>`;
-    const actionButtons = fixedLoadout ? '' : (has ? `<button class="preset-change" type="button" data-change-index="${index}">Change</button><button class="preset-clear" type="button" title="Clear" data-clear-index="${index}">×</button>` : '');
+    const actionButtons = `${!fixedLoadout ? `<button class="preset-change" type="button" data-change-index="${index}">${has ? 'Change' : 'Pick'}</button>` : ''}<button class="preset-clear" type="button" title="Delete slot" data-delete-index="${index}">Delete</button>`;
     return `<div class="preset-slot ${has ? 'has-item' : ''} ${fixedLoadout ? 'fixed-loadout-slot' : ''}" data-kind="${escHtml(kind)}" data-index="${index}">
-      <div class="preset-slot-top"><b>${escHtml(label)}</b><span class="resource-chip">${fixedLoadout ? 'Fixed' : (has ? 'Set' : 'Empty')}</span></div>
+      <div class="preset-slot-top"><b>${escHtml(label)}</b><span class="resource-chip">${has ? (fixedLoadout ? 'Fixed' : 'Set') : 'Empty'}</span></div>
       <div class="preset-slot-body"><div class="preset-thumb">${thumb}</div><div class="preset-meta"><div class="preset-name">${escHtml(has ? item.name : 'Click to pick')}</div><div class="preset-sub">${escHtml(has ? (item.sub || resourceKindSingular(presetKindToResourceKind(kind))) + (fixedLoadout ? ' • fixed' : '') : 'Picker popup')}</div></div></div>
       ${actionButtons}
     </div>`;
@@ -8127,10 +8245,7 @@ function renderPresetRow(rowId, kind){
       const idx = Number(slot.getAttribute('data-index')) || 0;
       const target = e.target;
       const item = MINI_PRESET[kind][idx];
-      if(kind === 'loadout'){
-        if(item) openItemDetailPopup(item, 'loadouts', 'preset');
-        return;
-      }
+      if(target?.matches?.('[data-delete-index]')){ deleteMiniPresetSlot(kind, idx); return; }
       if(target?.matches?.('[data-clear-index]')){ MINI_PRESET[kind][idx] = null; saveMiniPreset(); renderMiniPresetBuilder(); return; }
       if(target?.matches?.('[data-change-index]')){ openResourcePopup(presetKindToResourceKind(kind), { kind, index: idx, label: emptyPresetSlotLabel(kind, idx) }); return; }
       if(item) openItemDetailPopup(item, presetKindToResourceKind(kind), 'preset');
@@ -8139,7 +8254,6 @@ function renderPresetRow(rowId, kind){
   });
 }
 function presetSlotCountText(kind){
-  if(kind === 'loadout') return 'Fixed 4 slots';
   const count = (MINI_PRESET[kind] || []).length;
   return `${count} slot${count === 1 ? '' : 's'}`;
 }
@@ -8150,9 +8264,19 @@ function updateMiniPresetSlotCounts(){
   setText('presetLoadoutCount', presetSlotCountText('loadout'));
 }
 function addMiniPresetSlot(kind){
-  if(kind === 'loadout') return;
   if(!MINI_PRESET[kind]) return;
   MINI_PRESET[kind].push(null);
+  saveMiniPreset();
+  renderMiniPresetBuilder();
+}
+function deleteMiniPresetSlot(kind, index){
+  if(!MINI_PRESET[kind]) return;
+  if(MINI_PRESET[kind].length <= 1){
+    MINI_PRESET[kind][0] = null;
+  }else{
+    MINI_PRESET[kind].splice(index, 1);
+  }
+  MINI_PRESET.version = 2;
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
@@ -8165,14 +8289,13 @@ function renderMiniPresetBuilder(){
   updateMiniPresetSlotCounts();
 }
 function applyPresetPick(kind, index, item){
-  if(kind === 'loadout') return;
   if(!MINI_PRESET[kind]) return;
   MINI_PRESET[kind][index] = item;
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
 function resetMiniPreset(){
-  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:getFixedMiniLoadouts() };
+  MINI_PRESET = { version:2, active:[null,null,null,null], passive:[null,null,null,null], pet:[null,null,null,null], loadout:getFixedMiniLoadouts() };
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
@@ -8235,6 +8358,7 @@ function wire(){
 
   for (const [id, changed] of [
     ['fTournament', 'tournament'],
+    ['fStage', 'stage'],
     ['fMode', 'mode'],
     ['fSource', 'source'],
     ['fYear', 'year'],
@@ -8282,7 +8406,7 @@ const EWC_COLOR_THEME_KEY = 'ewc_team_center_color_theme_v1';
 function readSelectValue(id){ return el(id)?.value || '__all__'; }
 function getFilterState(){
   return {
-    t: readSelectValue('fTournament'), mode: readSelectValue('fMode'), source: readSelectValue('fSource'),
+    t: readSelectValue('fTournament'), stage: readSelectValue('fStage'), mode: readSelectValue('fMode'), source: readSelectValue('fSource'),
     y: readSelectValue('fYear'), w: readSelectValue('fWeek'), d: readSelectValue('fDay'), m: readSelectValue('fMatchNo')
   };
 }
@@ -8300,9 +8424,11 @@ function applySavedFilterState(state){
   if(!state || typeof state !== 'object') return false;
   populateTopDropdowns();
   setSelectIfExists('fTournament', state.t || '__all__');
+  setSelectIfExists('fStage', state.stage || '__all__');
   setSelectIfExists('fMode', state.mode || '__all__');
   setSelectIfExists('fSource', state.source || '__all__');
   refreshCascadeOptions('tournament');
+  refreshCascadeOptions('stage');
   setSelectIfExists('fYear', state.y || '__all__');
   refreshCascadeOptions('year');
   setSelectIfExists('fWeek', state.w || '__all__');
@@ -8384,7 +8510,7 @@ function getStableRowSignature(row){
   const parts = [
     row?.id,
     getVal(row, KEYS.team), getVal(row, KEYS.player), getVal(row, KEYS.accountId),
-    getVal(row, KEYS.tournament), getVal(row, KEYS.year), getVal(row, KEYS.week), getVal(row, KEYS.day), getVal(row, KEYS.matchNo), getVal(row, KEYS.matchId),
+    getVal(row, KEYS.tournament), getVal(row, KEYS.stage), getVal(row, KEYS.year), getVal(row, KEYS.week), getVal(row, KEYS.day), getVal(row, KEYS.matchNo), getVal(row, KEYS.matchId),
     getVal(row, KEYS.mode), getVal(row, KEYS.dataSource),
     getVal(row, KEYS.kills), getVal(row, KEYS.damage), getVal(row, KEYS.assists), getVal(row, KEYS.headshots), getVal(row, KEYS.shoots), getVal(row, KEYS.hits),
     getVal(row, KEYS.booyah), getVal(row, KEYS.killCount), getVal(row, KEYS.killingScore), getVal(row, KEYS.rankingScore),
@@ -8453,6 +8579,7 @@ function restoreDashboardViewState(state){
 function currentFilterSnapshot(){
   return {
     t: el('fTournament')?.value || '__all__',
+    stage: el('fStage')?.value || '__all__',
     mode: el('fMode')?.value || '__all__',
     source: el('fSource')?.value || '__all__',
     y: el('fYear')?.value || '__all__',
@@ -8470,9 +8597,11 @@ function rebuildFilterOptionsPreservingCurrent(){
   const f = currentFilterSnapshot();
   populateTopDropdowns();
   setSelectValueIfAvailable('fTournament', f.t);
+  setSelectValueIfAvailable('fStage', f.stage);
   setSelectValueIfAvailable('fMode', f.mode);
   setSelectValueIfAvailable('fSource', f.source);
   refreshCascadeOptions('tournament');
+  refreshCascadeOptions('stage');
   setSelectValueIfAvailable('fYear', f.y);
   refreshCascadeOptions('year');
   setSelectValueIfAvailable('fWeek', f.w);
