@@ -2694,7 +2694,25 @@
       .preset-add-slot{padding:4px 7px;font-size:.58rem;}
     }
 
-  </style>
+  
+
+/* ===== Fixed Mini Preset loadout slots ===== */
+#presetLoadoutRow .preset-slot.fixed-loadout-slot{
+  cursor:pointer;
+}
+#presetLoadoutRow .preset-slot.fixed-loadout-slot .resource-chip{
+  color:#d9f5ff;
+  border-color:rgba(77,211,255,.20);
+  background:rgba(77,211,255,.10);
+}
+#presetLoadoutRow .preset-slot.fixed-loadout-slot .preset-slot-body{
+  padding-bottom:10px;
+}
+#presetLoadoutRow .preset-slot.fixed-loadout-slot .preset-sub::after{
+  content:" • tap details";
+  color:rgba(255,189,89,.92);
+}
+</style>
 </head>
 <body class="betting-experiment">
 
@@ -2990,7 +3008,7 @@
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="preset-row-controls"><span class="muted" id="presetActiveCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="active">+ Slot</button></span></div><div class="preset-row" id="presetActiveRow"></div></div>
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="preset-row-controls"><span class="muted" id="presetPassiveCount">3 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="passive">+ Slot</button></span></div><div class="preset-row" id="presetPassiveRow"></div></div>
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="preset-row-controls"><span class="muted" id="presetPetCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="pet">+ Slot</button></span></div><div class="preset-row" id="presetPetRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="preset-row-controls"><span class="muted" id="presetLoadoutCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="loadout">+ Slot</button></span></div><div class="preset-row" id="presetLoadoutRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="preset-row-controls"><span class="muted" id="presetLoadoutCount">Fixed 4 slots</span></span></div><div class="preset-row fixed-loadout-row" id="presetLoadoutRow"></div></div>
     </div>
   </details>
 </div>
@@ -3329,6 +3347,12 @@ function switchResourcePopup(kind){
 
 const MINI_PRESET_KEY = 'ewc_mini_preset_v1';
 let MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
+const FIXED_MINI_LOADOUTS = [
+  { code:'500000008', name:'Enhance Hammer', aliases:['Enhance Hammer','Enhance Ha'] },
+  { code:'500000003', name:'Super Leg Pockets', aliases:['Super Leg Pockets','Super Leg Pocket','Super Leg'] },
+  { code:'500000004', name:'Tactical Market', aliases:['Tactical Market','Tactical Ma'] },
+  { code:'500000005', name:'Team Booster', aliases:['Team Booster','Team Boost'] }
+];
 let RESOURCE_MODAL_KIND = 'skills';
 let RESOURCE_PICK_TARGET = null;
 
@@ -6812,17 +6836,47 @@ function pickResourceItem(item){
   closeResourcePopup();
   openItemDetailPopup(item, RESOURCE_MODAL_KIND, 'preset');
 }
+
+function findResourceLoadoutByFixedItem(fixed){
+  const source = RESOURCE_DATA.loadouts || [];
+  const aliasKeys = (fixed.aliases || [fixed.name]).map(assetLookupKey).filter(Boolean);
+  const code = normalizeLookupId(fixed.code);
+  const found = source.find(item => {
+    const itemNameKey = assetLookupKey(item?.name);
+    const raw = item?.raw || {};
+    const itemCodes = idCandidatesFromRow(raw).map(normalizeLookupId);
+    if(code && itemCodes.includes(code)) return true;
+    if(aliasKeys.includes(itemNameKey)) return true;
+    return aliasKeys.some(k => itemNameKey.includes(k) || k.includes(itemNameKey));
+  });
+  if(found) return found;
+  return {
+    kind:'loadouts',
+    name:fixed.name,
+    sub:'Loadout',
+    img: LOADOUT_ID_TO_IMAGE.get(code) || LOADOUT_NAME_TO_IMAGE.get(assetLookupKey(fixed.name)) || '',
+    desc:'Fixed Mini Preset Builder loadout slot.',
+    raw:{ name:fixed.name, loadout_id:fixed.code, code:fixed.code, category:'Loadout' }
+  };
+}
+function getFixedMiniLoadouts(){
+  return FIXED_MINI_LOADOUTS.map(findResourceLoadoutByFixedItem);
+}
+function enforceFixedMiniLoadouts(){
+  MINI_PRESET.loadout = getFixedMiniLoadouts();
+}
 function normalizeMiniPresetSlots(){
   if(!Array.isArray(MINI_PRESET.active)) MINI_PRESET.active = [null];
   if(!Array.isArray(MINI_PRESET.passive)) MINI_PRESET.passive = [null,null,null];
   if(!Array.isArray(MINI_PRESET.pet)) MINI_PRESET.pet = [null];
   if(!Array.isArray(MINI_PRESET.loadout)) MINI_PRESET.loadout = [null,null,null,null];
 
-  // Minimum slot layout: 1 active, 3 passive, 1 pet, and all 4 loadout slots.
+  // Minimum slot layout: 1 active, 3 passive, 1 pet.
+  // Loadout is fixed to the four official loadout slots below.
   while(MINI_PRESET.active.length < 1) MINI_PRESET.active.push(null);
   while(MINI_PRESET.passive.length < 3) MINI_PRESET.passive.push(null);
   while(MINI_PRESET.pet.length < 1) MINI_PRESET.pet.push(null);
-  while(MINI_PRESET.loadout.length < 4) MINI_PRESET.loadout.push(null);
+  enforceFixedMiniLoadouts();
 }
 function loadMiniPreset(){
   try{
@@ -6846,27 +6900,34 @@ function renderPresetRow(rowId, kind){
   const slots = MINI_PRESET[kind] || [];
   row.innerHTML = slots.map((item, index) => {
     const has = !!item;
+    const fixedLoadout = kind === 'loadout';
     const label = emptyPresetSlotLabel(kind, index);
     const thumb = has ? resourceImageHtml(item, presetKindToResourceKind(kind)) : `<span class="resource-fallback">+</span>`;
-    return `<div class="preset-slot ${has ? 'has-item' : ''}" data-kind="${escHtml(kind)}" data-index="${index}">
-      <div class="preset-slot-top"><b>${escHtml(label)}</b><span class="resource-chip">${has ? 'Set' : 'Empty'}</span></div>
-      <div class="preset-slot-body"><div class="preset-thumb">${thumb}</div><div class="preset-meta"><div class="preset-name">${escHtml(has ? item.name : 'Click to pick')}</div><div class="preset-sub">${escHtml(has ? (item.sub || resourceKindSingular(presetKindToResourceKind(kind))) : 'Picker popup')}</div></div></div>
-      ${has ? `<button class="preset-change" type="button" data-change-index="${index}">Change</button><button class="preset-clear" type="button" title="Clear" data-clear-index="${index}">×</button>` : ''}
+    const actionButtons = fixedLoadout ? '' : (has ? `<button class="preset-change" type="button" data-change-index="${index}">Change</button><button class="preset-clear" type="button" title="Clear" data-clear-index="${index}">×</button>` : '');
+    return `<div class="preset-slot ${has ? 'has-item' : ''} ${fixedLoadout ? 'fixed-loadout-slot' : ''}" data-kind="${escHtml(kind)}" data-index="${index}">
+      <div class="preset-slot-top"><b>${escHtml(label)}</b><span class="resource-chip">${fixedLoadout ? 'Fixed' : (has ? 'Set' : 'Empty')}</span></div>
+      <div class="preset-slot-body"><div class="preset-thumb">${thumb}</div><div class="preset-meta"><div class="preset-name">${escHtml(has ? item.name : 'Click to pick')}</div><div class="preset-sub">${escHtml(has ? (item.sub || resourceKindSingular(presetKindToResourceKind(kind))) + (fixedLoadout ? ' • fixed' : '') : 'Picker popup')}</div></div></div>
+      ${actionButtons}
     </div>`;
   }).join('');
   row.querySelectorAll('.preset-slot').forEach(slot => {
     slot.addEventListener('click', e => {
       const idx = Number(slot.getAttribute('data-index')) || 0;
       const target = e.target;
+      const item = MINI_PRESET[kind][idx];
+      if(kind === 'loadout'){
+        if(item) openItemDetailPopup(item, 'loadouts', 'preset');
+        return;
+      }
       if(target?.matches?.('[data-clear-index]')){ MINI_PRESET[kind][idx] = null; saveMiniPreset(); renderMiniPresetBuilder(); return; }
       if(target?.matches?.('[data-change-index]')){ openResourcePopup(presetKindToResourceKind(kind), { kind, index: idx, label: emptyPresetSlotLabel(kind, idx) }); return; }
-      const item = MINI_PRESET[kind][idx];
       if(item) openItemDetailPopup(item, presetKindToResourceKind(kind), 'preset');
       else openResourcePopup(presetKindToResourceKind(kind), { kind, index: idx, label: emptyPresetSlotLabel(kind, idx) });
     });
   });
 }
 function presetSlotCountText(kind){
+  if(kind === 'loadout') return 'Fixed 4 slots';
   const count = (MINI_PRESET[kind] || []).length;
   return `${count} slot${count === 1 ? '' : 's'}`;
 }
@@ -6877,6 +6938,7 @@ function updateMiniPresetSlotCounts(){
   setText('presetLoadoutCount', presetSlotCountText('loadout'));
 }
 function addMiniPresetSlot(kind){
+  if(kind === 'loadout') return;
   if(!MINI_PRESET[kind]) return;
   MINI_PRESET[kind].push(null);
   saveMiniPreset();
@@ -6891,13 +6953,14 @@ function renderMiniPresetBuilder(){
   updateMiniPresetSlotCounts();
 }
 function applyPresetPick(kind, index, item){
+  if(kind === 'loadout') return;
   if(!MINI_PRESET[kind]) return;
   MINI_PRESET[kind][index] = item;
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
 function resetMiniPreset(){
-  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
+  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:getFixedMiniLoadouts() };
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
