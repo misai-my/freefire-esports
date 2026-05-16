@@ -1990,69 +1990,138 @@
   font-weight: 800;
 }
 
-/* Keep player comparison as fixed mirror layout on all screen sizes */
-.player-compare-grid {
-  display: grid;
-  grid-template-columns: 1fr !important;
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 6px;
-}
-
-.player-matchup-row {
-  min-width: 920px;
-  grid-template-columns:
-    minmax(165px, .95fr)
-    minmax(150px, .85fr)
-    130px
-    minmax(150px, .85fr)
-    minmax(165px, .95fr) !important;
-}
-
-.player-matchup-center {
-  grid-column: auto !important;
-  order: initial !important;
-}
-
-.player-matchup-player.left {
-  text-align: right !important;
-  align-items: flex-end !important;
-}
-
-.player-matchup-player.right {
-  text-align: left !important;
-  align-items: flex-start !important;
-}
-
-.player-matchup-stats.left {
-  text-align: right !important;
-}
-
-.player-matchup-stats.right {
-  text-align: left !important;
-}
-
-.player-matchup-stats.left .matchup-stat-line {
-  flex-direction: row !important;
-}
-
-.player-matchup-stats.right .matchup-stat-line {
-  flex-direction: row-reverse !important;
-}
-
-@media(max-width: 980px) {
-  .player-compare-grid {
-    margin-left: -2px;
-    margin-right: -2px;
+@media(max-width: 1100px) {
+  .player-matchup-row {
+    grid-template-columns: 1fr 1fr;
   }
 
+  .player-matchup-center {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .player-matchup-stats.left,
+  .player-matchup-player.left {
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .player-matchup-stats.left .matchup-stat-line,
+  .player-matchup-stats.right .matchup-stat-line {
+    flex-direction: row;
+  }
+}
+
+@media(max-width: 680px) {
   .player-matchup-row {
-    min-width: 920px;
+    grid-template-columns: 1fr;
+  }
+
+  .player-matchup-center {
+    order: -1;
   }
 }
     
+
+    /* ===== Force Overall Summary Table to fit smaller screens =====
+       Removes the horizontal-scroll requirement for the Overall — Team Summary table.
+       Columns compress on tablets/phones while keeping every stat visible. */
+    @media (max-width: 760px){
+      #tblOverall .table-wrap{
+        width:100% !important;
+        max-width:100% !important;
+        overflow-x:hidden !important;
+        overflow-y:visible !important;
+      }
+      #tblOverall .table-wrap table{
+        width:100% !important;
+        min-width:100% !important;
+        max-width:100% !important;
+        table-layout:fixed !important;
+        border-spacing:0 3px !important;
+        font-size:clamp(.50rem, 1.65vw, .64rem) !important;
+      }
+      #tblOverall th,
+      #tblOverall td{
+        width:calc((100% - 32%) / 9) !important;
+        min-width:0 !important;
+        max-width:none !important;
+        padding:3px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+      }
+      #tblOverall th[data-key="display_rank"],
+      #tblOverall td[data-key="display_rank"]{
+        width:7% !important;
+        min-width:0 !important;
+        max-width:none !important;
+        padding-left:1px !important;
+        padding-right:1px !important;
+      }
+      #tblOverall th[data-key="team"],
+      #tblOverall td[data-key="team"]{
+        width:25% !important;
+        min-width:0 !important;
+        max-width:none !important;
+        padding-left:4px !important;
+        text-align:left !important;
+      }
+      #tblOverall th{
+        font-size:clamp(.46rem, 1.45vw, .58rem) !important;
+        letter-spacing:0 !important;
+        text-align:center !important;
+        white-space:nowrap !important;
+      }
+      #tblOverall td.right,
+      #tblOverall th.right{
+        text-align:center !important;
+      }
+      #tblOverall .rank-no{
+        min-width:18px !important;
+        height:18px !important;
+        padding:0 3px !important;
+        font-size:.55rem !important;
+      }
+      #tblOverall .team-name-move{
+        gap:3px !important;
+      }
+      #tblOverall .team-name-text{
+        font-size:.62rem !important;
+        max-width:100% !important;
+      }
+      #tblOverall .rank-move{
+        display:none !important;
+      }
+    }
+
+    @media (max-width: 420px){
+      #tblOverall .table-wrap table{
+        font-size:.48rem !important;
+      }
+      #tblOverall th,
+      #tblOverall td{
+        padding:2px 1px !important;
+      }
+      #tblOverall th[data-key="display_rank"],
+      #tblOverall td[data-key="display_rank"]{
+        width:6% !important;
+      }
+      #tblOverall th[data-key="team"],
+      #tblOverall td[data-key="team"]{
+        width:26% !important;
+      }
+      #tblOverall .team-name-text{
+        font-size:.56rem !important;
+      }
+      #tblOverall .rank-no{
+        min-width:16px !important;
+        height:16px !important;
+        font-size:.50rem !important;
+      }
+    }
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -5224,8 +5293,9 @@ function compactLoadoutText(row) {
   return `${active} • ${pet}`;
 }
 
-
 function matchupStatsHtml(row, side = 'left') {
+  const isLeft = side === 'left';
+
   if (!row) {
     return `
       <div class="player-matchup-stats ${side}">
@@ -5264,28 +5334,6 @@ function matchupStatsHtml(row, side = 'left') {
       <div class="matchup-stat-line">
         <span>HS</span>
         <b>${fmtNum(row.headshots)}</b>
-      </div>
-    </div>
-  `;
-}
-
-function matchupPlayerHtml(row, side = 'left') {
-  if (!row) {
-    return `
-      <div class="player-matchup-player ${side}">
-        <div class="player-matchup-team">—</div>
-        <div class="player-matchup-name">No Match</div>
-        <div class="player-matchup-loadout">—</div>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="player-matchup-player ${side}">
-      <div class="player-matchup-team">${escHtml(getPlayerTeamLabel(row))}</div>
-      <div class="player-matchup-name" title="${escHtml(row.player)}">${escHtml(row.player)}</div>
-      <div class="player-matchup-loadout" title="${escHtml(compactLoadoutText(row))}">
-        ${escHtml(compactLoadoutText(row))}
       </div>
     </div>
   `;
@@ -5771,7 +5819,10 @@ function selectTeam(team, keepCurrentModalState=false){
   renderTeamUsageTables(teamRows);
   renderTeamStory(teamRows);
   syncTeamCardFilterControls?.();
+
+  // Refreshes comparison dropdown, head-to-head, and automatic player comparison
   renderComparisonPanel();
+
   highlightActiveTile();
 
   if(!keepCurrentModalState || !isTeamModalOpen()) openTeamModal();
@@ -6236,10 +6287,7 @@ function wire(){
     if (nextTeam) selectTeam(nextTeam, true);
   });
 
-  el('teamCompareSelect')?.addEventListener('change', () => {
-    renderTeamHeadToHead();
-    renderPlayerComparison();
-  });
+  el('teamCompareSelect')?.addEventListener('change', renderTeamHeadToHead);
 
   wireResourceTools();
 }
