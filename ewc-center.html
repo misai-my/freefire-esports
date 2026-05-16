@@ -2749,6 +2749,59 @@
 .live-feed-player .name{font-weight:1000;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .live-feed-player .stat{text-align:right;color:rgba(228,240,255,.88);font-weight:900;white-space:nowrap;}
 .live-feed-player .state{text-align:center;font-size:.72rem;}
+.live-feed-view-toggle{
+  height:28px;
+  min-height:28px;
+  padding:4px 9px!important;
+  border-radius:999px!important;
+  font-size:.66rem!important;
+  white-space:nowrap;
+}
+.live-feed-player.preset,.live-feed-player-head.preset{
+  grid-template-columns:minmax(92px,.78fr) minmax(0,2fr)!important;
+  min-width:0!important;
+}
+.live-feed-player-head.preset span:last-child{
+  text-align:left;
+}
+.live-feed-preset-badges{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  overflow:hidden;
+}
+.live-feed-preset-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  min-width:0;
+  max-width:74px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.045);
+  border-radius:9px;
+  padding:2px 4px 2px 2px;
+}
+.live-feed-preset-badge.passives{
+  gap:1px;
+  max-width:72px;
+  padding-right:3px;
+}
+.live-feed-preset-badge .visual-icon-wrap{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px!important;
+  border-radius:7px!important;
+}
+.live-feed-preset-badge .live-feed-preset-label{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:.55rem;
+  font-weight:1000;
+  color:rgba(244,246,255,.88);
+}
 .live-feed-empty{border:1px dashed rgba(111,196,255,.20);background:rgba(0,0,0,.16);border-radius:16px;padding:16px;text-align:center;color:var(--muted);font-weight:900;}
 @media(max-width:760px){
   .live-feed-grid{grid-template-columns:1fr;}
@@ -2757,6 +2810,8 @@
   .live-feed-player,.live-feed-player-head{grid-template-columns:minmax(0,1fr) 40px 52px 40px 42px;font-size:.64rem;padding:5px;}
   .live-feed-player-head{font-size:.52rem;}
   .live-feed-toolbar{align-items:flex-start;}
+  .live-feed-player.preset,.live-feed-player-head.preset{grid-template-columns:minmax(88px,.75fr) minmax(0,2fr)!important;}
+  .live-feed-preset-badge{max-width:64px;}
 }
 
 /* Black/gray theme button contrast fix */
@@ -5491,6 +5546,28 @@ function matchOrderValueForRow(r){
 }
 
 
+const LIVE_FEED_PLAYER_VIEW_KEY = 'ewc_live_feed_player_view_v1';
+let LIVE_FEED_PLAYER_VIEW = (() => {
+  try{
+    const saved = localStorage.getItem(LIVE_FEED_PLAYER_VIEW_KEY);
+    return saved === 'preset' ? 'preset' : 'stats';
+  }catch(_e){
+    return 'stats';
+  }
+})();
+function setLiveFeedPlayerView(view){
+  LIVE_FEED_PLAYER_VIEW = view === 'preset' ? 'preset' : 'stats';
+  try{ localStorage.setItem(LIVE_FEED_PLAYER_VIEW_KEY, LIVE_FEED_PLAYER_VIEW); }catch(_e){}
+  renderLiveFeed();
+}
+function toggleLiveFeedPlayerView(){
+  setLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEW === 'preset' ? 'stats' : 'preset');
+}
+function liveFeedViewButtonHtml(){
+  const label = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Show Stats' : 'Show Preset';
+  return `<button class="btn secondary live-feed-view-toggle" type="button" onclick="toggleLiveFeedPlayerView()">${label}</button>`;
+}
+
 function liveFeedLatestRows(){
   const rows = FILTERED || [];
   if(!rows.length) return [];
@@ -5535,7 +5612,22 @@ function buildLiveFeedTeams(rows){
       damage: n(getVal(r, KEYS.damage)),
       assists: n(getVal(r, KEYS.assists)),
       headshots: n(getVal(r, KEYS.headshots)),
-      eliminated: liveFeedRowEliminated(r, team)
+      eliminated: liveFeedRowEliminated(r, team),
+      activeItem: (() => {
+        const activeId = getActiveSkillId(r);
+        const activeName = getActiveSkillLabel(r) || (activeId ? skillLabelFromId(activeId) : '');
+        return activeName ? { id: activeId, name: activeName } : null;
+      })(),
+      passiveItems: getPassiveSkillIds(r).map(id => ({ id, name: skillLabelFromId(id) })).filter(x => x.name),
+      petItem: (() => {
+        const petName = getPetLabel(r);
+        const petId = normalizeMatchApiNumericId(getVal(r, KEYS.petId)) || normalizeLookupId(getVal(r, KEYS.petId));
+        return petName ? { id: petId, name: petName } : null;
+      })(),
+      loadoutItem: (() => {
+        const loadoutName = getLoadoutLabel(r);
+        return loadoutName ? { name: loadoutName } : null;
+      })()
     })).sort((a,b) => b.kills - a.kills || b.damage - a.damage || b.assists - a.assists || a.player.localeCompare(b.player));
     teams.push({ team, day, matchNo, matchId, rankScore, teamElims, total, booyah, alivePlayers, eliminatedPlayers, eliminated, players });
   }
@@ -5555,6 +5647,12 @@ function buildLiveFeedTeams(rows){
   return teams;
 }
 function liveFeedPlayerHeaderHtml(){
+  if(LIVE_FEED_PLAYER_VIEW === 'preset'){
+    return `<div class="live-feed-player-head preset" aria-hidden="true">
+      <span>Player</span>
+      <span>Preset</span>
+    </div>`;
+  }
   return `<div class="live-feed-player-head" aria-hidden="true">
     <span>Player</span>
     <span>ELM</span>
@@ -5563,7 +5661,32 @@ function liveFeedPlayerHeaderHtml(){
     <span></span>
   </div>`;
 }
+function liveFeedPresetBadgeHtml(kind, item, label=''){
+  if(!item || !norm(item.name)) return '';
+  const name = norm(item.name);
+  const short = label || clip(name, 8);
+  return `<span class="live-feed-preset-badge ${kind}" title="${escHtml(name)}">${visualIconHtml(kind, name, item.id || '')}<span class="live-feed-preset-label">${escHtml(short)}</span></span>`;
+}
+function liveFeedPassiveBadgeHtml(items){
+  const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
+  if(!clean.length) return '';
+  return `<span class="live-feed-preset-badge passives" title="${escHtml(clean.map(x => x.name).join(' • '))}">${clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('')}</span>`;
+}
+function liveFeedPlayerPresetHtml(player){
+  const badges = [
+    liveFeedPresetBadgeHtml('skill', player.activeItem, 'ACT'),
+    liveFeedPassiveBadgeHtml(player.passiveItems),
+    liveFeedPresetBadgeHtml('pet', player.petItem, 'PET'),
+    liveFeedPresetBadgeHtml('loadout', player.loadoutItem, 'LD')
+  ].filter(Boolean).join('');
+
+  return `<div class="live-feed-player preset" title="${escHtml(player.player)}">
+    <span class="name">${escHtml(player.player)}</span>
+    <span class="live-feed-preset-badges">${badges || '<span class="muted">—</span>'}</span>
+  </div>`;
+}
 function liveFeedPlayerHtml(player){
+  if(LIVE_FEED_PLAYER_VIEW === 'preset') return liveFeedPlayerPresetHtml(player);
   return `<div class="live-feed-player" title="${escHtml(player.player)}">
     <span class="name">${escHtml(player.player)}</span>
     <span class="stat">${fmtNum(player.kills)}</span>
@@ -5595,6 +5718,7 @@ function renderLiveFeed(){
         <div class="live-feed-title">Latest Match Live Feed</div>
       </div>
       <div class="live-feed-status-row">
+        ${liveFeedViewButtonHtml()}
         <span class="live-feed-status alive">${fmtNum(aliveTeams)} Alive Teams</span>
         <span class="live-feed-status eliminated">${fmtNum(eliminatedTeams)} Eliminated Teams</span>
       </div>
