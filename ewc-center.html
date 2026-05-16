@@ -2577,6 +2577,68 @@
       }
     }
 
+  
+
+    /* ===== Fixed player comparison: keep 5-column matchup order on all screen sizes ===== */
+    .player-compare-grid{
+      overflow-x:auto !important;
+      -webkit-overflow-scrolling:touch !important;
+      padding-bottom:4px !important;
+    }
+    .player-matchup-row{
+      grid-template-columns:minmax(145px,.9fr) minmax(140px,.85fr) 118px minmax(140px,.85fr) minmax(145px,.9fr) !important;
+      min-width:760px !important;
+    }
+    .player-matchup-center{
+      grid-column:auto !important;
+      order:initial !important;
+    }
+    .player-matchup-stats.left{
+      text-align:right !important;
+    }
+    .player-matchup-player.left{
+      text-align:right !important;
+      align-items:flex-end !important;
+    }
+    .player-matchup-stats.left .matchup-stat-line{
+      flex-direction:row !important;
+    }
+    .player-matchup-stats.right .matchup-stat-line{
+      flex-direction:row-reverse !important;
+    }
+
+    @media(max-width:1100px){
+      .player-matchup-row{
+        grid-template-columns:minmax(145px,.9fr) minmax(140px,.85fr) 118px minmax(140px,.85fr) minmax(145px,.9fr) !important;
+        min-width:760px !important;
+      }
+      .player-matchup-center{
+        grid-column:auto !important;
+        order:initial !important;
+      }
+      .player-matchup-stats.left,
+      .player-matchup-player.left{
+        text-align:right !important;
+        align-items:flex-end !important;
+      }
+      .player-matchup-stats.left .matchup-stat-line{
+        flex-direction:row !important;
+      }
+      .player-matchup-stats.right .matchup-stat-line{
+        flex-direction:row-reverse !important;
+      }
+    }
+
+    @media(max-width:680px){
+      .player-matchup-row{
+        grid-template-columns:minmax(145px,.9fr) minmax(140px,.85fr) 118px minmax(140px,.85fr) minmax(145px,.9fr) !important;
+        min-width:760px !important;
+      }
+      .player-matchup-center{
+        order:initial !important;
+      }
+    }
+
   </style>
 </head>
 <body class="betting-experiment">
@@ -5860,6 +5922,33 @@ function matchupStatsHtml(row, side = 'left') {
       <div class="matchup-stat-line">
         <span>HS</span>
         <b>${fmtNum(row.headshots)}</b>
+      </div>
+    </div>
+  `;
+}
+
+
+function matchupPlayerHtml(row, side = 'left') {
+  if (!row) {
+    return `
+      <div class="player-matchup-player ${side}">
+        <div class="player-matchup-team">—</div>
+        <div class="player-matchup-name">No Match</div>
+        <div class="player-matchup-loadout">—</div>
+      </div>
+    `;
+  }
+
+  const playerName = norm(row.player) || 'Unknown Player';
+  const teamLabel = getPlayerTeamLabel(row);
+  const loadoutText = compactLoadoutText(row);
+
+  return `
+    <div class="player-matchup-player ${side}">
+      <div class="player-matchup-team">${escHtml(teamLabel)}</div>
+      <div class="player-matchup-name" title="${escHtml(playerName)}">${escHtml(playerName)}</div>
+      <div class="player-matchup-loadout" title="${escHtml(loadoutText)}">
+        ${escHtml(loadoutText)}
       </div>
     </div>
   `;
