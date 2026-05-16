@@ -878,6 +878,50 @@
     .resource-modal-top p{margin:5px 0 0;color:var(--muted);font-size:.82rem;font-weight:800;}
     .resource-modal-body{padding:12px;overflow:auto;-webkit-overflow-scrolling:touch;}
     .resource-modal-controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+    .resource-modal-nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:12px;
+      padding:9px;
+      border:1px solid rgba(255,255,255,.09);
+      background:linear-gradient(90deg,rgba(77,211,255,.08),rgba(255,189,89,.06));
+      border-radius:16px;
+    }
+    .resource-nav-btn{
+      min-width:142px;
+      justify-content:center;
+      gap:7px;
+      border-radius:999px;
+      padding:9px 12px;
+      font-size:.76rem;
+    }
+    .resource-nav-btn[disabled]{
+      opacity:.38;
+      pointer-events:none;
+      filter:grayscale(.25);
+    }
+    .resource-modal-step{
+      min-width:0;
+      text-align:center;
+      color:rgba(220,242,255,.80);
+      font-size:.70rem;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .resource-modal-step b{
+      display:block;
+      color:var(--brand);
+      font-family:Orbitron,sans-serif;
+      font-size:.82rem;
+      letter-spacing:.04em;
+      margin-top:2px;
+    }
     .resource-search{flex:1;min-width:220px;background:rgba(0,0,0,.22);color:var(--ink);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px 12px;outline:none;}
     .resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;}
     .resource-card{min-width:0;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:8px;transition:.16s ease;overflow:hidden;}
@@ -948,7 +992,7 @@
 
     html[data-theme="light"] .asset-rail,html[data-theme="light"] .resource-card,html[data-theme="light"] .preset-row-wrap,html[data-theme="light"] .preset-slot{background:rgba(255,255,255,.62);border-color:rgba(10,20,40,.10);color:var(--ink);} 
     html[data-theme="light"] .resource-name,html[data-theme="light"] .preset-name,html[data-theme="light"] .preset-slot-top b{color:var(--ink);}html[data-theme="light"] .resource-desc{color:rgba(18,20,40,.72);}html[data-theme="light"] .resource-search{background:rgba(255,255,255,.78);border-color:rgba(10,20,40,.12);color:var(--ink);}html[data-theme="light"] .resource-mini-btn,html[data-theme="light"] .item-detail-chip,html[data-theme="light"] .item-detail-meta{background:rgba(255,255,255,.74);border-color:rgba(10,20,40,.12);color:var(--ink);}html[data-theme="light"] .item-detail-card{background:rgba(255,255,255,.96);border-color:rgba(10,20,40,.12);box-shadow:0 26px 80px rgba(10,20,40,.22);}html[data-theme="light"] .item-detail-desc{color:rgba(18,20,40,.86);}html[data-theme="light"] .item-detail-meta b{color:var(--ink);}html[data-theme="light"] .item-detail-backdrop{background:rgba(10,20,40,.30);}
-    @media(max-width:980px){.summary-layout{grid-template-columns:1fr}.asset-rail{position:relative;top:auto;flex-direction:row;overflow-x:auto;align-items:center}.asset-rail-title{min-width:max-content;margin-right:2px}.asset-rail .btn{width:auto;min-width:max-content}.resource-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}.preset-slot{width:148px;min-width:148px}.team-resource-strip{padding:8px 10px;gap:7px}.team-resource-label{display:none}.team-resource-strip .btn{font-size:.72rem;padding:7px 9px}}
+    @media(max-width:980px){.summary-layout{grid-template-columns:1fr}.asset-rail{position:relative;top:auto;flex-direction:row;overflow-x:auto;align-items:center}.asset-rail-title{min-width:max-content;margin-right:2px}.asset-rail .btn{width:auto;min-width:max-content}.resource-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}.preset-slot{width:148px;min-width:148px}.team-resource-strip{padding:8px 10px;gap:7px}.team-resource-label{display:none}.team-resource-strip .btn{font-size:.72rem;padding:7px 9px}.resource-modal-nav{gap:7px;padding:7px}.resource-nav-btn{min-width:104px;padding:8px 9px;font-size:.70rem}.resource-modal-step{font-size:.62rem}.resource-modal-step b{font-size:.72rem}}
     @media(max-width:720px){.item-detail-modal{align-items:end;place-items:end center;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));}.item-detail-card{width:100%;max-height:88vh;border-radius:20px}.item-detail-main{grid-template-columns:96px minmax(0,1fr);gap:10px}.item-detail-thumb{width:96px;min-height:96px;border-radius:16px}.item-detail-thumb.weapon{min-height:64px}}
 
   
@@ -2558,6 +2602,11 @@
         <input class="resource-search" id="resourceSearch" type="search" placeholder="Search…" />
         <span class="chip" id="resourceCount">0 items</span>
       </div>
+      <div class="resource-modal-nav" id="resourceModalNav" aria-label="Resource popup navigation">
+        <button class="btn secondary resource-nav-btn" id="resourceBackBtn" type="button">← Back</button>
+        <div class="resource-modal-step" id="resourceStepLabel">Reference<b>Character</b></div>
+        <button class="btn brand resource-nav-btn" id="resourceNextBtn" type="button">Next →</button>
+      </div>
       <div class="resource-grid" id="resourceGrid"></div>
     </div>
   </section>
@@ -2684,6 +2733,72 @@ const RESOURCE_TITLES = {
   loadouts: ['Loadouts', 'BR/CS loadout tools from loadout.json'],
   maps: ['Maps', 'Map references for rotations and path planning']
 };
+const RESOURCE_NAV_ORDER = ['skills','pets','weapons','loadouts','maps'];
+const RESOURCE_NAV_LABELS = {
+  skills:'Character',
+  pets:'Pet',
+  weapons:'Weapon',
+  loadouts:'Loadout',
+  maps:'Map'
+};
+function resourceNavLabel(kind){
+  return RESOURCE_NAV_LABELS[kind] || resourceKindSingular(kind);
+}
+function getResourceNavState(kind){
+  const current = RESOURCE_NAV_ORDER.includes(kind) ? kind : 'skills';
+  const index = RESOURCE_NAV_ORDER.indexOf(current);
+  const prev = index > 0 ? RESOURCE_NAV_ORDER[index - 1] : null;
+  const next = index >= 0 && index < RESOURCE_NAV_ORDER.length - 1 ? RESOURCE_NAV_ORDER[index + 1] : null;
+  return { current, index, prev, next };
+}
+function updateResourceNavButtons(){
+  const nav = el('resourceModalNav');
+  const back = el('resourceBackBtn');
+  const next = el('resourceNextBtn');
+  const step = el('resourceStepLabel');
+  if(!nav || !back || !next || !step) return;
+
+  // When the popup is being used as a Mini Preset picker, keep the user locked to that slot type.
+  nav.style.display = RESOURCE_PICK_TARGET ? 'none' : 'flex';
+  if(RESOURCE_PICK_TARGET) return;
+
+  const state = getResourceNavState(RESOURCE_MODAL_KIND);
+  const currentLabel = resourceNavLabel(state.current);
+  step.innerHTML = `Reference ${state.index + 1}/${RESOURCE_NAV_ORDER.length}<b>${escHtml(currentLabel)}</b>`;
+
+  if(state.prev){
+    back.disabled = false;
+    back.textContent = `← Back: ${resourceNavLabel(state.prev)}`;
+    back.dataset.kind = state.prev;
+  }else{
+    back.disabled = true;
+    back.textContent = '← Back';
+    back.dataset.kind = '';
+  }
+
+  if(state.next){
+    next.disabled = false;
+    next.textContent = `Next: ${resourceNavLabel(state.next)} →`;
+    next.dataset.kind = state.next;
+  }else{
+    next.disabled = true;
+    next.textContent = 'Next →';
+    next.dataset.kind = '';
+  }
+}
+function switchResourcePopup(kind){
+  if(!kind) return;
+  RESOURCE_MODAL_KIND = kind;
+  const [title, sub] = RESOURCE_TITLES[RESOURCE_MODAL_KIND] || ['Resources','Browse Free Fire reference data.'];
+  setText('resourceModalTitle', title);
+  setText('resourceModalSub', sub);
+  const search = el('resourceSearch');
+  if(search) search.value = '';
+  updateResourceNavButtons();
+  renderResourceGrid('');
+  setTimeout(() => search?.focus?.(), 50);
+}
+
 const MINI_PRESET_KEY = 'ewc_mini_preset_v1';
 let MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
 let RESOURCE_MODAL_KIND = 'skills';
@@ -5948,6 +6063,7 @@ function tryResourceImageFallback(img){
 function renderResourceGrid(query=''){
   const q = norm(query).toLowerCase();
   const kind = RESOURCE_MODAL_KIND || 'skills';
+  updateResourceNavButtons();
   const data = (RESOURCE_DATA[kind] || []).filter(item => {
     const hay = [item.name, item.sub, item.desc].join(' ').toLowerCase();
     return !q || hay.includes(q);
@@ -6032,6 +6148,7 @@ function openResourcePopup(kind, pickTarget=null){
   el('resourceModal')?.classList.add('show');
   el('resourceModal')?.setAttribute('aria-hidden','false');
   document.body.classList.add('sb-open');
+  updateResourceNavButtons();
   renderResourceGrid('');
   setTimeout(() => search?.focus?.(), 50);
 }
@@ -6204,6 +6321,8 @@ function wireResourceTools(){
   });
   el('resourceModalClose')?.addEventListener('click', closeResourcePopup);
   el('resourceModalBackdrop')?.addEventListener('click', closeResourcePopup);
+  el('resourceBackBtn')?.addEventListener('click', () => switchResourcePopup(el('resourceBackBtn')?.dataset.kind || ''));
+  el('resourceNextBtn')?.addEventListener('click', () => switchResourcePopup(el('resourceNextBtn')?.dataset.kind || ''));
   el('resourceSearch')?.addEventListener('input', e => renderResourceGrid(e.target.value || ''));
   el('itemDetailClose')?.addEventListener('click', closeItemDetailPopup);
   el('itemDetailBackdrop')?.addEventListener('click', closeItemDetailPopup);
