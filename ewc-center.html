@@ -2712,6 +2712,49 @@
   content:" • tap details";
   color:rgba(255,189,89,.92);
 }
+
+
+/* ===== Live Feed latest match section ===== */
+.live-feed-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.live-feed-title{color:var(--brand);font-family:Orbitron,sans-serif;font-size:.86rem;font-weight:1000;letter-spacing:.04em;}
+.live-feed-sub{color:rgba(185,214,242,.78);font-size:.78rem;font-weight:800;}
+.live-feed-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;align-items:start;}
+.live-feed-card{border:1px solid color-mix(in srgb,var(--ewc-accent) 24%,rgba(255,255,255,.09));background:linear-gradient(180deg,color-mix(in srgb,var(--ewc-accent) 9%,rgba(8,22,54,.88)),rgba(3,9,24,.88));border-radius:18px;padding:10px;box-shadow:0 14px 38px rgba(0,0,0,.24);overflow:hidden;}
+.live-feed-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.live-feed-team{min-width:0;}
+.live-feed-team b{display:block;font-family:Orbitron,sans-serif;color:#fff;font-size:.96rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.live-feed-team span{display:block;color:var(--muted);font-size:.68rem;font-weight:900;margin-top:2px;}
+.live-feed-rank{width:32px;height:32px;border-radius:12px;display:grid;place-items:center;font-family:Orbitron,sans-serif;font-size:.74rem;font-weight:1000;background:linear-gradient(135deg,var(--ewc-accent-2),var(--ewc-accent));color:#fff;box-shadow:0 8px 20px color-mix(in srgb,var(--ewc-accent) 22%,transparent);flex:0 0 auto;}
+.live-feed-score-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px;}
+.live-feed-score{border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.18);border-radius:12px;padding:7px 5px;text-align:center;min-width:0;}
+.live-feed-score span{display:block;color:rgba(170,177,197,.86);font-size:.54rem;font-weight:1000;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.live-feed-score b{display:block;color:#fff;font-size:.82rem;font-weight:1000;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.live-feed-status-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 8px;}
+.live-feed-status{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:5px 7px;font-size:.62rem;font-weight:1000;text-transform:uppercase;letter-spacing:.04em;background:rgba(255,255,255,.045);color:rgba(244,246,255,.86);}
+.live-feed-status.alive{color:#8dffb0;border-color:rgba(98,232,135,.24);background:rgba(98,232,135,.10);}
+.live-feed-status.eliminated{color:#ff9eac;border-color:rgba(255,112,132,.24);background:rgba(255,112,132,.10);}
+.live-feed-status.booyah{color:#ffe28a;border-color:rgba(255,214,74,.28);background:rgba(255,214,74,.11);}
+.live-feed-players{display:grid;gap:5px;}
+.live-feed-player{display:grid;grid-template-columns:minmax(0,1.25fr) 44px 56px 42px 24px;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.035);border-radius:11px;padding:6px;font-size:.68rem;}
+.live-feed-player .name{font-weight:1000;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.live-feed-player .stat{text-align:right;color:rgba(228,240,255,.88);font-weight:900;white-space:nowrap;}
+.live-feed-player .state{text-align:center;font-size:.72rem;}
+.live-feed-empty{border:1px dashed rgba(111,196,255,.20);background:rgba(0,0,0,.16);border-radius:16px;padding:16px;text-align:center;color:var(--muted);font-weight:900;}
+@media(max-width:760px){
+  .live-feed-grid{grid-template-columns:1fr;}
+  .live-feed-card{padding:9px;border-radius:16px;}
+  .live-feed-score-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .live-feed-player{grid-template-columns:minmax(0,1fr) 38px 48px 36px 22px;font-size:.64rem;padding:5px;}
+  .live-feed-toolbar{align-items:flex-start;}
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -2994,6 +3037,15 @@
     <div class="bar"><input type="search" id="teamSearch" placeholder="Search EWC team…" class="input" style="flex:1;max-width:420px"><span class="chip">Selected: <span id="selectedTeamChip">—</span></span></div>
     <div id="teamGrid" class="team-grid">Loading teams…</div>
   </div>
+
+
+
+  <details class="accordion" id="accLiveFeed" open>
+    <summary><span>Live Feed — Latest Match</span><span class="muted" id="liveFeedHint">Latest match status</span></summary>
+    <div class="accordion-body">
+      <div id="liveFeedBox" class="live-feed-empty">Loading latest live feed…</div>
+    </div>
+  </details>
 
   <details class="accordion preset-mini" id="miniPresetBuilder">
     <summary><span>Mini Preset Builder</span><span class="muted">Quick build reference</span></summary>
@@ -4777,7 +4829,7 @@ function applyFilters(){
   if(el('heroScopeSub')) el('heroScopeSub').textContent = `${countMatchesIn(FILTERED)} matches`;
   el('filterHint').textContent = `Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
   el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
-  renderOverall(); renderTeamGrid(el('teamSearch').value || '');
+  renderOverall(); renderTeamGrid(el('teamSearch').value || ''); renderLiveFeed();
 
   const teams = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean));
   if(CURRENT_TEAM){
@@ -4797,6 +4849,120 @@ function matchOrderValueForRow(r){
   const m = n(getVal(r, KEYS.matchNo));
   const pulled = Date.parse(norm(r.pulled_at || r.updated_at || r.created_at || '')) || 0;
   return (y * 1e10) + (w * 1e8) + (d * 1e6) + (m * 1e4) + Math.min(9999, Math.floor(pulled / 100000000));
+}
+
+
+function liveFeedLatestRows(){
+  const rows = FILTERED || [];
+  if(!rows.length) return [];
+  let bestOrder = -Infinity;
+  for(const r of rows){
+    const order = matchOrderValueForRow(r);
+    if(order > bestOrder) bestOrder = order;
+  }
+  return rows.filter(r => matchOrderValueForRow(r) === bestOrder);
+}
+function liveFeedRowEliminated(row, teamCode){
+  const elimName = norm(row?.eliminated_team_name).toUpperCase();
+  if(elimName && elimName === norm(teamCode).toUpperCase()) return true;
+  return toBool(row?.is_eliminated);
+}
+function liveFeedTeamStatusLabel(team){
+  if(team.booyah) return '<span class="live-feed-status booyah">👑 Booyah</span>';
+  if(team.eliminated) return '<span class="live-feed-status eliminated">Eliminated</span>';
+  return '<span class="live-feed-status alive">Alive</span>';
+}
+function buildLiveFeedTeams(rows){
+  const grouped = groupBy(rows, r => norm(getVal(r, KEYS.team)).toUpperCase() || 'UNKNOWN');
+  const teams = [];
+  for(const [team, list] of grouped.entries()){
+    const rankScore = Math.max(...list.map(r => n(getVal(r, KEYS.rankingScore))), 0);
+    const killingScore = Math.max(...list.map(r => n(getVal(r, KEYS.killingScore))), 0);
+    const playerElims = list.reduce((sum, r) => sum + n(getVal(r, KEYS.kills)), 0);
+    const teamElims = killingScore || playerElims;
+    const total = rankScore + teamElims;
+    const booyah = list.some(r => toBool(getVal(r, KEYS.booyah)));
+    const rowStates = list.map(r => liveFeedRowEliminated(r, team));
+    const alivePlayers = rowStates.filter(v => !v).length;
+    const eliminatedPlayers = rowStates.filter(Boolean).length;
+    const eliminatedByName = list.some(r => norm(r?.eliminated_team_name).toUpperCase() === team);
+    const eliminated = !booyah && (eliminatedByName || (rowStates.length > 0 && rowStates.every(Boolean)));
+    const day = norm(getVal(list[0], KEYS.day));
+    const matchNo = norm(getVal(list[0], KEYS.matchNo));
+    const matchId = norm(getVal(list[0], KEYS.matchId));
+    const players = list.map(r => ({
+      player: norm(getVal(r, KEYS.player)) || norm(getVal(r, KEYS.accountId)) || '—',
+      kills: n(getVal(r, KEYS.kills)),
+      damage: n(getVal(r, KEYS.damage)),
+      assists: n(getVal(r, KEYS.assists)),
+      headshots: n(getVal(r, KEYS.headshots)),
+      eliminated: liveFeedRowEliminated(r, team)
+    })).sort((a,b) => b.kills - a.kills || b.damage - a.damage || b.assists - a.assists || a.player.localeCompare(b.player));
+    teams.push({ team, day, matchNo, matchId, rankScore, teamElims, total, booyah, alivePlayers, eliminatedPlayers, eliminated, players });
+  }
+  teams.sort((a,b) => b.total - a.total || b.booyah - a.booyah || b.teamElims - a.teamElims || b.rankScore - a.rankScore || a.team.localeCompare(b.team));
+  teams.forEach((t, index) => t.position = index + 1);
+  return teams;
+}
+function liveFeedPlayerHtml(player){
+  return `<div class="live-feed-player" title="${escHtml(player.player)}">
+    <span class="name">${escHtml(player.player)}</span>
+    <span class="stat">${fmtNum(player.kills)} K</span>
+    <span class="stat">${fmtNum(player.damage)} D</span>
+    <span class="stat">${fmtNum(player.assists)} A</span>
+    <span class="state" title="${player.eliminated ? 'Eliminated' : 'Alive'}">${player.eliminated ? '🔴' : '🟢'}</span>
+  </div>`;
+}
+function renderLiveFeed(){
+  const box = el('liveFeedBox');
+  if(!box) return;
+  const rows = liveFeedLatestRows();
+  if(!rows.length){
+    setText('liveFeedHint', 'No rows in current scope');
+    box.className = 'live-feed-empty';
+    box.innerHTML = 'No latest match rows found for the current filter.';
+    return;
+  }
+  const teams = buildLiveFeedTeams(rows);
+  const first = rows[0] || {};
+  const label = `D${escHtml(norm(getVal(first, KEYS.day)) || '—')} • M${escHtml(norm(getVal(first, KEYS.matchNo)) || '—')}`;
+  const aliveTeams = teams.filter(t => !t.eliminated).length;
+  const eliminatedTeams = teams.filter(t => t.eliminated).length;
+  setText('liveFeedHint', `${label} • ${teams.length} teams`);
+  box.className = '';
+  box.innerHTML = `
+    <div class="live-feed-toolbar">
+      <div>
+        <div class="live-feed-title">${label}</div>
+        <div class="live-feed-sub">Sorted by total score descending. Player rows show K / Damage / Assist / status.</div>
+      </div>
+      <div class="live-feed-status-row">
+        <span class="live-feed-status alive">${fmtNum(aliveTeams)} Alive Teams</span>
+        <span class="live-feed-status eliminated">${fmtNum(eliminatedTeams)} Eliminated Teams</span>
+      </div>
+    </div>
+    <div class="live-feed-grid">
+      ${teams.map(t => `
+        <article class="live-feed-card">
+          <div class="live-feed-card-top">
+            <div class="live-feed-team"><b>${escHtml(t.team)}</b><span>${escHtml(label)}${t.matchId ? ` • ${escHtml(t.matchId)}` : ''}</span></div>
+            <div class="live-feed-rank">#${fmtNum(t.position)}</div>
+          </div>
+          <div class="live-feed-score-row">
+            <div class="live-feed-score"><span>Total</span><b>${fmtNum(t.total)}</b></div>
+            <div class="live-feed-score"><span>Rank</span><b>${fmtNum(t.rankScore)}</b></div>
+            <div class="live-feed-score"><span>Elims</span><b>${fmtNum(t.teamElims)}</b></div>
+            <div class="live-feed-score"><span>Alive</span><b>${fmtNum(t.alivePlayers)}</b></div>
+          </div>
+          <div class="live-feed-status-row">
+            ${liveFeedTeamStatusLabel(t)}
+            <span class="live-feed-status">${fmtNum(t.eliminatedPlayers)} Player Out</span>
+          </div>
+          <div class="live-feed-players">${t.players.map(liveFeedPlayerHtml).join('')}</div>
+        </article>
+      `).join('')}
+    </div>
+  `;
 }
 
 function teamMatchAgg(rows){
