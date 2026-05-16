@@ -3449,6 +3449,108 @@ html[data-accent="gray"] body.betting-experiment .live-feed-rank::selection{
   content: "" !important;
 }
 
+
+
+/* ===== Final live feed preset + team selection density override ===== */
+/* Preset view keeps player name, but item names are hidden. Badge spacing is 1 / 3 / 1 / 1. */
+.live-feed-player.preset,
+.live-feed-player-head.preset{
+  grid-template-columns:minmax(54px,.62fr) minmax(0,2.38fr)!important;
+  gap:4px!important;
+}
+.live-feed-player-head.preset span:first-child{font-size:.50rem!important;}
+.live-feed-player-head.preset span:last-child{font-size:.50rem!important;text-align:left!important;}
+.live-feed-preset-badges{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,3fr) minmax(0,1fr) minmax(0,1fr)!important;
+  gap:3px!important;
+  align-items:center!important;
+  overflow:visible!important;
+  min-width:0!important;
+}
+.live-feed-preset-badge{
+  min-width:0!important;
+  max-width:none!important;
+  width:100%!important;
+  height:25px!important;
+  justify-content:center!important;
+  padding:1px!important;
+  gap:0!important;
+  overflow:hidden!important;
+}
+.live-feed-preset-badge.passives{
+  max-width:none!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:1px!important;
+  padding:1px!important;
+}
+.live-feed-preset-badge .live-feed-preset-label{display:none!important;}
+.live-feed-preset-badge .visual-icon-wrap{
+  width:21px!important;
+  height:21px!important;
+  min-width:21px!important;
+  border-radius:7px!important;
+}
+.live-feed-preset-badge.passives .visual-icon-wrap{
+  width:20px!important;
+  height:20px!important;
+  min-width:20px!important;
+}
+.live-feed-preset-badge.empty{
+  color:rgba(170,177,197,.72)!important;
+  font-size:.62rem!important;
+  font-weight:1000!important;
+}
+
+/* Team Selection: tighter logo cards. 24 max per row on wide desktop, 12 per row on desktop/tablet. */
+body.betting-experiment .team-grid,
+.team-grid{
+  gap:5px!important;
+}
+body.betting-experiment .team-tile,
+.team-tile{
+  height:78px!important;
+  min-width:0!important;
+  padding:6px 4px!important;
+  gap:5px!important;
+  border-radius:12px!important;
+}
+body.betting-experiment .team-tile-logo,
+.team-tile-logo{
+  width:38px!important;
+  height:38px!important;
+  border-radius:11px!important;
+}
+body.betting-experiment .team-code,
+.team-code{
+  font-size:.58rem!important;
+  line-height:1.02!important;
+  letter-spacing:0!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+@media (min-width:1200px){
+  body.betting-experiment .team-grid,
+  .team-grid{grid-template-columns:repeat(24,minmax(0,1fr))!important;}
+}
+@media (min-width:760px) and (max-width:1199px){
+  body.betting-experiment .team-grid,
+  .team-grid{grid-template-columns:repeat(12,minmax(0,1fr))!important;}
+}
+@media (max-width:759px){
+  body.betting-experiment .team-grid,
+  .team-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+  body.betting-experiment .team-tile,
+  .team-tile{height:72px!important;padding:5px 3px!important;}
+  body.betting-experiment .team-tile-logo,
+  .team-tile-logo{width:34px!important;height:34px!important;}
+  body.betting-experiment .team-code,
+  .team-code{font-size:.52rem!important;}
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -5662,27 +5764,26 @@ function liveFeedPlayerHeaderHtml(){
   </div>`;
 }
 function liveFeedPresetBadgeHtml(kind, item, label=''){
-  if(!item || !norm(item.name)) return '';
+  if(!item || !norm(item.name)) return `<span class="live-feed-preset-badge ${kind} empty" title="No ${escHtml(kind)}">—</span>`;
   const name = norm(item.name);
-  const short = label || clip(name, 8);
-  return `<span class="live-feed-preset-badge ${kind}" title="${escHtml(name)}">${visualIconHtml(kind, name, item.id || '')}<span class="live-feed-preset-label">${escHtml(short)}</span></span>`;
+  return `<span class="live-feed-preset-badge ${kind}" title="${escHtml(name)}">${visualIconHtml(kind, name, item.id || '')}</span>`;
 }
 function liveFeedPassiveBadgeHtml(items){
   const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
-  if(!clean.length) return '';
-  return `<span class="live-feed-preset-badge passives" title="${escHtml(clean.map(x => x.name).join(' • '))}">${clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('')}</span>`;
+  const icons = clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('');
+  return `<span class="live-feed-preset-badge passives ${clean.length ? '' : 'empty'}" title="${escHtml(clean.map(x => x.name).join(' • ') || 'No passive skills')}">${icons || '—'}</span>`;
 }
 function liveFeedPlayerPresetHtml(player){
   const badges = [
-    liveFeedPresetBadgeHtml('skill', player.activeItem, 'ACT'),
+    liveFeedPresetBadgeHtml('skill', player.activeItem),
     liveFeedPassiveBadgeHtml(player.passiveItems),
-    liveFeedPresetBadgeHtml('pet', player.petItem, 'PET'),
-    liveFeedPresetBadgeHtml('loadout', player.loadoutItem, 'LD')
-  ].filter(Boolean).join('');
+    liveFeedPresetBadgeHtml('pet', player.petItem),
+    liveFeedPresetBadgeHtml('loadout', player.loadoutItem)
+  ].join('');
 
   return `<div class="live-feed-player preset" title="${escHtml(player.player)}">
     <span class="name">${escHtml(player.player)}</span>
-    <span class="live-feed-preset-badges">${badges || '<span class="muted">—</span>'}</span>
+    <span class="live-feed-preset-badges">${badges}</span>
   </div>`;
 }
 function liveFeedPlayerHtml(player){
