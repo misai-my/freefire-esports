@@ -2742,7 +2742,10 @@
 .live-feed-status.eliminated{color:#ff9eac;border-color:rgba(255,112,132,.24);background:rgba(255,112,132,.10);}
 .live-feed-status.booyah{color:#ffe28a;border-color:rgba(255,214,74,.28);background:rgba(255,214,74,.11);}
 .live-feed-players{display:grid;gap:5px;}
-.live-feed-player{display:grid;grid-template-columns:minmax(0,1.25fr) 44px 56px 42px 24px;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.035);border-radius:11px;padding:6px;font-size:.68rem;}
+.live-feed-player,.live-feed-player-head{display:grid;grid-template-columns:minmax(0,1.25fr) 48px 62px 48px 48px;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.035);border-radius:11px;padding:6px;font-size:.68rem;}
+.live-feed-player-head{background:rgba(0,0,0,.22);border-color:color-mix(in srgb,var(--ewc-accent) 22%,rgba(255,255,255,.08));color:rgba(190,220,245,.88);font-size:.56rem;font-weight:1000;text-transform:uppercase;letter-spacing:.06em;}
+.live-feed-player-head span:not(:first-child){text-align:right;}
+.live-feed-player-head span:last-child{text-align:center;}
 .live-feed-player .name{font-weight:1000;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .live-feed-player .stat{text-align:right;color:rgba(228,240,255,.88);font-weight:900;white-space:nowrap;}
 .live-feed-player .state{text-align:center;font-size:.72rem;}
@@ -2751,8 +2754,37 @@
   .live-feed-grid{grid-template-columns:1fr;}
   .live-feed-card{padding:9px;border-radius:16px;}
   .live-feed-score-row{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .live-feed-player{grid-template-columns:minmax(0,1fr) 38px 48px 36px 22px;font-size:.64rem;padding:5px;}
+  .live-feed-player,.live-feed-player-head{grid-template-columns:minmax(0,1fr) 40px 52px 40px 42px;font-size:.64rem;padding:5px;}
+  .live-feed-player-head{font-size:.52rem;}
   .live-feed-toolbar{align-items:flex-start;}
+}
+
+/* Black/gray theme button contrast fix */
+html[data-accent="gray"] body.betting-experiment .btn,
+html[data-accent="gray"] body.betting-experiment .team-tab,
+html[data-accent="gray"] body.betting-experiment .icon-btn,
+html[data-accent="gray"] body.betting-experiment .logout,
+html[data-accent="gray"] body.betting-experiment .resource-mini-btn,
+html[data-accent="gray"] body.betting-experiment .preset-change,
+html[data-accent="gray"] body.betting-experiment .preset-clear {
+  background:rgba(2,6,12,.82)!important;
+  border-color:rgba(209,216,228,.18)!important;
+  color:#f8fbff!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.65)!important;
+}
+html[data-accent="gray"] body.betting-experiment .btn:hover,
+html[data-accent="gray"] body.betting-experiment .team-tab:hover,
+html[data-accent="gray"] body.betting-experiment .icon-btn:hover,
+html[data-accent="gray"] body.betting-experiment .logout:hover,
+html[data-accent="gray"] body.betting-experiment .resource-mini-btn:hover {
+  background:rgba(8,13,22,.94)!important;
+  border-color:rgba(240,244,255,.30)!important;
+}
+html[data-accent="gray"] body.betting-experiment .btn.brand,
+html[data-accent="gray"] body.betting-experiment .team-tab.active {
+  background:linear-gradient(135deg,#1f2937,#030712)!important;
+  border-color:rgba(240,244,255,.28)!important;
+  color:#ffffff!important;
 }
 
 </style>
@@ -4915,12 +4947,21 @@ function buildLiveFeedTeams(rows){
   teams.forEach((t, index) => t.position = index + 1);
   return teams;
 }
+function liveFeedPlayerHeaderHtml(){
+  return `<div class="live-feed-player-head" aria-hidden="true">
+    <span>Player</span>
+    <span>Elims</span>
+    <span>Damage</span>
+    <span>Assist</span>
+    <span>Status</span>
+  </div>`;
+}
 function liveFeedPlayerHtml(player){
   return `<div class="live-feed-player" title="${escHtml(player.player)}">
     <span class="name">${escHtml(player.player)}</span>
-    <span class="stat">${fmtNum(player.kills)} K</span>
-    <span class="stat">${fmtNum(player.damage)} D</span>
-    <span class="stat">${fmtNum(player.assists)} A</span>
+    <span class="stat">${fmtNum(player.kills)}</span>
+    <span class="stat">${fmtNum(player.damage)}</span>
+    <span class="stat">${fmtNum(player.assists)}</span>
     <span class="state" title="${player.eliminated ? 'Eliminated' : 'Alive'}">${player.eliminated ? '🔴' : '🟢'}</span>
   </div>`;
 }
@@ -4944,8 +4985,7 @@ function renderLiveFeed(){
   box.innerHTML = `
     <div class="live-feed-toolbar">
       <div>
-        <div class="live-feed-title">${label}</div>
-        <div class="live-feed-sub">Sorted by alive teams first, then total score descending. Player rows show K / Damage / Assist / status.</div>
+        <div class="live-feed-title">Latest Match Live Feed</div>
       </div>
       <div class="live-feed-status-row">
         <span class="live-feed-status alive">${fmtNum(aliveTeams)} Alive Teams</span>
@@ -4956,7 +4996,7 @@ function renderLiveFeed(){
       ${teams.map(t => `
         <article class="live-feed-card">
           <div class="live-feed-card-top">
-            <div class="live-feed-team"><b>${escHtml(t.team)}</b><span>${escHtml(label)}${t.matchId ? ` • ${escHtml(t.matchId)}` : ''}</span></div>
+            <div class="live-feed-team"><b>${escHtml(t.team)}</b></div>
             <div class="live-feed-rank">#${fmtNum(t.position)}</div>
           </div>
           <div class="live-feed-score-row">
@@ -4969,7 +5009,7 @@ function renderLiveFeed(){
             ${liveFeedTeamStatusLabel(t)}
             <span class="live-feed-status">${fmtNum(t.eliminatedPlayers)} Player Out</span>
           </div>
-          <div class="live-feed-players">${t.players.map(liveFeedPlayerHtml).join('')}</div>
+          <div class="live-feed-players">${liveFeedPlayerHeaderHtml()}${t.players.map(liveFeedPlayerHtml).join('')}</div>
         </article>
       `).join('')}
     </div>
