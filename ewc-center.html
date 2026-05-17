@@ -3835,6 +3835,15 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
   border-radius:10px!important;
 }
 
+
+
+/* ===== Skill detail popup: show character + skill name clearly ===== */
+.item-detail-sub-skill-name,
+.item-detail-desc-block div {
+  color: rgba(244,246,255,.92);
+  font-weight: 900;
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -6075,16 +6084,20 @@ function findResourceItemForLiveFeed(kind, name, id=''){
   const firstKey = firstSkillNameTokenKey(name);
   const cleanId = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
 
+  const itemKeys = (item) => resourceKind === 'skills'
+    ? skillSearchKeysForItem(item)
+    : uniqueList([item?.name, item?.sub]).map(assetLookupKey).filter(Boolean);
+
   const found = list.find(item => {
-    const itemKey = assetLookupKey(item?.name);
-    if(key && itemKey === key) return true;
-    if(firstKey && itemKey === firstKey) return true;
+    const keys = itemKeys(item);
+    if(key && keys.includes(key)) return true;
+    if(firstKey && keys.includes(firstKey)) return true;
     const raw = item?.raw || {};
     const ids = idCandidatesFromRow(raw).map(x => normalizeLookupId(x));
     return cleanId && ids.includes(cleanId);
   }) || list.find(item => {
-    const itemKey = assetLookupKey(item?.name);
-    return key && (itemKey.includes(key) || key.includes(itemKey));
+    const keys = itemKeys(item);
+    return key && keys.some(itemKey => itemKey.includes(key) || key.includes(itemKey));
   });
 
   if(found) return found;
@@ -6174,9 +6187,8 @@ function liveFeedPresetBadgeHtml(kind, item, label=''){
   if(!item || !norm(item.name)) return `<span class="live-feed-preset-badge ${kind} empty" title="No ${escHtml(kind)}">—</span>`;
   const name = norm(item.name);
   const resourceKind = liveFeedResourceKindFromPresetKind(kind);
-  const encodedName = encodeURIComponent(name);
-  const encodedId = encodeURIComponent(item.id || '');
-  return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(name)}" data-live-feed-detail="1" data-resource-kind="${escHtml(resourceKind)}" data-resource-name="${escHtml(name)}" data-resource-id="${escHtml(item.id || '')}">${visualIconHtml(kind === 'passives' ? 'skill' : kind, name, item.id || '')}</button>`;
+  const displayTitle = resourceKind === 'skills' ? skillTitleForLiveFeed(findResourceItemForLiveFeed(resourceKind, name, item.id || '')) : name;
+  return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(displayTitle || name)}" data-live-feed-detail="1" data-resource-kind="${escHtml(resourceKind)}" data-resource-name="${escHtml(name)}" data-resource-id="${escHtml(item.id || '')}">${visualIconHtml(kind === 'passives' ? 'skill' : kind, name, item.id || '')}</button>`;
 }
 function liveFeedPassiveBadgeHtml(items){
   const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
@@ -6188,7 +6200,9 @@ function liveFeedPassiveBadgeHtml(items){
   // so clicking the passive group always opened skill #1.
   const icons = clean.map((item, index) => {
     const name = norm(item.name);
-    return `<button class="live-feed-passive-icon-btn" type="button" title="${escHtml(name)}" aria-label="Open passive skill ${index + 1}: ${escHtml(name)}" data-live-feed-detail="1" data-resource-kind="skills" data-resource-name="${escHtml(name)}" data-resource-id="${escHtml(item.id || '')}">${visualIconHtml('skill', name, item.id || '')}</button>`;
+    const foundItem = findResourceItemForLiveFeed('skills', name, item.id || '');
+    const displayTitle = skillTitleForLiveFeed(foundItem) || name;
+    return `<button class="live-feed-passive-icon-btn" type="button" title="${escHtml(displayTitle)}" aria-label="Open passive skill ${index + 1}: ${escHtml(displayTitle)}" data-live-feed-detail="1" data-resource-kind="skills" data-resource-name="${escHtml(name)}" data-resource-id="${escHtml(item.id || '')}">${visualIconHtml('skill', name, item.id || '')}</button>`;
   }).join('');
 
   return `<span class="live-feed-preset-badge passives live-feed-passive-badge-group" title="${escHtml(title)}">${icons}</span>`;
@@ -8074,6 +8088,51 @@ function getGallerySub(item, kind){
   if(kind === 'maps') return norm(item?.category ?? item?.type ?? item?.sub) || 'Map';
   return '';
 }
+
+function getSkillCharacterName(item){
+  const raw = item?.raw || item || {};
+  return norm(
+    raw?.character_name ?? raw?.characterName ?? raw?.character ??
+    raw?.hero_name ?? raw?.heroName ?? raw?.hero ?? raw?.code_name ?? raw?.codeName ??
+    firstTextFromPaths(raw, ['character.name','character.title','character.label','hero.name','hero.title','hero.label']) ??
+    raw?.name ?? raw?.title ?? raw?.label ?? item?.name
+  );
+}
+function getSkillAbilityName(item){
+  const raw = item?.raw || item || {};
+  return norm(
+    firstTextFromPaths(raw, ['skill.name','skill.title','skill.label','ability.name','ability.title','ability.label']) ??
+    raw?.skill_name ?? raw?.skillName ?? raw?.skill ??
+    raw?.ability_name ?? raw?.abilityName ?? raw?.ability ?? raw?.ability_title ?? raw?.abilityTitle ??
+    raw?.skill_title ?? raw?.skillTitle ?? raw?.skill_label ?? raw?.skillLabel ??
+    item?.skill_name ?? item?.skillName ?? ''
+  );
+}
+function getSkillPopupTitle(item){
+  return getSkillCharacterName(item) || norm(item?.name) || 'Skill';
+}
+function getSkillPopupSubTitle(item){
+  const rawSub = norm(item?.sub);
+  const skillName = getSkillAbilityName(item);
+  const type = rawSub && !skillKey(rawSub).includes(skillKey(skillName)) ? rawSub : 'Skill';
+  return skillName ? `${type} • ${skillName}` : type;
+}
+function skillSearchKeysForItem(item){
+  return uniqueList([
+    item?.name,
+    item?.sub,
+    getSkillCharacterName(item),
+    getSkillAbilityName(item),
+    firstSkillNameTokenKey(getSkillCharacterName(item)),
+    firstSkillNameTokenKey(getSkillAbilityName(item))
+  ]).map(assetLookupKey).filter(Boolean);
+}
+function skillTitleForLiveFeed(item){
+  if(!item) return '';
+  const charName = getSkillCharacterName(item) || norm(item.name);
+  const skillName = getSkillAbilityName(item);
+  return skillName && skillKey(skillName) !== skillKey(charName) ? `${charName} — ${skillName}` : charName;
+}
 function getLoadoutDescParts(item){
   const raw = item?.raw || item || {};
   const en = raw.description ?? raw.description_en ?? raw.desc ?? raw.details ?? raw.effect;
@@ -8115,9 +8174,17 @@ function getGalleryDesc(item, kind){
 }
 function normalizeGalleryItem(item, kind){
   if(!item || typeof item !== 'object') return null;
-  const name = getGalleryName(item, kind);
-  if(!name) return null;
-  return { kind, name, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
+  const baseName = getGalleryName(item, kind);
+  if(!baseName) return null;
+  if(kind === 'skills'){
+    const normalized = { kind, name: baseName, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
+    normalized.character_name = getSkillCharacterName(normalized) || baseName;
+    normalized.skill_name = getSkillAbilityName(normalized);
+    // Keep the card/popup searchable by both character name and skill name.
+    normalized.search_name = uniqueList([normalized.name, normalized.character_name, normalized.skill_name]).join(' • ');
+    return normalized;
+  }
+  return { kind, name: baseName, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
 }
 function resourceKindSingular(kind){
   return ({ skills:'Skill', pets:'Pet', weapons:'Weapon', loadouts:'Loadout', maps:'Map' })[kind] || 'Item';
@@ -8291,8 +8358,10 @@ function openItemDetailPopup(item, kind, context='resource'){
   if(!item) return;
   const raw = item.raw || item;
   const singular = resourceKindSingular(kind);
-  setText('itemDetailTitle', item.name || singular);
-  setText('itemDetailSub', `${singular} • ${item.sub || 'Reference'}`);
+  const detailTitle = kind === 'skills' ? getSkillPopupTitle(item) : (item.name || singular);
+  const detailSub = kind === 'skills' ? getSkillPopupSubTitle(item) : `${singular} • ${item.sub || 'Reference'}`;
+  setText('itemDetailTitle', detailTitle);
+  setText('itemDetailSub', detailSub);
   const body = el('itemDetailBody');
   const detailCard = el('itemDetailModal')?.querySelector('.item-detail-card');
   detailCard?.classList.toggle('map-view', kind === 'maps');
@@ -8318,11 +8387,15 @@ function openItemDetailPopup(item, kind, context='resource'){
   }
 
   const imgCls = itemDetailImageClass(kind);
+  const skillNameBlock = kind === 'skills' && getSkillAbilityName(item)
+    ? `<div class="item-detail-desc-block"><b>SKILL NAME</b><div>${escHtml(getSkillAbilityName(item))}</div></div>`
+    : '';
   const descHtml = kind === 'loadouts'
     ? formatLoadoutDescriptionBlocks(item)
-    : `<p class="item-detail-desc">${escHtml(item.desc || getGalleryDesc(raw, kind) || 'No description yet.')}</p>`;
+    : `${skillNameBlock}<p class="item-detail-desc">${escHtml(item.desc || getGalleryDesc(raw, kind) || 'No description yet.')}</p>`;
   const metaPairs = [
     ['Type', item.sub || singular],
+    kind === 'skills' ? ['Skill Name', getSkillAbilityName(item) || '—'] : null,
     ['ID / Code', raw.loadout_id || raw.id || raw.code || raw.skill_id || raw.pet_id || raw.weapon_id || '—'],
     ['Category', raw.category || raw.type || raw.role || '—'],
     kind === 'loadouts' ? ['Cost / Notes', costText(raw.cost) || raw.cost_note || raw.note || '—'] : null,
