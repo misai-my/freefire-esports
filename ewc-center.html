@@ -3995,6 +3995,50 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
 }
 .preset-pills{gap:8px;}
 
+
+/* ===== No-flicker live refresh patch =====
+   Keeps the page stable while Supabase rows update during an ongoing game. */
+body.ewc-refreshing,
+body.ewc-refreshing * {
+  scroll-behavior: auto !important;
+}
+
+/* After first load, stop replaying entrance animations on sections/cards that get re-rendered.
+   Modal animations remain untouched. */
+body.ewc-live-ready.betting-experiment .sportsbook-hero,
+body.ewc-live-ready.betting-experiment .section,
+body.ewc-live-ready.betting-experiment details.accordion,
+body.ewc-live-ready.betting-experiment .team-tile,
+body.ewc-live-ready.betting-experiment .card,
+body.ewc-live-ready.betting-experiment .asset-rail,
+body.ewc-live-ready.betting-experiment .live-feed-card {
+  animation: none !important;
+}
+
+body.ewc-refreshing.betting-experiment .sportsbook-hero,
+body.ewc-refreshing.betting-experiment .section,
+body.ewc-refreshing.betting-experiment details.accordion,
+body.ewc-refreshing.betting-experiment .team-tile,
+body.ewc-refreshing.betting-experiment .card,
+body.ewc-refreshing.betting-experiment .asset-rail,
+body.ewc-refreshing.betting-experiment .live-feed-card,
+body.ewc-refreshing.betting-experiment tbody tr {
+  animation: none !important;
+  transition: none !important;
+}
+
+.live-feed-grid {
+  overflow-anchor: none;
+}
+
+#tblOverall,
+#liveFeedBox,
+#teamGrid,
+.team-modal-body,
+.table-wrap {
+  overflow-anchor: none;
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -6056,7 +6100,8 @@ function resetToLatest(){
   el('fMatchNo').value = '__all__';
   applyFilters();
 }
-function applyFilters(){
+function applyFilters(options = {}){
+  const silentRefresh = !!options.silentRefresh;
   const f = currentFilter();
   FILTERED = RAW.filter(r => {
     if(f.t !== '__all__' && KEYS.tournament && norm(getVal(r,KEYS.tournament)) !== f.t) return false;
@@ -6069,6 +6114,9 @@ function applyFilters(){
     if(f.m !== '__all__' && KEYS.matchNo && norm(getVal(r,KEYS.matchNo)) !== f.m) return false;
     return true;
   });
+
+  const matchCount = countMatchesIn(FILTERED);
+  const teamCount = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size;
   const scopeText = [
     f.t !== '__all__' ? f.t : 'All tournaments',
     f.s !== '__all__' ? f.s : 'All stages',
@@ -6079,6 +6127,7 @@ function applyFilters(){
     f.d !== '__all__' ? `D${f.d}` : 'All days',
     f.m !== '__all__' ? `M${f.m}` : 'All matches'
   ].join(' • ');
+
   if(el('scopeChip')) el('scopeChip').textContent = 'Scope: ' + scopeText;
   if(el('heroScopeMirror')){
     const scopeRows = [
@@ -6088,12 +6137,16 @@ function applyFilters(){
       ['Day', f.d !== '__all__' ? f.d : 'All'],
       ['Match', f.m !== '__all__' ? f.m : 'All']
     ];
-    el('heroScopeMirror').innerHTML = `<ul class="scope-list">${scopeRows.map(([k,v]) => `<li><span>${escHtml(k)}</span><b>${escHtml(v)}</b></li>`).join('')}</ul>`;
+    const scopeHtml = `<ul class="scope-list">${scopeRows.map(([k,v]) => `<li><span>${escHtml(k)}</span><b>${escHtml(v)}</b></li>`).join('')}</ul>`;
+    setStableHTML(el('heroScopeMirror'), scopeHtml, 'hero-scope', silentRefresh);
   }
-  if(el('heroScopeSub')) el('heroScopeSub').textContent = `${countMatchesIn(FILTERED)} matches`;
-  el('filterHint').textContent = `Matches: ${countMatchesIn(FILTERED)} • Teams: ${new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size}`;
-  el('overallHint').textContent = `${countMatchesIn(FILTERED)} matches`;
-  renderOverall(); renderTeamGrid(el('teamSearch').value || ''); renderLiveFeed();
+  if(el('heroScopeSub')) el('heroScopeSub').textContent = `${matchCount} matches`;
+  if(el('filterHint')) el('filterHint').textContent = `Matches: ${matchCount} • Teams: ${teamCount}`;
+  if(el('overallHint')) el('overallHint').textContent = `${matchCount} matches`;
+
+  renderOverall({ silentRefresh });
+  renderTeamGrid(el('teamSearch')?.value || '', { silentRefresh });
+  renderLiveFeed({ silentRefresh });
 
   const teams = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean));
   if(CURRENT_TEAM){
@@ -6105,6 +6158,7 @@ function applyFilters(){
     }
   }
 }
+
 
 function matchOrderValueForRow(r){
   const y = n(getVal(r, KEYS.year));
@@ -6494,59 +6548,119 @@ function closeLiveFeedTeamPopup(event, button){
   }
   if(!isTeamModalOpen?.() && !isResourceModalOpen?.() && !isItemDetailOpen?.()) document.body.classList.remove('sb-open');
 }
-function renderLiveFeed(){
+function liveFeedCardHtml(t){
+  return `
+    <article class="live-feed-card" data-live-team="${escHtml(t.team)}" data-live-card-signature="${escHtml(liveFeedTeamSignature(t))}">
+      <div class="live-feed-card-top">
+        <button class="live-feed-team live-feed-team-open" type="button" onclick="toggleLiveFeedTeamPopup(event, this)" title="Open larger ${escHtml(t.team)} view"><b>${escHtml(t.team)}</b></button>
+        <div class="live-feed-rank">#${fmtNum(t.position)}</div>
+      </div>
+      <div class="live-feed-score-row">
+        <div class="live-feed-score"><span>TOT</span><b>${fmtNum(t.total)}</b></div>
+        <div class="live-feed-score"><span>PLC</span><b>${fmtNum(t.rankScore)}</b></div>
+        <div class="live-feed-score"><span>ELM</span><b>${fmtNum(t.teamElims)}</b></div>
+        <div class="live-feed-score"><span>Alive</span><b>${fmtNum(t.alivePlayers)}</b></div>
+      </div>
+      <div class="live-feed-status-row">
+        ${liveFeedTeamStatusLabel(t)}
+        <span class="live-feed-status">${fmtNum(t.eliminatedPlayers)} Player Out</span>
+      </div>
+      <div class="live-feed-players">${liveFeedPlayerHeaderHtml()}${t.players.map(liveFeedPlayerHtml).join('')}</div>
+    </article>
+  `;
+}
+function liveFeedTeamSignature(t){
+  return [
+    t.team, t.position, t.total, t.rankScore, t.teamElims, t.booyah,
+    t.alivePlayers, t.eliminatedPlayers, t.eliminated, LIVE_FEED_PLAYER_VIEW,
+    ...(t.players || []).map(p => [
+      p.player, p.kills, p.damage, p.assists, p.headshots, p.eliminated,
+      p.activeItem?.id || p.activeItem?.name || '',
+      (p.passiveItems || []).map(x => x.id || x.name).join(','),
+      p.petItem?.id || p.petItem?.name || '',
+      p.loadoutItem?.name || ''
+    ].join('^'))
+  ].join('|');
+}
+function renderLiveFeed(options = {}){
   const box = el('liveFeedBox');
   if(!box) return;
+  const silentRefresh = !!options.silentRefresh;
   const rows = liveFeedLatestRows();
+
   if(!rows.length){
     setText('liveFeedHint', 'No rows in current scope');
     box.className = 'live-feed-empty';
-    box.innerHTML = 'No latest match rows found for the current filter.';
+    setStableHTML(box, 'No latest match rows found for the current filter.', 'live-empty', silentRefresh);
     return;
   }
+
   const teams = buildLiveFeedTeams(rows);
   window.LIVE_FEED_TEAMS_CACHE = teams;
+
   const first = rows[0] || {};
   const label = `D${escHtml(norm(getVal(first, KEYS.day)) || '—')} • M${escHtml(norm(getVal(first, KEYS.matchNo)) || '—')}`;
   const aliveTeams = teams.filter(t => !t.eliminated).length;
   const eliminatedTeams = teams.filter(t => t.eliminated).length;
   setText('liveFeedHint', `${label} • ${teams.length} teams`);
   box.className = '';
-  box.innerHTML = `
-    <div class="live-feed-toolbar">
-      <div>
-        <div class="live-feed-title">Latest Match Live Feed</div>
-      </div>
-      <div class="live-feed-status-row">
-        ${liveFeedViewButtonHtml()}
-        <span class="live-feed-status alive">${fmtNum(aliveTeams)} Alive Teams</span>
-        <span class="live-feed-status eliminated">${fmtNum(eliminatedTeams)} Eliminated Teams</span>
-      </div>
+
+  const toolbarHtml = `
+    <div>
+      <div class="live-feed-title">Latest Match Live Feed</div>
     </div>
-    <div class="live-feed-grid">
-      ${teams.map(t => `
-        <article class="live-feed-card" data-live-team="${escHtml(t.team)}">
-          <div class="live-feed-card-top">
-            <button class="live-feed-team live-feed-team-open" type="button" onclick="toggleLiveFeedTeamPopup(event, this)" title="Open larger ${escHtml(t.team)} view"><b>${escHtml(t.team)}</b></button>
-            <div class="live-feed-rank">#${fmtNum(t.position)}</div>
-          </div>
-          <div class="live-feed-score-row">
-            <div class="live-feed-score"><span>TOT</span><b>${fmtNum(t.total)}</b></div>
-            <div class="live-feed-score"><span>PLC</span><b>${fmtNum(t.rankScore)}</b></div>
-            <div class="live-feed-score"><span>ELM</span><b>${fmtNum(t.teamElims)}</b></div>
-            <div class="live-feed-score"><span>Alive</span><b>${fmtNum(t.alivePlayers)}</b></div>
-          </div>
-          <div class="live-feed-status-row">
-            ${liveFeedTeamStatusLabel(t)}
-            <span class="live-feed-status">${fmtNum(t.eliminatedPlayers)} Player Out</span>
-          </div>
-          <div class="live-feed-players">${liveFeedPlayerHeaderHtml()}${t.players.map(liveFeedPlayerHtml).join('')}</div>
-        </article>
-      `).join('')}
+    <div class="live-feed-status-row">
+      ${liveFeedViewButtonHtml()}
+      <span class="live-feed-status alive">${fmtNum(aliveTeams)} Alive Teams</span>
+      <span class="live-feed-status eliminated">${fmtNum(eliminatedTeams)} Eliminated Teams</span>
     </div>
   `;
+
+  let toolbar = box.querySelector(':scope > .live-feed-toolbar');
+  let grid = box.querySelector(':scope > .live-feed-grid');
+
+  if(!toolbar || !grid){
+    setStableHTML(box, `<div class="live-feed-toolbar"></div><div class="live-feed-grid"></div>`, 'live-feed-shell', silentRefresh);
+    toolbar = box.querySelector(':scope > .live-feed-toolbar');
+    grid = box.querySelector(':scope > .live-feed-grid');
+  }
+
+  setStableHTML(toolbar, toolbarHtml, `toolbar::${LIVE_FEED_PLAYER_VIEW}::${aliveTeams}::${eliminatedTeams}`, silentRefresh);
+
+  const existing = new Map([...grid.querySelectorAll('.live-feed-card[data-live-team]')].map(card => [norm(card.dataset.liveTeam).toUpperCase(), card]));
+  const nextKeys = new Set();
+
+  teams.forEach((team, index) => {
+    const key = norm(team.team).toUpperCase();
+    nextKeys.add(key);
+    const sig = liveFeedTeamSignature(team);
+    const current = existing.get(key);
+    const html = liveFeedCardHtml(team).trim();
+
+    if(current && current.dataset.liveCardSignature === sig){
+      // Keep existing node to avoid icon/image reload and flicker.
+      if(grid.children[index] !== current) grid.insertBefore(current, grid.children[index] || null);
+      return;
+    }
+
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const nextCard = template.content.firstElementChild;
+
+    if(current){
+      current.replaceWith(nextCard);
+    }else{
+      grid.insertBefore(nextCard, grid.children[index] || null);
+    }
+  });
+
+  [...grid.querySelectorAll('.live-feed-card[data-live-team]')].forEach(card => {
+    if(!nextKeys.has(norm(card.dataset.liveTeam).toUpperCase())) card.remove();
+  });
+
   updateLiveFeedGlobalModalInPlace();
 }
+
 
 function teamMatchAgg(rows){
   const m = new Map();
@@ -6665,7 +6779,7 @@ function rankMovementHtml(row){
   return `<span class="rank-move same" title="No movement from the ${escHtml(ref)}">—</span>`;
 }
 
-function renderOverall(){
+function renderOverall(options = {}){
   const tm = teamMatchAgg(FILTERED);
   const rows = buildOverallRowsFromTeamMatches(tm);
 
@@ -6709,7 +6823,7 @@ function renderOverall(){
     row.rank_move = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same';
   });
 
-  el('tblOverall').innerHTML = renderSimpleTable(rows, [
+  const overallHtml = renderSimpleTable(rows, [
     {label:'#', key:'display_rank', right:true, html:(r)=>`<span class="rank-no">${escHtml(r.display_rank)}</span>`},
     {
       label:'Team',
@@ -6728,6 +6842,7 @@ function renderOverall(){
     {label:'TOT/M', key:'total_pm', right:true, format:'1d'},
     {label:'DMG/M', key:'dmg_pm', right:true, format:'0d'}
   ]);
+  setStableHTML(el('tblOverall'), overallHtml, `overall::${sortKey}::${dir}::${rows.map(r => `${r.team}:${r.total_score}:${r.elims}:${r.ranking_score}:${r.damage}:${r.rank_move}:${r.rank_delta}`).join('|')}`, !!arguments[0]?.silentRefresh);
 
   applyColumnHeatmap('tblOverall', ['matches','booyahs','elims','ranking_score','total_score','damage','elims_pm','ranking_score_pm','total_pm','dmg_pm']);
 
@@ -7084,18 +7199,37 @@ function populateModalTeamSelect(){
   sel.innerHTML = '<option value="">Select team…</option>' + teams.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
   sel.value = current;
 }
-function renderTeamGrid(filter=''){
+function renderTeamGrid(filter='', options = {}){
+  const grid = el('teamGrid');
+  if(!grid) return;
   const q = filter.trim().toLowerCase();
   const teams = getScopedTeamList().filter(t=>t.toLowerCase().includes(q));
   populateModalTeamSelect();
-  if(!teams.length){ el('teamGrid').innerHTML = '<div class="muted">No teams found in this scope.</div>'; return; }
-  el('teamGrid').innerHTML = teams.map(t=>{
+
+  const sig = `${q}::${teams.join('|')}`;
+  if(options.silentRefresh && grid.dataset.teamGridSignature === sig){
+    highlightActiveTile();
+    return;
+  }
+
+  if(!teams.length){
+    setStableHTML(grid, '<div class="muted">No teams found in this scope.</div>', 'team-grid-empty', !!options.silentRefresh);
+    grid.dataset.teamGridSignature = sig;
+    return;
+  }
+
+  const html = teams.map(t=>{
     const profile = getTeamProfile(t);
     return `<div class="team-tile" data-team="${escHtml(t)}">${teamLogoHtml(t, profile, 'team-tile-logo')}<div class="team-code" title="${escHtml(t)}">${escHtml(t)}</div></div>`;
   }).join('');
-  el('teamGrid').querySelectorAll('.team-tile').forEach(tile => { tile.onclick = () => selectTeam(tile.getAttribute('data-team')); });
+
+  setStableHTML(grid, html, sig, !!options.silentRefresh);
+  grid.dataset.teamGridSignature = sig;
+  grid.querySelectorAll('.team-tile').forEach(tile => { tile.onclick = () => selectTeam(tile.getAttribute('data-team')); });
   highlightActiveTile();
 }
+
+
 function highlightActiveTile(){ el('teamGrid')?.querySelectorAll('.team-tile').forEach(div=>div.classList.toggle('active', !!CURRENT_TEAM && CURRENT_TEAM === div.getAttribute('data-team'))); }
 function clearTeam(){
   CURRENT_TEAM = null;
@@ -9118,6 +9252,30 @@ function makeDataSignature(rows){
   const sample = rows.slice(0, 80).map(getStableRowSignature).join('|');
   return `${rows.length}::${norm(newest.id)}::${norm(oldest.id)}::${sample}`;
 }
+function setStableHTML(node, html, signature = '', preserveHeight = false){
+  if(!node) return false;
+  const normalized = String(html ?? '');
+  const sig = String(signature || normalized);
+  if(node.dataset && node.dataset.stableSignature === sig) return false;
+
+  const oldMinHeight = node.style.minHeight;
+  if(preserveHeight){
+    const h = node.offsetHeight;
+    if(h > 0) node.style.minHeight = `${h}px`;
+  }
+
+  node.innerHTML = normalized;
+  if(node.dataset) node.dataset.stableSignature = sig;
+
+  if(preserveHeight){
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        node.style.minHeight = oldMinHeight || '';
+      });
+    });
+  }
+  return true;
+}
 function tableScrollKey(node, idx){
   const parentId = node.parentElement?.id || '';
   const grandId = node.parentElement?.parentElement?.id || '';
@@ -9129,9 +9287,18 @@ function captureDashboardViewState(){
   document.querySelectorAll('.table-wrap').forEach((node, idx) => {
     tableScrolls.push({ idx, key: tableScrollKey(node, idx), left: node.scrollLeft, top: node.scrollTop });
   });
+
+  const scrollables = [];
+  document.querySelectorAll('[data-preserve-scroll], .team-modal-body, .resource-modal-body, .item-detail-body, .live-feed-players, .live-feed-popup-players').forEach((node, idx) => {
+    const key = node.id || node.closest('[id]')?.id || `scrollable:${idx}`;
+    scrollables.push({ idx, key, left: node.scrollLeft || 0, top: node.scrollTop || 0 });
+  });
+
   return {
-    pageX: window.scrollX || 0,
-    pageY: window.scrollY || 0,
+    pageX: window.scrollX || document.documentElement.scrollLeft || 0,
+    pageY: window.scrollY || document.documentElement.scrollTop || 0,
+    bodyScrollTop: document.body?.scrollTop || 0,
+    docScrollTop: document.documentElement?.scrollTop || 0,
     teamSearch: el('teamSearch')?.value || '',
     activeTab: document.querySelector('.team-tab.active')?.dataset?.tab || 'overview',
     teamModalOpen: isTeamModalOpen(),
@@ -9141,10 +9308,11 @@ function captureDashboardViewState(){
     resourceScroll: document.querySelector('.resource-modal-body')?.scrollTop || 0,
     itemDetailOpen: (typeof isItemDetailOpen === 'function' ? isItemDetailOpen() : false),
     itemScroll: el('itemDetailBody')?.scrollTop || 0,
-    tableScrolls
+    tableScrolls,
+    scrollables
   };
 }
-function restoreDashboardViewState(state){
+function restoreDashboardViewState(state, attempt = 0){
   if(!state) return;
   if(el('teamSearch')) el('teamSearch').value = state.teamSearch || '';
   if(el('resourceSearch')) el('resourceSearch').value = state.resourceSearch || '';
@@ -9156,17 +9324,43 @@ function restoreDashboardViewState(state){
   if(resourceBody) resourceBody.scrollTop = state.resourceScroll || 0;
   if(el('itemDetailBody')) el('itemDetailBody').scrollTop = state.itemScroll || 0;
 
-  const byKey = new Map((state.tableScrolls || []).map(item => [item.key, item]));
+  const tableByKey = new Map((state.tableScrolls || []).map(item => [item.key, item]));
   document.querySelectorAll('.table-wrap').forEach((node, idx) => {
     const key = tableScrollKey(node, idx);
-    const saved = byKey.get(key) || (state.tableScrolls || []).find(x => x.idx === idx);
+    const saved = tableByKey.get(key) || (state.tableScrolls || []).find(x => x.idx === idx);
     if(saved){
       node.scrollLeft = saved.left || 0;
       node.scrollTop = saved.top || 0;
     }
   });
-  window.scrollTo(state.pageX || 0, state.pageY || 0);
+
+  const scrollableByKey = new Map((state.scrollables || []).map(item => [item.key, item]));
+  document.querySelectorAll('[data-preserve-scroll], .team-modal-body, .resource-modal-body, .item-detail-body, .live-feed-players, .live-feed-popup-players').forEach((node, idx) => {
+    const key = node.id || node.closest('[id]')?.id || `scrollable:${idx}`;
+    const saved = scrollableByKey.get(key) || (state.scrollables || []).find(x => x.idx === idx);
+    if(saved){
+      node.scrollLeft = saved.left || 0;
+      node.scrollTop = saved.top || 0;
+    }
+  });
+
+  const x = state.pageX || 0;
+  const y = state.pageY ?? state.docScrollTop ?? state.bodyScrollTop ?? 0;
+  try{
+    window.scrollTo({ left:x, top:y, behavior:'instant' });
+  }catch(_e){
+    window.scrollTo(x, y);
+  }
+  if(document.documentElement) document.documentElement.scrollTop = y;
+  if(document.body) document.body.scrollTop = y;
+
+  // New images/cards can change height a frame later, so restore more than once.
+  if(attempt < 3){
+    requestAnimationFrame(() => restoreDashboardViewState(state, attempt + 1));
+  }
 }
+
+
 function currentFilterSnapshot(){
   return {
     t: el('fTournament')?.value || '__all__',
@@ -9208,6 +9402,8 @@ async function refreshDataOnly(){
 
   EWC_DATA_REFRESH_BUSY = true;
   const state = captureDashboardViewState();
+  document.body.classList.add('ewc-refreshing');
+
   try{
     const activeSession = await requireSecureSession();
     if(!activeSession) return;
@@ -9221,7 +9417,7 @@ async function refreshDataOnly(){
 
     RAW = freshRows;
     rebuildFilterOptionsPreservingCurrent();
-    applyFilters();
+    applyFilters({ silentRefresh:true });
 
     // If the modal is open, refresh it in place. If the user closed it,
     // keep it closed and only preserve the selected team/highlight state.
@@ -9236,13 +9432,19 @@ async function refreshDataOnly(){
       el('teamModal')?.setAttribute('aria-hidden', 'true');
     }
 
-    requestAnimationFrame(() => restoreDashboardViewState(state));
+    restoreDashboardViewState(state);
   }catch(err){
     console.warn('Data-only refresh failed:', err?.message || err);
   }finally{
-    EWC_DATA_REFRESH_BUSY = false;
+    requestAnimationFrame(() => {
+      restoreDashboardViewState(state);
+      document.body.classList.remove('ewc-refreshing');
+      EWC_DATA_REFRESH_BUSY = false;
+    });
   }
 }
+
+
 function startDataOnlyAutoRefresh(){
   EWC_LAST_DATA_SIGNATURE = makeDataSignature(RAW);
   if(EWC_DATA_REFRESH_TIMER) clearInterval(EWC_DATA_REFRESH_TIMER);
@@ -9279,6 +9481,7 @@ async function init(){
     const url = new URL(window.location.href); const qt=(url.searchParams.get('team')||'').trim().toUpperCase();
     if(qt){ const teams=new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(qt)) selectTeam(qt,false); }
     startDataOnlyAutoRefresh();
+    document.body.classList.add('ewc-live-ready');
     el('veil').classList.add('hide');
   }catch(e){ el('veil').classList.add('hide'); gerr('Fatal init error:\n\n' + (e?.message || e)); }
 }
