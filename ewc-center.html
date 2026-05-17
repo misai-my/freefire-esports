@@ -3919,7 +3919,35 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
       }
     }
 
-  </style>
+  
+
+/* ===== Final header / quick popups / live feed modal stability fixes ===== */
+.hero-actions{display:none!important;}
+.quick-popups-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.quick-popups-head .muted{display:none!important;}
+.live-feed-global-modal{
+  position:fixed!important;
+  inset:0!important;
+  z-index:25000!important;
+  display:none;
+  place-items:center;
+  padding:22px;
+  overflow:auto;
+}
+.live-feed-global-modal.show{display:grid!important;}
+.live-feed-global-modal .live-feed-popup-backdrop{z-index:0!important;}
+.live-feed-global-modal .live-feed-popup-panel{z-index:1!important;}
+.live-feed-global-modal .live-feed-popup-close{
+  background:linear-gradient(135deg,rgba(255,82,82,.50),rgba(115,17,17,.96))!important;
+  border-color:rgba(255,107,107,.60)!important;
+  color:#fff!important;
+}
+@media(max-width:760px){
+  .live-feed-global-modal{padding:10px!important;align-items:start!important;}
+  .live-feed-global-modal .live-feed-popup-panel{width:100%!important;max-height:92vh!important;}
+}
+
+</style>
 </head>
 <body class="betting-experiment">
 
@@ -4137,11 +4165,6 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
       <div class="hero-kicker">Esports World Cup</div>
       <h2>EWC TEAM CENTER</h2>
       <p>Track team pace, player impact, loadout identity, and match form in one broadcast-ready command page.</p>
-      <div class="hero-actions">
-        <span class="hero-pill"><span class="dot good"></span> Team Summary</span>
-        <span class="hero-pill"><span class="dot neutral"></span> AI Insight Cards</span>
-        <span class="hero-pill"><span class="dot bad"></span> Player Loadouts</span>
-      </div>
     </div>
     <div class="hero-market-board compact" aria-label="EWC quick status card">
       <div class="market-card scope-market-card"><span>Scope</span><b id="heroScopeMirror">Live Filters</b><small id="heroScopeSub">synced from filters</small></div>
@@ -4193,7 +4216,6 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
   <section class="section quick-popups-section" id="quickPopupsSection" aria-label="Quick reference popups">
     <div class="quick-popups-head">
       <h2>Quick Popups</h2>
-      <div class="muted">Open reference libraries without entering a team profile.</div>
     </div>
     <aside class="asset-rail asset-rail-inline" aria-label="Quick resource popups">
       <button class="btn secondary" type="button" data-open-resource="skills"><span class="dot skill"></span>Skills</button>
@@ -4814,6 +4836,7 @@ sbOverlay?.addEventListener('click', closeMobileSidebar);
 window.addEventListener('resize', () => { if(!isMobile()) closeMobileSidebar(); setToggleIcon(); });
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
+  if(document.getElementById('liveFeedTeamGlobalModal')?.classList.contains('show')){ closeLiveFeedTeamPopup(e, document.getElementById('liveFeedTeamGlobalModal')); return; }
   if(typeof isItemDetailOpen === 'function' && isItemDetailOpen()){ closeItemDetailPopup(); return; }
   if(typeof isResourceModalOpen === 'function' && isResourceModalOpen()){ closeResourcePopup(); return; }
   if(typeof isTeamModalOpen === 'function' && isTeamModalOpen()){ closeTeamModal(); return; }
@@ -6243,6 +6266,7 @@ function updateLiveFeedViewInPlace(){
     }
   });
 
+  updateLiveFeedGlobalModalInPlace();
   return true;
 }
 
@@ -6342,19 +6366,86 @@ function liveFeedTeamPopupHtml(team){
     </section>
   </div>`;
 }
+
+let LIVE_FEED_ACTIVE_TEAM_CODE = '';
+function ensureLiveFeedTeamGlobalModal(){
+  let modal = document.getElementById('liveFeedTeamGlobalModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'liveFeedTeamGlobalModal';
+    modal.className = 'live-feed-global-modal';
+    modal.setAttribute('aria-hidden','true');
+    document.body.appendChild(modal);
+  }
+  return modal;
+}
+function liveFeedTeamPopupPanelHtml(team){
+  const players = (team.players || []).map(liveFeedPlayerHtml).join('');
+  const statusText = team.booyah ? '👑 Booyah' : team.eliminated ? 'Eliminated' : 'Alive';
+  const viewText = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Preset View' : 'Stats View';
+
+  return `
+    <div class="live-feed-popup-backdrop" onclick="closeLiveFeedTeamPopup(event, this)"></div>
+    <section class="live-feed-popup-panel" role="dialog" aria-modal="true" aria-label="${escHtml(team.team)} live feed preview">
+      <div class="live-feed-popup-head">
+        <div class="live-feed-popup-title-wrap">
+          <b>${escHtml(team.team)}</b>
+          <span>${statusText} • ${viewText}</span>
+        </div>
+        <div class="live-feed-popup-actions">
+          ${liveFeedViewButtonHtml()}
+          <button type="button" class="live-feed-popup-close" onclick="closeLiveFeedTeamPopup(event, this)" aria-label="Close team preview">×</button>
+        </div>
+      </div>
+      <div class="live-feed-popup-stats">
+        <div><span>TOT</span><b>${fmtNum(team.total)}</b></div>
+        <div><span>PLC</span><b>${fmtNum(team.rankScore)}</b></div>
+        <div><span>ELM</span><b>${fmtNum(team.teamElims)}</b></div>
+        <div><span>Alive</span><b>${fmtNum(team.alivePlayers)}</b></div>
+      </div>
+      <div class="live-feed-popup-players">${liveFeedPlayerHeaderHtml()}${players}</div>
+    </section>`;
+}
+function renderLiveFeedGlobalModal(){
+  if(!LIVE_FEED_ACTIVE_TEAM_CODE) return false;
+  const team = (window.LIVE_FEED_TEAMS_CACHE || []).find(t => norm(t.team).toUpperCase() === LIVE_FEED_ACTIVE_TEAM_CODE);
+  const modal = ensureLiveFeedTeamGlobalModal();
+  if(!team){
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden','true');
+    return false;
+  }
+  modal.innerHTML = liveFeedTeamPopupPanelHtml(team);
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+  document.body.classList.add('sb-open');
+  return true;
+}
+function updateLiveFeedGlobalModalInPlace(){
+  const modal = document.getElementById('liveFeedTeamGlobalModal');
+  if(!modal || !modal.classList.contains('show') || !LIVE_FEED_ACTIVE_TEAM_CODE) return false;
+  return renderLiveFeedGlobalModal();
+}
 function toggleLiveFeedTeamPopup(event, button){
+  event?.preventDefault?.();
   event?.stopPropagation?.();
   const card = button?.closest?.('.live-feed-card');
-  if(!card) return;
-  const shouldOpen = !card.classList.contains('popup-open');
-  card.closest('.live-feed-grid')?.querySelectorAll('.live-feed-card.popup-open').forEach(node => {
-    if(node !== card) node.classList.remove('popup-open');
-  });
-  card.classList.toggle('popup-open', shouldOpen);
+  const teamCode = norm(card?.dataset?.liveTeam || button?.dataset?.liveTeam || '').toUpperCase();
+  if(!teamCode) return;
+  LIVE_FEED_ACTIVE_TEAM_CODE = teamCode;
+  renderLiveFeedGlobalModal();
 }
 function closeLiveFeedTeamPopup(event, button){
+  event?.preventDefault?.();
   event?.stopPropagation?.();
-  button?.closest?.('.live-feed-card')?.classList.remove('popup-open');
+  LIVE_FEED_ACTIVE_TEAM_CODE = '';
+  const modal = document.getElementById('liveFeedTeamGlobalModal');
+  if(modal){
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML = '';
+  }
+  if(!isTeamModalOpen?.() && !isResourceModalOpen?.() && !isItemDetailOpen?.()) document.body.classList.remove('sb-open');
 }
 function renderLiveFeed(){
   const box = el('liveFeedBox');
@@ -6392,7 +6483,6 @@ function renderLiveFeed(){
             <button class="live-feed-team live-feed-team-open" type="button" onclick="toggleLiveFeedTeamPopup(event, this)" title="Open larger ${escHtml(t.team)} view"><b>${escHtml(t.team)}</b></button>
             <div class="live-feed-rank">#${fmtNum(t.position)}</div>
           </div>
-          ${liveFeedTeamPopupHtml(t)}
           <div class="live-feed-score-row">
             <div class="live-feed-score"><span>TOT</span><b>${fmtNum(t.total)}</b></div>
             <div class="live-feed-score"><span>PLC</span><b>${fmtNum(t.rankScore)}</b></div>
@@ -6408,6 +6498,7 @@ function renderLiveFeed(){
       `).join('')}
     </div>
   `;
+  updateLiveFeedGlobalModalInPlace();
 }
 
 function teamMatchAgg(rows){
