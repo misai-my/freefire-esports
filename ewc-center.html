@@ -6102,6 +6102,7 @@ function resetToLatest(){
 }
 function applyFilters(options = {}){
   const silentRefresh = !!options.silentRefresh;
+  const updateOnlyLiveAndSummary = !!options.updateOnlyLiveAndSummary;
   const f = currentFilter();
   FILTERED = RAW.filter(r => {
     if(f.t !== '__all__' && KEYS.tournament && norm(getVal(r,KEYS.tournament)) !== f.t) return false;
@@ -6117,6 +6118,17 @@ function applyFilters(options = {}){
 
   const matchCount = countMatchesIn(FILTERED);
   const teamCount = new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)).size;
+
+  // Live refresh mode is intentionally narrow: it must not touch filters,
+  // dropdown option lists, team tiles, selected team modals, tabs, or helper cards.
+  // Only the Overall — Team Summary and Latest Match Live Feed are allowed to change.
+  if(updateOnlyLiveAndSummary){
+    if(el('overallHint')) el('overallHint').textContent = `${matchCount} matches`;
+    renderOverall({ silentRefresh:true });
+    renderLiveFeed({ silentRefresh:true });
+    return;
+  }
+
   const scopeText = [
     f.t !== '__all__' ? f.t : 'All tournaments',
     f.s !== '__all__' ? f.s : 'All stages',
@@ -9361,6 +9373,34 @@ function restoreDashboardViewState(state, attempt = 0){
 }
 
 
+
+function captureFilterControlState(){
+  const ids = [
+    'fTournament','fStage','fMode','fSource','fYear','fWeek','fDay','fMatchNo',
+    'teamCardTournament','teamCardStage','teamCardDay','teamCardMatchNo'
+  ];
+  const controls = {};
+  ids.forEach(id => {
+    const node = el(id);
+    if(node) controls[id] = { value: node.value, html: node.innerHTML, scrollLeft: node.scrollLeft || 0, scrollTop: node.scrollTop || 0 };
+  });
+  return controls;
+}
+function restoreFilterControlState(state){
+  if(!state) return;
+  Object.entries(state).forEach(([id, item]) => {
+    const node = el(id);
+    if(!node || !item) return;
+    if(typeof item.html === 'string' && node.innerHTML !== item.html) node.innerHTML = item.html;
+    if([...node.options].some(o => o.value === item.value)) node.value = item.value;
+    node.scrollLeft = item.scrollLeft || 0;
+    node.scrollTop = item.scrollTop || 0;
+  });
+}
+function getRefreshLockedFilterSignature(){
+  const f = currentFilterSnapshot();
+  return [f.t,f.s,f.mode,f.source,f.y,f.w,f.d,f.m].join('::');
+}
 function currentFilterSnapshot(){
   return {
     t: el('fTournament')?.value || '__all__',
@@ -9402,6 +9442,8 @@ async function refreshDataOnly(){
 
   EWC_DATA_REFRESH_BUSY = true;
   const state = captureDashboardViewState();
+  let lockedFilters = null;
+  let beforeFilterSig = '';
   document.body.classList.add('ewc-refreshing');
 
   try{
@@ -9415,28 +9457,29 @@ async function refreshDataOnly(){
     if(newSignature === EWC_LAST_DATA_SIGNATURE) return;
     EWC_LAST_DATA_SIGNATURE = newSignature;
 
+    beforeFilterSig = getRefreshLockedFilterSignature();
+    lockedFilters = captureFilterControlState();
+
     RAW = freshRows;
-    rebuildFilterOptionsPreservingCurrent();
-    applyFilters({ silentRefresh:true });
 
-    // If the modal is open, refresh it in place. If the user closed it,
-    // keep it closed and only preserve the selected team/highlight state.
-    if(CURRENT_TEAM && state.teamModalOpen){
-      selectTeam(CURRENT_TEAM, true);
-      setTeamTab(state.activeTab || 'overview');
-      el('teamModal')?.classList.add('show');
-      el('teamModal')?.setAttribute('aria-hidden', 'false');
-    }else if(CURRENT_TEAM){
-      highlightActiveTile();
-      el('teamModal')?.classList.remove('show');
-      el('teamModal')?.setAttribute('aria-hidden', 'true');
-    }
+    // Do not rebuild cascade options during live refresh. Rebuilding options can
+    // reset dropdowns to "All" or resync team-card filters while a game is ongoing.
+    restoreFilterControlState(lockedFilters);
+    applyFilters({ silentRefresh:true, updateOnlyLiveAndSummary:true });
+    restoreFilterControlState(lockedFilters);
 
+    // Safety guard: if any downstream code tried to alter the filter selection,
+    // restore it immediately. This keeps live refresh data-only for filters.
+    if(getRefreshLockedFilterSignature() !== beforeFilterSig) restoreFilterControlState(lockedFilters);
+
+    // During auto-refresh, do not re-render selected team cards/modals/team grids.
+    // Those can be manually refreshed by changing filters or reopening a team.
     restoreDashboardViewState(state);
   }catch(err){
     console.warn('Data-only refresh failed:', err?.message || err);
   }finally{
     requestAnimationFrame(() => {
+      restoreFilterControlState(lockedFilters);
       restoreDashboardViewState(state);
       document.body.classList.remove('ewc-refreshing');
       EWC_DATA_REFRESH_BUSY = false;
