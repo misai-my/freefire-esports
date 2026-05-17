@@ -3844,7 +3844,82 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
   font-weight: 900;
 }
 
-</style>
+
+
+    /* ===== Quick Popups moved outside Overall Summary ===== */
+    .summary-layout-table-only,
+    body.betting-experiment .summary-layout-table-only{
+      grid-template-columns: 1fr !important;
+    }
+    .quick-popups-section{
+      display:grid;
+      grid-template-columns:minmax(180px, 260px) minmax(0, 1fr);
+      gap:12px;
+      align-items:center;
+      padding:12px 14px;
+    }
+    .quick-popups-head h2{
+      margin:0 0 4px;
+      font-family:Orbitron,sans-serif;
+      font-size:.96rem;
+      color:var(--brand);
+      letter-spacing:.04em;
+    }
+    .quick-popups-head .muted{
+      font-size:.78rem;
+      line-height:1.25;
+    }
+    .asset-rail.asset-rail-inline,
+    body.betting-experiment .asset-rail.asset-rail-inline{
+      position:relative !important;
+      top:auto !important;
+      display:grid !important;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:8px;
+      padding:8px;
+      border-radius:16px;
+      overflow:visible;
+      width:100%;
+    }
+    .asset-rail.asset-rail-inline .asset-rail-title{
+      display:none !important;
+    }
+    .asset-rail.asset-rail-inline .btn{
+      width:100% !important;
+      min-width:0 !important;
+      justify-content:center;
+      padding:9px 10px;
+      white-space:nowrap;
+    }
+    @media(max-width: 900px){
+      .quick-popups-section{
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+      .asset-rail.asset-rail-inline,
+      body.betting-experiment .asset-rail.asset-rail-inline{
+        grid-template-columns:repeat(5, minmax(92px, 1fr));
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+      }
+    }
+    @media(max-width: 520px){
+      .quick-popups-section{
+        padding:10px;
+      }
+      .asset-rail.asset-rail-inline,
+      body.betting-experiment .asset-rail.asset-rail-inline{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        overflow:visible;
+      }
+      .asset-rail.asset-rail-inline .btn{
+        justify-content:flex-start;
+        font-size:.72rem;
+        padding:8px 9px;
+      }
+    }
+
+  </style>
 </head>
 <body class="betting-experiment">
 
@@ -4109,19 +4184,26 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
         </label>
         <button class="btn secondary" id="overallSortDir" data-dir="desc">Desc</button>
       </div>
-      <div class="summary-layout">
+      <div class="summary-layout summary-layout-table-only">
         <div class="card summary-table-card"><div id="tblOverall">Loading…</div></div>
-        <aside class="asset-rail" aria-label="Quick resource popups">
-          <div class="asset-rail-title">Quick Popups</div>
-          <button class="btn secondary" type="button" data-open-resource="skills"><span class="dot skill"></span>Skills</button>
-          <button class="btn secondary" type="button" data-open-resource="pets"><span class="dot pet"></span>Pets</button>
-          <button class="btn secondary" type="button" data-open-resource="weapons"><span class="dot weapon"></span>Weapons</button>
-          <button class="btn secondary" type="button" data-open-resource="loadouts"><span class="dot loadout"></span>Loadout</button>
-          <button class="btn secondary" type="button" data-open-resource="maps"><span class="dot map"></span>Map</button>
-        </aside>
       </div>
     </div>
   </details>
+
+  <section class="section quick-popups-section" id="quickPopupsSection" aria-label="Quick reference popups">
+    <div class="quick-popups-head">
+      <h2>Quick Popups</h2>
+      <div class="muted">Open reference libraries without entering a team profile.</div>
+    </div>
+    <aside class="asset-rail asset-rail-inline" aria-label="Quick resource popups">
+      <button class="btn secondary" type="button" data-open-resource="skills"><span class="dot skill"></span>Skills</button>
+      <button class="btn secondary" type="button" data-open-resource="pets"><span class="dot pet"></span>Pets</button>
+      <button class="btn secondary" type="button" data-open-resource="weapons"><span class="dot weapon"></span>Weapons</button>
+      <button class="btn secondary" type="button" data-open-resource="loadouts"><span class="dot loadout"></span>Loadout</button>
+      <button class="btn secondary" type="button" data-open-resource="maps"><span class="dot map"></span>Map</button>
+    </aside>
+  </section>
+
   <div class="section">
     <h2>Team Selection — Click to Open Profile</h2>
     <div class="bar"><input type="search" id="teamSearch" placeholder="Search EWC team…" class="input" style="flex:1;max-width:420px"><span class="chip">Selected: <span id="selectedTeamChip">—</span></span></div>
