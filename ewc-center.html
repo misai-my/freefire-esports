@@ -3785,6 +3785,56 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
   border-color:rgba(255,255,255,.08)!important;
 }
 
+
+
+/* ===== Live Feed preset detail click hard fix ===== */
+.live-feed-preset-badge[data-live-feed-detail="1"]{
+  pointer-events:auto!important;
+  position:relative!important;
+  z-index:5!important;
+}
+.live-feed-popup-panel{pointer-events:auto!important;}
+.live-feed-popup-backdrop{pointer-events:auto!important;}
+.item-detail-modal.show{display:grid!important;z-index:25000!important;}
+.item-detail-modal.show .item-detail-card{z-index:2!important;}
+.item-detail-modal.show .item-detail-backdrop{z-index:1!important;}
+
+
+/* ===== Live Feed: individual passive skill click targets ===== */
+.live-feed-passive-badge-group{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:1px!important;
+  align-items:center!important;
+  justify-items:center!important;
+}
+.live-feed-passive-icon-btn{
+  appearance:none!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  margin:0!important;
+  padding:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  display:grid!important;
+  place-items:center!important;
+  cursor:pointer!important;
+  border-radius:7px!important;
+}
+.live-feed-passive-icon-btn:hover{
+  background:rgba(255,255,255,.08)!important;
+  outline:1px solid rgba(255,255,255,.16)!important;
+}
+.live-feed-passive-icon-btn .visual-icon-wrap{
+  pointer-events:none!important;
+}
+.live-feed-popup-players .live-feed-passive-icon-btn{
+  border-radius:10px!important;
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -6009,8 +6059,17 @@ function buildLiveFeedTeams(rows){
   teams.forEach((t, index) => t.position = index + 1);
   return teams;
 }
+function normalizeLiveFeedResourceKind(kind){
+  const raw = norm(kind).toLowerCase();
+  if(raw === 'skill' || raw === 'skills' || raw === 'passive' || raw === 'passives' || raw === 'active') return 'skills';
+  if(raw === 'pet' || raw === 'pets') return 'pets';
+  if(raw === 'loadout' || raw === 'loadouts') return 'loadouts';
+  if(raw === 'weapon' || raw === 'weapons') return 'weapons';
+  if(raw === 'map' || raw === 'maps') return 'maps';
+  return raw || 'skills';
+}
 function findResourceItemForLiveFeed(kind, name, id=''){
-  const resourceKind = kind || 'skills';
+  const resourceKind = normalizeLiveFeedResourceKind(kind);
   const list = RESOURCE_DATA[resourceKind] || [];
   const key = assetLookupKey(name);
   const firstKey = firstSkillNameTokenKey(name);
@@ -6041,11 +6100,28 @@ function findResourceItemForLiveFeed(kind, name, id=''){
 function openLiveFeedPresetDetail(event, kind, encodedName, encodedId=''){
   event?.preventDefault?.();
   event?.stopPropagation?.();
+  const resourceKind = normalizeLiveFeedResourceKind(kind);
   const name = decodeURIComponent(encodedName || '');
   const id = decodeURIComponent(encodedId || '');
-  const item = findResourceItemForLiveFeed(kind, name, id);
-  openItemDetailPopup(item, kind, 'live-feed');
+  const item = findResourceItemForLiveFeed(resourceKind, name, id);
+  openItemDetailPopup(item, resourceKind, 'live-feed');
 }
+function wireLiveFeedPresetDetails(){
+  if(window.__liveFeedPresetDetailsWired) return;
+  window.__liveFeedPresetDetailsWired = true;
+  document.addEventListener('click', event => {
+    const btn = event.target?.closest?.('[data-live-feed-detail="1"]');
+    if(!btn) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const resourceKind = normalizeLiveFeedResourceKind(btn.dataset.resourceKind || 'skills');
+    const name = btn.dataset.resourceName || '';
+    const id = btn.dataset.resourceId || '';
+    const item = findResourceItemForLiveFeed(resourceKind, name, id);
+    openItemDetailPopup(item, resourceKind, 'live-feed');
+  }, true);
+}
+wireLiveFeedPresetDetails();
 function updateLiveFeedViewInPlace(){
   const grid = document.querySelector('#liveFeedBox .live-feed-grid');
   const cache = window.LIVE_FEED_TEAMS_CACHE || [];
@@ -6100,17 +6176,22 @@ function liveFeedPresetBadgeHtml(kind, item, label=''){
   const resourceKind = liveFeedResourceKindFromPresetKind(kind);
   const encodedName = encodeURIComponent(name);
   const encodedId = encodeURIComponent(item.id || '');
-  return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(name)}" onclick="openLiveFeedPresetDetail(event,'${escHtml(resourceKind)}','${escHtml(encodedName)}','${escHtml(encodedId)}')">${visualIconHtml(kind === 'passives' ? 'skill' : kind, name, item.id || '')}</button>`;
+  return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(name)}" data-live-feed-detail="1" data-resource-kind="${escHtml(resourceKind)}" data-resource-name="${escHtml(name)}" data-resource-id="${escHtml(item.id || '')}">${visualIconHtml(kind === 'passives' ? 'skill' : kind, name, item.id || '')}</button>`;
 }
 function liveFeedPassiveBadgeHtml(items){
   const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
   if(!clean.length) return `<span class="live-feed-preset-badge passives empty" title="No passive skills">—</span>`;
   const title = clean.map(x => x.name).join(' • ');
-  const firstName = clean[0]?.name || title;
-  const encodedName = encodeURIComponent(firstName);
-  const encodedId = encodeURIComponent(clean[0]?.id || '');
-  const icons = clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('');
-  return `<button class="live-feed-preset-badge passives" type="button" title="${escHtml(title)}" onclick="openLiveFeedPresetDetail(event,'skills','${escHtml(encodedName)}','${escHtml(encodedId)}')">${icons}</button>`;
+
+  // Each passive icon is now its own clickable target.
+  // Previous version wrapped all 3 icons in one button and passed only the first skill,
+  // so clicking the passive group always opened skill #1.
+  const icons = clean.map((item, index) => {
+    const name = norm(item.name);
+    return `<button class="live-feed-passive-icon-btn" type="button" title="${escHtml(name)}" aria-label="Open passive skill ${index + 1}: ${escHtml(name)}" data-live-feed-detail="1" data-resource-kind="skills" data-resource-name="${escHtml(name)}" data-resource-id="${escHtml(item.id || '')}">${visualIconHtml('skill', name, item.id || '')}</button>`;
+  }).join('');
+
+  return `<span class="live-feed-preset-badge passives live-feed-passive-badge-group" title="${escHtml(title)}">${icons}</span>`;
 }
 function liveFeedPlayerPresetHtml(player){
   const badges = [
