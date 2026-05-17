@@ -3966,6 +3966,35 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
 .live-feed-global-modal.show{
   z-index:25000!important;
 }
+
+
+/* ===== Final z-index fix: item/resource details must sit above Live Feed team popup ===== */
+.item-detail-modal,
+.item-detail-modal.show{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483000!important;
+}
+.item-detail-modal.show{
+  display:grid!important;
+}
+.item-detail-modal .item-detail-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483001!important;
+}
+.item-detail-modal .item-detail-card{
+  position:relative!important;
+  z-index:2147483002!important;
+}
+.resource-modal.show{
+  z-index:2147482000!important;
+}
+.live-feed-global-modal.show{
+  z-index:25000!important;
+}
+.preset-pills{gap:8px;}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -4267,12 +4296,11 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
         <div class="muted" style="font-size:.82rem;margin-top:4px">Click an empty slot to pick from the popup library. Click a filled slot for details.</div>
         <div class="preset-pills">
           <button class="btn secondary" id="presetResetBtn" type="button">Reset Preset</button>
-          <a class="btn brand" href="preset.html">Open Full Builder</a>
         </div>
       </div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="preset-row-controls"><span class="muted" id="presetActiveCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="active">+ Slot</button></span></div><div class="preset-row" id="presetActiveRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="preset-row-controls"><span class="muted" id="presetPassiveCount">3 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="passive">+ Slot</button></span></div><div class="preset-row" id="presetPassiveRow"></div></div>
-      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="preset-row-controls"><span class="muted" id="presetPetCount">1 slot</span><button class="preset-add-slot" type="button" data-add-preset-slot="pet">+ Slot</button></span></div><div class="preset-row" id="presetPetRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Active Skill</span><span class="preset-row-controls"><span class="muted" id="presetActiveCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="active">+ Slot</button></span></div><div class="preset-row" id="presetActiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot skill"></span> Passive Skills</span><span class="preset-row-controls"><span class="muted" id="presetPassiveCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="passive">+ Slot</button></span></div><div class="preset-row" id="presetPassiveRow"></div></div>
+      <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot pet"></span> Pet</span><span class="preset-row-controls"><span class="muted" id="presetPetCount">4 slots</span><button class="preset-add-slot" type="button" data-add-preset-slot="pet">+ Slot</button></span></div><div class="preset-row" id="presetPetRow"></div></div>
       <div class="preset-row-wrap"><div class="preset-row-title"><span><span class="dot loadout"></span> Loadouts</span><span class="preset-row-controls"><span class="muted" id="presetLoadoutCount">Fixed 4 slots</span></span></div><div class="preset-row fixed-loadout-row" id="presetLoadoutRow"></div></div>
     </div>
   </details>
@@ -4612,7 +4640,7 @@ function switchResourcePopup(kind){
 }
 
 const MINI_PRESET_KEY = 'ewc_mini_preset_v1';
-let MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:[null,null,null,null] };
+let MINI_PRESET = { active:[null,null,null,null], passive:[null,null,null,null], pet:[null,null,null,null], loadout:[null,null,null,null] };
 const FIXED_MINI_LOADOUTS = [
   { code:'500000008', name:'Enhance Hammer', aliases:['Enhance Hammer','Enhance Ha'] },
   { code:'500000003', name:'Super Leg Pockets', aliases:['Super Leg Pockets','Super Leg Pocket','Super Leg'] },
@@ -8625,7 +8653,37 @@ function costText(value){
   }
   return '';
 }
+
+function elevateItemDetailPopupLayer(){
+  const modal = el('itemDetailModal');
+  if(!modal) return;
+
+  // Move the detail modal to the very end of <body> so it is not trapped
+  // behind the Live Feed global popup or any transformed parent stacking context.
+  if(modal.parentElement !== document.body || modal !== document.body.lastElementChild){
+    document.body.appendChild(modal);
+  }
+
+  modal.style.position = 'fixed';
+  modal.style.inset = '0';
+  modal.style.zIndex = '2147483000';
+
+  const backdrop = modal.querySelector('.item-detail-backdrop');
+  if(backdrop){
+    backdrop.style.position = 'fixed';
+    backdrop.style.inset = '0';
+    backdrop.style.zIndex = '2147483001';
+  }
+
+  const card = modal.querySelector('.item-detail-card');
+  if(card){
+    card.style.position = 'relative';
+    card.style.zIndex = '2147483002';
+  }
+}
+
 function openItemDetailPopup(item, kind, context='resource'){
+  elevateItemDetailPopupLayer();
   if(!item) return;
   const raw = item.raw || item;
   const singular = resourceKindSingular(kind);
@@ -8730,16 +8788,16 @@ function enforceFixedMiniLoadouts(){
   MINI_PRESET.loadout = getFixedMiniLoadouts();
 }
 function normalizeMiniPresetSlots(){
-  if(!Array.isArray(MINI_PRESET.active)) MINI_PRESET.active = [null];
-  if(!Array.isArray(MINI_PRESET.passive)) MINI_PRESET.passive = [null,null,null];
-  if(!Array.isArray(MINI_PRESET.pet)) MINI_PRESET.pet = [null];
+  if(!Array.isArray(MINI_PRESET.active)) MINI_PRESET.active = [null,null,null,null];
+  if(!Array.isArray(MINI_PRESET.passive)) MINI_PRESET.passive = [null,null,null,null];
+  if(!Array.isArray(MINI_PRESET.pet)) MINI_PRESET.pet = [null,null,null,null];
   if(!Array.isArray(MINI_PRESET.loadout)) MINI_PRESET.loadout = [null,null,null,null];
 
-  // Minimum slot layout: 1 active, 3 passive, 1 pet.
+  // Minimum slot layout: 4 active, 4 passive, 4 pet.
   // Loadout is fixed to the four official loadout slots below.
-  while(MINI_PRESET.active.length < 1) MINI_PRESET.active.push(null);
-  while(MINI_PRESET.passive.length < 3) MINI_PRESET.passive.push(null);
-  while(MINI_PRESET.pet.length < 1) MINI_PRESET.pet.push(null);
+  while(MINI_PRESET.active.length < 4) MINI_PRESET.active.push(null);
+  while(MINI_PRESET.passive.length < 4) MINI_PRESET.passive.push(null);
+  while(MINI_PRESET.pet.length < 4) MINI_PRESET.pet.push(null);
   enforceFixedMiniLoadouts();
 }
 function loadMiniPreset(){
@@ -8824,7 +8882,7 @@ function applyPresetPick(kind, index, item){
   renderMiniPresetBuilder();
 }
 function resetMiniPreset(){
-  MINI_PRESET = { active:[null], passive:[null,null,null], pet:[null], loadout:getFixedMiniLoadouts() };
+  MINI_PRESET = { active:[null,null,null,null], passive:[null,null,null,null], pet:[null,null,null,null], loadout:getFixedMiniLoadouts() };
   saveMiniPreset();
   renderMiniPresetBuilder();
 }
