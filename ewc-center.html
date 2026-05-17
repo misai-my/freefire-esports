@@ -9229,6 +9229,281 @@ function wireTeamCardFilterControls(){
 
 
 
+/* ===== Persistent local view state: filters + view controls =====
+   User-facing behavior:
+   - Manual UI changes are saved to localStorage.
+   - Live auto-refresh never writes over saved view state.
+   - Reloading the page restores the dashboard view, not just the data. */
+const EWC_VIEW_STATE_KEY = 'ewc_team_center_view_state_v1';
+let EWC_RESTORING_VIEW_STATE = false;
+let EWC_VIEW_SAVE_TIMER = null;
+let EWC_VIEW_STATE_WIRED = false;
+let EWC_PENDING_SAVED_VIEW_STATE = null;
+
+function safeReadJsonStorage(key, fallback = null){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(_e){
+    return fallback;
+  }
+}
+function safeWriteJsonStorage(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(_e){}
+}
+function readControlValue(id, fallback=''){
+  const node = el(id);
+  if(!node) return fallback;
+  if(node.type === 'checkbox') return !!node.checked;
+  return node.value ?? fallback;
+}
+function getAccordionState(){
+  const ids = ['accFilters','accOverall','accLiveFeed','miniPresetBuilder'];
+  return ids.reduce((out, id) => {
+    const node = el(id);
+    if(node) out[id] = !!node.open;
+    return out;
+  }, {});
+}
+function restoreAccordionState(state){
+  if(!state || typeof state !== 'object') return;
+  Object.entries(state).forEach(([id, open]) => {
+    const node = el(id);
+    if(node && node.tagName === 'DETAILS') node.open = !!open;
+  });
+}
+function getOverallSortState(){
+  return {
+    key: readControlValue('overallSortKey', 'total_score') || 'total_score',
+    dir: el('overallSortDir')?.dataset?.dir || 'desc'
+  };
+}
+function restoreOverallSortState(state){
+  if(!state || typeof state !== 'object') return;
+  const sortKey = state.key || 'total_score';
+  const sortDir = state.dir === 'asc' ? 'asc' : 'desc';
+  if(el('overallSortKey') && optionExists('overallSortKey', sortKey)) el('overallSortKey').value = sortKey;
+  const btn = el('overallSortDir');
+  if(btn){
+    btn.dataset.dir = sortDir;
+    btn.textContent = sortDir === 'desc' ? 'Desc' : 'Asc';
+  }
+}
+function getTeamCardFilterState(){
+  return {
+    tournament: readControlValue('teamCardTournament', '__all__'),
+    stage: readControlValue('teamCardStage', '__all__'),
+    day: readControlValue('teamCardDay', '__all__'),
+    matchNo: readControlValue('teamCardMatchNo', '__all__')
+  };
+}
+function restoreTeamCardFilterState(state){
+  if(!state || typeof state !== 'object') return;
+  const map = {
+    teamCardTournament: state.tournament,
+    teamCardStage: state.stage,
+    teamCardDay: state.day,
+    teamCardMatchNo: state.matchNo
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    if(value && optionExists(id, value)) el(id).value = value;
+  });
+}
+function getPersistentScrollState(){
+  const tableScrolls = [];
+  document.querySelectorAll('.table-wrap').forEach((node, idx) => {
+    tableScrolls.push({ idx, key: tableScrollKey(node, idx), left: node.scrollLeft || 0, top: node.scrollTop || 0 });
+  });
+  return {
+    pageX: window.scrollX || document.documentElement.scrollLeft || 0,
+    pageY: window.scrollY || document.documentElement.scrollTop || 0,
+    tableScrolls,
+    teamModalScroll: document.querySelector('.team-modal-body')?.scrollTop || 0,
+    liveFeedScroll: el('liveFeedBox')?.scrollTop || 0
+  };
+}
+function restorePersistentScrollState(state, attempt = 0){
+  if(!state || typeof state !== 'object') return;
+  if(typeof state.pageX === 'number' || typeof state.pageY === 'number'){
+    window.scrollTo(state.pageX || 0, state.pageY || 0);
+    document.documentElement.scrollTop = state.pageY || 0;
+    if(document.body) document.body.scrollTop = state.pageY || 0;
+  }
+  const tableByKey = new Map((state.tableScrolls || []).map(item => [item.key, item]));
+  document.querySelectorAll('.table-wrap').forEach((node, idx) => {
+    const key = tableScrollKey(node, idx);
+    const saved = tableByKey.get(key) || (state.tableScrolls || []).find(x => x.idx === idx);
+    if(saved){
+      node.scrollLeft = saved.left || 0;
+      node.scrollTop = saved.top || 0;
+    }
+  });
+  const teamBody = document.querySelector('.team-modal-body');
+  if(teamBody) teamBody.scrollTop = state.teamModalScroll || 0;
+  if(attempt < 4) requestAnimationFrame(() => restorePersistentScrollState(state, attempt + 1));
+}
+function getCurrentViewState(){
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    filters: getFilterState(),
+    teamCardFilters: getTeamCardFilterState(),
+    overallSort: getOverallSortState(),
+    accordions: getAccordionState(),
+    teamSearch: el('teamSearch')?.value || '',
+    selectedTeam: CURRENT_TEAM || '',
+    teamModal: {
+      open: isTeamModalOpen(),
+      tab: document.querySelector('.team-tab.active')?.dataset?.tab || 'overview'
+    },
+    teamCompare: readControlValue('teamCompareSelect', ''),
+    liveFeed: {
+      playerView: LIVE_FEED_PLAYER_VIEW || 'stats',
+      activeTeam: LIVE_FEED_ACTIVE_TEAM_CODE || ''
+    },
+    resource: {
+      kind: RESOURCE_MODAL_KIND || 'skills',
+      search: el('resourceSearch')?.value || ''
+    },
+    theme: document.documentElement.getAttribute('data-accent') || 'blue',
+    scroll: getPersistentScrollState()
+  };
+}
+function saveViewStateNow(){
+  if(EWC_RESTORING_VIEW_STATE) return;
+  if(document.body?.classList?.contains('ewc-refreshing')) return;
+  const state = getCurrentViewState();
+  safeWriteJsonStorage(EWC_VIEW_STATE_KEY, state);
+  // Keep the older filter key updated for backward compatibility.
+  try{ localStorage.setItem(EWC_FILTER_STATE_KEY, JSON.stringify(state.filters)); }catch(_e){}
+}
+function queueSaveViewState(delay = 80){
+  if(EWC_RESTORING_VIEW_STATE) return;
+  if(EWC_VIEW_SAVE_TIMER) clearTimeout(EWC_VIEW_SAVE_TIMER);
+  EWC_VIEW_SAVE_TIMER = setTimeout(saveViewStateNow, delay);
+}
+
+// Override the older filter save so every filter change also stores the full view.
+function saveFilterState(){
+  try{ localStorage.setItem(EWC_FILTER_STATE_KEY, JSON.stringify(getFilterState())); }catch(_e){}
+  queueSaveViewState();
+}
+
+function isValidSavedTeam(teamCode){
+  const team = norm(teamCode).toUpperCase();
+  if(!team) return false;
+  return getScopedTeamList().includes(team);
+}
+function restoreSelectedTeamFromView(state){
+  const team = norm(state?.selectedTeam).toUpperCase();
+  if(!team || !isValidSavedTeam(team)) return;
+
+  if(state?.teamModal?.open){
+    selectTeam(team, true);
+    setTeamTab(state?.teamModal?.tab || 'overview');
+    return;
+  }
+
+  CURRENT_TEAM = team;
+  setText('selectedTeamChip', team);
+  setText('selectedTeamChipModal', team);
+  if(el('modalTeamSelect')){
+    populateModalTeamSelect();
+    if(optionExists('modalTeamSelect', team)) el('modalTeamSelect').value = team;
+  }
+  highlightActiveTile();
+}
+function restoreSavedViewAfterFilters(saved){
+  if(!saved || typeof saved !== 'object') return;
+
+  restoreAccordionState(saved.accordions);
+
+  if(el('teamSearch')){
+    el('teamSearch').value = saved.teamSearch || '';
+    renderTeamGrid(saved.teamSearch || '', { silentRefresh:true });
+  }
+
+  if(saved.liveFeed?.playerView){
+    LIVE_FEED_PLAYER_VIEW = saved.liveFeed.playerView === 'preset' ? 'preset' : 'stats';
+    try{ localStorage.setItem(LIVE_FEED_PLAYER_VIEW_KEY, LIVE_FEED_PLAYER_VIEW); }catch(_e){}
+    renderLiveFeed({ silentRefresh:true });
+  }
+
+  restoreSelectedTeamFromView(saved);
+
+  if(saved.teamCompare && el('teamCompareSelect') && optionExists('teamCompareSelect', saved.teamCompare)){
+    el('teamCompareSelect').value = saved.teamCompare;
+    renderTeamHeadToHead?.();
+  }
+
+  restorePersistentScrollState(saved.scroll);
+}
+
+// Override initialization so the page prefers the full saved view, then falls back to legacy saved filters, then latest.
+function initFiltersFromStorageOrLatest(){
+  const savedView = safeReadJsonStorage(EWC_VIEW_STATE_KEY, null);
+  const legacyFilters = safeReadJsonStorage(EWC_FILTER_STATE_KEY, null);
+  EWC_PENDING_SAVED_VIEW_STATE = savedView;
+  EWC_RESTORING_VIEW_STATE = true;
+
+  try{
+    if(savedView?.theme) document.documentElement.setAttribute('data-accent', savedView.theme);
+    restoreOverallSortState(savedView?.overallSort);
+
+    let applied = false;
+    if(savedView?.filters) applied = applySavedFilterState(savedView.filters);
+    else if(legacyFilters) applied = applySavedFilterState(legacyFilters);
+
+    if(!applied){
+      resetToLatest();
+    }
+
+    syncTeamCardFilterControls();
+    restoreTeamCardFilterState(savedView?.teamCardFilters);
+    restoreSavedViewAfterFilters(savedView);
+  }finally{
+    EWC_RESTORING_VIEW_STATE = false;
+    queueSaveViewState(150);
+  }
+}
+
+function wirePersistentViewState(){
+  if(EWC_VIEW_STATE_WIRED) return;
+  EWC_VIEW_STATE_WIRED = true;
+
+  const saveSoon = () => queueSaveViewState();
+  const saveAfterDom = () => setTimeout(saveSoon, 0);
+
+  document.addEventListener('change', event => {
+    const t = event.target;
+    if(!t?.matches?.('select,input,textarea')) return;
+    saveAfterDom();
+  }, true);
+
+  document.addEventListener('input', event => {
+    const t = event.target;
+    if(!t?.matches?.('#teamSearch,#resourceSearch,input[type="search"],input[type="text"],textarea')) return;
+    queueSaveViewState(180);
+  }, true);
+
+  document.addEventListener('toggle', event => {
+    if(event.target?.matches?.('details.accordion')) saveAfterDom();
+  }, true);
+
+  document.addEventListener('click', event => {
+    const target = event.target?.closest?.('.team-tile,.team-tab,#overallSortDir,#resetFilters,#teamCardResetLatest,.theme-swatch,.live-feed-view-toggle,.live-feed-team-open,.live-feed-popup-close,#teamModalClose,#resourceModalClose,#itemDetailClose,[data-open-resource],[data-add-preset-slot],#presetResetBtn,.preset-slot,.preset-clear,.preset-change');
+    if(target) saveAfterDom();
+  }, true);
+
+  window.addEventListener('scroll', () => queueSaveViewState(250), { passive:true });
+  document.addEventListener('scroll', event => {
+    if(event.target && event.target !== document) queueSaveViewState(250);
+  }, true);
+  window.addEventListener('beforeunload', saveViewStateNow);
+}
+
+
+
 /* ===== Data-only 5-second refresh: updates Supabase rows without rebuilding the whole page ===== */
 const EWC_DATA_REFRESH_MS = 5000;
 let EWC_DATA_REFRESH_TIMER = null;
@@ -9585,6 +9860,7 @@ async function init(){
     wire();
     wireColorThemeControls();
     wireTeamCardFilterControls();
+    wirePersistentViewState();
     const url = new URL(window.location.href); const qt=(url.searchParams.get('team')||'').trim().toUpperCase();
     if(qt){ const teams=new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(qt)) selectTeam(qt,false); }
     startDataOnlyAutoRefresh();
