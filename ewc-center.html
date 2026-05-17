@@ -8092,20 +8092,33 @@ function getGallerySub(item, kind){
 function getSkillCharacterName(item){
   const raw = item?.raw || item || {};
   return norm(
-    raw?.character_name ?? raw?.characterName ?? raw?.character ??
-    raw?.hero_name ?? raw?.heroName ?? raw?.hero ?? raw?.code_name ?? raw?.codeName ??
-    firstTextFromPaths(raw, ['character.name','character.title','character.label','hero.name','hero.title','hero.label']) ??
-    raw?.name ?? raw?.title ?? raw?.label ?? item?.name
+    raw?.character_name || raw?.characterName || raw?.character ||
+    raw?.hero_name || raw?.heroName || raw?.hero || raw?.code_name || raw?.codeName ||
+    firstTextFromPaths(raw, ['character.name','character.title','character.label','hero.name','hero.title','hero.label']) ||
+    raw?.character_id_name || raw?.characterIdName ||
+    // In most character.json files, raw.name is the character name.
+    raw?.name || raw?.title || raw?.label || item?.name
   );
 }
 function getSkillAbilityName(item){
   const raw = item?.raw || item || {};
+  const skillObj = raw?.skill && typeof raw.skill === 'object' ? raw.skill : null;
+  const abilityObj = raw?.ability && typeof raw.ability === 'object' ? raw.ability : null;
   return norm(
-    firstTextFromPaths(raw, ['skill.name','skill.title','skill.label','ability.name','ability.title','ability.label']) ??
-    raw?.skill_name ?? raw?.skillName ?? raw?.skill ??
-    raw?.ability_name ?? raw?.abilityName ?? raw?.ability ?? raw?.ability_title ?? raw?.abilityTitle ??
-    raw?.skill_title ?? raw?.skillTitle ?? raw?.skill_label ?? raw?.skillLabel ??
-    item?.skill_name ?? item?.skillName ?? ''
+    firstTextFromPaths(raw, [
+      'skill.name','skill.title','skill.label','skill.skill_name','skill.skillName',
+      'ability.name','ability.title','ability.label','ability.skill_name','ability.skillName'
+    ]) ||
+    skillObj?.name || skillObj?.title || skillObj?.label ||
+    abilityObj?.name || abilityObj?.title || abilityObj?.label ||
+    raw?.skill_name || raw?.skillName ||
+    (typeof raw?.skill === 'string' ? raw.skill : '') ||
+    raw?.ability_name || raw?.abilityName ||
+    (typeof raw?.ability === 'string' ? raw.ability : '') ||
+    raw?.ability_title || raw?.abilityTitle ||
+    raw?.skill_title || raw?.skillTitle || raw?.skill_label || raw?.skillLabel ||
+    raw?.skill_description_name || raw?.skillDescriptionName ||
+    item?.skill_name || item?.skillName || item?.ability_name || item?.abilityName || ''
   );
 }
 function getSkillPopupTitle(item){
@@ -8114,7 +8127,9 @@ function getSkillPopupTitle(item){
 function getSkillPopupSubTitle(item){
   const rawSub = norm(item?.sub);
   const skillName = getSkillAbilityName(item);
-  const type = rawSub && !skillKey(rawSub).includes(skillKey(skillName)) ? rawSub : 'Skill';
+  const subKey = skillKey(rawSub);
+  const skillNameKey = skillKey(skillName);
+  const type = rawSub && (!skillNameKey || !subKey.includes(skillNameKey)) ? rawSub : 'Skill';
   return skillName ? `${type} • ${skillName}` : type;
 }
 function skillSearchKeysForItem(item){
