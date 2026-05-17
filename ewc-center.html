@@ -3753,6 +3753,38 @@ html[data-accent="gray"] body.betting-experiment .live-feed-popup-panel{
   }
 }
 
+
+/* ===== Live Feed popup performance + detail modal layering ===== */
+.item-detail-modal.show{
+  z-index:19000!important;
+}
+.item-detail-backdrop{
+  z-index:0!important;
+}
+.item-detail-card{
+  z-index:1!important;
+}
+.live-feed-preset-badge{
+  cursor:pointer;
+  appearance:none;
+  border:1px solid rgba(255,255,255,.10);
+  color:inherit;
+  font:inherit;
+}
+.live-feed-preset-badge:hover{
+  border-color:color-mix(in srgb, var(--ewc-accent) 44%, rgba(255,255,255,.12))!important;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--ewc-accent) 12%, transparent)!important;
+  transform:translateY(-1px);
+}
+.live-feed-preset-badge.empty{
+  cursor:default;
+  transform:none!important;
+  box-shadow:none!important;
+}
+.live-feed-preset-badge.empty:hover{
+  border-color:rgba(255,255,255,.08)!important;
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -5883,15 +5915,13 @@ let LIVE_FEED_PLAYER_VIEW = (() => {
   }
 })();
 function setLiveFeedPlayerView(view){
-  const openTeam = document.querySelector('.live-feed-card.popup-open')?.dataset?.liveTeam || '';
   LIVE_FEED_PLAYER_VIEW = view === 'preset' ? 'preset' : 'stats';
   try{ localStorage.setItem(LIVE_FEED_PLAYER_VIEW_KEY, LIVE_FEED_PLAYER_VIEW); }catch(_e){}
-  renderLiveFeed();
-  if(openTeam){
-    document.querySelectorAll('.live-feed-card').forEach(card => {
-      if(card.dataset.liveTeam === openTeam) card.classList.add('popup-open');
-    });
-  }
+
+  // Fast path: update only the live-feed player sections/buttons instead of
+  // rebuilding the entire 12-team feed. This keeps the centered popup responsive
+  // and prevents icon/image reloads from feeling slow.
+  if(!updateLiveFeedViewInPlace()) renderLiveFeed();
 }
 function toggleLiveFeedPlayerView(){
   setLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEW === 'preset' ? 'stats' : 'preset');
@@ -5979,6 +6009,70 @@ function buildLiveFeedTeams(rows){
   teams.forEach((t, index) => t.position = index + 1);
   return teams;
 }
+function findResourceItemForLiveFeed(kind, name, id=''){
+  const resourceKind = kind || 'skills';
+  const list = RESOURCE_DATA[resourceKind] || [];
+  const key = assetLookupKey(name);
+  const firstKey = firstSkillNameTokenKey(name);
+  const cleanId = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
+
+  const found = list.find(item => {
+    const itemKey = assetLookupKey(item?.name);
+    if(key && itemKey === key) return true;
+    if(firstKey && itemKey === firstKey) return true;
+    const raw = item?.raw || {};
+    const ids = idCandidatesFromRow(raw).map(x => normalizeLookupId(x));
+    return cleanId && ids.includes(cleanId);
+  }) || list.find(item => {
+    const itemKey = assetLookupKey(item?.name);
+    return key && (itemKey.includes(key) || key.includes(itemKey));
+  });
+
+  if(found) return found;
+  return {
+    kind: resourceKind,
+    name: name || 'Unknown Item',
+    sub: resourceKind === 'skills' ? 'Skill' : resourceKind === 'pets' ? 'Pet' : resourceKind === 'loadouts' ? 'Loadout' : 'Reference',
+    img: '',
+    desc: 'No description found in the loaded reference JSON for this item.',
+    raw: { id }
+  };
+}
+function openLiveFeedPresetDetail(event, kind, encodedName, encodedId=''){
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  const name = decodeURIComponent(encodedName || '');
+  const id = decodeURIComponent(encodedId || '');
+  const item = findResourceItemForLiveFeed(kind, name, id);
+  openItemDetailPopup(item, kind, 'live-feed');
+}
+function updateLiveFeedViewInPlace(){
+  const grid = document.querySelector('#liveFeedBox .live-feed-grid');
+  const cache = window.LIVE_FEED_TEAMS_CACHE || [];
+  if(!grid || !cache.length) return false;
+
+  document.querySelectorAll('.live-feed-view-toggle').forEach(btn => {
+    btn.textContent = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Show Stats' : 'Show Preset';
+  });
+
+  cache.forEach(team => {
+    const card = grid.querySelector(`.live-feed-card[data-live-team="${CSS.escape(team.team)}"]`);
+    if(!card) return;
+    const playersHtml = `${liveFeedPlayerHeaderHtml()}${team.players.map(liveFeedPlayerHtml).join('')}`;
+    card.querySelectorAll(':scope > .live-feed-players').forEach(node => { node.innerHTML = playersHtml; });
+    const popupPlayers = card.querySelector('.live-feed-popup-players');
+    if(popupPlayers) popupPlayers.innerHTML = playersHtml;
+    const popupSub = card.querySelector('.live-feed-popup-title-wrap span');
+    if(popupSub){
+      const statusText = team.booyah ? '👑 Booyah' : team.eliminated ? 'Eliminated' : 'Alive';
+      const viewText = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Preset View' : 'Stats View';
+      popupSub.textContent = `${statusText} • ${viewText}`;
+    }
+  });
+
+  return true;
+}
+
 function liveFeedPlayerHeaderHtml(){
   if(LIVE_FEED_PLAYER_VIEW === 'preset'){
     return `<div class="live-feed-player-head preset" aria-hidden="true">
@@ -5994,15 +6088,29 @@ function liveFeedPlayerHeaderHtml(){
     <span></span>
   </div>`;
 }
+function liveFeedResourceKindFromPresetKind(kind){
+  if(kind === 'skill' || kind === 'passives') return 'skills';
+  if(kind === 'pet') return 'pets';
+  if(kind === 'loadout') return 'loadouts';
+  return kind || 'skills';
+}
 function liveFeedPresetBadgeHtml(kind, item, label=''){
   if(!item || !norm(item.name)) return `<span class="live-feed-preset-badge ${kind} empty" title="No ${escHtml(kind)}">—</span>`;
   const name = norm(item.name);
-  return `<span class="live-feed-preset-badge ${kind}" title="${escHtml(name)}">${visualIconHtml(kind, name, item.id || '')}</span>`;
+  const resourceKind = liveFeedResourceKindFromPresetKind(kind);
+  const encodedName = encodeURIComponent(name);
+  const encodedId = encodeURIComponent(item.id || '');
+  return `<button class="live-feed-preset-badge ${kind}" type="button" title="${escHtml(name)}" onclick="openLiveFeedPresetDetail(event,'${escHtml(resourceKind)}','${escHtml(encodedName)}','${escHtml(encodedId)}')">${visualIconHtml(kind === 'passives' ? 'skill' : kind, name, item.id || '')}</button>`;
 }
 function liveFeedPassiveBadgeHtml(items){
   const clean = (items || []).filter(item => item && norm(item.name)).slice(0, 3);
+  if(!clean.length) return `<span class="live-feed-preset-badge passives empty" title="No passive skills">—</span>`;
+  const title = clean.map(x => x.name).join(' • ');
+  const firstName = clean[0]?.name || title;
+  const encodedName = encodeURIComponent(firstName);
+  const encodedId = encodeURIComponent(clean[0]?.id || '');
   const icons = clean.map(item => visualIconHtml('skill', item.name, item.id || '')).join('');
-  return `<span class="live-feed-preset-badge passives ${clean.length ? '' : 'empty'}" title="${escHtml(clean.map(x => x.name).join(' • ') || 'No passive skills')}">${icons || '—'}</span>`;
+  return `<button class="live-feed-preset-badge passives" type="button" title="${escHtml(title)}" onclick="openLiveFeedPresetDetail(event,'skills','${escHtml(encodedName)}','${escHtml(encodedId)}')">${icons}</button>`;
 }
 function liveFeedPlayerPresetHtml(player){
   const badges = [
@@ -6080,6 +6188,7 @@ function renderLiveFeed(){
     return;
   }
   const teams = buildLiveFeedTeams(rows);
+  window.LIVE_FEED_TEAMS_CACHE = teams;
   const first = rows[0] || {};
   const label = `D${escHtml(norm(getVal(first, KEYS.day)) || '—')} • M${escHtml(norm(getVal(first, KEYS.matchNo)) || '—')}`;
   const aliveTeams = teams.filter(t => !t.eliminated).length;
@@ -8062,7 +8171,7 @@ function closeResourcePopup(){
   el('resourceModal')?.setAttribute('aria-hidden','true');
   RESOURCE_PICK_TARGET = null;
   el('teamModal')?.classList.remove('resource-stacked');
-  if(!isTeamModalOpen() && !isItemDetailOpen()) document.body.classList.remove('sb-open');
+  if(!isTeamModalOpen() && !isItemDetailOpen() && !document.querySelector('.live-feed-card.popup-open')) document.body.classList.remove('sb-open');
 }
 function closeItemDetailPopup(){
   el('itemDetailModal')?.classList.remove('show');
