@@ -6086,7 +6086,9 @@ function findResourceItemForLiveFeed(kind, name, id=''){
 
   const itemKeys = (item) => resourceKind === 'skills'
     ? skillSearchKeysForItem(item)
-    : uniqueList([item?.name, item?.sub]).map(assetLookupKey).filter(Boolean);
+    : resourceKind === 'pets'
+      ? petSearchKeysForItem(item)
+      : uniqueList([item?.name, item?.sub]).map(assetLookupKey).filter(Boolean);
 
   const found = list.find(item => {
     const keys = itemKeys(item);
@@ -8132,6 +8134,61 @@ function getSkillPopupSubTitle(item){
   const type = rawSub && (!skillNameKey || !subKey.includes(skillNameKey)) ? rawSub : 'Skill';
   return skillName ? `${type} • ${skillName}` : type;
 }
+
+function getPetDisplayName(item){
+  const raw = item?.raw || item || {};
+  return norm(
+    raw?.pet_name || raw?.petName || raw?.pet || raw?.name || raw?.title || raw?.label ||
+    firstTextFromPaths(raw, ['pet.name','pet.title','pet.label','companion.name','companion.title','companion.label']) ||
+    item?.pet_name || item?.petName || item?.name || ''
+  );
+}
+function getPetSkillName(item){
+  const raw = item?.raw || item || {};
+  const skillObj = raw?.skill && typeof raw.skill === 'object' ? raw.skill : null;
+  const abilityObj = raw?.ability && typeof raw.ability === 'object' ? raw.ability : null;
+  const petSkillObj = raw?.pet_skill && typeof raw.pet_skill === 'object' ? raw.pet_skill : null;
+
+  return norm(
+    firstTextFromPaths(raw, [
+      'pet_skill.name','pet_skill.title','pet_skill.label','pet_skill.skill_name','pet_skill.skillName',
+      'skill.name','skill.title','skill.label','skill.skill_name','skill.skillName',
+      'ability.name','ability.title','ability.label','ability.skill_name','ability.skillName'
+    ]) ||
+    petSkillObj?.name || petSkillObj?.title || petSkillObj?.label ||
+    skillObj?.name || skillObj?.title || skillObj?.label ||
+    abilityObj?.name || abilityObj?.title || abilityObj?.label ||
+    raw?.pet_skill_name || raw?.petSkillName ||
+    raw?.skill_name || raw?.skillName ||
+    (typeof raw?.skill === 'string' ? raw.skill : '') ||
+    raw?.ability_name || raw?.abilityName ||
+    (typeof raw?.ability === 'string' ? raw.ability : '') ||
+    raw?.ability_title || raw?.abilityTitle ||
+    raw?.skill_title || raw?.skillTitle || raw?.skill_label || raw?.skillLabel ||
+    item?.pet_skill_name || item?.petSkillName || item?.skill_name || item?.skillName || item?.ability_name || item?.abilityName || ''
+  );
+}
+function getPetPopupTitle(item){
+  return getPetDisplayName(item) || norm(item?.name) || 'Pet';
+}
+function getPetPopupSubTitle(item){
+  const rawSub = norm(item?.sub);
+  const skillName = getPetSkillName(item);
+  const subKey = skillKey(rawSub);
+  const skillNameKey = skillKey(skillName);
+  const type = rawSub && (!skillNameKey || !subKey.includes(skillNameKey)) ? rawSub : 'Pet';
+  return skillName ? `${type} • ${skillName}` : type;
+}
+function petSearchKeysForItem(item){
+  return uniqueList([
+    item?.name,
+    item?.sub,
+    getPetDisplayName(item),
+    getPetSkillName(item),
+    firstSkillNameTokenKey(getPetDisplayName(item)),
+    firstSkillNameTokenKey(getPetSkillName(item))
+  ]).map(assetLookupKey).filter(Boolean);
+}
 function skillSearchKeysForItem(item){
   return uniqueList([
     item?.name,
@@ -8197,6 +8254,13 @@ function normalizeGalleryItem(item, kind){
     normalized.skill_name = getSkillAbilityName(normalized);
     // Keep the card/popup searchable by both character name and skill name.
     normalized.search_name = uniqueList([normalized.name, normalized.character_name, normalized.skill_name]).join(' • ');
+    return normalized;
+  }
+  if(kind === 'pets'){
+    const normalized = { kind, name: baseName, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
+    normalized.pet_name = getPetDisplayName(normalized) || baseName;
+    normalized.pet_skill_name = getPetSkillName(normalized);
+    normalized.search_name = uniqueList([normalized.name, normalized.pet_name, normalized.pet_skill_name]).join(' • ');
     return normalized;
   }
   return { kind, name: baseName, sub: getGallerySub(item, kind), desc: getGalleryDesc(item, kind), img: firstImageValue(item), raw: item };
@@ -8373,8 +8437,8 @@ function openItemDetailPopup(item, kind, context='resource'){
   if(!item) return;
   const raw = item.raw || item;
   const singular = resourceKindSingular(kind);
-  const detailTitle = kind === 'skills' ? getSkillPopupTitle(item) : (item.name || singular);
-  const detailSub = kind === 'skills' ? getSkillPopupSubTitle(item) : `${singular} • ${item.sub || 'Reference'}`;
+  const detailTitle = kind === 'skills' ? getSkillPopupTitle(item) : kind === 'pets' ? getPetPopupTitle(item) : (item.name || singular);
+  const detailSub = kind === 'skills' ? getSkillPopupSubTitle(item) : kind === 'pets' ? getPetPopupSubTitle(item) : `${singular} • ${item.sub || 'Reference'}`;
   setText('itemDetailTitle', detailTitle);
   setText('itemDetailSub', detailSub);
   const body = el('itemDetailBody');
@@ -8405,12 +8469,16 @@ function openItemDetailPopup(item, kind, context='resource'){
   const skillNameBlock = kind === 'skills' && getSkillAbilityName(item)
     ? `<div class="item-detail-desc-block"><b>SKILL NAME</b><div>${escHtml(getSkillAbilityName(item))}</div></div>`
     : '';
+  const petSkillNameBlock = kind === 'pets' && getPetSkillName(item)
+    ? `<div class="item-detail-desc-block"><b>PET SKILL</b><div>${escHtml(getPetSkillName(item))}</div></div>`
+    : '';
   const descHtml = kind === 'loadouts'
     ? formatLoadoutDescriptionBlocks(item)
-    : `${skillNameBlock}<p class="item-detail-desc">${escHtml(item.desc || getGalleryDesc(raw, kind) || 'No description yet.')}</p>`;
+    : `${skillNameBlock}${petSkillNameBlock}<p class="item-detail-desc">${escHtml(item.desc || getGalleryDesc(raw, kind) || 'No description yet.')}</p>`;
   const metaPairs = [
     ['Type', item.sub || singular],
     kind === 'skills' ? ['Skill Name', getSkillAbilityName(item) || '—'] : null,
+    kind === 'pets' ? ['Pet Skill', getPetSkillName(item) || '—'] : null,
     ['ID / Code', raw.loadout_id || raw.id || raw.code || raw.skill_id || raw.pet_id || raw.weapon_id || '—'],
     ['Category', raw.category || raw.type || raw.role || '—'],
     kind === 'loadouts' ? ['Cost / Notes', costText(raw.cost) || raw.cost_note || raw.note || '—'] : null,
