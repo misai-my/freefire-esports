@@ -9234,6 +9234,22 @@ const EWC_DATA_REFRESH_MS = 5000;
 let EWC_DATA_REFRESH_TIMER = null;
 let EWC_DATA_REFRESH_BUSY = false;
 let EWC_LAST_DATA_SIGNATURE = '';
+let EWC_LAST_USER_SCROLL_AT = 0;
+
+function markUserScrollIntent(){
+  if(document.body?.classList?.contains('ewc-refreshing')) return;
+  EWC_LAST_USER_SCROLL_AT = Date.now();
+}
+window.addEventListener('wheel', markUserScrollIntent, { passive:true });
+window.addEventListener('touchmove', markUserScrollIntent, { passive:true });
+window.addEventListener('scroll', markUserScrollIntent, { passive:true, capture:true });
+window.addEventListener('keydown', ev => {
+  const keys = ['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '];
+  if(keys.includes(ev.key)) markUserScrollIntent();
+}, { passive:true });
+function isUserActivelyScrolling(){
+  return Date.now() - EWC_LAST_USER_SCROLL_AT < 900;
+}
 
 function isUserEditingField(){
   const a = document.activeElement;
@@ -9294,6 +9310,53 @@ function tableScrollKey(node, idx){
   const closestId = node.closest('[id]')?.id || '';
   return parentId || grandId || closestId || `idx:${idx}`;
 }
+function captureViewportAnchor(){
+  const x = Math.max(12, Math.min(window.innerWidth - 12, Math.floor(window.innerWidth / 2)));
+  const probes = [92, 132, 190, Math.floor(window.innerHeight * 0.42), Math.floor(window.innerHeight * 0.68)].filter(y => y > 0 && y < window.innerHeight);
+  for(const y of probes){
+    let node = document.elementFromPoint(x, y);
+    if(!node) continue;
+    if(node.nodeType !== 1) node = node.parentElement;
+    if(!node || node.closest?.('.topbar,.team-modal-head,.team-modal-tabs,.team-resource-strip,.resource-modal-top,.item-detail-top')) continue;
+    const anchor = node.closest?.('.section,details.accordion,.team-modal-body,.resource-modal-body,.item-detail-body,.live-feed-card,.team-tile,tr,.card,[id]') || node;
+    if(!anchor || anchor === document.body || anchor === document.documentElement) continue;
+    const rect = anchor.getBoundingClientRect();
+    if(rect.height <= 0 || rect.width <= 0) continue;
+    return { node: anchor, top: rect.top, left: rect.left };
+  }
+  return null;
+}
+function restorePageScrollPosition(state){
+  if(!state) return;
+  const x = state.pageX || 0;
+  const y = state.pageY ?? state.docScrollTop ?? state.bodyScrollTop ?? 0;
+  const anchor = state.anchor;
+  try{
+    if(anchor?.node?.isConnected){
+      const rect = anchor.node.getBoundingClientRect();
+      const deltaY = rect.top - anchor.top;
+      const deltaX = rect.left - anchor.left;
+      if(Math.abs(deltaY) > 0.5 || Math.abs(deltaX) > 0.5){
+        window.scrollBy({ left: deltaX, top: deltaY, behavior: 'instant' });
+      }
+      return;
+    }
+    window.scrollTo({ left:x, top:y, behavior:'instant' });
+  }catch(_e){
+    if(anchor?.node?.isConnected){
+      const rect = anchor.node.getBoundingClientRect();
+      const deltaY = rect.top - anchor.top;
+      const deltaX = rect.left - anchor.left;
+      if(Math.abs(deltaY) > 0.5 || Math.abs(deltaX) > 0.5){
+        window.scrollBy(deltaX, deltaY);
+      }
+      return;
+    }
+    window.scrollTo(x, y);
+  }
+  if(document.documentElement) document.documentElement.scrollTop = y;
+  if(document.body) document.body.scrollTop = y;
+}
 function captureDashboardViewState(){
   const tableScrolls = [];
   document.querySelectorAll('.table-wrap').forEach((node, idx) => {
@@ -9311,6 +9374,7 @@ function captureDashboardViewState(){
     pageY: window.scrollY || document.documentElement.scrollTop || 0,
     bodyScrollTop: document.body?.scrollTop || 0,
     docScrollTop: document.documentElement?.scrollTop || 0,
+    anchor: captureViewportAnchor(),
     teamSearch: el('teamSearch')?.value || '',
     activeTab: document.querySelector('.team-tab.active')?.dataset?.tab || 'overview',
     teamModalOpen: isTeamModalOpen(),
@@ -9356,15 +9420,7 @@ function restoreDashboardViewState(state, attempt = 0){
     }
   });
 
-  const x = state.pageX || 0;
-  const y = state.pageY ?? state.docScrollTop ?? state.bodyScrollTop ?? 0;
-  try{
-    window.scrollTo({ left:x, top:y, behavior:'instant' });
-  }catch(_e){
-    window.scrollTo(x, y);
-  }
-  if(document.documentElement) document.documentElement.scrollTop = y;
-  if(document.body) document.body.scrollTop = y;
+  restorePageScrollPosition(state);
 
   // New images/cards can change height a frame later, so restore more than once.
   if(attempt < 3){
@@ -9439,12 +9495,12 @@ async function refreshDataOnly(){
   if(EWC_DATA_REFRESH_BUSY) return;
   if(document.hidden) return;
   if(isUserEditingField()) return;
+  if(isUserActivelyScrolling()) return;
 
   EWC_DATA_REFRESH_BUSY = true;
-  const state = captureDashboardViewState();
+  let state = null;
   let lockedFilters = null;
   let beforeFilterSig = '';
-  document.body.classList.add('ewc-refreshing');
 
   try{
     const activeSession = await requireSecureSession();
@@ -9457,8 +9513,16 @@ async function refreshDataOnly(){
     if(newSignature === EWC_LAST_DATA_SIGNATURE) return;
     EWC_LAST_DATA_SIGNATURE = newSignature;
 
+    // Capture scroll/filter state only after the async fetch is done, right before
+    // the DOM update. This prevents auto-refresh from pulling the user back to an
+    // older scroll position if they scrolled while Supabase was loading.
+    if(isUserEditingField()) return;
+    if(isUserActivelyScrolling()) return;
+    state = captureDashboardViewState();
     beforeFilterSig = getRefreshLockedFilterSignature();
     lockedFilters = captureFilterControlState();
+
+    document.body.classList.add('ewc-refreshing');
 
     RAW = freshRows;
 
@@ -9479,8 +9543,8 @@ async function refreshDataOnly(){
     console.warn('Data-only refresh failed:', err?.message || err);
   }finally{
     requestAnimationFrame(() => {
-      restoreFilterControlState(lockedFilters);
-      restoreDashboardViewState(state);
+      if(lockedFilters) restoreFilterControlState(lockedFilters);
+      if(state) restoreDashboardViewState(state);
       document.body.classList.remove('ewc-refreshing');
       EWC_DATA_REFRESH_BUSY = false;
     });
