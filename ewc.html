@@ -4760,6 +4760,15 @@ const AI_INSIGHTS_CACHE_KEY = 'ewc_ai_insights_cache_v2';
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function withTimeout(promise, ms = 20000, label = 'Operation timed out'){
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+
 const TABLE = 'ff_player_stats_raw';
 const MAP_TABLE = 'match_api';
 const CHARACTER_JSON_URL = 'character.json';
@@ -4780,7 +4789,7 @@ const DASHBOARD_DESIRED_COLS = [
   'player_stats_pet_skill_id','player_stats_pet_skill_name',
   'player_stats_skill_ids','player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
   'player_stats_skill_info','player_stats_skill_info_active_count','player_stats_skill_info_skill_active','player_stats_skill_info_skill_id','player_stats_skill_info_skill_name',
-  'player_stats_loadouts','player_stats_survival_time',
+  'player_stats_loadouts','player_stats_survival_time','player_stats_kill_info',
   'created_at','updated_at','snapshot_id','pulled_at','response_hash','duplicate_key','data_source'
 ];
 
@@ -5077,7 +5086,7 @@ function updateConnectionBadge(session){
 }
 async function requireSecureSession(){
   try{
-    const { data: { session }, error } = await client.auth.getSession();
+    const { data: { session }, error } = await withTimeout(client.auth.getSession(), 10000, 'Login check timed out');
     if(error) throw error;
     if(!isSecureSupabaseSession(session)){
       updateConnectionBadge(null);
@@ -6121,7 +6130,7 @@ async function loadLoadoutJson(){
 
 async function headCount(){
   try{
-    const res = await client.from(TABLE).select('id', { count:'estimated', head:true });
+    const res = await withTimeout(client.from(TABLE).select('id', { count:'estimated', head:true }), 12000, 'Row count timed out');
     if(res.error) throw res.error;
     setText('diagCount', `${TABLE} rows: ${res.count ?? '—'}`);
   }catch(e){ setText('diagCount', `${TABLE} rows: count blocked`); console.warn('Count failed:', e?.message || e); }
@@ -6131,11 +6140,15 @@ async function loadAvailableColumns(){
 
   for(const orderCol of orderCandidates){
     try{
-      const { data, error } = await client
-        .from(TABLE)
-        .select('*')
-        .order(orderCol, { ascending:false })
-        .limit(1);
+      const { data, error } = await withTimeout(
+        client
+          .from(TABLE)
+          .select('*')
+          .order(orderCol, { ascending:false })
+          .limit(1),
+        12000,
+        `Schema sample timed out ordering by ${orderCol}`
+      );
 
       if(error){
         console.warn(`Schema sample failed ordering by ${orderCol}:`, error.message || error);
@@ -6152,7 +6165,7 @@ async function loadAvailableColumns(){
   }
 
   try{
-    const { data, error } = await client.from(TABLE).select('*').limit(1);
+    const { data, error } = await withTimeout(client.from(TABLE).select('*').limit(1), 12000, 'Schema sample timed out without ordering');
     if(error) throw error;
     const sample = data?.[0] || null;
     return sample ? Object.keys(sample).filter(k => !HEAVY_COLS.has(k)) : [];
@@ -6172,11 +6185,15 @@ async function fetchRowsWithSelect(selectList){
     let ok = true;
 
     for(;;){
-      const { data, error } = await client
-        .from(TABLE)
-        .select(selectList)
-        .order(orderCol, { ascending:false })
-        .range(from, from + CHUNK_SIZE - 1);
+      const { data, error } = await withTimeout(
+        client
+          .from(TABLE)
+          .select(selectList)
+          .order(orderCol, { ascending:false })
+          .range(from, from + CHUNK_SIZE - 1),
+        20000,
+        `Data fetch timed out ordering by ${orderCol}`
+      );
 
       if(error){
         ok = false;
@@ -6501,12 +6518,12 @@ function parseJsonLoose(value){
   let text = String(value).trim();
   if(!text || text === 'null' || text === 'undefined') return null;
 
-  // Supabase / Sheets can return player_stats_kill_info in any of these shapes:
+  // Supabase can store player_stats_kill_info as:
   //   [{...}]
-  //   "[{\"killer_id\":\"10001122\", ...}]"
-  //   "\"[{\\\"killer_id\\\": ...}]\""
-  // Keep unwrapping while JSON.parse returns another string.
-  for(let i = 0; i < 5; i++){
+  //   "[{\"killer_id\":\"10001122\",...}]"
+  //   "\"[{\\\"killer_id\\\":...}]\""
+  // Keep parsing while the decoded result is still a string.
+  for(let i = 0; i < 6; i++){
     try{
       const parsed = JSON.parse(text);
       if(typeof parsed !== 'string') return parsed;
@@ -6515,11 +6532,34 @@ function parseJsonLoose(value){
       continue;
     }catch(_e){}
 
-    // Fallback for quoted/escaped JSON cells that are not valid JSON yet.
-    const unquoted = text.replace(/^"|"$/g, '').replace(/\"/g, '"').replace(/\\/g, '\').trim();
-    if(unquoted && unquoted !== text){
-      text = unquoted;
+    // Some cells are copied with outer quotes and backslash-escaped quotes.
+    let unescaped = text;
+    if(unescaped.length >= 2 && unescaped[0] === '"' && unescaped[unescaped.length - 1] === '"'){
+      unescaped = unescaped.slice(1, -1);
+    }
+    unescaped = unescaped
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '\r')
+      .replace(/\\t/g, '\t')
+      .replace(/\\\\/g, '\\')
+      .trim();
+
+    if(unescaped && unescaped !== text){
+      text = unescaped;
       continue;
+    }
+
+    // Last rescue: parse the JSON-looking portion only.
+    const firstArray = text.indexOf('[');
+    const lastArray = text.lastIndexOf(']');
+    const firstObj = text.indexOf('{');
+    const lastObj = text.lastIndexOf('}');
+    const start = firstArray >= 0 ? firstArray : firstObj;
+    const end = lastArray >= 0 ? lastArray : lastObj;
+    if(start >= 0 && end > start){
+      const sliced = text.slice(start, end + 1);
+      try{ return JSON.parse(sliced); }catch(_e){}
     }
     break;
   }
@@ -10374,7 +10414,7 @@ async function refreshDataOnly(){
     const activeSession = await requireSecureSession();
     if(!activeSession) return;
 
-    const freshRows = await fetchAllRows();
+    const freshRows = await withTimeout(fetchAllRows(), 45000, 'Live refresh data fetch timed out');
     if(!freshRows?.length) return;
 
     const newSignature = makeDataSignature(freshRows);
@@ -10430,14 +10470,28 @@ function startDataOnlyAutoRefresh(){
 }
 
 async function init(){
+  let loadWatchdog = null;
   try{
     clearErr(); el('veil').classList.remove('hide');
-    const activeSession = await requireSecureSession();
-    if(!activeSession) return;
-    await headCount();
-    RAW = await fetchAllRows();
+    loadWatchdog = setTimeout(() => {
+      try{
+        el('veil').classList.add('hide');
+        gerr('Dashboard load is taking too long. This usually means the Supabase request is blocked, the session expired, or a selected column is unavailable. Refresh after signing in, or check the browser console for the exact Supabase error.');
+      }catch(_e){}
+    }, 55000);
+    const activeSession = await withTimeout(requireSecureSession(), 12000, 'Login check timed out');
+    if(!activeSession){
+      if(loadWatchdog) clearTimeout(loadWatchdog);
+      el('veil').classList.add('hide');
+      gerr('Login/session is inactive, so the dashboard cannot load data. Please sign in again from index.html, then reopen this page.');
+      return;
+    }
+    await withTimeout(headCount(), 15000, 'Row count timed out').catch(e => console.warn(e?.message || e));
+    setText('diagLoaded', 'Loading rows from Supabase…');
+    RAW = await withTimeout(fetchAllRows(), 45000, 'Data load timed out. Check Supabase/RLS or try reducing MAX_ROWS_TO_LOAD.');
     setText('diagLoaded', `Loaded: ${RAW.length} rows • ${DASHBOARD_SELECT_COLS.length || 'safe'} selected columns${RAW.length >= MAX_ROWS_TO_LOAD ? ' (latest-row limit reached)' : ''}`);
     if(!RAW.length){
+      if(loadWatchdog) clearTimeout(loadWatchdog);
       el('veil').classList.add('hide');
       gerr(`No rows returned from ${TABLE}.\n\nPossible causes:\n• Table is empty\n• RLS blocks SELECT\n• You are writing to another schema/table\n\nQuick check in Supabase SQL editor:\nselect count(*) from public.${TABLE};`);
       return;
@@ -10458,8 +10512,9 @@ async function init(){
     if(qt){ const teams=new Set(FILTERED.map(r=>norm(getVal(r,KEYS.team)).toUpperCase()).filter(Boolean)); if(teams.has(qt)) selectTeam(qt,false); }
     startDataOnlyAutoRefresh();
     document.body.classList.add('ewc-live-ready');
+    if(loadWatchdog) clearTimeout(loadWatchdog);
     el('veil').classList.add('hide');
-  }catch(e){ el('veil').classList.add('hide'); gerr('Fatal init error:\n\n' + (e?.message || e)); }
+  }catch(e){ if(loadWatchdog) clearTimeout(loadWatchdog); el('veil').classList.add('hide'); gerr('Fatal init error:\n\n' + (e?.message || e)); }
 }
 init();
 </script>
