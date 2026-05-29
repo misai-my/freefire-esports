@@ -4190,8 +4190,8 @@ body.ewc-refreshing.betting-experiment tbody tr {
 .live-feed-player-head.elims,
 .live-feed-kill-row{
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)!important;
-  gap:5px!important;
+  grid-template-columns:minmax(0,1fr) minmax(64px,76px) minmax(0,1.1fr)!important;
+  gap:7px!important;
   align-items:center!important;
   min-width:0!important;
 }
@@ -4207,6 +4207,7 @@ body.ewc-refreshing.betting-experiment tbody tr {
   padding:5px 6px!important;
 }
 .live-feed-player-head.elims span:nth-child(2){text-align:center!important;color:var(--brand);}
+.live-feed-player-head.elims span:last-child{text-align:left!important;}
 .live-feed-kill-rows{
   display:grid;
   gap:4px;
@@ -4237,13 +4238,36 @@ body.ewc-refreshing.betting-experiment tbody tr {
   text-overflow:ellipsis;
 }
 .live-feed-kill-row .kill-killer{color:#8dffb0;text-align:right;}
-.live-feed-kill-row .kill-victim{color:#ffb5c1;text-align:left;}
-.live-feed-kill-row .kill-x{
-  color:#fff;
-  text-align:center;
-  font-family:Orbitron,sans-serif;
-  font-size:.62rem;
+.live-feed-kill-row .kill-victim{color:#ffb5c1;text-align:left;display:flex;align-items:center;gap:6px;overflow:hidden;}
+.live-feed-kill-row .kill-victim-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+.live-feed-kill-row .kill-weapon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-width:0;
+  padding:2px 4px;
+  border-radius:9px;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.075);
 }
+.live-feed-kill-row .kill-weapon .visual-icon-wrap{width:26px;height:22px;min-width:26px;border-radius:7px;}
+.live-feed-kill-row .kill-weapon .visual-icon-wrap img{width:100%;height:100%;object-fit:contain;}
+.live-feed-kill-row .kill-weapon-name{
+  min-width:0;
+  max-width:42px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:rgba(244,246,255,.90);
+  font-size:.48rem;
+  font-weight:1000;
+  line-height:1;
+}
+.live-feed-kill-row .kill-team-logo{width:18px;height:18px;flex:0 0 18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);}
+.live-feed-kill-row .kill-team-logo .team-logo-img{width:100%;height:100%;object-fit:contain;padding:1px;}
+.live-feed-kill-row .kill-team-logo .team-logo-fallback-text{font-size:.42rem;line-height:1;display:none;}
+.live-feed-kill-row .kill-team-logo.no-img .team-logo-fallback-text{display:grid;}
 .live-feed-kill-empty{
   min-height:50px;
   display:grid;
@@ -4258,19 +4282,22 @@ body.ewc-refreshing.betting-experiment tbody tr {
 }
 .live-feed-popup-players .live-feed-kill-rows{max-height:42vh;gap:7px;}
 .live-feed-popup-players .live-feed-player-head.elims{
-  grid-template-columns:minmax(180px,1fr) 32px minmax(180px,1fr)!important;
+  grid-template-columns:minmax(180px,1fr) minmax(94px,118px) minmax(180px,1fr)!important;
   font-size:.68rem!important;
   padding:8px 10px!important;
   border-radius:13px!important;
 }
 .live-feed-popup-players .live-feed-kill-row{
-  grid-template-columns:minmax(180px,1fr) 32px minmax(180px,1fr)!important;
-  min-height:38px;
+  grid-template-columns:minmax(180px,1fr) minmax(94px,118px) minmax(180px,1fr)!important;
+  min-height:42px;
   padding:9px 10px;
   border-radius:13px;
   font-size:.84rem;
 }
-.live-feed-popup-players .live-feed-kill-row .kill-x{font-size:.86rem;}
+.live-feed-popup-players .live-feed-kill-row .kill-weapon{gap:7px;padding:4px 6px;}
+.live-feed-popup-players .live-feed-kill-row .kill-weapon .visual-icon-wrap{width:38px;height:30px;min-width:38px;border-radius:8px;}
+.live-feed-popup-players .live-feed-kill-row .kill-weapon-name{max-width:62px;font-size:.62rem;}
+.live-feed-popup-players .live-feed-kill-row .kill-team-logo{width:22px;height:22px;flex-basis:22px;border-radius:7px;}
 @media(max-width:760px){
   .live-feed-view-group .live-feed-view-toggle{height:24px!important;min-height:24px!important;padding:3px 7px!important;font-size:.56rem!important;}
   .live-feed-kill-rows{max-height:92px;}
@@ -5225,6 +5252,7 @@ let KEYS = {
 
 let ID_TO_NAME = new Map();
 let SKILL_ID_TO_NAME = new Map();
+let WEAPON_ID_TO_NAME = new Map();
 let MAP_READY = false;
 let CHAR_SKILLKEY_TO_KIND = new Map();
 let CHAR_SKILLKEY_TO_CANONICAL = new Map();
@@ -5360,6 +5388,14 @@ function mapSkillFromId(id, fallback=''){
   // Number from ff_player_stats_raw skill field -> match_api.id, only where match_api.type = 2, display match_api.name.
   return SKILL_ID_TO_NAME.get(key) || fallback || `ID ${key}`;
 }
+function mapWeaponFromId(id, fallback=''){
+  const key = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
+  if(!key) return fallback || '';
+
+  // Weapon lookup:
+  // player_stats_kill_info.weapon_used_id -> match_api.id, only where match_api.type = 0, display match_api.name.
+  return lookupInMap(WEAPON_ID_TO_NAME, key) || fallback || (key ? `Weapon ${key}` : '');
+}
 function firstNonEmptyFromKeys(row, keys){
   for(const key of keys){
     const value = norm(row?.[key]);
@@ -5472,6 +5508,7 @@ async function loadMatchApi(){
   MAP_READY = false;
   ID_TO_NAME.clear();
   SKILL_ID_TO_NAME.clear();
+  WEAPON_ID_TO_NAME.clear();
 
   async function fetchGenericMatchApiRows(){
     const rows = [];
@@ -5523,8 +5560,46 @@ async function loadMatchApi(){
     }
 
     MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows=${skillRows} • mapped IDs=${SKILL_ID_TO_NAME.size} • ${note}`);
+    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows=${skillRows} • skill IDs=${SKILL_ID_TO_NAME.size} • weapon IDs=${WEAPON_ID_TO_NAME.size} • ${note}`);
     return { skillRows, namedRows, mapped: SKILL_ID_TO_NAME.size };
+  }
+
+  function ingestWeaponMatchApiRows(rows, note){
+    let weaponRows = 0;
+    let namedRows = 0;
+    const sample = rows.find(r => r && typeof r === 'object') || {};
+    const keys = Object.keys(sample);
+    const idKeys = keys.filter(k => /(^id$|_id$|id$|code|key|api_id|item_id|weapon_id|gun_id)/i.test(k));
+    const nameKeys = keys.filter(k => /(^name$|name$|title|label|weapon_name|weaponName|gun_name|gunName)/i.test(k));
+    const typeKeys = keys.filter(k => /(^type$|type$|category|kind)/i.test(k));
+
+    for(const r of rows){
+      const exactType = Number(norm(r?.type));
+      const looksWeapon = exactType === 0 || typeKeys.some(key => {
+        const raw = norm(r?.[key]).toLowerCase();
+        return raw === '0' || raw === 'weapon' || raw === 'weapons' || raw === 'gun' || raw === 'guns';
+      });
+      if(!looksWeapon) continue;
+      weaponRows++;
+
+      const name = norm(r?.name) || getBestNameFromMatchApiRow(r, nameKeys, idKeys, typeKeys);
+      if(!name) continue;
+
+      const ids = new Set();
+      const primaryId = normalizeMatchApiNumericId(r?.id) || normalizeLookupId(r?.id);
+      if(primaryId) ids.add(primaryId);
+      getIdCandidatesFromMatchApiRow(r, idKeys, typeKeys, nameKeys).forEach(id => ids.add(id));
+
+      for(const id of ids){
+        if(!id) continue;
+        namedRows++;
+        ID_TO_NAME.set(id, name);
+        WEAPON_ID_TO_NAME.set(id, name);
+      }
+    }
+
+    setText('diagMap', `match_api mapping: skill IDs=${SKILL_ID_TO_NAME.size} • weapon rows=${weaponRows} • weapon IDs=${WEAPON_ID_TO_NAME.size} • ${note}`);
+    return { weaponRows, namedRows, mapped: WEAPON_ID_TO_NAME.size };
   }
 
   try{
@@ -5541,12 +5616,26 @@ async function loadMatchApi(){
 
     let stats = ingestMatchApiRows(rows, note);
 
-    // Safety fallback: if type=2 returns nothing or schema/type values changed,
-    // scan match_api generically and detect skill rows by type/category/name fields.
-    if(!stats.mapped){
-      const genericRows = await fetchGenericMatchApiRows();
-      stats = ingestMatchApiRows(genericRows, 'generic match_api fallback');
+    let weaponRows = [];
+    let weaponNote = 'type=0 weapon numeric';
+    try{
+      weaponRows = await fetchMatchApiSkillRowsByType(0);
+    }catch(weaponErr){
+      console.warn('match_api type=0 weapon numeric fetch failed, trying string type:', weaponErr?.message || weaponErr);
+      weaponRows = await fetchMatchApiSkillRowsByType('0');
+      weaponNote = 'type="0" weapon string';
     }
+    let weaponStats = ingestWeaponMatchApiRows(weaponRows, weaponNote);
+
+    // Safety fallback: if type=2/type=0 returns nothing or schema/type values changed,
+    // scan match_api generically and detect skill/weapon rows by type/category/name fields.
+    if(!stats.mapped || !weaponStats.mapped){
+      const genericRows = await fetchGenericMatchApiRows();
+      if(!stats.mapped) stats = ingestMatchApiRows(genericRows, 'generic match_api skill fallback');
+      if(!weaponStats.mapped) weaponStats = ingestWeaponMatchApiRows(genericRows, 'generic match_api weapon fallback');
+    }
+
+    setText('diagMap', `match_api mapping: skill IDs=${SKILL_ID_TO_NAME.size} • weapon IDs=${WEAPON_ID_TO_NAME.size} • skills ${note} • weapons ${weaponNote}`);
   }catch(e){
     setText('diagMap', 'match_api mapping: unavailable / expected columns: id, type, name');
     console.warn('match_api load failed:', e?.message || e);
@@ -5813,6 +5902,72 @@ function uniqueList(items){
   }
   return out;
 }
+
+function compactWeaponNameKey(value){
+  return assetLookupKey(value)
+    .replace(/freefire|weapon|gun|rifle|shotgun|smg|ar|sr|lmg|pistol|launcher|marksman|sniper/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+function weaponNameSimilarity(a, b){
+  const ak = compactWeaponNameKey(a);
+  const bk = compactWeaponNameKey(b);
+  if(!ak || !bk) return 0;
+  if(ak === bk) return 100;
+  if(ak.includes(bk) || bk.includes(ak)) return 86;
+  const aTokens = new Set(assetLookupKey(a).split(/[^a-z0-9]+/).filter(Boolean));
+  const bTokens = new Set(assetLookupKey(b).split(/[^a-z0-9]+/).filter(Boolean));
+  let shared = 0;
+  aTokens.forEach(t => { if(bTokens.has(t)) shared++; });
+  const tokenScore = shared ? (shared / Math.max(aTokens.size, bTokens.size)) * 72 : 0;
+  let prefix = 0;
+  const minLen = Math.min(ak.length, bk.length);
+  while(prefix < minLen && ak[prefix] === bk[prefix]) prefix++;
+  const prefixScore = minLen ? (prefix / minLen) * 52 : 0;
+  return Math.max(tokenScore, prefixScore);
+}
+function findClosestWeaponResourceItem(label='', id=''){
+  const list = RESOURCE_DATA.weapons || [];
+  const cleanId = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
+  const labelText = norm(label);
+  const labelKey = assetLookupKey(labelText);
+
+  if(cleanId){
+    const byId = list.find(item => idCandidatesFromRow(item?.raw || {}).map(x => normalizeLookupId(x)).includes(cleanId));
+    if(byId) return byId;
+  }
+
+  if(!labelKey) return null;
+
+  let best = null;
+  let bestScore = 0;
+  for(const item of list){
+    const names = uniqueList([
+      item?.name,
+      item?.sub,
+      item?.search_name,
+      item?.raw?.name,
+      item?.raw?.title,
+      item?.raw?.label,
+      item?.raw?.weapon_name,
+      item?.raw?.weaponName,
+      item?.raw?.gun_name,
+      item?.raw?.gunName,
+      item?.raw?.display_name,
+      item?.raw?.displayName
+    ]).filter(Boolean);
+
+    for(const candidate of names){
+      const score = weaponNameSimilarity(labelText, candidate);
+      if(score > bestScore){
+        bestScore = score;
+        best = item;
+      }
+    }
+  }
+
+  return bestScore >= 38 ? best : null;
+}
+
 function visualImageCandidates(kind, label, id=''){
   const name = norm(label);
   const slug = slugAssetName(name);
@@ -5860,6 +6015,21 @@ function visualImageCandidates(kind, label, id=''){
     }
     if(slug){
       candidates.push(`assets/img/loadouts/${slug}.png`, `assets/img/loadout/${slug}.png`);
+    }
+  }else if(kind === 'weapon'){
+    const found = findClosestWeaponResourceItem(name, normalizedId);
+    const rawImg = normalizeImageUrl(found?.img || found?.image || found?.icon || found?.src || '');
+    const foundName = norm(found?.name || '');
+    const foundSlug = slugAssetName(foundName);
+    if(rawImg) candidates.push(rawImg);
+    if(normalizedId){
+      candidates.push(`assets/img/weapons/${normalizedId}.png`, `assets/img/weapon/${normalizedId}.png`, `assets/weapons/${normalizedId}.png`);
+    }
+    if(foundSlug && foundSlug !== slug){
+      candidates.push(`assets/img/weapons/${foundSlug}.png`, `assets/img/weapon/${foundSlug}.png`, `assets/weapons/${foundSlug}.png`);
+    }
+    if(slug){
+      candidates.push(`assets/img/weapons/${slug}.png`, `assets/img/weapon/${slug}.png`, `assets/weapons/${slug}.png`);
     }
   }
 
@@ -6678,6 +6848,16 @@ function buildLiveFeedKillIndex(rows){
     /(killer|attacker|source|from|damage_from).*?team.*?(name|code|id)?$/i,
     /team.*?(name|code|id)?.*?(killer|attacker|source|from|damage_from)/i
   ];
+  const weaponIdPatterns = [
+    /^weapon_used_id$/i, /^weapon_id$/i, /^gun_id$/i, /^item_id$/i,
+    /(weapon|gun|item).*?(used)?.*?(id|code)$/i,
+    /(weapon|gun|item).*?(id|code).*?(used)?$/i
+  ];
+  const weaponNamePatterns = [
+    /^weapon_used_name$/i, /^weapon_name$/i, /^gun_name$/i, /^item_name$/i,
+    /(weapon|gun|item).*?(used)?.*?(name|label|title)$/i,
+    /(weapon|gun|item).*?(name|label|title).*?(used)?$/i
+  ];
   const timePatterns = [
     /^kill_timestamp$/i, /^kill_time$/i, /^timestamp$/i,
     /(kill|killed|death|dead|eliminated|be_killed|event|battle).*?(time|ts|timestamp|sec|second|frame|order)/i,
@@ -6709,6 +6889,8 @@ function buildLiveFeedKillIndex(rows){
       const killerMatch = killerId ? playerById.get(killerId) : (killerNameRaw ? playerByName.get(assetLookupKey(killerNameRaw)) : null);
       const killerTeam = killerTeamRaw || killerMatch?.team || killerFallbackTeam;
       const killerName = killerMatch?.playerName || killerNameRaw || killerFallbackName;
+      const weaponId = normalizeLookupId(findFirstByPathPatterns(obj, weaponIdPatterns));
+      const weaponName = norm(findFirstByPathPatterns(obj, weaponNamePatterns));
       const timeRaw = findFirstByPathPatterns(obj, timePatterns);
       const timeValue = liveFeedTimeValue(timeRaw) || (events.length + idx + 1);
 
@@ -6722,6 +6904,8 @@ function buildLiveFeedKillIndex(rows){
         victimAccountId,
         killerTeam,
         killerName,
+        weaponId,
+        weaponName,
         timeValue,
         timeRaw: norm(timeRaw),
         raw: obj
@@ -6860,7 +7044,7 @@ function liveFeedPlayerTag(team, name){
   return `${teamCode}.${cleanName}`;
 }
 function liveFeedKillEventSignature(ev){
-  return [ev.killerTeam, ev.killerName, ev.victimTeam, ev.victimName, ev.victimAccountId, ev.timeValue, ev.timeRaw].join('^');
+  return [ev.killerTeam, ev.killerName, ev.victimTeam, ev.victimName, ev.victimAccountId, ev.weaponId, ev.weaponName, ev.timeValue, ev.timeRaw].join('^');
 }
 function liveFeedTeamKillEvents(teamCode, killIndex){
   const key = norm(teamCode).toUpperCase();
@@ -6874,22 +7058,37 @@ function liveFeedTeamKillEvents(teamCode, killIndex){
   }));
 
   events.sort((a,b) => {
-    // Put kills by this team first, then most recent/highest time order.
-    const pA = a.perspective === 'kill' ? 1 : 0;
-    const pB = b.perspective === 'kill' ? 1 : 0;
-    return (pB - pA) || ((b.timeValue || 0) - (a.timeValue || 0)) || liveFeedKillEventSignature(a).localeCompare(liveFeedKillEventSignature(b));
+    return ((a.timeValue || 0) - (b.timeValue || 0)) || liveFeedKillEventSignature(a).localeCompare(liveFeedKillEventSignature(b));
   });
   return events;
 }
+function liveFeedKillWeaponLabel(ev){
+  const byName = norm(ev?.weaponName);
+  const fromMatchApi = mapWeaponFromId(ev?.weaponId || '');
+  const label = byName || fromMatchApi || '';
+  const found = findClosestWeaponResourceItem(label, ev?.weaponId || '');
+  return norm(found?.name) || label || (ev?.weaponId ? `Weapon ${ev.weaponId}` : 'Elimination');
+}
+function liveFeedKillWeaponHtml(ev){
+  const label = liveFeedKillWeaponLabel(ev);
+  const shortLabel = label.replace(/^Weapon\s+/i, '').replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  return `<span class="kill-weapon" title="${escHtml(label)}">${visualIconHtml('weapon', label, ev?.weaponId || '')}<span class="kill-weapon-name">${escHtml(shortLabel)}</span></span>`;
+}
+function liveFeedKillVictimHtml(ev){
+  const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
+  const logo = teamLogoHtml(ev.victimTeam || '', getTeamProfile(ev.victimTeam || ''), 'team-logo-fallback kill-team-logo');
+  return `<div class="kill-victim">${logo}<span class="kill-victim-name">${escHtml(victim)}</span></div>`;
+}
 function liveFeedKillRowHtml(ev){
   const killer = liveFeedPlayerTag(ev.killerTeam, ev.killerName);
-  const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
   const cls = ev.perspective === 'kill' ? 'kill' : 'death';
-  const title = `${killer} eliminated ${victim}${ev.timeRaw ? ` • ${ev.timeRaw}` : ''}`;
+  const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
+  const weaponLabel = liveFeedKillWeaponLabel(ev);
+  const title = `${killer} eliminated ${victim} with ${weaponLabel}${ev.timeRaw ? ` • ${ev.timeRaw}` : ''}`;
   return `<div class="live-feed-kill-row ${cls}" title="${escHtml(title)}">
     <span class="kill-killer">${escHtml(killer)}</span>
-    <span class="kill-x">x</span>
-    <span class="kill-victim">${escHtml(victim)}</span>
+    ${liveFeedKillWeaponHtml(ev)}
+    ${liveFeedKillVictimHtml(ev)}
   </div>`;
 }
 function liveFeedTeamElimEventsHtml(team){
@@ -6938,10 +7137,14 @@ function findResourceItemForLiveFeed(kind, name, id=''){
   });
 
   if(found) return found;
+  if(resourceKind === 'weapons'){
+    const closest = findClosestWeaponResourceItem(name, id);
+    if(closest) return closest;
+  }
   return {
     kind: resourceKind,
     name: name || 'Unknown Item',
-    sub: resourceKind === 'skills' ? 'Skill' : resourceKind === 'pets' ? 'Pet' : resourceKind === 'loadouts' ? 'Loadout' : 'Reference',
+    sub: resourceKind === 'skills' ? 'Skill' : resourceKind === 'pets' ? 'Pet' : resourceKind === 'loadouts' ? 'Loadout' : resourceKind === 'weapons' ? 'Weapon' : 'Reference',
     img: '',
     desc: 'No description found in the loaded reference JSON for this item.',
     raw: { id }
@@ -7006,7 +7209,7 @@ function liveFeedPlayerHeaderHtml(){
   if(LIVE_FEED_PLAYER_VIEW === 'elims'){
     return `<div class="live-feed-player-head elims" aria-hidden="true">
       <span>Killer</span>
-      <span>x</span>
+      <span>Wpn</span>
       <span>Eliminated</span>
     </div>`;
   }
