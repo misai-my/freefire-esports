@@ -4283,10 +4283,18 @@ body.ewc-refreshing.betting-experiment tbody tr {
   line-height:1;
 }
 .live-feed-kill-row .kill-time.rapid{
+  min-width:68px;
+  gap:3px;
   background:linear-gradient(135deg, rgba(255,210,74,.28), rgba(255,128,64,.20));
   border-color:rgba(255,196,76,.55);
   color:#fff1c2;
   box-shadow:0 0 0 1px rgba(255,196,76,.10), 0 0 12px rgba(255,176,64,.20);
+}
+.live-feed-kill-row .kill-time-ref{
+  opacity:.82;
+  font-size:.36rem;
+  font-weight:1000;
+  line-height:1;
 }
 .live-feed-kill-row .kill-weapon{
   min-width:0;
@@ -4643,6 +4651,13 @@ body.ewc-refreshing.betting-experiment tbody tr {
   height:14px!important;
   padding:0 4px!important;
   font-size:.38rem!important;
+}
+.live-feed-card > .live-feed-players .live-feed-kill-row .kill-time.rapid{
+  min-width:58px!important;
+  padding:0 5px!important;
+}
+.live-feed-card > .live-feed-players .live-feed-kill-row .kill-time-ref{
+  font-size:.30rem!important;
 }
 
 .live-feed-card > .live-feed-players .live-feed-kill-empty{
@@ -7469,22 +7484,29 @@ function liveFeedTeamKillEvents(teamCode, killIndex){
   return events.map((ev, idx) => {
     const ms = liveFeedKillTimeMs(ev);
     const rapid = !!(idx > 0 && ms && prevMs && (ms - prevMs) <= 5000);
+    const refMs = rapid ? prevMs : 0;
+    const deltaSeconds = rapid ? Math.max(0, Math.round((ms - prevMs) / 1000)) : 0;
     if(ms) prevMs = ms;
-    return { ...ev, rapidTime: rapid };
+    return {
+      ...ev,
+      rapidTime: rapid,
+      rapidReferenceMs: refMs,
+      rapidReferenceText: refMs ? liveFeedFormatMsAsTimestamp(refMs) : '',
+      rapidDeltaText: rapid ? `+${deltaSeconds}s` : ''
+    };
   });
 }
-function liveFeedKillTimestampText(ev){
-  const rawText = norm(ev?.timeRaw);
-  let value = 0;
-  if(rawText && /^\d+(?:\.\d+)?$/.test(rawText)) value = Number(rawText);
-  else value = Number(ev?.timeValue || 0);
+function liveFeedFormatMsAsTimestamp(ms){
+  const value = Number(ms || 0);
   if(!Number.isFinite(value) || value < 0) return '';
-  // kill_timestamp values are usually milliseconds. If the value is small, treat it as seconds.
-  if(value > 86400000) return '';
-  const totalSeconds = value >= 1000 ? Math.floor(value / 1000) : Math.floor(value);
+  const totalSeconds = Math.floor(value / 1000);
   const mm = String(Math.floor(totalSeconds / 60)).padStart(2,'0');
   const ss = String(totalSeconds % 60).padStart(2,'0');
   return `${mm}:${ss}`;
+}
+function liveFeedKillTimestampText(ev){
+  const ms = liveFeedKillTimeMs(ev);
+  return ms ? liveFeedFormatMsAsTimestamp(ms) : '';
 }
 function liveFeedKillWeaponLabel(ev){
   const byName = norm(ev?.weaponName);
@@ -7502,7 +7524,11 @@ function liveFeedKillKillerHtml(ev){
   const killer = liveFeedPlayerTag(ev.killerTeam, ev.killerName);
   const timeText = liveFeedKillTimestampText(ev);
   const timeClass = ev?.rapidTime ? 'kill-time rapid' : 'kill-time';
-  return `<span class="kill-killer">${timeText ? `<span class="${timeClass}">${escHtml(timeText)}</span>` : ''}<span class="kill-killer-name">${escHtml(killer)}</span></span>`;
+  const refText = ev?.rapidTime && ev?.rapidReferenceText ? `<span class="kill-time-ref">←${escHtml(ev.rapidReferenceText)}</span>` : '';
+  const titleText = ev?.rapidTime && ev?.rapidReferenceText
+    ? `Rapid elimination: ${timeText} after ${ev.rapidReferenceText}${ev.rapidDeltaText ? ` (${ev.rapidDeltaText})` : ''}`
+    : timeText;
+  return `<span class="kill-killer">${timeText ? `<span class="${timeClass}" title="${escHtml(titleText)}">${escHtml(timeText)}${refText}</span>` : ''}<span class="kill-killer-name">${escHtml(killer)}</span></span>`;
 }
 function liveFeedKillVictimHtml(ev){
   const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
