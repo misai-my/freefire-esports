@@ -4159,6 +4159,125 @@ body.ewc-refreshing.betting-experiment tbody tr {
   .live-feed-elim-card .elim-line{font-size:.56rem;}
 }
 
+
+
+/* ===== Live Feed 3-way toggle: Stats / Preset / Elims ===== */
+.live-feed-view-group{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  padding:3px;
+  border:1px solid color-mix(in srgb,var(--ewc-accent) 26%,rgba(255,255,255,.10));
+  background:rgba(0,0,0,.18);
+  border-radius:999px;
+  flex:0 0 auto;
+}
+.live-feed-view-group .live-feed-view-toggle{
+  height:26px!important;
+  min-height:26px!important;
+  padding:4px 9px!important;
+  border-radius:999px!important;
+  font-size:.62rem!important;
+  line-height:1!important;
+}
+.live-feed-view-group .live-feed-view-toggle.active{
+  background:linear-gradient(135deg,var(--ewc-accent-2),var(--ewc-accent))!important;
+  border-color:color-mix(in srgb,var(--ewc-accent-2) 48%,rgba(255,255,255,.16))!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px color-mix(in srgb,var(--ewc-accent) 22%,transparent)!important;
+}
+.live-feed-elim-feed{display:none!important;}
+.live-feed-player-head.elims,
+.live-feed-kill-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)!important;
+  gap:5px!important;
+  align-items:center!important;
+  min-width:0!important;
+}
+.live-feed-player-head.elims{
+  color:rgba(190,220,245,.88);
+  font-size:.50rem!important;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.06em!important;
+  border:1px solid rgba(255,255,255,.075);
+  background:rgba(0,0,0,.22);
+  border-radius:9px;
+  padding:5px 6px!important;
+}
+.live-feed-player-head.elims span:nth-child(2){text-align:center!important;color:var(--brand);}
+.live-feed-kill-rows{
+  display:grid;
+  gap:4px;
+  max-height:104px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:2px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+}
+.live-feed-kill-row{
+  min-height:26px;
+  padding:5px 6px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  border-radius:9px;
+  font-size:.60rem;
+  font-weight:1000;
+  line-height:1.05;
+}
+.live-feed-kill-row.kill{border-color:rgba(98,232,135,.17);background:rgba(98,232,135,.075);}
+.live-feed-kill-row.death{border-color:rgba(255,112,132,.17);background:rgba(255,112,132,.075);}
+.live-feed-kill-row .kill-killer,
+.live-feed-kill-row .kill-victim{
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.live-feed-kill-row .kill-killer{color:#8dffb0;text-align:right;}
+.live-feed-kill-row .kill-victim{color:#ffb5c1;text-align:left;}
+.live-feed-kill-row .kill-x{
+  color:#fff;
+  text-align:center;
+  font-family:Orbitron,sans-serif;
+  font-size:.62rem;
+}
+.live-feed-kill-empty{
+  min-height:50px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  border:1px dashed rgba(255,255,255,.12);
+  border-radius:10px;
+  color:rgba(190,220,245,.68);
+  font-size:.60rem;
+  font-weight:900;
+  padding:8px;
+}
+.live-feed-popup-players .live-feed-kill-rows{max-height:42vh;gap:7px;}
+.live-feed-popup-players .live-feed-player-head.elims{
+  grid-template-columns:minmax(180px,1fr) 32px minmax(180px,1fr)!important;
+  font-size:.68rem!important;
+  padding:8px 10px!important;
+  border-radius:13px!important;
+}
+.live-feed-popup-players .live-feed-kill-row{
+  grid-template-columns:minmax(180px,1fr) 32px minmax(180px,1fr)!important;
+  min-height:38px;
+  padding:9px 10px;
+  border-radius:13px;
+  font-size:.84rem;
+}
+.live-feed-popup-players .live-feed-kill-row .kill-x{font-size:.86rem;}
+@media(max-width:760px){
+  .live-feed-view-group .live-feed-view-toggle{height:24px!important;min-height:24px!important;padding:3px 7px!important;font-size:.56rem!important;}
+  .live-feed-kill-rows{max-height:92px;}
+  .live-feed-kill-row{font-size:.54rem;padding:4px 5px;}
+  .live-feed-player-head.elims{font-size:.44rem!important;padding:4px 5px!important;}
+}
+
 </style>
 </head>
 <body class="betting-experiment">
@@ -6307,29 +6426,50 @@ function matchOrderValueForRow(r){
 
 
 const LIVE_FEED_PLAYER_VIEW_KEY = 'ewc_live_feed_player_view_v1';
+const LIVE_FEED_PLAYER_VIEWS = ['stats', 'preset', 'elims'];
+function normalizeLiveFeedPlayerView(view){
+  const raw = norm(view).toLowerCase();
+  if(raw === 'preset') return 'preset';
+  if(raw === 'elims' || raw === 'elim' || raw === 'eliminations' || raw === 'kills' || raw === 'killfeed') return 'elims';
+  return 'stats';
+}
+function liveFeedViewLabel(view = LIVE_FEED_PLAYER_VIEW){
+  const v = normalizeLiveFeedPlayerView(view);
+  if(v === 'preset') return 'Preset View';
+  if(v === 'elims') return 'Eliminations View';
+  return 'Stats View';
+}
 let LIVE_FEED_PLAYER_VIEW = (() => {
   try{
-    const saved = localStorage.getItem(LIVE_FEED_PLAYER_VIEW_KEY);
-    return saved === 'preset' ? 'preset' : 'stats';
+    return normalizeLiveFeedPlayerView(localStorage.getItem(LIVE_FEED_PLAYER_VIEW_KEY));
   }catch(_e){
     return 'stats';
   }
 })();
 function setLiveFeedPlayerView(view){
-  LIVE_FEED_PLAYER_VIEW = view === 'preset' ? 'preset' : 'stats';
+  LIVE_FEED_PLAYER_VIEW = normalizeLiveFeedPlayerView(view);
   try{ localStorage.setItem(LIVE_FEED_PLAYER_VIEW_KEY, LIVE_FEED_PLAYER_VIEW); }catch(_e){}
 
   // Fast path: update only the live-feed player sections/buttons instead of
   // rebuilding the entire 12-team feed. This keeps the centered popup responsive
   // and prevents icon/image reloads from feeling slow.
   if(!updateLiveFeedViewInPlace()) renderLiveFeed();
+  queueSaveViewState?.();
 }
 function toggleLiveFeedPlayerView(){
-  setLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEW === 'preset' ? 'stats' : 'preset');
+  const idx = Math.max(0, LIVE_FEED_PLAYER_VIEWS.indexOf(normalizeLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEW)));
+  setLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEWS[(idx + 1) % LIVE_FEED_PLAYER_VIEWS.length]);
 }
 function liveFeedViewButtonHtml(){
-  const label = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Show Stats' : 'Show Preset';
-  return `<button class="btn secondary live-feed-view-toggle" type="button" onclick="toggleLiveFeedPlayerView()">${label}</button>`;
+  const button = (view, label) => {
+    const active = normalizeLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEW) === view;
+    return `<button class="btn secondary live-feed-view-toggle${active ? ' active' : ''}" type="button" data-live-feed-view="${view}" aria-pressed="${active ? 'true' : 'false'}" onclick="setLiveFeedPlayerView('${view}')">${label}</button>`;
+  };
+  return `<div class="live-feed-view-group" role="group" aria-label="Latest Match Live Feed view">
+    ${button('stats', 'Stats')}
+    ${button('preset', 'Preset')}
+    ${button('elims', 'Elims')}
+  </div>`;
 }
 
 function liveFeedLatestRows(){
@@ -6412,6 +6552,20 @@ function liveFeedTimeValue(raw){
   const parsed = Date.parse(text);
   return Number.isFinite(parsed) ? parsed : 0;
 }
+function dedupeLiveFeedKillEvents(events){
+  const seen = new Set();
+  const out = [];
+  (events || []).forEach(ev => {
+    const victimKey = normalizeLookupId(ev.victimAccountId) || `${assetLookupKey(ev.victimTeam)}:${assetLookupKey(ev.victimName)}`;
+    const killerKey = `${assetLookupKey(ev.killerTeam)}:${assetLookupKey(ev.killerName)}`;
+    const timeKey = ev.timeRaw || ev.timeValue || '';
+    const key = `${victimKey}|${killerKey}|${timeKey}`;
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push(ev);
+  });
+  return out;
+}
 function buildLiveFeedKillIndex(rows){
   const playerById = new Map();
   const playerByName = new Map();
@@ -6486,7 +6640,7 @@ function buildLiveFeedKillIndex(rows){
     });
   });
 
-  return { playerById, playerByName, playerRowsByTeam, victimIds, victimNames, events };
+  return { playerById, playerByName, playerRowsByTeam, victimIds, victimNames, events: dedupeLiveFeedKillEvents(events) };
 }
 function liveFeedRowEliminatedFromKillInfo(row, killIndex){
   if(!killIndex) return false;
@@ -6586,7 +6740,8 @@ function buildLiveFeedTeams(rows){
         return loadoutName ? { name: loadoutName } : null;
       })()
     })).sort((a,b) => b.kills - a.kills || b.damage - a.damage || b.assists - a.assists || a.player.localeCompare(b.player));
-    teams.push({ team, day, matchNo, matchId, rankScore, teamElims, total, booyah, alivePlayers, eliminatedPlayers, eliminated, players });
+    const elimEvents = liveFeedTeamKillEvents(team, killIndex);
+    teams.push({ team, day, matchNo, matchId, rankScore, teamElims, total, booyah, alivePlayers, eliminatedPlayers, eliminated, players, elimEvents });
   }
   // Live feed order: alive teams first, then total score descending.
   // Booyah teams count as alive because eliminated is false when booyah is true.
@@ -6604,6 +6759,60 @@ function buildLiveFeedTeams(rows){
   teams.killIndex = killIndex;
   teams.eliminationFeed = liveFeedTeamEliminationFeed(teams, killIndex);
   return teams;
+}
+function liveFeedPlayerTag(team, name){
+  const teamCode = norm(team).toUpperCase();
+  const cleanName = norm(name) || 'Unknown';
+  if(!teamCode) return cleanName;
+  if(cleanName.toUpperCase().startsWith(`${teamCode}.`)) return cleanName;
+  // If the API already returns a team-tagged IGN like BRU JOENA, keep it readable with a dot.
+  const teamSpacePrefix = `${teamCode} `;
+  if(cleanName.toUpperCase().startsWith(teamSpacePrefix)) return `${teamCode}.${cleanName.slice(teamSpacePrefix.length).trim()}`;
+  return `${teamCode}.${cleanName}`;
+}
+function liveFeedKillEventSignature(ev){
+  return [ev.killerTeam, ev.killerName, ev.victimTeam, ev.victimName, ev.victimAccountId, ev.timeValue, ev.timeRaw].join('^');
+}
+function liveFeedTeamKillEvents(teamCode, killIndex){
+  const key = norm(teamCode).toUpperCase();
+  const events = (killIndex?.events || []).filter(ev => {
+    const killerTeam = norm(ev.killerTeam).toUpperCase();
+    const victimTeam = norm(ev.victimTeam).toUpperCase();
+    return killerTeam === key || victimTeam === key;
+  }).map(ev => ({
+    ...ev,
+    perspective: norm(ev.killerTeam).toUpperCase() === key ? 'kill' : 'death'
+  }));
+
+  events.sort((a,b) => {
+    // Put kills by this team first, then most recent/highest time order.
+    const pA = a.perspective === 'kill' ? 1 : 0;
+    const pB = b.perspective === 'kill' ? 1 : 0;
+    return (pB - pA) || ((b.timeValue || 0) - (a.timeValue || 0)) || liveFeedKillEventSignature(a).localeCompare(liveFeedKillEventSignature(b));
+  });
+  return events;
+}
+function liveFeedKillRowHtml(ev){
+  const killer = liveFeedPlayerTag(ev.killerTeam, ev.killerName);
+  const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
+  const cls = ev.perspective === 'kill' ? 'kill' : 'death';
+  const title = `${killer} eliminated ${victim}${ev.timeRaw ? ` • ${ev.timeRaw}` : ''}`;
+  return `<div class="live-feed-kill-row ${cls}" title="${escHtml(title)}">
+    <span class="kill-killer">${escHtml(killer)}</span>
+    <span class="kill-x">x</span>
+    <span class="kill-victim">${escHtml(victim)}</span>
+  </div>`;
+}
+function liveFeedTeamElimEventsHtml(team){
+  const events = team?.elimEvents || [];
+  const rows = events.length
+    ? events.map(liveFeedKillRowHtml).join('')
+    : `<div class="live-feed-kill-empty">No player eliminations detected yet</div>`;
+  return `${liveFeedPlayerHeaderHtml()}<div class="live-feed-kill-rows">${rows}</div>`;
+}
+function liveFeedTeamRowsHtml(team){
+  if(LIVE_FEED_PLAYER_VIEW === 'elims') return liveFeedTeamElimEventsHtml(team);
+  return `${liveFeedPlayerHeaderHtml()}${(team.players || []).map(liveFeedPlayerHtml).join('')}`;
 }
 function normalizeLiveFeedResourceKind(kind){
   const raw = norm(kind).toLowerCase();
@@ -6680,21 +6889,23 @@ function updateLiveFeedViewInPlace(){
   if(!grid || !cache.length) return false;
 
   document.querySelectorAll('.live-feed-view-toggle').forEach(btn => {
-    btn.textContent = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Show Stats' : 'Show Preset';
+    const view = normalizeLiveFeedPlayerView(btn.dataset.liveFeedView || 'stats');
+    const active = view === normalizeLiveFeedPlayerView(LIVE_FEED_PLAYER_VIEW);
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 
   cache.forEach(team => {
     const card = grid.querySelector(`.live-feed-card[data-live-team="${CSS.escape(team.team)}"]`);
     if(!card) return;
-    const playersHtml = `${liveFeedPlayerHeaderHtml()}${team.players.map(liveFeedPlayerHtml).join('')}`;
+    const playersHtml = liveFeedTeamRowsHtml(team);
     card.querySelectorAll(':scope > .live-feed-players').forEach(node => { node.innerHTML = playersHtml; });
     const popupPlayers = card.querySelector('.live-feed-popup-players');
     if(popupPlayers) popupPlayers.innerHTML = playersHtml;
     const popupSub = card.querySelector('.live-feed-popup-title-wrap span');
     if(popupSub){
       const statusText = team.booyah ? '👑 Booyah' : team.eliminated ? 'Eliminated' : 'Alive';
-      const viewText = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Preset View' : 'Stats View';
-      popupSub.textContent = `${statusText} • ${viewText}`;
+      popupSub.textContent = `${statusText} • ${liveFeedViewLabel()}`;
     }
   });
 
@@ -6703,6 +6914,13 @@ function updateLiveFeedViewInPlace(){
 }
 
 function liveFeedPlayerHeaderHtml(){
+  if(LIVE_FEED_PLAYER_VIEW === 'elims'){
+    return `<div class="live-feed-player-head elims" aria-hidden="true">
+      <span>Killer</span>
+      <span>x</span>
+      <span>Eliminated</span>
+    </div>`;
+  }
   if(LIVE_FEED_PLAYER_VIEW === 'preset'){
     return `<div class="live-feed-player-head preset" aria-hidden="true">
       <span>Player</span>
@@ -6771,9 +6989,9 @@ function liveFeedPlayerHtml(player){
   </div>`;
 }
 function liveFeedTeamPopupHtml(team){
-  const players = (team.players || []).map(liveFeedPlayerHtml).join('');
+  const players = liveFeedTeamRowsHtml(team);
   const statusText = team.booyah ? '👑 Booyah' : team.eliminated ? 'Eliminated' : 'Alive';
-  const viewText = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Preset View' : 'Stats View';
+  const viewText = liveFeedViewLabel();
 
   return `<div class="live-feed-team-popup" aria-hidden="true">
     <div class="live-feed-popup-backdrop" onclick="closeLiveFeedTeamPopup(event, this)"></div>
@@ -6794,7 +7012,7 @@ function liveFeedTeamPopupHtml(team){
         <div><span>ELM</span><b>${fmtNum(team.teamElims)}</b></div>
         <div><span>Alive</span><b>${fmtNum(team.alivePlayers)}</b></div>
       </div>
-      <div class="live-feed-popup-players">${liveFeedPlayerHeaderHtml()}${players}</div>
+      <div class="live-feed-popup-players">${players}</div>
     </section>
   </div>`;
 }
@@ -6812,9 +7030,9 @@ function ensureLiveFeedTeamGlobalModal(){
   return modal;
 }
 function liveFeedTeamPopupPanelHtml(team){
-  const players = (team.players || []).map(liveFeedPlayerHtml).join('');
+  const players = liveFeedTeamRowsHtml(team);
   const statusText = team.booyah ? '👑 Booyah' : team.eliminated ? 'Eliminated' : 'Alive';
-  const viewText = LIVE_FEED_PLAYER_VIEW === 'preset' ? 'Preset View' : 'Stats View';
+  const viewText = liveFeedViewLabel();
 
   return `
     <div class="live-feed-popup-backdrop" onclick="closeLiveFeedTeamPopup(event, this)"></div>
@@ -6835,7 +7053,7 @@ function liveFeedTeamPopupPanelHtml(team){
         <div><span>ELM</span><b>${fmtNum(team.teamElims)}</b></div>
         <div><span>Alive</span><b>${fmtNum(team.alivePlayers)}</b></div>
       </div>
-      <div class="live-feed-popup-players">${liveFeedPlayerHeaderHtml()}${players}</div>
+      <div class="live-feed-popup-players">${players}</div>
     </section>`;
 }
 function renderLiveFeedGlobalModal(){
@@ -6896,7 +7114,7 @@ function liveFeedCardHtml(t){
         ${liveFeedTeamStatusLabel(t)}
         <span class="live-feed-status">${fmtNum(t.eliminatedPlayers)} Player Out</span>
       </div>
-      <div class="live-feed-players">${liveFeedPlayerHeaderHtml()}${t.players.map(liveFeedPlayerHtml).join('')}</div>
+      <div class="live-feed-players">${liveFeedTeamRowsHtml(t)}</div>
     </article>
   `;
 }
@@ -6910,7 +7128,8 @@ function liveFeedTeamSignature(t){
       (p.passiveItems || []).map(x => x.id || x.name).join(','),
       p.petItem?.id || p.petItem?.name || '',
       p.loadoutItem?.name || ''
-    ].join('^'))
+    ].join('^')),
+    ...((t.elimEvents || []).map(liveFeedKillEventSignature))
   ].join('|');
 }
 function renderLiveFeed(options = {}){
@@ -6959,8 +7178,10 @@ function renderLiveFeed(options = {}){
   }
 
   setStableHTML(toolbar, toolbarHtml, `toolbar::${LIVE_FEED_PLAYER_VIEW}::${aliveTeams}::${eliminatedTeams}`, silentRefresh);
-  const eliminationEvents = teams.eliminationFeed || [];
-  setStableHTML(elimFeed, liveFeedElimFeedHtml(eliminationEvents), liveFeedElimFeedSignature(eliminationEvents), silentRefresh);
+  if(elimFeed){
+    elimFeed.style.display = 'none';
+    setStableHTML(elimFeed, '', 'elim-feed-moved-to-toggle', silentRefresh);
+  }
 
   const existing = new Map([...grid.querySelectorAll('.live-feed-card[data-live-team]')].map(card => [norm(card.dataset.liveTeam).toUpperCase(), card]));
   const nextKeys = new Set();
@@ -9747,7 +9968,7 @@ function restoreSavedViewAfterFilters(saved){
   }
 
   if(saved.liveFeed?.playerView){
-    LIVE_FEED_PLAYER_VIEW = saved.liveFeed.playerView === 'preset' ? 'preset' : 'stats';
+    LIVE_FEED_PLAYER_VIEW = normalizeLiveFeedPlayerView(saved.liveFeed.playerView);
     try{ localStorage.setItem(LIVE_FEED_PLAYER_VIEW_KEY, LIVE_FEED_PLAYER_VIEW); }catch(_e){}
     renderLiveFeed({ silentRefresh:true });
   }
