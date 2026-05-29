@@ -4780,7 +4780,7 @@ const DASHBOARD_DESIRED_COLS = [
   'player_stats_pet_skill_id','player_stats_pet_skill_name',
   'player_stats_skill_ids','player_stats_skill_ids_0','player_stats_skill_ids_1','player_stats_skill_ids_2','player_stats_skill_ids_3',
   'player_stats_skill_info','player_stats_skill_info_active_count','player_stats_skill_info_skill_active','player_stats_skill_info_skill_id','player_stats_skill_info_skill_name',
-  'player_stats_loadouts','player_stats_survival_time','player_stats_kill_info',
+  'player_stats_loadouts','player_stats_survival_time',
   'created_at','updated_at','snapshot_id','pulled_at','response_hash','duplicate_key','data_source'
 ];
 
@@ -6501,12 +6501,12 @@ function parseJsonLoose(value){
   let text = String(value).trim();
   if(!text || text === 'null' || text === 'undefined') return null;
 
-  // Supabase can store player_stats_kill_info as:
+  // Supabase / Sheets can return player_stats_kill_info in any of these shapes:
   //   [{...}]
-  //   "[{\"killer_id\":\"10001122\",...}]"
-  //   "\"[{\\\"killer_id\\\":...}]\""
-  // Keep parsing while the decoded result is still a string.
-  for(let i = 0; i < 6; i++){
+  //   "[{\"killer_id\":\"10001122\", ...}]"
+  //   "\"[{\\\"killer_id\\\": ...}]\""
+  // Keep unwrapping while JSON.parse returns another string.
+  for(let i = 0; i < 5; i++){
     try{
       const parsed = JSON.parse(text);
       if(typeof parsed !== 'string') return parsed;
@@ -6515,34 +6515,11 @@ function parseJsonLoose(value){
       continue;
     }catch(_e){}
 
-    // Some cells are copied with outer quotes and backslash-escaped quotes.
-    let unescaped = text;
-    if(unescaped.length >= 2 && unescaped[0] === '"' && unescaped[unescaped.length - 1] === '"'){
-      unescaped = unescaped.slice(1, -1);
-    }
-    unescaped = unescaped
-      .replace(/\\"/g, '"')
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\\\/g, '\\')
-      .trim();
-
-    if(unescaped && unescaped !== text){
-      text = unescaped;
+    // Fallback for quoted/escaped JSON cells that are not valid JSON yet.
+    const unquoted = text.replace(/^"|"$/g, '').replace(/\"/g, '"').replace(/\\/g, '\').trim();
+    if(unquoted && unquoted !== text){
+      text = unquoted;
       continue;
-    }
-
-    // Last rescue: parse the JSON-looking portion only.
-    const firstArray = text.indexOf('[');
-    const lastArray = text.lastIndexOf(']');
-    const firstObj = text.indexOf('{');
-    const lastObj = text.lastIndexOf('}');
-    const start = firstArray >= 0 ? firstArray : firstObj;
-    const end = lastArray >= 0 ? lastArray : lastObj;
-    if(start >= 0 && end > start){
-      const sliced = text.slice(start, end + 1);
-      try{ return JSON.parse(sliced); }catch(_e){}
     }
     break;
   }
