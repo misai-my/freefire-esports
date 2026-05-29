@@ -4190,8 +4190,8 @@ body.ewc-refreshing.betting-experiment tbody tr {
 .live-feed-player-head.elims,
 .live-feed-kill-row{
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) 28px minmax(0,1.1fr)!important;
-  gap:6px!important;
+  grid-template-columns:minmax(0,1fr) minmax(64px,76px) minmax(0,1.1fr)!important;
+  gap:7px!important;
   align-items:center!important;
   min-width:0!important;
 }
@@ -4240,9 +4240,30 @@ body.ewc-refreshing.betting-experiment tbody tr {
 .live-feed-kill-row .kill-killer{color:#8dffb0;text-align:right;}
 .live-feed-kill-row .kill-victim{color:#ffb5c1;text-align:left;display:flex;align-items:center;gap:6px;overflow:hidden;}
 .live-feed-kill-row .kill-victim-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
-.live-feed-kill-row .kill-weapon{display:grid;place-items:center;}
-.live-feed-kill-row .kill-weapon .visual-icon-wrap{width:22px;height:22px;border-radius:7px;}
+.live-feed-kill-row .kill-weapon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-width:0;
+  padding:2px 4px;
+  border-radius:9px;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.075);
+}
+.live-feed-kill-row .kill-weapon .visual-icon-wrap{width:26px;height:22px;min-width:26px;border-radius:7px;}
 .live-feed-kill-row .kill-weapon .visual-icon-wrap img{width:100%;height:100%;object-fit:contain;}
+.live-feed-kill-row .kill-weapon-name{
+  min-width:0;
+  max-width:42px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:rgba(244,246,255,.90);
+  font-size:.48rem;
+  font-weight:1000;
+  line-height:1;
+}
 .live-feed-kill-row .kill-team-logo{width:18px;height:18px;flex:0 0 18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);}
 .live-feed-kill-row .kill-team-logo .team-logo-img{width:100%;height:100%;object-fit:contain;padding:1px;}
 .live-feed-kill-row .kill-team-logo .team-logo-fallback-text{font-size:.42rem;line-height:1;display:none;}
@@ -4261,19 +4282,21 @@ body.ewc-refreshing.betting-experiment tbody tr {
 }
 .live-feed-popup-players .live-feed-kill-rows{max-height:42vh;gap:7px;}
 .live-feed-popup-players .live-feed-player-head.elims{
-  grid-template-columns:minmax(180px,1fr) 38px minmax(180px,1fr)!important;
+  grid-template-columns:minmax(180px,1fr) minmax(94px,118px) minmax(180px,1fr)!important;
   font-size:.68rem!important;
   padding:8px 10px!important;
   border-radius:13px!important;
 }
 .live-feed-popup-players .live-feed-kill-row{
-  grid-template-columns:minmax(180px,1fr) 38px minmax(180px,1fr)!important;
-  min-height:38px;
+  grid-template-columns:minmax(180px,1fr) minmax(94px,118px) minmax(180px,1fr)!important;
+  min-height:42px;
   padding:9px 10px;
   border-radius:13px;
   font-size:.84rem;
 }
-.live-feed-popup-players .live-feed-kill-row .kill-weapon .visual-icon-wrap{width:28px;height:28px;border-radius:8px;}
+.live-feed-popup-players .live-feed-kill-row .kill-weapon{gap:7px;padding:4px 6px;}
+.live-feed-popup-players .live-feed-kill-row .kill-weapon .visual-icon-wrap{width:38px;height:30px;min-width:38px;border-radius:8px;}
+.live-feed-popup-players .live-feed-kill-row .kill-weapon-name{max-width:62px;font-size:.62rem;}
 .live-feed-popup-players .live-feed-kill-row .kill-team-logo{width:22px;height:22px;flex-basis:22px;border-radius:7px;}
 @media(max-width:760px){
   .live-feed-view-group .live-feed-view-toggle{height:24px!important;min-height:24px!important;padding:3px 7px!important;font-size:.56rem!important;}
@@ -5879,6 +5902,72 @@ function uniqueList(items){
   }
   return out;
 }
+
+function compactWeaponNameKey(value){
+  return assetLookupKey(value)
+    .replace(/freefire|weapon|gun|rifle|shotgun|smg|ar|sr|lmg|pistol|launcher|marksman|sniper/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+function weaponNameSimilarity(a, b){
+  const ak = compactWeaponNameKey(a);
+  const bk = compactWeaponNameKey(b);
+  if(!ak || !bk) return 0;
+  if(ak === bk) return 100;
+  if(ak.includes(bk) || bk.includes(ak)) return 86;
+  const aTokens = new Set(assetLookupKey(a).split(/[^a-z0-9]+/).filter(Boolean));
+  const bTokens = new Set(assetLookupKey(b).split(/[^a-z0-9]+/).filter(Boolean));
+  let shared = 0;
+  aTokens.forEach(t => { if(bTokens.has(t)) shared++; });
+  const tokenScore = shared ? (shared / Math.max(aTokens.size, bTokens.size)) * 72 : 0;
+  let prefix = 0;
+  const minLen = Math.min(ak.length, bk.length);
+  while(prefix < minLen && ak[prefix] === bk[prefix]) prefix++;
+  const prefixScore = minLen ? (prefix / minLen) * 52 : 0;
+  return Math.max(tokenScore, prefixScore);
+}
+function findClosestWeaponResourceItem(label='', id=''){
+  const list = RESOURCE_DATA.weapons || [];
+  const cleanId = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
+  const labelText = norm(label);
+  const labelKey = assetLookupKey(labelText);
+
+  if(cleanId){
+    const byId = list.find(item => idCandidatesFromRow(item?.raw || {}).map(x => normalizeLookupId(x)).includes(cleanId));
+    if(byId) return byId;
+  }
+
+  if(!labelKey) return null;
+
+  let best = null;
+  let bestScore = 0;
+  for(const item of list){
+    const names = uniqueList([
+      item?.name,
+      item?.sub,
+      item?.search_name,
+      item?.raw?.name,
+      item?.raw?.title,
+      item?.raw?.label,
+      item?.raw?.weapon_name,
+      item?.raw?.weaponName,
+      item?.raw?.gun_name,
+      item?.raw?.gunName,
+      item?.raw?.display_name,
+      item?.raw?.displayName
+    ]).filter(Boolean);
+
+    for(const candidate of names){
+      const score = weaponNameSimilarity(labelText, candidate);
+      if(score > bestScore){
+        bestScore = score;
+        best = item;
+      }
+    }
+  }
+
+  return bestScore >= 38 ? best : null;
+}
+
 function visualImageCandidates(kind, label, id=''){
   const name = norm(label);
   const slug = slugAssetName(name);
@@ -5928,17 +6017,16 @@ function visualImageCandidates(kind, label, id=''){
       candidates.push(`assets/img/loadouts/${slug}.png`, `assets/img/loadout/${slug}.png`);
     }
   }else if(kind === 'weapon'){
-    const found = (RESOURCE_DATA.weapons || []).find(item => {
-      const keys = uniqueList([item?.name, item?.sub]).map(assetLookupKey).filter(Boolean);
-      const raw = item?.raw || {};
-      const ids = idCandidatesFromRow(raw).map(x => normalizeLookupId(x));
-      return (key && keys.some(itemKey => itemKey === key || itemKey.includes(key) || key.includes(itemKey))) ||
-             (normalizedId && ids.includes(normalizedId));
-    });
+    const found = findClosestWeaponResourceItem(name, normalizedId);
     const rawImg = normalizeImageUrl(found?.img || found?.image || found?.icon || found?.src || '');
+    const foundName = norm(found?.name || '');
+    const foundSlug = slugAssetName(foundName);
     if(rawImg) candidates.push(rawImg);
     if(normalizedId){
       candidates.push(`assets/img/weapons/${normalizedId}.png`, `assets/img/weapon/${normalizedId}.png`, `assets/weapons/${normalizedId}.png`);
+    }
+    if(foundSlug && foundSlug !== slug){
+      candidates.push(`assets/img/weapons/${foundSlug}.png`, `assets/img/weapon/${foundSlug}.png`, `assets/weapons/${foundSlug}.png`);
     }
     if(slug){
       candidates.push(`assets/img/weapons/${slug}.png`, `assets/img/weapon/${slug}.png`, `assets/weapons/${slug}.png`);
@@ -6976,15 +7064,15 @@ function liveFeedTeamKillEvents(teamCode, killIndex){
 }
 function liveFeedKillWeaponLabel(ev){
   const byName = norm(ev?.weaponName);
-  if(byName) return byName;
   const fromMatchApi = mapWeaponFromId(ev?.weaponId || '');
-  if(fromMatchApi) return fromMatchApi;
-  const found = findResourceItemForLiveFeed('weapons', '', ev?.weaponId || '');
-  return norm(found?.name) || (ev?.weaponId ? `Weapon ${ev.weaponId}` : 'Elimination');
+  const label = byName || fromMatchApi || '';
+  const found = findClosestWeaponResourceItem(label, ev?.weaponId || '');
+  return norm(found?.name) || label || (ev?.weaponId ? `Weapon ${ev.weaponId}` : 'Elimination');
 }
 function liveFeedKillWeaponHtml(ev){
   const label = liveFeedKillWeaponLabel(ev);
-  return `<span class="kill-weapon" title="${escHtml(label)}">${visualIconHtml('weapon', label, ev?.weaponId || '')}</span>`;
+  const shortLabel = label.replace(/^Weapon\s+/i, '').replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  return `<span class="kill-weapon" title="${escHtml(label)}">${visualIconHtml('weapon', label, ev?.weaponId || '')}<span class="kill-weapon-name">${escHtml(shortLabel)}</span></span>`;
 }
 function liveFeedKillVictimHtml(ev){
   const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
@@ -7049,10 +7137,14 @@ function findResourceItemForLiveFeed(kind, name, id=''){
   });
 
   if(found) return found;
+  if(resourceKind === 'weapons'){
+    const closest = findClosestWeaponResourceItem(name, id);
+    if(closest) return closest;
+  }
   return {
     kind: resourceKind,
     name: name || 'Unknown Item',
-    sub: resourceKind === 'skills' ? 'Skill' : resourceKind === 'pets' ? 'Pet' : resourceKind === 'loadouts' ? 'Loadout' : 'Reference',
+    sub: resourceKind === 'skills' ? 'Skill' : resourceKind === 'pets' ? 'Pet' : resourceKind === 'loadouts' ? 'Loadout' : resourceKind === 'weapons' ? 'Weapon' : 'Reference',
     img: '',
     desc: 'No description found in the loaded reference JSON for this item.',
     raw: { id }
