@@ -4266,6 +4266,22 @@ body.ewc-refreshing.betting-experiment tbody tr {
   text-overflow:ellipsis;
   display:block;
 }
+.live-feed-kill-row .kill-time{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:34px;
+  height:16px;
+  padding:0 5px;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.10);
+  color:rgba(240,247,255,.92);
+  font-size:.44rem;
+  font-weight:1000;
+  line-height:1;
+}
 .live-feed-kill-row .kill-weapon{
   min-width:0;
   min-height:34px;
@@ -4351,6 +4367,7 @@ body.ewc-refreshing.betting-experiment tbody tr {
 .live-feed-popup-players .live-feed-kill-row .kill-weapon .visual-icon-wrap{width:48px;height:34px;min-width:48px;border-radius:10px;}
 .live-feed-popup-players .live-feed-kill-row .kill-weapon-name{font-size:.70rem;}
 .live-feed-popup-players .live-feed-kill-row .kill-team-logo{width:24px;height:24px;flex-basis:24px;border-radius:8px;}
+.live-feed-popup-players .live-feed-kill-row .kill-time{min-width:42px;height:18px;font-size:.52rem;padding:0 6px;}
 @media(max-width:760px){
   .live-feed-view-group .live-feed-view-toggle{height:24px!important;min-height:24px!important;padding:3px 7px!important;font-size:.56rem!important;}
   .live-feed-kill-rows{max-height:92px;}
@@ -4614,6 +4631,12 @@ body.ewc-refreshing.betting-experiment tbody tr {
   height:14px!important;
   flex:0 0 14px!important;
   border-radius:5px!important;
+}
+.live-feed-card > .live-feed-players .live-feed-kill-row .kill-time{
+  min-width:30px!important;
+  height:14px!important;
+  padding:0 4px!important;
+  font-size:.38rem!important;
 }
 
 .live-feed-card > .live-feed-players .live-feed-kill-empty{
@@ -7430,6 +7453,19 @@ function liveFeedTeamKillEvents(teamCode, killIndex){
   });
   return events;
 }
+function liveFeedKillTimestampText(ev){
+  const rawText = norm(ev?.timeRaw);
+  let value = 0;
+  if(rawText && /^\d+(?:\.\d+)?$/.test(rawText)) value = Number(rawText);
+  else value = Number(ev?.timeValue || 0);
+  if(!Number.isFinite(value) || value < 0) return '';
+  // kill_timestamp values are usually milliseconds. If the value is small, treat it as seconds.
+  if(value > 86400000) return '';
+  const totalSeconds = value >= 1000 ? Math.floor(value / 1000) : Math.floor(value);
+  const mm = String(Math.floor(totalSeconds / 60)).padStart(2,'0');
+  const ss = String(totalSeconds % 60).padStart(2,'0');
+  return `${mm}:${ss}`;
+}
 function liveFeedKillWeaponLabel(ev){
   const byName = norm(ev?.weaponName);
   const fromMatchApi = mapWeaponFromId(ev?.weaponId || '');
@@ -7445,7 +7481,8 @@ function liveFeedKillWeaponHtml(ev){
 function liveFeedKillVictimHtml(ev){
   const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
   const logo = teamLogoHtml(ev.victimTeam || '', getTeamProfile(ev.victimTeam || ''), 'team-logo-fallback kill-team-logo');
-  return `<div class="kill-victim">${logo}<span class="kill-victim-name">${escHtml(victim)}</span></div>`;
+  const timeText = liveFeedKillTimestampText(ev);
+  return `<div class="kill-victim">${logo}<span class="kill-victim-name">${escHtml(victim)}</span>${timeText ? `<span class="kill-time">${escHtml(timeText)}</span>` : ''}</div>`;
 }
 function liveFeedKillRowHtml(ev){
   const killer = liveFeedPlayerTag(ev.killerTeam, ev.killerName);
