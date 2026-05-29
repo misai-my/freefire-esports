@@ -5229,6 +5229,7 @@ let KEYS = {
 
 let ID_TO_NAME = new Map();
 let SKILL_ID_TO_NAME = new Map();
+let WEAPON_ID_TO_NAME = new Map();
 let MAP_READY = false;
 let CHAR_SKILLKEY_TO_KIND = new Map();
 let CHAR_SKILLKEY_TO_CANONICAL = new Map();
@@ -5364,6 +5365,14 @@ function mapSkillFromId(id, fallback=''){
   // Number from ff_player_stats_raw skill field -> match_api.id, only where match_api.type = 2, display match_api.name.
   return SKILL_ID_TO_NAME.get(key) || fallback || `ID ${key}`;
 }
+function mapWeaponFromId(id, fallback=''){
+  const key = normalizeMatchApiNumericId(id) || normalizeLookupId(id);
+  if(!key) return fallback || '';
+
+  // Weapon lookup:
+  // player_stats_kill_info.weapon_used_id -> match_api.id, only where match_api.type = 0, display match_api.name.
+  return lookupInMap(WEAPON_ID_TO_NAME, key) || fallback || (key ? `Weapon ${key}` : '');
+}
 function firstNonEmptyFromKeys(row, keys){
   for(const key of keys){
     const value = norm(row?.[key]);
@@ -5476,6 +5485,7 @@ async function loadMatchApi(){
   MAP_READY = false;
   ID_TO_NAME.clear();
   SKILL_ID_TO_NAME.clear();
+  WEAPON_ID_TO_NAME.clear();
 
   async function fetchGenericMatchApiRows(){
     const rows = [];
@@ -5527,8 +5537,46 @@ async function loadMatchApi(){
     }
 
     MAP_READY = SKILL_ID_TO_NAME.size > 0;
-    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows=${skillRows} • mapped IDs=${SKILL_ID_TO_NAME.size} • ${note}`);
+    setText('diagMap', `match_api mapping: fetched=${rows.length} • skill rows=${skillRows} • skill IDs=${SKILL_ID_TO_NAME.size} • weapon IDs=${WEAPON_ID_TO_NAME.size} • ${note}`);
     return { skillRows, namedRows, mapped: SKILL_ID_TO_NAME.size };
+  }
+
+  function ingestWeaponMatchApiRows(rows, note){
+    let weaponRows = 0;
+    let namedRows = 0;
+    const sample = rows.find(r => r && typeof r === 'object') || {};
+    const keys = Object.keys(sample);
+    const idKeys = keys.filter(k => /(^id$|_id$|id$|code|key|api_id|item_id|weapon_id|gun_id)/i.test(k));
+    const nameKeys = keys.filter(k => /(^name$|name$|title|label|weapon_name|weaponName|gun_name|gunName)/i.test(k));
+    const typeKeys = keys.filter(k => /(^type$|type$|category|kind)/i.test(k));
+
+    for(const r of rows){
+      const exactType = Number(norm(r?.type));
+      const looksWeapon = exactType === 0 || typeKeys.some(key => {
+        const raw = norm(r?.[key]).toLowerCase();
+        return raw === '0' || raw === 'weapon' || raw === 'weapons' || raw === 'gun' || raw === 'guns';
+      });
+      if(!looksWeapon) continue;
+      weaponRows++;
+
+      const name = norm(r?.name) || getBestNameFromMatchApiRow(r, nameKeys, idKeys, typeKeys);
+      if(!name) continue;
+
+      const ids = new Set();
+      const primaryId = normalizeMatchApiNumericId(r?.id) || normalizeLookupId(r?.id);
+      if(primaryId) ids.add(primaryId);
+      getIdCandidatesFromMatchApiRow(r, idKeys, typeKeys, nameKeys).forEach(id => ids.add(id));
+
+      for(const id of ids){
+        if(!id) continue;
+        namedRows++;
+        ID_TO_NAME.set(id, name);
+        WEAPON_ID_TO_NAME.set(id, name);
+      }
+    }
+
+    setText('diagMap', `match_api mapping: skill IDs=${SKILL_ID_TO_NAME.size} • weapon rows=${weaponRows} • weapon IDs=${WEAPON_ID_TO_NAME.size} • ${note}`);
+    return { weaponRows, namedRows, mapped: WEAPON_ID_TO_NAME.size };
   }
 
   try{
@@ -5545,12 +5593,26 @@ async function loadMatchApi(){
 
     let stats = ingestMatchApiRows(rows, note);
 
-    // Safety fallback: if type=2 returns nothing or schema/type values changed,
-    // scan match_api generically and detect skill rows by type/category/name fields.
-    if(!stats.mapped){
-      const genericRows = await fetchGenericMatchApiRows();
-      stats = ingestMatchApiRows(genericRows, 'generic match_api fallback');
+    let weaponRows = [];
+    let weaponNote = 'type=0 weapon numeric';
+    try{
+      weaponRows = await fetchMatchApiSkillRowsByType(0);
+    }catch(weaponErr){
+      console.warn('match_api type=0 weapon numeric fetch failed, trying string type:', weaponErr?.message || weaponErr);
+      weaponRows = await fetchMatchApiSkillRowsByType('0');
+      weaponNote = 'type="0" weapon string';
     }
+    let weaponStats = ingestWeaponMatchApiRows(weaponRows, weaponNote);
+
+    // Safety fallback: if type=2/type=0 returns nothing or schema/type values changed,
+    // scan match_api generically and detect skill/weapon rows by type/category/name fields.
+    if(!stats.mapped || !weaponStats.mapped){
+      const genericRows = await fetchGenericMatchApiRows();
+      if(!stats.mapped) stats = ingestMatchApiRows(genericRows, 'generic match_api skill fallback');
+      if(!weaponStats.mapped) weaponStats = ingestWeaponMatchApiRows(genericRows, 'generic match_api weapon fallback');
+    }
+
+    setText('diagMap', `match_api mapping: skill IDs=${SKILL_ID_TO_NAME.size} • weapon IDs=${WEAPON_ID_TO_NAME.size} • skills ${note} • weapons ${weaponNote}`);
   }catch(e){
     setText('diagMap', 'match_api mapping: unavailable / expected columns: id, type, name');
     console.warn('match_api load failed:', e?.message || e);
@@ -6915,6 +6977,8 @@ function liveFeedTeamKillEvents(teamCode, killIndex){
 function liveFeedKillWeaponLabel(ev){
   const byName = norm(ev?.weaponName);
   if(byName) return byName;
+  const fromMatchApi = mapWeaponFromId(ev?.weaponId || '');
+  if(fromMatchApi) return fromMatchApi;
   const found = findResourceItemForLiveFeed('weapons', '', ev?.weaponId || '');
   return norm(found?.name) || (ev?.weaponId ? `Weapon ${ev.weaponId}` : 'Elimination');
 }
