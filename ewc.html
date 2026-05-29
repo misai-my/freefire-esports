@@ -4282,6 +4282,12 @@ body.ewc-refreshing.betting-experiment tbody tr {
   font-weight:1000;
   line-height:1;
 }
+.live-feed-kill-row .kill-time.rapid{
+  background:linear-gradient(135deg, rgba(255,210,74,.28), rgba(255,128,64,.20));
+  border-color:rgba(255,196,76,.55);
+  color:#fff1c2;
+  box-shadow:0 0 0 1px rgba(255,196,76,.10), 0 0 12px rgba(255,176,64,.20);
+}
 .live-feed-kill-row .kill-weapon{
   min-width:0;
   min-height:34px;
@@ -7437,6 +7443,14 @@ function liveFeedPlayerTag(team, name){
 function liveFeedKillEventSignature(ev){
   return [ev.killerTeam, ev.killerName, ev.victimTeam, ev.victimName, ev.victimAccountId, ev.weaponId, ev.weaponName, ev.timeValue, ev.timeRaw].join('^');
 }
+function liveFeedKillTimeMs(ev){
+  const rawText = norm(ev?.timeRaw);
+  let value = 0;
+  if(rawText && /^\d+(?:\.\d+)?$/.test(rawText)) value = Number(rawText);
+  else value = Number(ev?.timeValue || 0);
+  if(!Number.isFinite(value) || value < 0 || value > 86400000) return 0;
+  return value >= 1000 ? Math.floor(value) : Math.floor(value * 1000);
+}
 function liveFeedTeamKillEvents(teamCode, killIndex){
   const key = norm(teamCode).toUpperCase();
   const events = (killIndex?.events || []).filter(ev => {
@@ -7451,7 +7465,13 @@ function liveFeedTeamKillEvents(teamCode, killIndex){
   events.sort((a,b) => {
     return ((a.timeValue || 0) - (b.timeValue || 0)) || liveFeedKillEventSignature(a).localeCompare(liveFeedKillEventSignature(b));
   });
-  return events;
+  let prevMs = 0;
+  return events.map((ev, idx) => {
+    const ms = liveFeedKillTimeMs(ev);
+    const rapid = !!(idx > 0 && ms && prevMs && (ms - prevMs) <= 5000);
+    if(ms) prevMs = ms;
+    return { ...ev, rapidTime: rapid };
+  });
 }
 function liveFeedKillTimestampText(ev){
   const rawText = norm(ev?.timeRaw);
@@ -7478,11 +7498,16 @@ function liveFeedKillWeaponHtml(ev){
   const shortLabel = label.replace(/^Weapon\s+/i, '').replace(/\s*\([^)]*\)\s*/g, ' ').trim();
   return `<span class="kill-weapon" title="${escHtml(label)}">${visualIconHtml('weapon', label, ev?.weaponId || '')}<span class="kill-weapon-name">${escHtml(shortLabel)}</span></span>`;
 }
+function liveFeedKillKillerHtml(ev){
+  const killer = liveFeedPlayerTag(ev.killerTeam, ev.killerName);
+  const timeText = liveFeedKillTimestampText(ev);
+  const timeClass = ev?.rapidTime ? 'kill-time rapid' : 'kill-time';
+  return `<span class="kill-killer">${timeText ? `<span class="${timeClass}">${escHtml(timeText)}</span>` : ''}<span class="kill-killer-name">${escHtml(killer)}</span></span>`;
+}
 function liveFeedKillVictimHtml(ev){
   const victim = liveFeedPlayerTag(ev.victimTeam, ev.victimName);
   const logo = teamLogoHtml(ev.victimTeam || '', getTeamProfile(ev.victimTeam || ''), 'team-logo-fallback kill-team-logo');
-  const timeText = liveFeedKillTimestampText(ev);
-  return `<div class="kill-victim">${logo}<span class="kill-victim-name">${escHtml(victim)}</span>${timeText ? `<span class="kill-time">${escHtml(timeText)}</span>` : ''}</div>`;
+  return `<div class="kill-victim">${logo}<span class="kill-victim-name">${escHtml(victim)}</span></div>`;
 }
 function liveFeedKillRowHtml(ev){
   const killer = liveFeedPlayerTag(ev.killerTeam, ev.killerName);
@@ -7491,7 +7516,7 @@ function liveFeedKillRowHtml(ev){
   const weaponLabel = liveFeedKillWeaponLabel(ev);
   const title = `${killer} eliminated ${victim} with ${weaponLabel}${ev.timeRaw ? ` • ${ev.timeRaw}` : ''}`;
   return `<div class="live-feed-kill-row ${cls}" title="${escHtml(title)}">
-    <span class="kill-killer"><span class="kill-killer-name">${escHtml(killer)}</span></span>
+    ${liveFeedKillKillerHtml(ev)}
     ${liveFeedKillWeaponHtml(ev)}
     ${liveFeedKillVictimHtml(ev)}
   </div>`;
