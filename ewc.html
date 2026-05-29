@@ -6497,14 +6497,33 @@ function liveFeedTeamStatusLabel(team){
 function parseJsonLoose(value){
   if(value == null || value === '') return null;
   if(typeof value === 'object') return value;
-  const text = String(value).trim();
+
+  let text = String(value).trim();
   if(!text || text === 'null' || text === 'undefined') return null;
-  try{ return JSON.parse(text); }catch(_e){}
-  // Some exports double-stringify JSON or use escaped JSON inside a string cell.
-  try{
-    const once = JSON.parse(text.replace(/^"|"$/g, ''));
-    return typeof once === 'string' ? JSON.parse(once) : once;
-  }catch(_e){}
+
+  // Supabase / Sheets can return player_stats_kill_info in any of these shapes:
+  //   [{...}]
+  //   "[{\"killer_id\":\"10001122\", ...}]"
+  //   "\"[{\\\"killer_id\\\": ...}]\""
+  // Keep unwrapping while JSON.parse returns another string.
+  for(let i = 0; i < 5; i++){
+    try{
+      const parsed = JSON.parse(text);
+      if(typeof parsed !== 'string') return parsed;
+      text = parsed.trim();
+      if(!text || text === 'null' || text === 'undefined') return null;
+      continue;
+    }catch(_e){}
+
+    // Fallback for quoted/escaped JSON cells that are not valid JSON yet.
+    const unquoted = text.replace(/^"|"$/g, '').replace(/\"/g, '"').replace(/\\/g, '\').trim();
+    if(unquoted && unquoted !== text){
+      text = unquoted;
+      continue;
+    }
+    break;
+  }
+
   return null;
 }
 function primitiveValue(v){
@@ -6587,13 +6606,43 @@ function buildLiveFeedKillIndex(rows){
   const victimNames = new Set();
   const events = [];
 
-  const victimIdPatterns = [/(victim|killed|dead|death|target|eliminated|be_killed).*?(account|uid|user|player|role).*id/i, /(account|uid|user|player|role).*id.*?(victim|killed|dead|death|target|eliminated|be_killed)/i];
-  const victimNamePatterns = [/(victim|killed|dead|death|target|eliminated|be_killed).*?(name|nick)/i, /(name|nick).*?(victim|killed|dead|death|target|eliminated|be_killed)/i];
-  const victimTeamPatterns = [/(victim|killed|dead|death|target|eliminated|be_killed).*?team.*?(name|code|id)?$/i, /team.*?(name|code|id)?.*?(victim|killed|dead|death|target|eliminated|be_killed)/i];
-  const killerIdPatterns = [/(killer|attacker|source|from|damage_from).*?(account|uid|user|player|role).*id/i, /(account|uid|user|player|role).*id.*?(killer|attacker|source|from|damage_from)/i];
-  const killerNamePatterns = [/(killer|attacker|source|from|damage_from).*?(name|nick)/i, /(name|nick).*?(killer|attacker|source|from|damage_from)/i];
-  const killerTeamPatterns = [/(killer|attacker|source|from|damage_from).*?team.*?(name|code|id)?$/i, /team.*?(name|code|id)?.*?(killer|attacker|source|from|damage_from)/i];
-  const timePatterns = [/(kill|killed|death|dead|eliminated|be_killed|event|battle).*?(time|ts|timestamp|sec|second|frame|order)/i, /^(time|ts|timestamp|sec|second|frame|order)$/i];
+  const victimIdPatterns = [
+    /^player_killed_id$/i, /^player_killed.*id$/i, /^killed_player.*id$/i, /^victim_id$/i, /^dead_id$/i, /^target_id$/i,
+    /(victim|killed|dead|death|target|eliminated|be_killed).*?(account|uid|user|player|role)?.*id/i,
+    /(account|uid|user|player|role).*?(victim|killed|dead|death|target|eliminated|be_killed).*id/i,
+    /(account|uid|user|player|role).*id.*?(victim|killed|dead|death|target|eliminated|be_killed)/i
+  ];
+  const victimNamePatterns = [
+    /^player_killed_name$/i, /^killed_player_name$/i, /^victim_name$/i,
+    /(victim|killed|dead|death|target|eliminated|be_killed).*?(name|nick)/i,
+    /(name|nick).*?(victim|killed|dead|death|target|eliminated|be_killed)/i
+  ];
+  const victimTeamPatterns = [
+    /^player_killed_team.*$/i, /^killed_player_team.*$/i, /^victim_team.*$/i,
+    /(victim|killed|dead|death|target|eliminated|be_killed).*?team.*?(name|code|id)?$/i,
+    /team.*?(name|code|id)?.*?(victim|killed|dead|death|target|eliminated|be_killed)/i
+  ];
+  const killerIdPatterns = [
+    /^killer_id$/i, /^killer.*id$/i, /^attacker_id$/i, /^source_id$/i,
+    /(killer|attacker|source|from|damage_from).*?(account|uid|user|player|role)?.*id/i,
+    /(account|uid|user|player|role).*?(killer|attacker|source|from|damage_from).*id/i,
+    /(account|uid|user|player|role).*id.*?(killer|attacker|source|from|damage_from)/i
+  ];
+  const killerNamePatterns = [
+    /^killer_name$/i, /^attacker_name$/i,
+    /(killer|attacker|source|from|damage_from).*?(name|nick)/i,
+    /(name|nick).*?(killer|attacker|source|from|damage_from)/i
+  ];
+  const killerTeamPatterns = [
+    /^killer_team.*$/i, /^attacker_team.*$/i,
+    /(killer|attacker|source|from|damage_from).*?team.*?(name|code|id)?$/i,
+    /team.*?(name|code|id)?.*?(killer|attacker|source|from|damage_from)/i
+  ];
+  const timePatterns = [
+    /^kill_timestamp$/i, /^kill_time$/i, /^timestamp$/i,
+    /(kill|killed|death|dead|eliminated|be_killed|event|battle).*?(time|ts|timestamp|sec|second|frame|order)/i,
+    /^(time|ts|timestamp|sec|second|frame|order)$/i
+  ];
 
   rows.forEach(killerRow => {
     const killerFallbackTeam = norm(getVal(killerRow, KEYS.team)).toUpperCase() || 'UNKNOWN';
