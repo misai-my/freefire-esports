@@ -5153,7 +5153,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const TEAM_INSIGHTS_FN_URL = `${SUPABASE_URL}/functions/v1/team-insights`;
 const AI_INSIGHTS_CACHE_KEY = 'ewc_ai_insights_cache_v2';
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage
+  }
+});
 
 function withTimeout(promise, ms = 20000, label = 'Operation timed out'){
   let timer;
@@ -5463,6 +5470,8 @@ function applyColumnHeatmap(containerId, keys, options = {}){
   }
 }
 
+let EWC_MANUAL_LOGOUT = false;
+
 function isSecureSupabaseSession(session){
   if(!session || !session.user || !session.access_token) return false;
   const expiresAtMs = Number(session.expires_at || 0) * 1000;
@@ -5483,19 +5492,31 @@ async function requireSecureSession(){
   try{
     const { data: { session }, error } = await withTimeout(client.auth.getSession(), 10000, 'Login check timed out');
     if(error) throw error;
-    if(!isSecureSupabaseSession(session)){
-      updateConnectionBadge(null);
-      try{ await client.auth.signOut(); }catch(_e){}
-      redirectToLogin();
-      return null;
+
+    if(isSecureSupabaseSession(session)){
+      updateConnectionBadge(session);
+      return session;
     }
+
+    // Do not sign out or redirect automatically. First try to refresh the stored Supabase session.
+    try{
+      const { data: { session: refreshedSession }, error: refreshError } = await withTimeout(client.auth.refreshSession(), 10000, 'Token refresh timed out');
+      if(refreshError) throw refreshError;
+      if(isSecureSupabaseSession(refreshedSession)){
+        updateConnectionBadge(refreshedSession);
+        return refreshedSession;
+      }
+    }catch(refreshErr){
+      console.warn('Session refresh failed or unavailable:', refreshErr?.message || refreshErr);
+    }
+
     updateConnectionBadge(session);
-    return session;
+    return null;
   }catch(err){
+    console.warn('Login check failed:', err?.message || err);
     setText('user-info', 'Login check failed');
     setText('connection-status', 'Connection inactive');
     document.body.classList.remove('is-logged-in');
-    redirectToLogin();
     return null;
   }
 }
@@ -5504,11 +5525,16 @@ requireSecureSession();
 
 client.auth.onAuthStateChange((event, session) => {
   updateConnectionBadge(session);
-  if((event === 'SIGNED_OUT' || !isSecureSupabaseSession(session)) && (location.pathname.split('/').pop() || '').toLowerCase() !== 'index.html'){
+  // No automatic page kick-out. Only the Logout button redirects to index.html.
+  if(event === 'SIGNED_OUT' && EWC_MANUAL_LOGOUT){
     redirectToLogin();
   }
 });
-el('logoutBtn').onclick = async () => { await client.auth.signOut(); redirectToLogin(); };
+el('logoutBtn').onclick = async () => {
+  EWC_MANUAL_LOGOUT = true;
+  await client.auth.signOut();
+  redirectToLogin();
+};
 
 
 /* ============ Sidebar + Theme controls ============ */
@@ -11054,7 +11080,7 @@ async function init(){
     if(!activeSession){
       if(loadWatchdog) clearTimeout(loadWatchdog);
       el('veil').classList.add('hide');
-      gerr('Login/session is inactive, so the dashboard cannot load data. Please sign in again from index.html, then reopen this page.');
+      gerr('Login/session is inactive, so the dashboard cannot load protected Supabase data. The page will not auto-logout anymore; use index.html only if you need to sign in again.');
       return;
     }
     await withTimeout(headCount(), 15000, 'Row count timed out').catch(e => console.warn(e?.message || e));
