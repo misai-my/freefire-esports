@@ -61,3 +61,9 @@
 | `assets/logo/` | Team logos and Free Fire logo |
 | `assets/team_boosters/` | Team booster icons |
 | `assets/js/app-config.js` | Shared app configuration |
+
+
+## Shared search files
+
+- `assets/js/global-search-index.js` — generated global search index from pages, JSON data, and team/logo inventory.
+- `assets/js/global-site-search.js` — global search UI, dropdown, command palette, deep-link redirect, and modal-opening helper.

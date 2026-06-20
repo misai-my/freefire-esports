@@ -20,6 +20,13 @@ This package is a static HTML/CSS/JavaScript app. Most pages are self-contained,
    - Added documentation for setup, file map, asset inventory, and future cleanup.
    - Added favicon/web manifest assets from the existing Free Fire logo.
 
+
+4. **Global full-site search**
+   - Added `assets/js/global-search-index.js`, generated from HTML pages, JSON data, and team logo inventory.
+   - Added `assets/js/global-site-search.js`, a non-breaking overlay that attaches to existing search boxes.
+   - Added deep-link behavior so selected resources redirect to their page and attempt to open the matching card/modal.
+   - Added keyboard launch shortcuts: `Ctrl/Cmd + K` and `/`.
+
 ## Recommended next refactor
 
 The next upgrade should extract repeated navigation, theme CSS, Supabase helpers, and data utilities into shared files. This package intentionally does not do that yet because several pages are large and production-sensitive; a non-breaking release package is safer as the first step.
@@ -57,3 +64,4 @@ pages/
 - Local HTML references were scanned.
 - Missing static page references were patched with compatibility redirects.
 - Existing assets were preserved.
+- Global search scripts were injected into all root HTML pages.
