@@ -68,3 +68,8 @@ The package now includes an OB54 summary on `ff-update.html`, structured data in
 ## Latest CS Store Tables
 
 `store.html` now includes the updated Bermuda, Kalahari, Solara, and Nexterra Clash Squad store tables, plus a per-map changelog note below the table.
+
+## CS Store changelog fix
+
+This package fixes the CS Store changelog render issue in `store.html`. The issue was caused by the changelog renderer calling `escapeHTML()` before that helper existed on the page. The changelog now renders under the CS Store table with a loading fallback and a display guard.
+

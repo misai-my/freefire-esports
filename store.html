@@ -661,6 +661,7 @@
     }
 
     .store-changelog{
+      display:block;
       margin-top:16px;
       padding:14px 16px;
       border:1px solid rgba(255,189,89,.18);
@@ -1159,11 +1160,14 @@
             </table>
           </div>
 
+          <section class="store-changelog" id="storeChangelog" aria-live="polite">
+            <div class="changelog-head"><span>CS Store Changelog</span><small>Loading…</small></div>
+            <p class="changelog-empty">Loading store changes…</p>
+          </section>
+
           <div class="foot-note">
             Tip: use the sidebar, tabs, previous/next buttons, or keyboard left/right arrows to move between CS stores.
           </div>
-
-          <section class="store-changelog" id="storeChangelog" aria-live="polite"></section>
         </div>
       </section>
     </main>
@@ -2005,6 +2009,16 @@
     const storeChangelog = document.getElementById("storeChangelog");
     const prevBtn = document.getElementById("prevBtn");
     const nextBtn = document.getElementById("nextBtn");
+
+    function escapeHTML(value){
+      return (value ?? "").toString().replace(/[&<>'"]/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        "\"": "&quot;"
+      }[char]));
+    }
 
     function formatCell(v){
       return (v ?? "").toString().trim().replace(/\n/g, "<br>");
