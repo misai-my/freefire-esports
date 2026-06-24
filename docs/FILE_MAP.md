@@ -67,3 +67,6 @@
 
 - `assets/js/global-search-index.js` — generated global search index from pages, JSON data, and team/logo inventory.
 - `assets/js/global-site-search.js` — global search UI, dropdown, command palette, deep-link redirect, and modal-opening helper.
+
+- `ff-update.html` — OB update reference page now covering OB51–OB54.
+- `ob54-update.json` — structured OB54 summary for future cards, filters, and search.
