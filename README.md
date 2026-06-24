@@ -63,3 +63,8 @@ This is still a static front-end package. Database security should be controlled
 ## OB54 Patch Notes
 
 The package now includes an OB54 summary on `ff-update.html`, structured data in `ob54-update.json`, and global search shortcuts for OB54 Battle Royale, Clash Squad, Skill Boost, Weapon Awakening, character balance, weapon balance, map/system updates, and broadcast notes. Official reference: https://ff.garena.com/en/article/1673/
+
+
+## Latest CS Store Tables
+
+`store.html` now includes the updated Bermuda, Kalahari, Solara, and Nexterra Clash Squad store tables, plus a per-map changelog note below the table.
