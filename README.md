@@ -73,3 +73,11 @@ The package now includes an OB54 summary on `ff-update.html`, structured data in
 
 This package fixes the CS Store changelog render issue in `store.html`. The issue was caused by the changelog renderer calling `escapeHTML()` before that helper existed on the page. The changelog now renders under the CS Store table with a loading fallback and a display guard.
 
+## Sidebar Consistency Update
+
+This package includes a shared sidebar layer for every page that uses the left sidebar. The shared file is:
+
+- `assets/js/shared-sidebar.js`
+
+It injects the same brand block, menu order, section labels, icons, active-page state, mobile close behavior, and collapsed-sidebar persistence across all sidebar pages. To change sidebar content later, edit `NAV_GROUPS` in `assets/js/shared-sidebar.js` instead of manually editing each HTML file.
+
