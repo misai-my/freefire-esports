@@ -81,3 +81,7 @@ This package includes a shared sidebar layer for every page that uses the left s
 
 It injects the same brand block, menu order, section labels, icons, active-page state, mobile close behavior, and collapsed-sidebar persistence across all sidebar pages. To change sidebar content later, edit `NAV_GROUPS` in `assets/js/shared-sidebar.js` instead of manually editing each HTML file.
 
+
+## Draft V2 Page
+
+- `clash-draft-team-v2.html` — new visual Clash Squad Draft V2 player-column board. Original `clash-draft-team.html` is unchanged.

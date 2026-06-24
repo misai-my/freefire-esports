@@ -70,3 +70,6 @@
 
 - `ff-update.html` — OB update reference page now covering OB51–OB54.
 - `ob54-update.json` — structured OB54 summary for future cards, filters, and search.
+
+### Added Draft Layout
+- `clash-draft-team-v2.html` — visual player-column Clash Squad Draft V2 page; keeps original draft page untouched.
