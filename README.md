@@ -84,4 +84,4 @@ It injects the same brand block, menu order, section labels, icons, active-page 
 
 ## Draft V2 Page
 
-- `clash-draft-team-v2.html` — new visual Clash Squad Draft V2 player-column board. Original `clash-draft-team.html` is unchanged.
+- `clash-draft-team-v2.html` — live Clash Squad Draft V2 player-column board. It uses the same `public.draft` state and `draft_records` save/load flow as the original page, but displays each player with separate Active, Passive, Pet, and Loadout image cards. Original `clash-draft-team.html` is unchanged.
