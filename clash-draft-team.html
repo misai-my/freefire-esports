@@ -2241,11 +2241,26 @@ function jsonImportCleanCharacterName(name){
   const clean = String(name || '').trim().replace(/\s+/g, ' ');
   if (!clean) return clean;
 
-  // Only remove quoted skill/effect suffixes from match_api labels.
-  // Examples: Moco "Enigma" -> Moco, Alvaro "Rage Blast" -> Alvaro.
-  // Real multi-word character names, like J Biebs, stay intact.
+  // Remove skill/effect suffixes from match_api labels.
+  // Examples:
+  //   Moco "Enigma"      -> Moco
+  //   Alvaro Rage Blast   -> Alvaro
+  // But keep real multi-word character names:
+  //   J Biebs             -> J Biebs
   const quoteIndex = clean.search(/["“”'‘’]/);
   if (quoteIndex > 0) return clean.slice(0, quoteIndex).trim();
+
+  const lower = clean.toLowerCase();
+  const characterNames = (Array.isArray(characters) ? characters : [])
+    .map(c => String(c?.name || '').trim().replace(/\s+/g, ' '))
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+
+  for (const charName of characterNames) {
+    const charLower = charName.toLowerCase();
+    if (lower === charLower) return charName;
+    if (lower.startsWith(`${charLower} `)) return charName;
+  }
 
   return clean;
 }
