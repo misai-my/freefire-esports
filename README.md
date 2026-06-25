@@ -90,3 +90,8 @@ It injects the same brand block, menu order, section labels, icons, active-page 
 ## Clash Draft JSON Import
 
 `clash-draft-team.html` now includes a **Paste Match JSON → Auto Fill Active / Passive / Pet / Loadout** panel. It reads `team_stats[].player_stats[]`, including `skill_info`, `skill_ids`, `pet_skill_id`, and `loadouts`, then fills the left/right draft slots. The importer resolves known names from the pasted JSON, local reference files, and `match_api` when available. Unknown IDs remain visible as fallback labels instead of leaving blank slots.
+- Character names imported into Active/Passive slots are shortened to the first word when the resolved character name has more than one word.
+
+### Clash Draft character-name cleanup
+
+The JSON importer now only shortens character labels when the match/API name contains a quoted skill or effect suffix. For example, `Moco "Enigma"` becomes `Moco` and `Alvaro "Rage Blast"` becomes `Alvaro`, while real multi-word character names such as `J Biebs` remain unchanged.

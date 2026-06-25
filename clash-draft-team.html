@@ -2237,10 +2237,37 @@ function jsonImportApiName(id){
   return row?.name || row?.skill_name || row?.item_name || '';
 }
 
+function jsonImportCleanCharacterName(name){
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!clean) return clean;
+
+  // Only remove quoted skill/effect suffixes from match_api labels.
+  // Examples: Moco "Enigma" -> Moco, Alvaro "Rage Blast" -> Alvaro.
+  // Real multi-word character names, like J Biebs, stay intact.
+  const quoteIndex = clean.search(/["“”'‘’]/);
+  if (quoteIndex > 0) return clean.slice(0, quoteIndex).trim();
+
+  return clean;
+}
+
+function jsonImportCharacterForDraft(record, wantedType){
+  if (!record) return record;
+  return {
+    ...record,
+    name: jsonImportCleanCharacterName(record.name),
+    skill_type: record.skill_type || wantedType
+  };
+}
+
 function jsonImportFindCharacterByName(name){
   const n = jsonImportNormalize(name);
-  if (!n) return null;
-  return characters.find(c => jsonImportNormalize(c.name) === n || jsonImportNormalize(c.skill) === n) || null;
+  const cleanN = jsonImportNormalize(jsonImportCleanCharacterName(name));
+  if (!n && !cleanN) return null;
+  return characters.find(c => {
+    const charName = jsonImportNormalize(c.name);
+    const charSkill = jsonImportNormalize(c.skill);
+    return charName === n || charName === cleanN || charSkill === n || charSkill === cleanN;
+  }) || null;
 }
 
 function jsonImportFindCharacterByIdOrName(id, providedName, wantedType){
@@ -2258,7 +2285,7 @@ function jsonImportFindCharacterByIdOrName(id, providedName, wantedType){
 
   if (apiName) {
     return {
-      name: apiName,
+      name: jsonImportCleanCharacterName(apiName),
       skill: wantedType === 'Passive' ? 'Passive Skill' : 'Active Skill',
       skill_type: wantedType,
       image_url: 'https://imgur.com/AdvPwAO.png',
