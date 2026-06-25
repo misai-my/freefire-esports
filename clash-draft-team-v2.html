@@ -9,8 +9,8 @@
   <meta name="theme-color" content="#ffbd59" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Clash Squad Draft V2 — Player Columns</title>
-  <meta name="description" content="Free Fire Clash Squad Draft V2 using the same draft state as the original draft page, with per-player Active, Passive, Pet, and Loadout image cards." />
+  <title>Clash Squad Draft V2 — Card Arena</title>
+  <meta name="description" content="Free Fire Clash Squad Draft V2 with a card-game arena theme and per-player Active, Passive, Pet, and Loadout cards." />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/app-config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -86,17 +86,284 @@
     @media (max-width:1180px){:root{--sidebar-w:70px}.sidebar{padding:12px 7px}.sidebar .brand-text,.sidebar .ff-nav-section,.sidebar .nav-label,.sidebar .sb-close{display:none!important}.sidebar .brand-left{justify-content:center}.sidebar .brand{justify-content:center;padding-left:0;padding-right:0}.sidebar a.nav-item{justify-content:center;padding:11px 0}.search-wrap input{width:118px}.players-grid{gap:6px}.draft-board{gap:8px;padding:9px}.team-panel{padding:8px}.sel-img{width:36px;height:36px}.selection.passive .sel-img{width:28px;height:28px}.selection.pet .sel-img,.selection.loadout .sel-img{width:30px;height:30px}.sel-name{font-size:8.5px}.sel-skill{font-size:6.7px}.slot-label{font-size:6.7px}.pname{font-size:9.5px}.pnum{width:27px;height:27px;font-size:10px}.player-head{grid-template-columns:27px minmax(0,1fr)}}
     @media (max-width:900px){:root{--sidebar-w:64px}.main{padding:12px}.topbar{grid-template-columns:1fr}.actions{justify-content:flex-start}.search-wrap{display:none}.command{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px}.field label{font-size:8px}.field input,.field select{height:32px;font-size:11px}.score-strip{gap:8px;padding:10px}.team-logo{width:38px;height:38px;flex-basis:38px}.draft-board{grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr);gap:6px;padding:7px}.players-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.player-card{padding:5px;border-radius:14px}.selection{padding:4px;border-radius:11px}.selection.passive{padding:3px}.sel-img{width:31px;height:31px;border-radius:10px}.selection.passive .sel-img{width:23px;height:23px;border-radius:8px}.selection.pet .sel-img,.selection.loadout .sel-img{width:25px;height:25px;border-radius:9px}.sel-name{font-size:7.4px}.sel-skill{font-size:5.9px}.passives{gap:3px}.slot-label{font-size:6px}.pname{font-size:8px;height:24px}.pnum{width:24px;height:24px;font-size:8px;border-radius:9px}.player-head{grid-template-columns:24px minmax(0,1fr);gap:4px}.team-ban-row{grid-template-columns:44px minmax(0,1fr);padding:5px}.ban-label{font-size:7px}.ban-value{font-size:9px}.tiny-thumb{width:22px;height:22px}.phase-pill{font-size:7px;padding:5px 6px}.panel-head input{height:30px;font-size:10px}.vs-rail:after{font-size:6px;padding:3px 5px}.summary-grid{grid-template-columns:1fr}.hero-grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}.hero-grid-item{min-height:116px}.hero-grid-item img{width:58px;height:58px}.hero-grid-name{font-size:9px}.hero-grid-skill{font-size:7.7px}}
     @media (max-width:700px){.app{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;z-index:1000;transform:translateX(-104%);transition:transform .2s ease}.sidebar.open{transform:translateX(0)}.main{padding:10px}.draft-board{min-width:760px}.stage{overflow-x:auto}.command{grid-template-columns:repeat(2,minmax(0,1fr))}.score-strip{min-width:760px}.below{display:block}.panel{margin-top:10px}.actions .btn{padding:8px 10px;font-size:11px}.title h1{font-size:22px}}
+
+
+    /* ===== Card Game Arena Theme Override ===== */
+    body.card-arena-theme{
+      background:
+        radial-gradient(900px 620px at 12% -8%,rgba(75,220,255,.21),transparent 62%),
+        radial-gradient(720px 560px at 86% 0%,rgba(255,189,89,.20),transparent 58%),
+        radial-gradient(800px 580px at 52% 108%,rgba(255,80,45,.18),transparent 62%),
+        linear-gradient(180deg,#05070c 0%,#09101b 45%,#030407 100%);
+    }
+    body.card-arena-theme:after{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.23;
+      background:
+        repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 76px),
+        repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 76px);
+      mask-image:radial-gradient(circle at center,black 0 42%,transparent 83%);
+    }
+    .topbar{
+      border:1px solid rgba(255,189,89,.22);
+      background:
+        linear-gradient(135deg,rgba(255,189,89,.12),rgba(75,220,255,.07) 42%,rgba(255,120,56,.10)),
+        rgba(8,12,21,.72);
+      box-shadow:0 28px 80px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .title h1{
+      letter-spacing:.01em;
+      text-shadow:0 0 26px rgba(255,189,89,.20);
+    }
+    .stage{
+      position:relative;
+      border-color:rgba(255,189,89,.26);
+      background:
+        radial-gradient(420px 180px at 50% 0%,rgba(255,189,89,.16),transparent 70%),
+        linear-gradient(180deg,rgba(18,26,42,.96),rgba(6,9,16,.96));
+      box-shadow:0 30px 95px rgba(0,0,0,.48), 0 0 0 1px rgba(255,189,89,.04) inset;
+    }
+    .stage:before{
+      height:5px;
+      background:linear-gradient(90deg,transparent,var(--cyan),var(--gold),var(--orange),transparent);
+      box-shadow:0 0 22px rgba(255,189,89,.38);
+    }
+    .stage:after{
+      content:"BATTLE BOARD";
+      position:absolute;
+      left:50%;top:57px;
+      transform:translateX(-50%);
+      color:rgba(255,255,255,.045);
+      font-size:clamp(38px,7vw,108px);
+      line-height:1;
+      font-weight:1000;
+      letter-spacing:.08em;
+      pointer-events:none;
+      z-index:0;
+      white-space:nowrap;
+    }
+    .score-strip,.draft-board{position:relative;z-index:1}
+    .score-strip{
+      border-bottom-color:rgba(255,189,89,.20);
+      background:linear-gradient(90deg,rgba(75,220,255,.075),rgba(255,189,89,.075),rgba(255,120,56,.075));
+    }
+    .team-logo{
+      border-radius:50%;
+      border:2px solid rgba(255,189,89,.35);
+      box-shadow:0 0 0 4px rgba(255,189,89,.06),0 12px 26px rgba(0,0,0,.32);
+    }
+    .versus{
+      position:relative;
+      border:1px solid rgba(255,189,89,.34);
+      background:linear-gradient(180deg,rgba(255,189,89,.12),rgba(255,255,255,.035));
+      box-shadow:0 15px 38px rgba(0,0,0,.30), inset 0 0 22px rgba(255,189,89,.06);
+    }
+    .vs{color:#ffe2a8}.score{text-shadow:0 0 16px rgba(255,189,89,.30)}
+    .draft-board{
+      padding:16px;
+      gap:14px;
+      background:
+        radial-gradient(circle at 50% 50%,rgba(255,189,89,.13),transparent 18%),
+        linear-gradient(90deg,rgba(75,220,255,.06),transparent 20% 80%,rgba(255,120,56,.06));
+    }
+    .team-panel{
+      border-radius:28px;
+      padding:12px;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.025)),
+        rgba(8,13,23,.78);
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 18px 46px rgba(0,0,0,.28);
+    }
+    .team-panel.left{box-shadow:inset 5px 0 0 rgba(75,220,255,.75),0 18px 46px rgba(0,0,0,.28)}
+    .team-panel.right{box-shadow:inset -5px 0 0 rgba(255,120,56,.75),0 18px 46px rgba(0,0,0,.28)}
+    .panel-head input{
+      border-radius:999px;
+      border-color:rgba(255,189,89,.18);
+      background:rgba(0,0,0,.22);
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+    .phase-pill{
+      background:linear-gradient(135deg,rgba(102,229,161,.18),rgba(255,189,89,.10));
+      border-color:rgba(102,229,161,.36);
+    }
+    .team-ban-row{
+      border-radius:18px;
+      background:linear-gradient(135deg,rgba(255,98,98,.14),rgba(0,0,0,.18));
+      border:1px solid rgba(255,98,98,.34);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .ban-label:before{content:"BAN";display:block;color:#ffb0b0;font-size:10px;letter-spacing:.16em}
+    .ban-label{font-size:0}
+    .players-grid{gap:10px;align-items:stretch}
+    .player-card{
+      position:relative;
+      isolation:isolate;
+      min-height:100%;
+      border-radius:24px;
+      padding:9px;
+      overflow:hidden;
+      border:1px solid rgba(255,189,89,.26);
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.025)),
+        radial-gradient(180px 120px at 50% 0%,rgba(255,189,89,.16),transparent 70%),
+        rgba(5,8,14,.88);
+      box-shadow:0 20px 44px rgba(0,0,0,.32), inset 0 0 0 1px rgba(255,255,255,.04);
+      transform-style:preserve-3d;
+    }
+    .player-card:before{
+      content:"";
+      position:absolute;
+      inset:0;
+      padding:1px;
+      border-radius:inherit;
+      background:linear-gradient(145deg,rgba(255,189,89,.85),rgba(75,220,255,.35) 35%,rgba(255,120,56,.75) 72%,rgba(255,255,255,.18));
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+      pointer-events:none;
+      z-index:2;
+    }
+    .player-card:after{
+      content:"FF CARD";
+      position:absolute;
+      right:-24px;
+      top:48%;
+      transform:rotate(90deg);
+      font-size:9px;
+      font-weight:1000;
+      letter-spacing:.28em;
+      color:rgba(255,255,255,.09);
+      pointer-events:none;
+      z-index:0;
+    }
+    .player-card:hover{transform:translateY(-2px);box-shadow:0 26px 60px rgba(0,0,0,.42),0 0 30px rgba(255,189,89,.08)}
+    .player-head{
+      position:relative;
+      z-index:1;
+      grid-template-columns:34px minmax(0,1fr) auto;
+      border:0;
+      padding:5px 5px 8px;
+      border-radius:16px;
+      background:linear-gradient(90deg,rgba(255,189,89,.13),rgba(255,255,255,.035));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .pnum{
+      width:34px;height:34px;border-radius:50%;
+      background:radial-gradient(circle at 35% 25%,#fff3c3,var(--gold) 40%,#784011 100%);
+      border:1px solid rgba(255,255,255,.30);
+      color:#1b1007;
+      box-shadow:0 8px 18px rgba(0,0,0,.25);
+    }
+    .pname{font-size:11px;text-transform:uppercase;letter-spacing:.035em;color:#fff6dd}
+    .card-rarity{
+      justify-self:end;
+      align-self:center;
+      border:1px solid rgba(255,189,89,.32);
+      background:rgba(255,189,89,.10);
+      color:var(--gold);
+      border-radius:999px;
+      padding:4px 6px;
+      font-size:7px;
+      font-weight:1000;
+      letter-spacing:.12em;
+    }
+    .slot-label{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      margin:2px 0 -1px;
+      color:#ffe2a8;
+      font-size:7px;
+      letter-spacing:.18em;
+    }
+    .slot-label:before,.slot-label:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,rgba(255,189,89,.35),transparent)}
+    .selection{
+      position:relative;
+      min-height:76px;
+      border-radius:18px;
+      padding:7px 6px 6px;
+      background:
+        radial-gradient(90px 68px at 50% 8%,rgba(255,255,255,.10),transparent 62%),
+        linear-gradient(180deg,rgba(255,255,255,.065),rgba(0,0,0,.22));
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 22px rgba(0,0,0,.22);
+    }
+    .selection:before{
+      content:attr(data-type);
+      position:absolute;
+      top:5px;left:7px;
+      font-size:6px;
+      font-weight:1000;
+      letter-spacing:.14em;
+      color:rgba(255,255,255,.48);
+    }
+    .selection.active{min-height:104px;border-color:rgba(75,220,255,.38);background:linear-gradient(180deg,rgba(75,220,255,.15),rgba(0,0,0,.20))}
+    .selection.passive{min-height:56px;border-color:rgba(255,189,89,.24)}
+    .selection.pet{border-color:rgba(179,140,255,.38);background:linear-gradient(180deg,rgba(179,140,255,.13),rgba(0,0,0,.20))}
+    .selection.loadout{border-color:rgba(102,229,161,.34);background:linear-gradient(180deg,rgba(102,229,161,.12),rgba(0,0,0,.20))}
+    .selection:hover{transform:translateY(-2px) scale(1.01);border-color:rgba(255,189,89,.52);box-shadow:0 16px 30px rgba(0,0,0,.32),0 0 18px rgba(255,189,89,.12)}
+    .selection.empty{opacity:.62;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 8px,rgba(255,255,255,.015) 8px 16px)}
+    .sel-img{
+      width:50px;height:50px;border-radius:16px;
+      padding:2px;
+      background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(0,0,0,.20));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 10px 24px rgba(0,0,0,.30);
+    }
+    .selection.active .sel-img{width:58px;height:58px;border-radius:18px}
+    .selection.passive .sel-img{width:34px;height:34px;border-radius:12px}
+    .selection.pet .sel-img,.selection.loadout .sel-img{width:42px;height:42px;border-radius:14px}
+    .sel-name{font-size:10px;color:#fff6dd;text-transform:uppercase;letter-spacing:.02em;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+    .sel-skill{font-size:7px;color:#b8c4dc;letter-spacing:.02em}
+    .card-orb{
+      position:absolute;
+      top:4px;right:5px;
+      width:18px;height:18px;border-radius:50%;
+      display:grid;place-items:center;
+      background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.18);
+      color:var(--gold);
+      font-size:8px;font-weight:1000;
+    }
+    .passives{gap:5px}
+    .vs-rail{width:4px;background:linear-gradient(180deg,transparent,var(--cyan),var(--gold),var(--orange),transparent);box-shadow:0 0 22px rgba(255,189,89,.28)}
+    .vs-rail:after{background:#090d17;border-color:rgba(255,189,89,.30);box-shadow:0 0 18px rgba(255,189,89,.16)}
+    .panel,.modal-content{
+      border-color:rgba(255,189,89,.18);
+      background:linear-gradient(180deg,rgba(18,26,42,.86),rgba(8,12,21,.88));
+    }
+    .summary-line{border-color:rgba(255,189,89,.10);background:rgba(255,189,89,.045)}
+    .hero-grid-item{
+      border-radius:20px;
+      background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(0,0,0,.18));
+      border-color:rgba(255,189,89,.16);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .hero-grid-item img{border-radius:18px}
+    @media (max-width:1180px){
+      .card-rarity{display:none}.player-head{grid-template-columns:27px minmax(0,1fr)}
+      .selection.active{min-height:88px}.selection{min-height:64px}.selection.passive{min-height:50px}
+    }
+    @media (max-width:900px){
+      .draft-board{padding:8px}.selection.active{min-height:76px}.selection{min-height:58px}.selection.passive{min-height:45px}.card-orb{display:none}
+    }
+
   </style>
 </head>
-<body>
+<body class="card-arena-theme">
 <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
 <div class="app">
   <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation"></aside>
   <main class="main">
     <div class="topbar">
       <div class="title">
-        <h1>Clash Squad Draft V2</h1>
-        <p>Uses the same live draft state as the original page, but shows a cleaner per-player column board with images, names, and skill/effect labels.</p>
+        <h1>Clash Squad Draft V2 — Card Arena</h1>
+        <p>Draft like a card battle: each player becomes a battle card with Active, Passive, Pet, and Loadout slots.</p>
       </div>
       <div class="actions">
         <label class="search-wrap" aria-label="Global search">
@@ -396,6 +663,7 @@ function renderPlayerColumn(index, pos, side){
       <div class="player-head">
         <div class="pnum">P${pos + 1}</div>
         <input class="pname" value="${esc(playerName)}" placeholder="Player name" list="${listId}" onchange="updatePlayerName(${index}, this.value)" />
+        <div class="card-rarity">DECK</div>
       </div>
       <div class="slot-label">Active</div>
       ${renderSelectionCard('Active', active, `openSelectionModal('pick', ${index})`)}
@@ -415,7 +683,8 @@ function renderSelectionCard(type, item, onClick){
   const name = itemName(item, `Select ${type}`);
   const skill = itemSkill(item, type);
   return `
-    <div class="selection ${type.toLowerCase()} ${has ? '' : 'empty'}" onclick="${onClick}" title="${esc(name)}">
+    <div class="selection ${type.toLowerCase()} ${has ? '' : 'empty'}" data-type="${esc(type)}" onclick="${onClick}" title="${esc(name)}">
+      <span class="card-orb">${esc(type.slice(0,1))}</span>
       <img class="sel-img" src="${esc(itemImage(item))}" alt="${esc(name)}" onerror="this.src='${PLACEHOLDER}'">
       <div class="sel-name">${esc(name)}</div>
       <div class="sel-skill">${esc(skill)}</div>
