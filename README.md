@@ -85,3 +85,8 @@ It injects the same brand block, menu order, section labels, icons, active-page 
 ## Draft V2 Page
 
 - `clash-draft-team-v2.html` — live Clash Squad Draft V2 player-column board. It uses the same `public.draft` state and `draft_records` save/load flow as the original page, but displays each player with separate Active, Passive, Pet, and Loadout image cards. Original `clash-draft-team.html` is unchanged.
+
+
+## Clash Draft JSON Import
+
+`clash-draft-team.html` now includes a **Paste Match JSON → Auto Fill Active / Passive / Pet / Loadout** panel. It reads `team_stats[].player_stats[]`, including `skill_info`, `skill_ids`, `pet_skill_id`, and `loadouts`, then fills the left/right draft slots. The importer resolves known names from the pasted JSON, local reference files, and `match_api` when available. Unknown IDs remain visible as fallback labels instead of leaving blank slots.
