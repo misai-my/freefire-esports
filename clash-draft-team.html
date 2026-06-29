@@ -1514,7 +1514,106 @@
         padding:4px 2px;
       }
     }
-  </style>
+  
+
+/* ===== JSON Draft Importer ===== */
+.json-draft-importer{
+  max-width: 1320px;
+  margin: 18px auto 12px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 22px;
+  background: rgba(13, 18, 32, .76);
+  box-shadow: 0 24px 80px rgba(0,0,0,.34);
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+}
+.json-draft-importer summary{
+  cursor: pointer;
+  padding: 14px 16px;
+  color: var(--brand, #ffbd59);
+  font-family: Orbitron, sans-serif;
+  font-weight: 900;
+  letter-spacing: .04em;
+  list-style: none;
+}
+.json-draft-importer summary::-webkit-details-marker{display:none}
+.json-draft-importer summary:after{
+  content:'Open';
+  float:right;
+  font-family: Roboto, Arial, sans-serif;
+  color: rgba(244,246,255,.76);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+.json-draft-importer[open] summary:after{content:'Close'}
+.json-import-body{
+  display:grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+.json-import-textarea{
+  width:100%;
+  min-height: 170px;
+  resize: vertical;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(0,0,0,.28);
+  color: rgba(244,246,255,.95);
+  outline: none;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.json-import-textarea:focus{border-color: rgba(77,211,255,.55); box-shadow: 0 0 0 3px rgba(77,211,255,.12)}
+.json-import-panel{display:grid;gap:10px;align-content:start}
+.json-import-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.json-import-field{display:grid;gap:5px}
+.json-import-field label{font-size:10px;font-weight:900;color:var(--muted,#aab1c5);text-transform:uppercase;letter-spacing:.08em}
+.json-import-field select{
+  width:100%;
+  min-height:38px;
+  border-radius:13px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.22);
+  color: rgba(244,246,255,.94);
+  padding:0 10px;
+  font-weight:900;
+}
+.json-import-actions{display:flex;gap:8px;flex-wrap:wrap}
+.json-import-btn{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:13px;
+  min-height:38px;
+  padding:0 12px;
+  cursor:pointer;
+  background: rgba(255,255,255,.07);
+  color:rgba(244,246,255,.92);
+  font-weight:900;
+}
+.json-import-btn.primary{background:linear-gradient(135deg,rgba(255,189,89,.28),rgba(77,211,255,.12));border-color:rgba(255,189,89,.24)}
+.json-import-btn:hover{transform:translateY(-1px);border-color:rgba(77,211,255,.32)}
+.json-import-status{
+  min-height:42px;
+  white-space:pre-line;
+  border:1px dashed rgba(255,255,255,.14);
+  border-radius:15px;
+  padding:10px;
+  color:var(--muted,#aab1c5);
+  background:rgba(255,255,255,.04);
+  font-size:12px;
+  line-height:1.35;
+  font-weight:800;
+}
+.json-import-status.good{color:#9df3c2;border-color:rgba(102,229,161,.35);background:rgba(102,229,161,.07)}
+.json-import-status.bad{color:#ffb0b0;border-color:rgba(255,98,98,.35);background:rgba(255,98,98,.07)}
+.json-import-hint{color:var(--muted,#aab1c5);font-size:11px;line-height:1.35;font-weight:800}
+@media (max-width: 900px){.json-import-body{grid-template-columns:1fr}.json-draft-importer{margin-left:10px;margin-right:10px}}
+@media (max-width: 560px){.json-import-grid{grid-template-columns:1fr}.json-import-actions .json-import-btn{flex:1}}
+
+</style>
 </head>
 
 <body>
@@ -1612,6 +1711,36 @@
     <button class="save-btn" onclick="saveOrUpdateDraft()">Save / Update</button>
     <button class="save-btn" onclick="loadDraftRecord()">Load</button>
   </div>
+
+
+
+  <details class="json-draft-importer" id="jsonDraftImporter">
+    <summary>Paste Match JSON → Auto Fill Active / Passive / Pet / Loadout</summary>
+    <div class="json-import-body">
+      <textarea id="matchJsonInput" class="json-import-textarea" spellcheck="false" placeholder="Paste match JSON here. It will read team_stats[].player_stats[].skill_info, skill_ids, pet_skill_id, and loadouts."></textarea>
+      <div class="json-import-panel">
+        <div class="json-import-grid">
+          <div class="json-import-field">
+            <label for="jsonLeftTeam">Left Team</label>
+            <select id="jsonLeftTeam"><option value="">Paste JSON first</option></select>
+          </div>
+          <div class="json-import-field">
+            <label for="jsonRightTeam">Right Team</label>
+            <select id="jsonRightTeam"><option value="">Paste JSON first</option></select>
+          </div>
+        </div>
+        <div class="json-import-actions">
+          <button class="json-import-btn primary" id="parseJsonBtn" type="button">Parse JSON</button>
+          <button class="json-import-btn" id="applyLeftBtn" type="button">Apply Left</button>
+          <button class="json-import-btn" id="applyRightBtn" type="button">Apply Right</button>
+          <button class="json-import-btn primary" id="autoFillBothBtn" type="button">Auto Fill 2 Teams</button>
+          <button class="json-import-btn" id="clearJsonImport" type="button">Clear</button>
+        </div>
+        <div id="jsonImportStatus" class="json-import-status">Paste JSON, then press Parse JSON. Reference lookup uses local JSON and match_api when available.</div>
+        <div class="json-import-hint">Unknown IDs stay visible as fallbacks, like Passive #5006 or Pet #1315000011, so nothing silently disappears.</div>
+      </div>
+    </div>
+  </details>
 
   <button class="reset-btn" onclick="resetDraft()">Reset All</button>
 
@@ -1738,6 +1867,8 @@ let CS_TEAM_NAMES = [];
 let CS_TEAM_INPUT_OPTIONS = [];
 let CS_PLAYERS_BY_TEAM = {};
 let CS_ALL_PLAYERS = [];
+let MATCH_API_REF_BY_ID = new Map();
+let PARSED_MATCH_JSON_TEAMS = [];
 
 let teamResizeObserver = null;
 
@@ -2061,10 +2192,319 @@ function initResponsiveObservers(){
   });
 }
 
+
+
+function jsonImportNormalize(value){
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2800\u3164\u00a0]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function jsonImportId(value){
+  return String(value ?? '').trim();
+}
+
+function jsonImportSetStatus(message, type = ''){
+  const el = document.getElementById('jsonImportStatus');
+  if (!el) return;
+  el.className = `json-import-status ${type}`.trim();
+  el.textContent = message;
+}
+
+async function loadMatchApiReferenceForJsonImport(){
+  MATCH_API_REF_BY_ID = new Map();
+  try {
+    const { data, error } = await client
+      .from('match_api')
+      .select('*')
+      .limit(5000);
+
+    if (error) throw error;
+    (data || []).forEach(row => {
+      const id = row.id ?? row.item_id ?? row.skill_id ?? row.api_id;
+      if (id !== undefined && id !== null) MATCH_API_REF_BY_ID.set(jsonImportId(id), row);
+    });
+  } catch (err) {
+    console.warn('match_api unavailable for JSON importer:', err);
+  }
+}
+
+function jsonImportApiName(id){
+  const row = MATCH_API_REF_BY_ID.get(jsonImportId(id));
+  return row?.name || row?.skill_name || row?.item_name || '';
+}
+
+function jsonImportCleanCharacterName(name){
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!clean) return clean;
+
+  // Remove skill/effect suffixes from match_api labels.
+  // Examples:
+  //   Moco "Enigma"      -> Moco
+  //   Alvaro Rage Blast   -> Alvaro
+  // But keep real multi-word character names:
+  //   J Biebs             -> J Biebs
+  const quoteIndex = clean.search(/["“”'‘’]/);
+  if (quoteIndex > 0) return clean.slice(0, quoteIndex).trim();
+
+  const lower = clean.toLowerCase();
+  const characterNames = (Array.isArray(characters) ? characters : [])
+    .map(c => String(c?.name || '').trim().replace(/\s+/g, ' '))
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+
+  for (const charName of characterNames) {
+    const charLower = charName.toLowerCase();
+    if (lower === charLower) return charName;
+    if (lower.startsWith(`${charLower} `)) return charName;
+  }
+
+  return clean;
+}
+
+function jsonImportCharacterForDraft(record, wantedType){
+  if (!record) return record;
+  return {
+    ...record,
+    name: jsonImportCleanCharacterName(record.name),
+    skill_type: record.skill_type || wantedType
+  };
+}
+
+function jsonImportFindCharacterByName(name){
+  const n = jsonImportNormalize(name);
+  const cleanN = jsonImportNormalize(jsonImportCleanCharacterName(name));
+  if (!n && !cleanN) return null;
+  return characters.find(c => {
+    const charName = jsonImportNormalize(c.name);
+    const charSkill = jsonImportNormalize(c.skill);
+    return charName === n || charName === cleanN || charSkill === n || charSkill === cleanN;
+  }) || null;
+}
+
+function jsonImportFindCharacterByIdOrName(id, providedName, wantedType){
+  const apiName = providedName || jsonImportApiName(id);
+  let found = jsonImportFindCharacterByName(apiName);
+
+  if (!found && id !== undefined && id !== null) {
+    const idText = jsonImportId(id);
+    found = characters.find(c =>
+      [c.api_id, c.skill_id, c.id].some(v => jsonImportId(v) === idText)
+    ) || null;
+  }
+
+  if (found) return found;
+
+  if (apiName) {
+    return {
+      name: jsonImportCleanCharacterName(apiName),
+      skill: wantedType === 'Passive' ? 'Passive Skill' : 'Active Skill',
+      skill_type: wantedType,
+      image_url: 'https://imgur.com/AdvPwAO.png',
+      unresolved: false
+    };
+  }
+
+  return {
+    name: `${wantedType || 'Skill'} #${id || '?'}`,
+    skill: 'Unresolved ID',
+    skill_type: wantedType,
+    image_url: 'https://imgur.com/AdvPwAO.png',
+    unresolved: true
+  };
+}
+
+function jsonImportFindPet(id){
+  const apiName = jsonImportApiName(id);
+  const byName = pets.find(p => jsonImportNormalize(p.name) === jsonImportNormalize(apiName) || jsonImportNormalize(p.skill) === jsonImportNormalize(apiName));
+  if (byName) return byName;
+  if (apiName) return { name: apiName, skill: 'Pet Skill', image_url: 'https://imgur.com/AdvPwAO.png' };
+  return { name: `Pet #${id || '?'}`, skill: 'Unresolved ID', image_url: 'https://imgur.com/AdvPwAO.png', unresolved: true };
+}
+
+function jsonImportFindLoadout(id){
+  const idText = jsonImportId(id);
+  const found = loadouts.find(l => jsonImportId(l.loadout_id) === idText || jsonImportId(l.id) === idText);
+  if (found) return found;
+  const apiName = jsonImportApiName(id);
+  if (apiName) return { name: apiName, category: 'Loadout', image_url: 'https://imgur.com/AdvPwAO.png' };
+  return { name: `Loadout #${id || '?'}`, category: 'Loadout', image_url: 'https://imgur.com/AdvPwAO.png', unresolved: true };
+}
+
+function parseMatchJsonForDraftImport(){
+  const input = document.getElementById('matchJsonInput');
+  let raw = (input?.value || '').trim();
+  if (!raw) throw new Error('Paste the match JSON first.');
+
+  const starts = [raw.indexOf('{'), raw.indexOf('[')].filter(v => v >= 0);
+  if (starts.length) raw = raw.slice(Math.min(...starts));
+
+  const parsed = JSON.parse(raw);
+  const teams = Array.isArray(parsed.team_stats)
+    ? parsed.team_stats
+    : Array.isArray(parsed?.data?.team_stats)
+      ? parsed.data.team_stats
+      : [];
+
+  if (!teams.length) throw new Error('No team_stats array found in the pasted JSON.');
+  PARSED_MATCH_JSON_TEAMS = teams;
+  populateJsonImportTeamSelects();
+  jsonImportSetStatus(`Parsed ${teams.length} team(s). Select teams, then apply.`, 'good');
+}
+
+function populateJsonImportTeamSelects(){
+  const left = document.getElementById('jsonLeftTeam');
+  const right = document.getElementById('jsonRightTeam');
+  if (!left || !right) return;
+
+  const options = PARSED_MATCH_JSON_TEAMS.map((team, index) => {
+    const name = team.team_name || team.name || `Team ${index + 1}`;
+    return `<option value="${index}">${esc(name)}</option>`;
+  }).join('');
+
+  left.innerHTML = options || '<option value="">Paste JSON first</option>';
+  right.innerHTML = options || '<option value="">Paste JSON first</option>';
+  if (PARSED_MATCH_JSON_TEAMS.length > 1) right.value = '1';
+}
+
+function buildDraftPlayerFromJson(rawPlayer){
+  const skillInfo = Array.isArray(rawPlayer.skill_info) ? rawPlayer.skill_info : [];
+  const skillIds = Array.isArray(rawPlayer.skill_ids) ? rawPlayer.skill_ids : [];
+  const activeInfo = skillInfo.find(s => s?.skill_active === true || s?.active === true) || skillInfo[0] || null;
+  const activeId = activeInfo?.skill_id ?? skillIds[0] ?? null;
+  const activeName = activeInfo?.skill_name || activeInfo?.name || '';
+  const active = jsonImportFindCharacterByIdOrName(activeId, activeName, 'Active');
+
+  const activeIdText = jsonImportId(activeId);
+  const activeNameText = jsonImportNormalize(active.name);
+  const passives = [];
+
+  skillIds.forEach(skillId => {
+    const resolved = jsonImportFindCharacterByIdOrName(skillId, '', 'Passive');
+    if (jsonImportId(skillId) === activeIdText) return;
+    if (jsonImportNormalize(resolved.name) === activeNameText) return;
+    passives.push(resolved);
+  });
+
+  while (passives.length < 3) passives.push(null);
+
+  const loadoutId = Array.isArray(rawPlayer.loadouts) ? rawPlayer.loadouts[0] : rawPlayer.loadout_id;
+
+  return {
+    playerName: rawPlayer.nickname || rawPlayer.player_name || rawPlayer.name || '',
+    active,
+    passives: passives.slice(0, 3),
+    pet: jsonImportFindPet(rawPlayer.pet_skill_id),
+    loadout: jsonImportFindLoadout(loadoutId)
+  };
+}
+
+function applyParsedJsonTeamToDraft(side){
+  if (!PARSED_MATCH_JSON_TEAMS.length) parseMatchJsonForDraftImport();
+
+  const select = document.getElementById(side === 'left' ? 'jsonLeftTeam' : 'jsonRightTeam');
+  const team = PARSED_MATCH_JSON_TEAMS[parseInt(select?.value || '0', 10)];
+  if (!team) throw new Error('Select a valid team first.');
+
+  const rawPlayers = Array.isArray(team.player_stats) ? team.player_stats.slice(0, 4) : [];
+  if (!rawPlayers.length) throw new Error(`No player_stats found for ${team.team_name || 'selected team'}.`);
+
+  const slotIndexes = side === 'left' ? [0, 1, 2, 3] : [7, 6, 5, 4];
+  rawPlayers.forEach((rawPlayer, playerIndex) => {
+    const slot = slotIndexes[playerIndex];
+    if (slot === undefined) return;
+    const built = buildDraftPlayerFromJson(rawPlayer);
+    draftState.playerCards[slot] = built.playerName;
+    draftState.picks[slot] = built.active;
+    draftState.passives[slot] = built.passives;
+    draftState.pets[slot] = built.pet;
+    draftState.loadouts[slot] = built.loadout;
+  });
+
+  draftState.teamNames[side === 'left' ? 0 : 1] = team.team_name || team.name || (side === 'left' ? 'TEAM LEFT' : 'TEAM RIGHT');
+  applyStateToControls?.();
+  refreshPlayerNameOptions?.();
+  drawDraft();
+  saveDraftState();
+
+  const unresolved = [];
+  [...draftState.picks, ...draftState.pets, ...draftState.loadouts].forEach(item => {
+    if (item?.unresolved) unresolved.push(item.name);
+  });
+  (draftState.passives || []).flat().forEach(item => {
+    if (item?.unresolved) unresolved.push(item.name);
+  });
+
+  const base = `Applied ${team.team_name || team.name || 'team'} to ${side.toUpperCase()}.`;
+  jsonImportSetStatus(unresolved.length ? `${base}\nUnresolved: ${[...new Set(unresolved)].slice(0, 12).join(', ')}` : base, unresolved.length ? 'bad' : 'good');
+}
+
+function initJsonDraftImporter(){
+  if (window.__jsonDraftImporterReady) return;
+  window.__jsonDraftImporterReady = true;
+
+  document.getElementById('parseJsonBtn')?.addEventListener('click', () => {
+    try { parseMatchJsonForDraftImport(); }
+    catch (err) { jsonImportSetStatus(err.message || String(err), 'bad'); }
+  });
+
+  document.getElementById('applyLeftBtn')?.addEventListener('click', () => {
+    try { applyParsedJsonTeamToDraft('left'); }
+    catch (err) { jsonImportSetStatus(err.message || String(err), 'bad'); }
+  });
+
+  document.getElementById('applyRightBtn')?.addEventListener('click', () => {
+    try { applyParsedJsonTeamToDraft('right'); }
+    catch (err) { jsonImportSetStatus(err.message || String(err), 'bad'); }
+  });
+
+  document.getElementById('autoFillBothBtn')?.addEventListener('click', () => {
+    try {
+      if (!PARSED_MATCH_JSON_TEAMS.length) parseMatchJsonForDraftImport();
+      if (PARSED_MATCH_JSON_TEAMS.length < 2) throw new Error('At least two teams are needed to auto fill both sides.');
+      document.getElementById('jsonLeftTeam').value = '0';
+      document.getElementById('jsonRightTeam').value = '1';
+      applyParsedJsonTeamToDraft('left');
+      applyParsedJsonTeamToDraft('right');
+      jsonImportSetStatus('Auto-filled both teams from the pasted JSON.', 'good');
+    } catch (err) {
+      jsonImportSetStatus(err.message || String(err), 'bad');
+    }
+  });
+
+  document.getElementById('clearJsonImport')?.addEventListener('click', () => {
+    document.getElementById('matchJsonInput').value = '';
+    PARSED_MATCH_JSON_TEAMS = [];
+    populateJsonImportTeamSelects();
+    jsonImportSetStatus('Cleared. Paste JSON, then press Parse JSON.');
+  });
+
+  populateJsonImportTeamSelects();
+  jsonImportSetStatus(`JSON importer ready. match_api rows loaded: ${MATCH_API_REF_BY_ID.size}.`, 'good');
+}
+
+async function fetchDraftJson(localPath, remotePath) {
+  try {
+    const response = await fetch(localPath, { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`${localPath} returned ${response.status}`);
+    return await response.json();
+  } catch (localError) {
+    console.warn(`Local data fetch failed for ${localPath}. Falling back to GitHub copy.`, localError);
+    const response = await fetch(remotePath);
+    if (!response.ok) throw new Error(`${remotePath} returned ${response.status}`);
+    return await response.json();
+  }
+}
+
 async function initDraftPage() {
-  characters = await (await fetch('https://misai-my.github.io/freefire-esports/character.json')).json();
-  pets = await (await fetch('https://misai-my.github.io/freefire-esports/pet.json')).json();
-  loadouts = await (await fetch('https://misai-my.github.io/freefire-esports/loadout.json')).json();
+  characters = await fetchDraftJson('character.json', 'https://misai-my.github.io/freefire-esports/character.json');
+  pets = await fetchDraftJson('pet.json', 'https://misai-my.github.io/freefire-esports/pet.json');
+  loadouts = await fetchDraftJson('loadout.json', 'https://misai-my.github.io/freefire-esports/loadout.json');
+  await loadMatchApiReferenceForJsonImport();
+  initJsonDraftImporter();
 
   const today = new Date();
   document.getElementById('matchDate').valueAsDate = today;

@@ -117,3 +117,12 @@ See `docs/CS_COUNTER_ANALYSIS.md` for the reasoning model and update summary.
 ### Sidebar cleanup — 20260629-sidebar-clean-v2
 
 The shared sidebar now hides the legacy close `X` button and removes these hidden/admin/navigation entries from every sidebar: Team Center, Team Database, Match Report, CS Draft V2, CS Report, CS Converter, BR Upload, Match Upload, CS Upload, and Team Settings. Those pages remain accessible by direct URL if needed.
+
+## Restoration note — Clash Draft Team
+
+This build restores and preserves the original `clash-draft-team.html` page with its live draft behavior, draft history, match details, pick/ban counts, and Supabase `public.draft` / `draft_records` integration. The separate `clash-draft-team-v2.html` page remains available by direct URL and was not used to replace the original page.
+
+## Clash Draft JSON Importer
+
+`clash-draft-team.html` now includes the pasted match JSON importer from the uploaded page. It can parse `team_stats[].player_stats[]` and auto-fill active skills, passive skills, pets, loadouts, and player names for the left/right draft sides. The page now loads `character.json`, `pet.json`, and `loadout.json` from the local package first, with the live GitHub copy as fallback.
+
