@@ -55,3 +55,12 @@ The new counter data focuses on Clash Squad situations, not generic BR theory. E
 - `character.json`
 - `counter.json`
 - `docs/CS_COUNTER_ANALYSIS.md`
+
+## Active vs Passive counter split
+
+The counter data now separates Clash Squad recommendations into:
+
+- `active_counters` for counters that require an Active skill timing window, cooldown read, or direct activation.
+- `passive_counters` for always-on/passive traits that counter the matchup through movement, sustain, anti-heal, reload economy, damage modifiers, or information value.
+
+The original `counters` array is still retained as a combined fallback for older pages and scripts.

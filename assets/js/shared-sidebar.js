@@ -27,7 +27,6 @@
   const NAV_GROUPS = [
     { label: 'Command Center', items: [
       { href:'home.html', label:'Home', title:'Home Dashboard', icon:'dashboard', aliases:['index.html','dashboard.html','x-dashboard.html'] },
-      { href:'ewc.html', label:'Team Center', title:'Free Fire Data Center', icon:'team', aliases:['ewc-center.html','ewc-team-overview.html'] },
       { href:'ff-update.html', label:'FF Updates', title:'Patch Updates', icon:'update' },
       { href:'split-view.html', label:'Split View', title:'Split View', icon:'split' }
     ]},
@@ -42,24 +41,13 @@
     ]},
     { label: 'Analytics', items: [
       { href:'br-team.html', label:'BR Data', title:'Battle Royale Data', icon:'chart' },
-      { href:'team-database.html', label:'Team Database', title:'Team Database', icon:'team' },
-      { href:'match-report.html', label:'Match Report', title:'Match Report', icon:'report' }
     ]},
     { label: 'Clash Squad', items: [
       { href:'clash-draft-team.html', label:'CS Draft', title:'CS Draft', icon:'draft' },
-      { href:'clash-draft-team-v2.html', label:'CS Draft V2', title:'CS Draft V2 Player Columns', icon:'draft' },
       { href:'clash-data.html', label:'CS Data', title:'CS Data', icon:'swords' },
       { href:'clash-compare.html', label:'CS Compare', title:'CS Compare', icon:'swords' },
       { href:'clash-combo.html', label:'CS Combos', title:'CS Combos', icon:'swords' },
-      { href:'clash-data-report.html', label:'CS Report', title:'CS Data Report', icon:'report' },
-      { href:'clash-data-convert.html', label:'CS Converter', title:'CS Data Converter', icon:'upload' }
     ]},
-    { label: 'Admin Tools', items: [
-      { href:'data-upload.html', label:'BR Upload', title:'BR Data Upload', icon:'upload' },
-      { href:'match-upload.html', label:'Match Upload', title:'Match Upload', icon:'upload' },
-      { href:'cs-match-upload.html', label:'CS Upload', title:'CS Match Upload', icon:'upload' },
-      { href:'team_settings.html', label:'Team Settings', title:'Team Settings', icon:'settings' }
-    ]}
   ];
 
   function pageName(){
