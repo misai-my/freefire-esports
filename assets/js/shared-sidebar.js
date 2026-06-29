@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const SIDEBAR_VERSION = '2026.06.24.shared-sidebar.v1';
+  const SIDEBAR_VERSION = '20260629-sidebar-clean-v2';
   const STORAGE_KEY = 'ff_sidebar_collapsed_v1';
 
   const ICONS = {
@@ -97,7 +97,8 @@
       #sidebar[data-shared-sidebar="true"] .nav-item{min-height:42px;}
       #sidebar[data-shared-sidebar="true"] .nav-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       #sidebar[data-shared-sidebar="true"] .nav-ico svg{width:20px;height:20px;display:block;}
-      #sidebar[data-shared-sidebar="true"] .sb-close{flex:0 0 auto;}
+      #sidebar .sb-close{display:none!important;}
+      #sidebar[data-shared-sidebar="true"] .sb-close{display:none!important;}
     `;
     document.head.appendChild(style);
   }
@@ -122,10 +123,7 @@
             <small class="muted">Caster Dashboard</small>
           </div>
         </div>
-        <button class="icon-btn sb-close" id="sbClose" aria-label="Close sidebar" title="Close" type="button">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-      </div>
+</div>
       <nav class="nav" id="nav" aria-label="Main navigation">
         ${buildNavHTML(current)}
       </nav>

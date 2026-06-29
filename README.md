@@ -113,3 +113,7 @@ See `docs/CS_COUNTER_ANALYSIS.md` for the reasoning model and update summary.
 - `counter.json` now separates recommendations into `active_counters` and `passive_counters` while keeping the legacy `counters` array for compatibility.
 - `character.html` and the dashboard counter panel now render Active and Passive counter sections separately.
 - The shared sidebar was simplified by removing Team Center, Team Database, Match Report, CS Draft V2, CS Report, CS Converter, BR Upload, Match Upload, CS Upload, and Team Settings.
+
+### Sidebar cleanup — 20260629-sidebar-clean-v2
+
+The shared sidebar now hides the legacy close `X` button and removes these hidden/admin/navigation entries from every sidebar: Team Center, Team Database, Match Report, CS Draft V2, CS Report, CS Converter, BR Upload, Match Upload, CS Upload, and Team Settings. Those pages remain accessible by direct URL if needed.
