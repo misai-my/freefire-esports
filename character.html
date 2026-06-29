@@ -809,6 +809,36 @@
       margin-top:8px;
     }
 
+    .counter-section{
+      display:grid;
+      gap:8px;
+      padding:10px;
+      border-radius:16px;
+      background: rgba(255,255,255,.035);
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .counter-section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin:0;
+      color: var(--brand);
+      font-size:.82rem;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .counter-section-title span{
+      color: var(--muted);
+      font-size:.72rem;
+      letter-spacing:.02em;
+      text-transform:none;
+      font-weight:900;
+    }
+
     .counter-item{
       padding:12px 14px;
       border-radius:14px;
@@ -3154,8 +3184,15 @@
         infoCounterCategory.style.display = '';
       }
 
-      const counters = Array.isArray(entry?.counters) ? entry.counters : [];
-      if (!counters.length){
+      const allCounters = Array.isArray(entry?.counters) ? entry.counters : [];
+      const groupedActive = Array.isArray(entry?.active_counters)
+        ? entry.active_counters
+        : allCounters.filter(item => tidy(item?.skill_type || item?.counter_skill_type).toLowerCase() === 'active');
+      const groupedPassive = Array.isArray(entry?.passive_counters)
+        ? entry.passive_counters
+        : allCounters.filter(item => tidy(item?.skill_type || item?.counter_skill_type).toLowerCase() === 'passive');
+
+      if (!groupedActive.length && !groupedPassive.length && !allCounters.length){
         const empty = document.createElement('div');
         empty.className = 'counter-empty';
         empty.textContent = 'No counter recommendations available for this character yet.';
@@ -3163,7 +3200,7 @@
         return;
       }
 
-      counters.forEach(item => {
+      function addCounterRow(parent, item){
         const row = document.createElement('div');
         row.className = 'counter-item';
 
@@ -3173,7 +3210,6 @@
         const name = document.createElement('span');
         name.className = 'counter-name';
         name.textContent = tidy(item?.name) || 'Unknown';
-
         head.appendChild(name);
 
         const skill = tidy(item?.skill);
@@ -3185,14 +3221,44 @@
           head.appendChild(skillChip);
         }
 
+        const scenario = tidy(item?.cs_scenario);
+        if (scenario){
+          const scenarioChip = document.createElement('span');
+          scenarioChip.className = 'counter-skill';
+          scenarioChip.textContent = scenario;
+          scenarioChip.title = scenario;
+          head.appendChild(scenarioChip);
+        }
+
         const reason = document.createElement('p');
         reason.className = 'counter-reason';
         reason.textContent = tidy(item?.reason) || 'No reason provided.';
 
         row.appendChild(head);
         row.appendChild(reason);
-        infoCounterList.appendChild(row);
-      });
+        parent.appendChild(row);
+      }
+
+      function addCounterGroup(label, list){
+        if (!list.length) return;
+        const section = document.createElement('section');
+        section.className = 'counter-section';
+
+        const title = document.createElement('h4');
+        title.className = 'counter-section-title';
+        title.innerHTML = `${label} Counters <span>${list.length}</span>`;
+        section.appendChild(title);
+
+        list.forEach(item => addCounterRow(section, item));
+        infoCounterList.appendChild(section);
+      }
+
+      addCounterGroup('Active', groupedActive);
+      addCounterGroup('Passive', groupedPassive);
+
+      if (!groupedActive.length && !groupedPassive.length){
+        addCounterGroup('General', allCounters);
+      }
     }
 
     function openInfo(c, metaFlag, keepOpen=false){

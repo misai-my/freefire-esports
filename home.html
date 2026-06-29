@@ -1094,6 +1094,14 @@
       flex-direction:column;
       gap:7px;
     }
+    .counter-skill-section-title{
+      margin:6px 0 2px;
+      color: var(--brand2);
+      font-size:.76rem;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
     .skilldex-row{
       display:grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -3109,12 +3117,6 @@
         return;
       }
 
-      if (isPassiveCharacter(item)){
-        wrap.innerHTML = `<div class="skilldex-empty">Choose an active skill character to view counter skills.</div>`;
-        extra.innerHTML = '';
-        return;
-      }
-
       if (COUNTERDEX.loading){
         wrap.innerHTML = `<div class="skilldex-empty">Loading counter skills…</div>`;
         extra.innerHTML = '';
@@ -3138,28 +3140,44 @@
 
       const chips = [];
       if (entry.role) chips.push(`<span class="skilldex-chip">Role: ${safeText(entry.role)}</span>`);
+      if (entry.skill_type) chips.push(`<span class="skilldex-chip">Skill Type: ${safeText(entry.skill_type)}</span>`);
       if (entry.counter_category) chips.push(`<span class="skilldex-chip">Counter Angle: ${safeText(entry.counter_category)}</span>`);
       extra.innerHTML = chips.join('');
 
-      const counters = Array.isArray(entry.counters) ? entry.counters : [];
+      const allCounters = Array.isArray(entry.counters) ? entry.counters : [];
+      const activeCounters = Array.isArray(entry.active_counters)
+        ? entry.active_counters
+        : allCounters.filter(row => safeText(row?.skill_type || row?.counter_skill_type).toLowerCase() === 'active');
+      const passiveCounters = Array.isArray(entry.passive_counters)
+        ? entry.passive_counters
+        : allCounters.filter(row => safeText(row?.skill_type || row?.counter_skill_type).toLowerCase() === 'passive');
 
-      if (!counters.length){
+      if (!activeCounters.length && !passiveCounters.length && !allCounters.length){
         wrap.innerHTML = `<div class="skilldex-empty">No counter skills listed.</div>`;
         return;
       }
 
-      wrap.innerHTML = counters.map(row => `
-        <div class="skilldex-row">
-          <div class="skilldex-row-main">
-            <b>${safeText(row?.name || '—')}</b>
-            <span>${safeText(row?.skill || '')}${row?.reason ? ` — ${safeText(row.reason)}` : ''}</span>
-          </div>
-          <div class="skilldex-row-meta">
-            <strong>${safeText(row?.skill || '—')}</strong>
-            <small>Counter</small>
-          </div>
-        </div>
-      `).join('');
+      const sectionHTML = (label, list) => {
+        if (!list.length) return '';
+        return `
+          <div class="counter-skill-section-title">${safeText(label)} Counters</div>
+          ${list.map(row => `
+            <div class="skilldex-row">
+              <div class="skilldex-row-main">
+                <b>${safeText(row?.name || '—')}</b>
+                <span>${safeText(row?.skill || '')}${row?.reason ? ` — ${safeText(row.reason)}` : ''}</span>
+              </div>
+              <div class="skilldex-row-meta">
+                <strong>${safeText(row?.skill_type || row?.counter_skill_type || label || '—')}</strong>
+                <small>Counter</small>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      };
+
+      const splitHTML = sectionHTML('Active', activeCounters) + sectionHTML('Passive', passiveCounters);
+      wrap.innerHTML = splitHTML || sectionHTML('General', allCounters);
     }
 
     function renderSkillReference(){

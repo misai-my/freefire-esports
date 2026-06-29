@@ -102,3 +102,14 @@ The CS Store changelog now compares by item name and intentionally ignores slot,
 This package includes an OB54 review of `character.json` and a rebuilt Clash Squad-focused `counter.json`.
 See `docs/CS_COUNTER_ANALYSIS.md` for the reasoning model and update summary.
 
+
+
+### CS Store Changelog Update
+
+`store.html` now separates changes into **Taken Out**, **Added**, and **Adjustment**. Adjustments cover price changes and label changes such as `AWM-Y → AWM`, while slot/tier movement is ignored.
+
+### Latest counter/sidebar update
+
+- `counter.json` now separates recommendations into `active_counters` and `passive_counters` while keeping the legacy `counters` array for compatibility.
+- `character.html` and the dashboard counter panel now render Active and Passive counter sections separately.
+- The shared sidebar was simplified by removing Team Center, Team Database, Match Report, CS Draft V2, CS Report, CS Converter, BR Upload, Match Upload, CS Upload, and Team Settings.

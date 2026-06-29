@@ -693,7 +693,7 @@
 
     .changelog-grid{
       display:grid;
-      grid-template-columns:repeat(2, minmax(0, 1fr));
+      grid-template-columns:repeat(3, minmax(0, 1fr));
       gap:12px;
     }
 
@@ -719,6 +719,7 @@
 
     .change-removed .change-label{ color:#ff8a8a; }
     .change-added .change-label{ color:#72f0a4; }
+    .change-adjusted .change-label{ color:#ffd36a; }
 
     .store-changelog ul{
       margin:0;
@@ -1535,6 +1536,10 @@
                   ],
                   "added": [
                         "Jammer — 300 gold"
+                  ],
+                  "adjusted": [
+                        "AWM-Y → AWM — 4000 gold",
+                        "Parafal — 1400 → 1600 gold"
                   ]
             }
       },
@@ -1700,6 +1705,12 @@
                   ],
                   "added": [
                         "Jammer — 300 gold"
+                  ],
+                  "adjusted": [
+                        "AWM-Y — Team limit * 1 → AWM — Team limit * 1 — 4000 gold",
+                        "Parafal — 1400 → 1600 gold",
+                        "SCAR2-max → Scar-2 — 1800 gold",
+                        "VSS — 1500 → 1600 gold"
                   ]
             }
       },
@@ -1867,6 +1878,9 @@
                   "added": [
                         "XM8 — 1500 gold",
                         "Jammer — 300 gold"
+                  ],
+                  "adjusted": [
+                        "AWM-Y — Team limit * 1 → AWM — Team limit * 1 — 4000 gold"
                   ]
             }
       },
@@ -2035,6 +2049,9 @@
                   "added": [
                         "Koda skill card — Team limit * 2 — 800 gold",
                         "Jammer — 300 gold"
+                  ],
+                  "adjusted": [
+                        "VSS — 1500 → 1600 gold"
                   ]
             }
       }
@@ -2110,16 +2127,44 @@
         .toLowerCase();
     }
 
-    function normalizeChangelog(changelog){
-      const cleaned = Array.isArray(changelog)
-        ? { removed: [], added: changelog.map(cleanChangelogItem).filter(Boolean) }
-        : {
-          removed: Array.isArray(changelog?.removed) ? changelog.removed.map(cleanChangelogItem).filter(Boolean) : [],
-          added: Array.isArray(changelog?.added) ? changelog.added.map(cleanChangelogItem).filter(Boolean) : []
-        };
 
-      // Final safety pass: never show the same normalized item as both taken out and added.
-      // This intentionally ignores store slot, tier movement, and price-only changes.
+    function normalizeSkillCardLabel(value){
+      return String(value || '')
+        .replace(/\n/g, ' ')
+        .replace(/—\s*Team limit\s*\*\s*\d+\s*/ig, ' ')
+        .replace(/\bTeam limit\s*\*\s*\d+\b/ig, ' ')
+        .replace(/\bskill\s*card\b/ig, 'skill')
+        .replace(/\bskill\b/ig, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    }
+
+    function isSkillCardLabelOnlyAdjustment(value){
+      const text = String(value || '');
+      if (!text.includes('→')) return false;
+      const parts = text.split('→');
+      if (parts.length < 2) return false;
+      const left = parts[0];
+      const right = parts.slice(1).join('→').replace(/\s*—\s*\d+\s*gold\s*$/i, '');
+      const leftKey = normalizeSkillCardLabel(left);
+      const rightKey = normalizeSkillCardLabel(right);
+      return Boolean(leftKey && rightKey && leftKey === rightKey);
+    }
+
+    function normalizeChangelog(changelog){
+      const source = Array.isArray(changelog)
+        ? { removed: [], added: changelog, adjusted: [] }
+        : (changelog || {});
+
+      const cleaned = {
+        removed: Array.isArray(source.removed) ? source.removed.map(cleanChangelogItem).filter(Boolean) : [],
+        added: Array.isArray(source.added) ? source.added.map(cleanChangelogItem).filter(Boolean) : [],
+        adjusted: Array.isArray(source.adjusted || source.adjustments) ? (source.adjusted || source.adjustments).map(cleanChangelogItem).filter(Boolean).filter(item => !isSkillCardLabelOnlyAdjustment(item)) : []
+      };
+
+      // Safety pass: never show the same normalized item as both taken out and added.
+      // This ignores slot/tier movement. Price/label-only changes belong under Adjustment.
       const removedKeys = new Set(cleaned.removed.map(changelogItemKey));
       const addedKeys = new Set(cleaned.added.map(changelogItemKey));
       const duplicatedKeys = new Set([...removedKeys].filter(key => key && addedKeys.has(key)));
@@ -2128,7 +2173,8 @@
 
       return {
         removed: cleaned.removed.filter(item => !duplicatedKeys.has(changelogItemKey(item))),
-        added: cleaned.added.filter(item => !duplicatedKeys.has(changelogItemKey(item)))
+        added: cleaned.added.filter(item => !duplicatedKeys.has(changelogItemKey(item))),
+        adjusted: cleaned.adjusted
       };
     }
 
@@ -2145,7 +2191,7 @@
     function renderChangelog(store){
       if (!storeChangelog) return;
       const changes = normalizeChangelog(store.changelog);
-      const hasChanges = changes.removed.length || changes.added.length;
+      const hasChanges = changes.removed.length || changes.added.length || changes.adjusted.length;
       if (!hasChanges){
         storeChangelog.innerHTML = `
           <div class="changelog-head"><span>CS Store Changelog</span><small>${escapeHTML(store.name)}</small></div>
@@ -2159,6 +2205,7 @@
         <div class="changelog-grid">
           ${renderChangeCard('Taken Out', changes.removed, 'removed')}
           ${renderChangeCard('Added', changes.added, 'added')}
+          ${renderChangeCard('Adjustment', changes.adjusted, 'adjusted')}
         </div>
       `;
     }
