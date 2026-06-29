@@ -522,23 +522,25 @@
       text-overflow:ellipsis;
     }
     .pPass{
-      display:grid;
-      grid-template-columns:repeat(4, 36px);
+      display:flex;
+      flex-wrap:wrap;
       gap:8px;
-      align-items:start;
-      justify-content:start;
+      align-items:flex-start;
+      justify-content:flex-end;
       min-width:0;
       max-width:100%;
-      margin-top:0;
+      margin-top:2px;
+      overflow:visible;
     }
     .pPass img{
-      width:36px;height:36px;border-radius:10px;
+      width:38px;height:38px;border-radius:11px;
       border:1px solid rgba(255,255,255,.12);
       background:rgba(0,0,0,.18);
       object-fit:contain;
       object-position:center;
       padding:2px;
       box-shadow:0 8px 18px rgba(0,0,0,.28);
+      flex:0 0 auto;
     }
     .pPass img.petIcon{
       border-color:rgba(255,189,89,.38);
@@ -614,7 +616,8 @@
       grid-column:1 / -1;
       grid-row:2;
       align-self:start;
-      padding-left:84px;
+      padding-left:0;
+      justify-content:flex-end;
     }
 
     .caption{margin:6px 0 8px}
@@ -628,21 +631,21 @@
     }
 
     @media (max-width: 760px){
-      .pBadge{grid-template-columns:64px minmax(0,1fr); min-height:104px;}
+      .pBadge{grid-template-columns:64px minmax(0,1fr); min-height:112px;}
       .pAct{width:64px;height:64px;}
-      .pBadge > .pPass{padding-left:74px;}
-      .pPass{grid-template-columns:repeat(4, 32px); gap:7px;}
-      .pPass img{width:32px;height:32px;border-radius:9px;}
+      .pBadge > .pPass{padding-left:0;}
+      .pPass{gap:7px;}
+      .pPass img{width:35px;height:35px;border-radius:10px;}
       .banBox img{width:34px;height:34px;}
     }
 
 
     @media (max-width: 520px){
-      .pBadge{grid-template-columns:58px minmax(0,1fr); min-height:96px; padding:7px;}
+      .pBadge{grid-template-columns:58px minmax(0,1fr); min-height:106px; padding:7px;}
       .pAct{width:58px;height:58px;}
-      .pBadge > .pPass{padding-left:66px;}
-      .pPass{grid-template-columns:repeat(4, 29px); gap:6px;}
-      .pPass img{width:29px;height:29px;border-radius:8px; padding:1px;}
+      .pBadge > .pPass{padding-left:0;}
+      .pPass{gap:6px;}
+      .pPass img{width:32px;height:32px;border-radius:9px; padding:1px;}
     }
 
     @media (max-width: 640px){
@@ -656,6 +659,28 @@
       .controls label select{min-width:140px}
       .bar{align-items:stretch}
     }
+
+    /* Final match-player fit: keep passive and pet icons inside the player card. */
+    .matchCard .pBadge{
+      overflow:hidden;
+    }
+    .matchCard .pBadge > .pPass{
+      width:100%;
+      max-width:100%;
+      padding-left:0 !important;
+      overflow:visible;
+      justify-content:flex-end;
+    }
+    .matchCard .pPass{
+      display:flex !important;
+      flex-wrap:wrap !important;
+      align-items:flex-start;
+    }
+    .matchCard .pPass img{
+      object-fit:contain;
+      object-position:center;
+    }
+
   </style>
 </head>
 <body>
@@ -1150,7 +1175,7 @@ function rowsForTeam(team){
 
 /* ========= Aggregations / Data helpers ========= */
 function buildTeamBucket(rows, teamName, kind){
-  const B = { name: teamName, matches:0, wins:0, skills:new Map() };
+  const B = { name: teamName, matches:0, wins:0, skills:new Map(), rows: rows || [] };
 
   rows.forEach(r => {
     B.matches += 1;
@@ -1818,22 +1843,68 @@ function opponentSeriesTable(rows, limit=30){
 }
 
 /* KPIs */
+function signedNumber(n){
+  const val = Number(n || 0);
+  return val > 0 ? `+${val}` : String(val);
+}
+
+function signedAverage(n){
+  const val = Number(n || 0);
+  return `${val > 0 ? '+' : ''}${val.toFixed(1)}`;
+}
+
+function getBestMapLabel(rows){
+  const byMap = new Map();
+  (rows || []).forEach(r => {
+    const map = r.map || 'Unknown';
+    const M = byMap.get(map) || { matches:0, wins:0 };
+    M.matches += 1;
+    if (r.result === 'W') M.wins += 1;
+    byMap.set(map, M);
+  });
+
+  const best = [...byMap.entries()].sort((a,b) => {
+    const wrA = a[1].matches ? a[1].wins / a[1].matches : 0;
+    const wrB = b[1].matches ? b[1].wins / b[1].matches : 0;
+    if (wrB !== wrA) return wrB - wrA;
+    if (b[1].matches !== a[1].matches) return b[1].matches - a[1].matches;
+    return a[0].localeCompare(b[0]);
+  })[0];
+
+  if (!best) return '—';
+  const [map, stat] = best;
+  return `${map} ${pct(stat.wins, stat.matches)} (${stat.matches})`;
+}
+
+function getTopBanLabel(kindBan){
+  const top = [...(kindBan?.skills?.entries?.() || [])].sort((a,b) => {
+    if (b[1].occ !== a[1].occ) return b[1].occ - a[1].occ;
+    return a[0].localeCompare(b[0]);
+  })[0];
+  return top ? `${top[0]} x${top[1].occ}` : '—';
+}
+
 function kpiCard(bucket, kindActive, kindPassive, kindPet, kindBan){
   if (!bucket || !bucket.matches) return `<div class="muted">No data for selection.</div>`;
 
-  const subjA = [...kindActive.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
-  const subjP = [...kindPassive.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
-  const subjPet = [...kindPet.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
-  const subjB = [...kindBan.skills.values()].reduce((a,s)=>(a.appear += s.appear, a), {appear:0});
+  const rows = bucket.rows || [];
+  const roundsFor = rows.reduce((sum,r) => sum + Number(r.team_score || 0), 0);
+  const roundsAgainst = rows.reduce((sum,r) => sum + Number(r.opp_score || 0), 0);
+  const roundDiff = roundsFor - roundsAgainst;
+  const avgFor = bucket.matches ? roundsFor / bucket.matches : 0;
+  const avgAgainst = bucket.matches ? roundsAgainst / bucket.matches : 0;
+  const avgDiff = bucket.matches ? roundDiff / bucket.matches : 0;
+  const bestMap = getBestMapLabel(rows);
+  const topBan = getTopBanLabel(kindBan);
 
   return `
     <div class="kpis">
       <div class="kpi">Matches <strong>${bucket.matches}</strong></div>
       <div class="kpi">Wins <strong>${bucket.wins}</strong> <span class="muted">(${pct(bucket.wins,bucket.matches)})</span></div>
-      <div class="kpi">Active picks <strong>${subjA.appear}</strong> <span class="muted">(${pct(subjA.appear,bucket.matches)})</span></div>
-      <div class="kpi">Passive picks <strong>${subjP.appear}</strong> <span class="muted">(${pct(subjP.appear,bucket.matches)})</span></div>
-      <div class="kpi">Pet picks <strong>${subjPet.appear}</strong> <span class="muted">(${pct(subjPet.appear,bucket.matches)})</span></div>
-      <div class="kpi">Bans <strong>${subjB.appear}</strong> <span class="muted">(${pct(subjB.appear,bucket.matches)})</span></div>
+      <div class="kpi">Avg score <strong>${avgFor.toFixed(1)} - ${avgAgainst.toFixed(1)}</strong></div>
+      <div class="kpi">Round diff <strong>${signedNumber(roundDiff)}</strong> <span class="muted">(${signedAverage(avgDiff)}/map)</span></div>
+      <div class="kpi">Best map <strong>${safe(bestMap)}</strong></div>
+      <div class="kpi">Top ban <strong>${safe(topBan)}</strong></div>
     </div>`;
 }
 

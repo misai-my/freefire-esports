@@ -152,3 +152,13 @@ This build restores and preserves the original `clash-draft-team.html` page with
 - `clash-compare.html` now shows a more visible **VS H2H** button directly beside **Swap**.
 - The button toggles head-to-head-only mode for the two selected teams.
 - Removed the Quick Pairs button row from the Pick two teams panel.
+
+## Latest update
+
+- Updated `clash-compare.html` Overview KPIs to keep Matches and Wins, then replace raw pick-count totals with more useful team comparison metrics: Avg score, Round diff, Best map, and Top ban.
+
+
+### Clash Compare player card containment fix
+- Passive and pet icons in `clash-compare.html` now wrap inside the player card instead of bleeding behind the match card/window.
+- Active character art remains top-aligned and uses safe `object-fit: contain`.
+- Team Compare KPI updates and VS H2H mode are preserved.
