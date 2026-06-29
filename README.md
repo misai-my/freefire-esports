@@ -86,12 +86,8 @@ It injects the same brand block, menu order, section labels, icons, active-page 
 
 - `clash-draft-team-v2.html` — live Clash Squad Draft V2 player-column board. It uses the same `public.draft` state and `draft_records` save/load flow as the original page, but displays each player with separate Active, Passive, Pet, and Loadout image cards. Original `clash-draft-team.html` is unchanged.
 
+- CS Store changelog now lists only item names under Taken Out / Added, without slot references.
 
-## Clash Draft JSON Import
+## CS Store changelog note
 
-`clash-draft-team.html` now includes a **Paste Match JSON → Auto Fill Active / Passive / Pet / Loadout** panel. It reads `team_stats[].player_stats[]`, including `skill_info`, `skill_ids`, `pet_skill_id`, and `loadouts`, then fills the left/right draft slots. The importer resolves known names from the pasted JSON, local reference files, and `match_api` when available. Unknown IDs remain visible as fallback labels instead of leaving blank slots.
-- Character names imported into Active/Passive slots are shortened to the first word when the resolved character name has more than one word.
-
-### Clash Draft character-name cleanup
-
-The JSON importer now only shortens character labels when the match/API name contains a quoted skill or effect suffix. For example, `Moco "Enigma"` becomes `Moco` and `Alvaro "Rage Blast"` becomes `Alvaro`, while real multi-word character names such as `J Biebs` remain unchanged.
+The CS Store changelog now compares by item name and intentionally ignores slot, tier movement, and price-only changes. Items that still exist in the store are not shown as both Taken Out and Added.
