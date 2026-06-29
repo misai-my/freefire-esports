@@ -1661,7 +1661,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <input type="text" id="searchInput" placeholder="Search (name / role / skill / category)..." />
+        <input type="text" id="searchInput" placeholder="Search (name / role / skill / category)..." autocomplete="off" data-ff-search-ignore="true" />
         <div id="modalGrid" class="pick-grid"></div>
         <div style="display:flex; justify-content:center; margin-top:12px;">
           <button class="btn brand" id="modalCloseBtn2" type="button">Close ✕</button>
@@ -2428,6 +2428,30 @@
     const modalInput = document.getElementById('searchInput');
     const modalTitle = document.getElementById('modalTitle');
 
+    let pickerSearchActivated = false;
+
+    function pickerTypeLabel(){
+      if (pickerMode === 'active') return 'active skills';
+      if (pickerMode === 'passive') return 'passive skills';
+      if (pickerMode === 'pet') return 'pets';
+      if (pickerMode === 'weapon') return 'weapons';
+      return 'options';
+    }
+
+    function renderPickerStartMessage(){
+      modalGrid.innerHTML = '';
+      const hint = document.createElement('div');
+      hint.className = 'empty';
+      hint.textContent = `Click the search box to show ${pickerTypeLabel()}.`;
+      modalGrid.appendChild(hint);
+    }
+
+    function activatePickerSearch(){
+      if (pickerSearchActivated) return;
+      pickerSearchActivated = true;
+      renderPickerGrid(modalInput.value || '');
+    }
+
     function openPicker(mode, index){
       pickerMode = mode;
       pickerIndex = index;
@@ -2441,11 +2465,11 @@
 
       modalTitle.textContent = label;
       modalInput.value = '';
-      renderPickerGrid('');
+      pickerSearchActivated = false;
+      renderPickerStartMessage();
 
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
-      setTimeout(() => modalInput.focus(), 0);
     }
 
     function closePicker(){
@@ -2564,7 +2588,12 @@
 
     document.getElementById('modalCloseBtn')?.addEventListener('click', closePicker);
     document.getElementById('modalCloseBtn2')?.addEventListener('click', closePicker);
-    modalInput?.addEventListener('input', () => renderPickerGrid(modalInput.value));
+    modalInput?.addEventListener('focus', activatePickerSearch);
+    modalInput?.addEventListener('click', activatePickerSearch);
+    modalInput?.addEventListener('input', () => {
+      pickerSearchActivated = true;
+      renderPickerGrid(modalInput.value);
+    });
     window.addEventListener('click', (e) => { if (e.target === modal) closePicker(); });
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closePicker(); });
 
