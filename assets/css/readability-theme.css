@@ -1,0 +1,461 @@
+/*
+  Free Fire Esports Data Center — Readability Layer
+  Keeps text, form controls, tables, modals, cards, and picker overlays readable
+  across dark mode and light mode without changing page logic.
+*/
+:root{
+  --ff-readable-bg:#070b14;
+  --ff-readable-surface:#141a26;
+  --ff-readable-surface-2:#1b2431;
+  --ff-readable-surface-3:#222c3a;
+  --ff-readable-text:#f6f8ff;
+  --ff-readable-muted:#c4cad8;
+  --ff-readable-soft:#aeb6c7;
+  --ff-readable-border:rgba(255,255,255,.14);
+  --ff-readable-border-strong:rgba(255,255,255,.22);
+  --ff-readable-input-bg:#0d1420;
+  --ff-readable-input-text:#f7f9ff;
+  --ff-readable-accent:#ffbd59;
+  --ff-readable-accent-2:#ff7733;
+  --ff-readable-link:#66d9ff;
+  --ff-readable-danger:#ff7474;
+  --ff-readable-success:#78e1a0;
+  color-scheme:dark;
+}
+
+html[data-theme="light"],
+html.light,
+body.light,
+body.light-mode,
+body.theme-light,
+[data-theme="light"]{
+  --ff-readable-bg:#f4f7fb;
+  --ff-readable-surface:#ffffff;
+  --ff-readable-surface-2:#f1f5fa;
+  --ff-readable-surface-3:#e7edf6;
+  --ff-readable-text:#111827;
+  --ff-readable-muted:#334155;
+  --ff-readable-soft:#475569;
+  --ff-readable-border:rgba(15,23,42,.16);
+  --ff-readable-border-strong:rgba(15,23,42,.26);
+  --ff-readable-input-bg:#ffffff;
+  --ff-readable-input-text:#111827;
+  --ff-readable-accent:#b45408;
+  --ff-readable-accent-2:#c2410c;
+  --ff-readable-link:#0369a1;
+  --ff-readable-danger:#b91c1c;
+  --ff-readable-success:#047857;
+  color-scheme:light;
+}
+
+html,
+body{
+  color:var(--ff-readable-text);
+}
+
+body,
+main,
+.app,
+.page,
+.content,
+.main-content,
+.dashboard,
+.dashboard-main{
+  color:var(--ff-readable-text);
+}
+
+/* Core text hierarchy */
+h1,h2,h3,h4,h5,h6,
+.title,.section-title,.card-title,.panel-title,
+.metric-title,.kpi-title,.modal-title,
+strong,b,label,summary,th{
+  color:var(--ff-readable-text);
+}
+
+p,li,td,small,span,div,
+.subtitle,.muted,.subtle,.desc,.description,
+.card-desc,.panel-desc,.meta,.note,.hint,
+.kpi-sub,.stat-sub,.row-meta,.helper-text{
+  color:inherit;
+}
+
+/* Keep intentionally muted text visible but not washed out. */
+.muted,.subtle,.desc,.description,.card-desc,.panel-desc,
+.meta,.note,.hint,.helper-text,
+.kpi-sub,.stat-sub,.row-meta,
+[class*="muted"],[class*="hint"],[class*="desc"],[class*="meta"]{
+  color:var(--ff-readable-muted) !important;
+}
+
+/* Accent labels */
+.accent,.brand,.orange,.section-kicker,
+[class*="brand"],[class*="accent"],
+.nav-group-title,.sidebar-group-title{
+  color:var(--ff-readable-accent) !important;
+}
+
+a{ color:var(--ff-readable-link); }
+a:hover{ color:var(--ff-readable-accent); }
+
+/* Cards, panels, accordions and common glass containers */
+.card,.panel,.box,.glass,.glassbox,.glass-soft,.glass-hard,
+.section,.section-card,.stats-card,.kpi,.kpi-card,.metric-card,
+.match-card,.player-card,.team-card,.item-card,.resource-card,
+.modal-content,.modal-card,.dialog,.dialog-card,
+details,details.glassy,.section-accordion,
+.table-wrap,.table-scroll,#pbFilterBar,
+.global-search-panel,.global-search-results,
+.picker-modal,.picker-panel,.picker-card,
+[class*="card"],[class*="panel"],[class*="modal-content"]{
+  color:var(--ff-readable-text);
+  border-color:var(--ff-readable-border) !important;
+}
+
+/* Dark default: keep premium panels dark and readable. */
+html:not([data-theme="light"]) .card,
+html:not([data-theme="light"]) .panel,
+html:not([data-theme="light"]) .box,
+html:not([data-theme="light"]) .glass,
+html:not([data-theme="light"]) .glassbox,
+html:not([data-theme="light"]) .glass-soft,
+html:not([data-theme="light"]) .glass-hard,
+html:not([data-theme="light"]) details,
+html:not([data-theme="light"]) .section-accordion,
+html:not([data-theme="light"]) .modal-content,
+html:not([data-theme="light"]) .global-search-panel,
+html:not([data-theme="light"]) .global-search-results{
+  background-color:rgba(20,26,38,.88);
+}
+
+/* Light mode override: prevent white/gray cards from keeping pale text. */
+html[data-theme="light"] body,
+html.light body,
+body.light,
+body.light-mode,
+body.theme-light{
+  color:var(--ff-readable-text) !important;
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .panel,
+html[data-theme="light"] .box,
+html[data-theme="light"] .glass,
+html[data-theme="light"] .glassbox,
+html[data-theme="light"] .glass-soft,
+html[data-theme="light"] .glass-hard,
+html[data-theme="light"] details,
+html[data-theme="light"] .section-accordion,
+html[data-theme="light"] .stats-card,
+html[data-theme="light"] .metric-card,
+html[data-theme="light"] .kpi,
+html[data-theme="light"] .kpi-card,
+html[data-theme="light"] .team-card,
+html[data-theme="light"] .match-card,
+html[data-theme="light"] .player-card,
+html[data-theme="light"] .item-card,
+html[data-theme="light"] .modal-content,
+html[data-theme="light"] .global-search-panel,
+html[data-theme="light"] .global-search-results,
+html[data-theme="light"] [class*="card"],
+html[data-theme="light"] [class*="panel"],
+html[data-theme="light"] [class*="modal-content"]{
+  background-color:rgba(255,255,255,.92) !important;
+  color:var(--ff-readable-text) !important;
+  border-color:var(--ff-readable-border) !important;
+  box-shadow:0 18px 50px rgba(15,23,42,.16);
+}
+
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] h4,
+html[data-theme="light"] h5,
+html[data-theme="light"] h6,
+html[data-theme="light"] .title,
+html[data-theme="light"] .section-title,
+html[data-theme="light"] .card-title,
+html[data-theme="light"] .panel-title,
+html[data-theme="light"] .modal-title,
+html[data-theme="light"] strong,
+html[data-theme="light"] b,
+html[data-theme="light"] label,
+html[data-theme="light"] summary,
+html[data-theme="light"] th{
+  color:var(--ff-readable-text) !important;
+}
+
+/* Modals / overlays */
+.modal,.modal-backdrop,.backdrop,.overlay,.drawer-backdrop,
+.item-detail-backdrop,.team-modal-backdrop{
+  color:var(--ff-readable-text);
+}
+
+html[data-theme="light"] .modal,
+html[data-theme="light"] .modal-backdrop,
+html[data-theme="light"] .backdrop,
+html[data-theme="light"] .overlay,
+html[data-theme="light"] .drawer-backdrop,
+html[data-theme="light"] .item-detail-backdrop,
+html[data-theme="light"] .team-modal-backdrop{
+  background-color:rgba(15,23,42,.34) !important;
+}
+
+.modal-content *:not(.btn):not(button):not(input):not(select):not(textarea),
+.global-search-panel *:not(.btn):not(button):not(input):not(select):not(textarea),
+.global-search-results *:not(.btn):not(button):not(input):not(select):not(textarea){
+  color:inherit;
+}
+
+/* Inputs and native selects */
+input,select,textarea,
+.input,.search-input,.filter-input,.global-search-input,
+[contenteditable="true"]{
+  background-color:var(--ff-readable-input-bg) !important;
+  color:var(--ff-readable-input-text) !important;
+  border-color:var(--ff-readable-border-strong) !important;
+  caret-color:var(--ff-readable-accent);
+}
+
+input::placeholder,textarea::placeholder{
+  color:color-mix(in srgb, var(--ff-readable-muted) 75%, transparent) !important;
+  opacity:1;
+}
+
+select option{
+  background:var(--ff-readable-input-bg) !important;
+  color:var(--ff-readable-input-text) !important;
+}
+
+input:focus,select:focus,textarea:focus,
+.input:focus,.search-input:focus,.filter-input:focus,
+.global-search-input:focus{
+  outline:2px solid color-mix(in srgb, var(--ff-readable-accent) 58%, transparent);
+  outline-offset:2px;
+}
+
+/* Tables */
+table,thead,tbody,tr,td,th{
+  color:var(--ff-readable-text);
+  border-color:var(--ff-readable-border) !important;
+}
+
+th,thead th{
+  background-color:rgba(255,255,255,.08);
+  color:var(--ff-readable-text) !important;
+}
+
+td{
+  color:var(--ff-readable-muted) !important;
+}
+
+html[data-theme="light"] th,
+html[data-theme="light"] thead th{
+  background-color:rgba(226,232,240,.95) !important;
+  color:#0f172a !important;
+}
+
+html[data-theme="light"] td{
+  color:#1f2937 !important;
+  background-color:rgba(255,255,255,.72);
+}
+
+html[data-theme="light"] tbody tr:nth-child(even) td{
+  background-color:rgba(241,245,249,.80);
+}
+
+/* Chips / badges / pills */
+.badge,.chip,.pill,.tag,.status,.counter-chip,.ability-chip,
+[class*="badge"],[class*="chip"],[class*="pill"],[class*="tag"]{
+  color:var(--ff-readable-text) !important;
+  border-color:var(--ff-readable-border) !important;
+}
+
+html[data-theme="light"] .badge,
+html[data-theme="light"] .chip,
+html[data-theme="light"] .pill,
+html[data-theme="light"] .tag,
+html[data-theme="light"] .status,
+html[data-theme="light"] .counter-chip,
+html[data-theme="light"] .ability-chip,
+html[data-theme="light"] [class*="badge"],
+html[data-theme="light"] [class*="chip"],
+html[data-theme="light"] [class*="pill"],
+html[data-theme="light"] [class*="tag"]{
+  background-color:rgba(241,245,249,.90) !important;
+  color:#0f172a !important;
+  border-color:rgba(15,23,42,.14) !important;
+}
+
+/* Buttons: preserve orange action buttons, ensure text contrast. */
+button,.btn,.button,[role="button"],input[type="button"],input[type="submit"]{
+  color:inherit;
+}
+
+button.primary,.btn.primary,.primary,
+button.brand,.btn.brand,.brand-btn,
+.save-btn,.reset-btn,.control-back,
+.logout-btn,.global-search-open,
+.choose-btn,.details-btn,
+[class*="primary"],[class*="brand-btn"]{
+  color:#111827 !important;
+}
+
+button.ghost,.btn.ghost,.secondary,.btn.secondary,
+html[data-theme="light"] button:not(.primary):not(.brand):not(.save-btn):not(.reset-btn):not(.control-back):not(.logout-btn),
+html[data-theme="light"] .btn:not(.primary):not(.brand){
+  color:var(--ff-readable-text) !important;
+  border-color:var(--ff-readable-border) !important;
+}
+
+/* Global search suggestions */
+.ff-global-search-results,
+.global-search-results,
+.search-results,
+.suggestions,
+.suggestion-box,
+.autocomplete,
+.dropdown-menu{
+  color:var(--ff-readable-text) !important;
+  background-color:var(--ff-readable-surface) !important;
+  border-color:var(--ff-readable-border-strong) !important;
+}
+
+.ff-global-search-results *,
+.global-search-results *,
+.search-results *,
+.suggestions *,
+.suggestion-box *,
+.autocomplete *,
+.dropdown-menu *{
+  color:inherit;
+}
+
+html[data-theme="light"] .ff-global-search-results,
+html[data-theme="light"] .global-search-results,
+html[data-theme="light"] .search-results,
+html[data-theme="light"] .suggestions,
+html[data-theme="light"] .suggestion-box,
+html[data-theme="light"] .autocomplete,
+html[data-theme="light"] .dropdown-menu{
+  background-color:#ffffff !important;
+  color:#0f172a !important;
+  box-shadow:0 20px 60px rgba(15,23,42,.20);
+}
+
+/* Ensure SVG/icon text does not inherit invisible colors badly. */
+svg text{ fill:currentColor; }
+
+/* Result/status colors with enough contrast in both modes. */
+.win,.good,.success,[class*="success"]{ color:var(--ff-readable-success) !important; }
+.loss,.bad,.danger,.error,[class*="danger"],[class*="error"]{ color:var(--ff-readable-danger) !important; }
+.warning,.warn,[class*="warning"]{ color:var(--ff-readable-accent) !important; }
+
+html[data-theme="light"] .win,
+html[data-theme="light"] .good,
+html[data-theme="light"] .success,
+html[data-theme="light"] [class*="success"]{ color:#047857 !important; }
+
+html[data-theme="light"] .loss,
+html[data-theme="light"] .bad,
+html[data-theme="light"] .danger,
+html[data-theme="light"] .error,
+html[data-theme="light"] [class*="danger"],
+html[data-theme="light"] [class*="error"]{ color:#b91c1c !important; }
+
+/* Utility readable classes for future pages. */
+.text-readable{ color:var(--ff-readable-text) !important; }
+.text-muted-readable{ color:var(--ff-readable-muted) !important; }
+.surface-readable{ background:var(--ff-readable-surface) !important;color:var(--ff-readable-text) !important;border-color:var(--ff-readable-border) !important; }
+
+/* Final light-mode safety pass for legacy inline light-gray text. */
+html[data-theme="light"] body :where(p,li,td,label,summary,small,em,span,div):not(button):not(.btn):not(input):not(select):not(textarea),
+html.light body :where(p,li,td,label,summary,small,em,span,div):not(button):not(.btn):not(input):not(select):not(textarea),
+body.light :where(p,li,td,label,summary,small,em,span,div):not(button):not(.btn):not(input):not(select):not(textarea),
+body.light-mode :where(p,li,td,label,summary,small,em,span,div):not(button):not(.btn):not(input):not(select):not(textarea),
+body.theme-light :where(p,li,td,label,summary,small,em,span,div):not(button):not(.btn):not(input):not(select):not(textarea){
+  color:var(--ff-readable-muted) !important;
+}
+
+html[data-theme="light"] body :where(h1,h2,h3,h4,h5,h6,strong,b,th,.title,.section-title,.card-title,.panel-title,.modal-title):not(button):not(.btn),
+html.light body :where(h1,h2,h3,h4,h5,h6,strong,b,th,.title,.section-title,.card-title,.panel-title,.modal-title):not(button):not(.btn),
+body.light :where(h1,h2,h3,h4,h5,h6,strong,b,th,.title,.section-title,.card-title,.panel-title,.modal-title):not(button):not(.btn),
+body.light-mode :where(h1,h2,h3,h4,h5,h6,strong,b,th,.title,.section-title,.card-title,.panel-title,.modal-title):not(button):not(.btn),
+body.theme-light :where(h1,h2,h3,h4,h5,h6,strong,b,th,.title,.section-title,.card-title,.panel-title,.modal-title):not(button):not(.btn){
+  color:var(--ff-readable-text) !important;
+}
+
+html[data-theme="light"] .accent,
+html[data-theme="light"] .brand,
+html[data-theme="light"] .orange,
+html[data-theme="light"] .section-kicker,
+html[data-theme="light"] [class*="brand"],
+html[data-theme="light"] [class*="accent"],
+html[data-theme="light"] .nav-group-title,
+html[data-theme="light"] .sidebar-group-title,
+html.light .accent,
+html.light .brand,
+html.light .orange,
+html.light .section-kicker,
+body.light .accent,
+body.light .brand,
+body.light .orange,
+body.light .section-kicker{
+  color:var(--ff-readable-accent) !important;
+}
+
+html[data-theme="light"] button,
+html[data-theme="light"] .btn,
+html.light button,
+html.light .btn,
+body.light button,
+body.light .btn,
+body.light-mode button,
+body.light-mode .btn,
+body.theme-light button,
+body.theme-light .btn{
+  color:var(--ff-readable-text) !important;
+}
+
+html[data-theme="light"] button.primary,
+html[data-theme="light"] .btn.primary,
+html[data-theme="light"] .save-btn,
+html[data-theme="light"] .reset-btn,
+html[data-theme="light"] .control-back,
+html[data-theme="light"] .logout-btn,
+html[data-theme="light"] .choose-btn,
+html[data-theme="light"] .global-search-open,
+html.light button.primary,
+html.light .btn.primary,
+body.light button.primary,
+body.light .btn.primary,
+body.light .save-btn,
+body.light .reset-btn,
+body.light .control-back,
+body.light .logout-btn,
+body.light .choose-btn,
+body.light .global-search-open{
+  color:#111827 !important;
+}
+
+html[data-theme="light"] .win,
+html[data-theme="light"] .good,
+html[data-theme="light"] .success,
+html.light .win,
+html.light .good,
+html.light .success,
+body.light .win,
+body.light .good,
+body.light .success{ color:#047857 !important; }
+
+html[data-theme="light"] .loss,
+html[data-theme="light"] .bad,
+html[data-theme="light"] .danger,
+html[data-theme="light"] .error,
+html.light .loss,
+html.light .bad,
+html.light .danger,
+html.light .error,
+body.light .loss,
+body.light .bad,
+body.light .danger,
+body.light .error{ color:#b91c1c !important; }

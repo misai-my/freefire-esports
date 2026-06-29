@@ -162,3 +162,15 @@ This build restores and preserves the original `clash-draft-team.html` page with
 - Passive and pet icons in `clash-compare.html` now wrap inside the player card instead of bleeding behind the match card/window.
 - Active character art remains top-aligned and uses safe `object-fit: contain`.
 - Team Compare KPI updates and VS H2H mode are preserved.
+
+## Latest update: Clash Compare premium player cards
+
+- Updated `clash-compare.html` match player cards to use a more premium desktop/iPad friendly layout.
+- Active character image is now framed separately and kept top-aligned without cropping.
+- Passive and pet icons are shown as clean ability chips inside each player card.
+- Match cards maintain containment and avoid icon overflow/bleeding.
+- Existing VS H2H filter and Quick Pairs removal are preserved.
+
+### Readability theme layer
+
+This package includes `assets/css/readability-theme.css`, loaded by every HTML page. It standardizes text contrast for dark mode and light mode across cards, tables, modals, picker overlays, dropdowns, and form controls. Future pages should keep this stylesheet loaded after page-specific styles so readability overrides remain active.
