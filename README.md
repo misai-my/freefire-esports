@@ -129,3 +129,9 @@ This build restores and preserves the original `clash-draft-team.html` page with
 ## Character Balance Indicators
 
 `character.html` now shows OB54 buff/nerf indicators for changed characters, based on a comparison between the previous `character.json` and the updated `character.json`. Details are also stored in `character-balance-changes.json` and documented in `docs/CHARACTER_BALANCE_CHANGES.md`.
+
+
+## Latest home picker fix
+- Updated `home.html` so the Quick View Choose buttons open the picker without auto-showing the item list.
+- The Character/Pet/Weapon/Loadout picker list now appears only after the user clicks or focuses the picker search box.
+- The home picker search is ignored by the global site search layer to prevent the wrong dropdown from appearing.
