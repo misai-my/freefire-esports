@@ -135,3 +135,9 @@ This build restores and preserves the original `clash-draft-team.html` page with
 - Updated `home.html` so the Quick View Choose buttons open the picker without auto-showing the item list.
 - The Character/Pet/Weapon/Loadout picker list now appears only after the user clicks or focuses the picker search box.
 - The home picker search is ignored by the global site search layer to prevent the wrong dropdown from appearing.
+
+## 2026-06-29 Home Picker behavior fix
+
+- `home.html` picker modals now open with the full item selection grid visible immediately.
+- The picker search still filters the modal list locally.
+- The global site search suggestion dropdown is suppressed inside picker modals, so clicking Choose will not show unrelated global search suggestions.

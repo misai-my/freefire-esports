@@ -3631,30 +3631,16 @@
     const pickerFilterPills = document.getElementById('pickerFilterPills');
 
     let currentPickerType = 'character';
-    let pickerBrowseActivated = false;
 
-    function renderPickerWaiting(){
-      if (!pickerGrid || !pickerCount) return;
-      pickerCount.textContent = 'Ready';
-      pickerGrid.innerHTML = `
-        <div class="picker-waiting">
-          <div>
-            <div style="font-size:14px;color:rgba(244,246,255,.82);margin-bottom:6px;">Picker ready</div>
-            <div>Click the search box to browse or type to filter the list.</div>
-          </div>
-        </div>
-      `;
-    }
-
-    function activatePickerBrowse(){
-      if (pickerBrowseActivated) return;
-      pickerBrowseActivated = true;
-      renderPickerGrid();
+    function suppressGlobalSearchSuggestions(){
+      document.getElementById('ffGlobalSearchDropdown')?.style.setProperty('display', 'none', 'important');
+      document.getElementById('ffGlobalSearchPalette')?.style.setProperty('display', 'none');
+      document.getElementById('ffGlobalSearchBackdrop')?.style.setProperty('display', 'none');
     }
 
     function openPicker(type){
       currentPickerType = type;
-      pickerBrowseActivated = false;
+      suppressGlobalSearchSuggestions();
       const label =
         type === 'character' ? 'Character' :
         type === 'pet' ? 'Pet' :
@@ -3662,21 +3648,24 @@
         'Loadout';
 
       pickerTitle.textContent = `Select ${label}`;
-      pickerSub.textContent = `Click the search box, then choose a ${label.toLowerCase()} to apply it to Quick View.`;
+      pickerSub.textContent = `Choose a ${label.toLowerCase()} to apply it to Quick View. Use the search box only when you want to filter this list.`;
       pickerSearch.value = '';
+      pickerSearch.setAttribute('data-ff-search-ignore', 'true');
+      pickerSearch.setAttribute('autocomplete', 'off');
 
       setupPickerFilters();
-      renderPickerWaiting();
 
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
-      // Do not auto-focus. This prevents the picker/global dropdown from opening until the user clicks Search.
+      renderPickerGrid();
+      suppressGlobalSearchSuggestions();
+      // Do not auto-focus. The selection is visible, but global site suggestions stay closed.
     }
 
     function closePicker(){
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
-      pickerBrowseActivated = false;
+      suppressGlobalSearchSuggestions();
     }
 
     function setupPickerFilters(){
@@ -3704,8 +3693,8 @@
           btn.addEventListener('click', () => {
             FILTER_STATE.character = btn.getAttribute('data-f') || 'all';
             pickerFilterPills.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-            if (pickerBrowseActivated) renderPickerGrid();
-            else renderPickerWaiting();
+            renderPickerGrid();
+            suppressGlobalSearchSuggestions();
           });
         });
 
@@ -3730,8 +3719,8 @@
 
         pickerFilterSelect.onchange = () => {
           FILTER_STATE[stateKey] = pickerFilterSelect.value || 'all';
-          if (pickerBrowseActivated) renderPickerGrid();
-          else renderPickerWaiting();
+          renderPickerGrid();
+          suppressGlobalSearchSuggestions();
         };
       } else {
         pickerFilterPills.style.display = 'none';
@@ -3809,10 +3798,7 @@
     }
 
     function renderPickerGrid(){
-      if (!pickerBrowseActivated) {
-        renderPickerWaiting();
-        return;
-      }
+      suppressGlobalSearchSuggestions();
 
       const state = DATA[currentPickerType];
       const q = (pickerSearch.value || '').toLowerCase().trim();
@@ -3844,11 +3830,11 @@
     pickerClose?.addEventListener('click', closePicker);
     modal?.addEventListener('click', (e) => { if (e.target === modal) closePicker(); });
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closePicker(); });
-    pickerSearch?.addEventListener('focus', activatePickerBrowse);
-    pickerSearch?.addEventListener('click', activatePickerBrowse);
+    pickerSearch?.addEventListener('focus', suppressGlobalSearchSuggestions);
+    pickerSearch?.addEventListener('click', suppressGlobalSearchSuggestions);
     pickerSearch?.addEventListener('input', () => {
-      if (!pickerBrowseActivated) pickerBrowseActivated = true;
       renderPickerGrid();
+      suppressGlobalSearchSuggestions();
     });
 
     pickerGrid?.addEventListener('click', (e) => {

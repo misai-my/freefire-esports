@@ -223,7 +223,12 @@
     dd.style.top=Math.min(window.innerHeight - 90, r.bottom + 8)+'px';
   }
 
+  function shouldSkipGlobalInput(input){
+    return !input || input.matches(INPUT_SKIP_SELECTOR) || input.closest('#pickerModal, .modal, [data-ff-search-ignore="true"]');
+  }
+
   function renderDropdown(input){
+    if(shouldSkipGlobalInput(input)){ hideDropdown(); return; }
     const dd=ensureDropdown();
     const results=dd.querySelector('.ff-global-search-results');
     positionDropdown(input);
@@ -239,7 +244,7 @@
   const debouncedDropdown = debounce(renderDropdown, 35);
 
   function enhanceInput(input){
-    if(!input || input.matches(INPUT_SKIP_SELECTOR) || input.dataset.ffGlobalSearch === '1') return;
+    if(shouldSkipGlobalInput(input) || input.dataset.ffGlobalSearch === '1') return;
     input.dataset.ffGlobalSearch='1';
     input.dataset.ffOriginalPlaceholder = input.getAttribute('placeholder') || '';
     const old = input.getAttribute('placeholder') || '';
