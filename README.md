@@ -91,3 +91,14 @@ It injects the same brand block, menu order, section labels, icons, active-page 
 ## CS Store changelog note
 
 The CS Store changelog now compares by item name and intentionally ignores slot, tier movement, and price-only changes. Items that still exist in the store are not shown as both Taken Out and Added.
+
+### Store page loading fix
+
+- Fixed `store.html` so the embedded CS Store data uses valid escaped JSON.
+- The changelog now compares by item name only and no longer breaks the page when items contain line breaks such as team-limit notes.
+
+## OB54 Clash Squad Counter Analysis
+
+This package includes an OB54 review of `character.json` and a rebuilt Clash Squad-focused `counter.json`.
+See `docs/CS_COUNTER_ANALYSIS.md` for the reasoning model and update summary.
+
