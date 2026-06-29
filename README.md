@@ -12,6 +12,11 @@ A static web package for Free Fire esports broadcast preparation and live desk s
 - `clash-data.html` — Clash Squad data summary
 - `split-view.html` — split-screen reference view
 
+
+## Latest update
+
+- `clash-compare.html` — enlarged comparison match-card icons and added a **VS** toggle beside Swap to filter analysis to head-to-head matches between the selected Team A and Team B.
+
 ## Local preview
 
 Run either command from the project folder:
@@ -141,3 +146,9 @@ This build restores and preserves the original `clash-draft-team.html` page with
 - `home.html` picker modals now open with the full item selection grid visible immediately.
 - The picker search still filters the modal list locally.
 - The global site search suggestion dropdown is suppressed inside picker modals, so clicking Choose will not show unrelated global search suggestions.
+
+## Clash Compare H2H visibility update
+
+- `clash-compare.html` now shows a more visible **VS H2H** button directly beside **Swap**.
+- The button toggles head-to-head-only mode for the two selected teams.
+- Removed the Quick Pairs button row from the Pick two teams panel.

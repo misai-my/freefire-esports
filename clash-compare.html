@@ -337,7 +337,7 @@
 
     .icons{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .icons img{
-      width:24px;height:24px;border-radius:8px;
+      width:34px;height:34px;border-radius:10px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(0,0,0,.18);
       object-fit:cover;
@@ -359,7 +359,7 @@
     .delta-neg{color:var(--bad);font-weight:900}
     .opp-logos{display:inline-flex;gap:4px;align-items:center;margin-left:6px;vertical-align:middle}
     .opp-logos img{
-      width:18px;height:18px;border-radius:6px;
+      width:26px;height:26px;border-radius:8px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(0,0,0,.18);
       object-fit:cover;
@@ -451,7 +451,7 @@
     .mVal{font-size:.95rem;line-height:1.15}
     .banBox{display:flex;gap:8px;align-items:center}
     .banBox img{
-      width:22px;height:22px;border-radius:8px;
+      width:38px;height:38px;border-radius:11px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(0,0,0,.18);
       object-fit:cover;
@@ -461,17 +461,17 @@
 
     .pBadge{
       display:grid;
-      grid-template-columns:44px 1fr auto;
+      grid-template-columns:60px minmax(0,1fr) auto;
       gap:10px;
       align-items:center;
       background:rgba(255,255,255,.03);
       border:1px solid rgba(255,255,255,.08);
       border-radius:14px;
       padding:7px 9px;
-      min-height:54px;
+      min-height:74px;
     }
     .pAct{
-      width:44px;height:44px;border-radius:12px;
+      width:60px;height:60px;border-radius:14px;
       border:1px solid rgba(255,255,255,.10);
       object-fit:cover;
       background:rgba(0,0,0,.18);
@@ -501,34 +501,52 @@
     }
     .pPass{display:flex;gap:6px;align-items:center}
     .pPass img{
-      width:16px;height:16px;border-radius:5px;
+      width:28px;height:28px;border-radius:8px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(0,0,0,.18);
       object-fit:cover;
     }
 
-    /* Pair buttons */
-    .pairbar{
+    .compare-buttons{
       display:flex;
-      gap:8px;
       align-items:center;
-      margin-top:10px;
+      gap:10px;
       flex-wrap:wrap;
     }
-    .pairbtn{
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--line);
-      color:rgba(244,246,255,.88);
-      border-radius:999px;
-      padding:7px 11px;
-      cursor:pointer;
-      font-weight:900;
+    #cmpVs{
+      min-width:112px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      color:#10121a;
+      border:1px solid rgba(77,211,255,.34);
+      background:linear-gradient(180deg, rgba(77,211,255,.96), rgba(255,189,89,.76));
+      box-shadow:0 14px 34px rgba(77,211,255,.16);
     }
-    .pairbtn:hover{
-      border-color:rgba(255,189,89,.35);
-      background:rgba(255,189,89,.08);
+    #cmpVs::after{
+      content:' H2H';
+      font-size:.72em;
+      letter-spacing:.02em;
+      opacity:.82;
+      margin-left:3px;
     }
-    .pairbtn strong{color:var(--brand2)}
+    #cmpVs.is-active{
+      color:#10121a;
+      border-color:rgba(113,208,131,.45);
+      background:linear-gradient(180deg, rgba(113,208,131,.98), rgba(77,211,255,.72));
+      box-shadow:0 14px 34px rgba(77,211,255,.22);
+    }
+    #cmpVs.is-active::after{
+      content:' ON';
+    }
+
+    .pPass{
+      min-width:116px;
+      justify-content:flex-end;
+    }
+    .pPass img, .banBox img, .icons img, .opp-logos img, .pAct{
+      image-rendering:auto;
+      flex:0 0 auto;
+    }
 
     .caption{margin:6px 0 8px}
 
@@ -538,6 +556,14 @@
 
     @media (max-width: 860px){
       .grid2{grid-template-columns:1fr}
+    }
+
+    @media (max-width: 760px){
+      .pBadge{grid-template-columns:52px minmax(0,1fr);}
+      .pPass{grid-column:1 / -1; justify-content:flex-start; min-width:0;}
+      .pAct{width:52px;height:52px;}
+      .pPass img{width:24px;height:24px;}
+      .banBox img{width:34px;height:34px;}
     }
 
     @media (max-width: 640px){
@@ -616,15 +642,10 @@
       <div class="controls">
         <label>Team A <select id="cmpTeamA"></select></label>
         <label>Team B <select id="cmpTeamB"></select></label>
-        <button class="btn btn-primary" id="cmpSwap" title="Swap A/B">Swap</button>
-      </div>
-
-      <div class="pairbar">
-        <span class="muted">Quick pairs:</span>
-        <button class="pairbtn" data-pair="BURIRAM|WAG"><strong>BRU</strong> vs <strong>WAG</strong></button>
-        <button class="pairbtn" data-pair="FALCONS|P ESPORTS"><strong>FLCN</strong> vs <strong>PE</strong></button>
-        <button class="pairbtn" data-pair="AG|HEAVY"><strong>AG</strong> vs <strong>HEV</strong></button>
-        <button class="pairbtn" data-pair="EVOS DIVINE|RRQ KAZU"><strong>EVOS</strong> vs <strong>RRQ</strong></button>
+        <div class="compare-buttons">
+          <button class="btn btn-primary" id="cmpSwap" title="Swap A/B">Swap</button>
+          <button class="btn" id="cmpVs" title="Show only matches where the two selected teams faced each other" aria-pressed="false">VS</button>
+        </div>
       </div>
 
       <div class="caption muted" id="meta">—</div>
@@ -858,6 +879,7 @@ let RAW_RECORDS = [];
 let FIRST_LOAD_TOURN = true;
 let TEAM_LOGO = {};
 let LATEST_EXPORT = null;
+let HEAD_TO_HEAD_ONLY = false;
 
 /* ========= Fetch ========= */
 async function fetchRecords({ map = el('fMap').value, tourn = el('fTourn').value || '__ALL__' } = {}){
@@ -1020,8 +1042,30 @@ function applyWL(rows){
   return rows.filter(r => r.result === wl);
 }
 
+function getHeadToHeadOpponent(team){
+  if (!HEAD_TO_HEAD_ONLY) return '';
+  const a = el('cmpTeamA')?.value || '';
+  const b = el('cmpTeamB')?.value || '';
+  if (!a || !b || a === b) return '';
+  if (team === a) return b;
+  if (team === b) return a;
+  return '';
+}
+
+function syncVsButton(){
+  const btn = el('cmpVs');
+  if (!btn) return;
+  btn.classList.toggle('is-active', !!HEAD_TO_HEAD_ONLY);
+  btn.setAttribute('aria-pressed', HEAD_TO_HEAD_ONLY ? 'true' : 'false');
+  btn.title = HEAD_TO_HEAD_ONLY
+    ? 'Head-to-head filter is active. Click to show all matches for both teams.'
+    : 'Show only matches where the two selected teams faced each other.';
+}
+
 function rowsForTeam(team){
-  const rows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r => r.team === team);
+  const opponent = getHeadToHeadOpponent(team);
+  let rows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r => r.team === team);
+  if (opponent) rows = rows.filter(r => r.opponent === opponent);
   return applyWL(rows);
 }
 
@@ -1513,8 +1557,9 @@ function rowsForTeamIgnoringWL(team){
   const mapSel = el('fMap').value;
   const tournSel = el('fTourn').value || '__ALL__';
 
+  const opponent = getHeadToHeadOpponent(team);
   const allRows = RAW_RECORDS.flatMap(explodeRecordToRows).filter(r => r.team === team);
-  let rows = allRows;
+  let rows = opponent ? allRows.filter(r => r.opponent === opponent) : allRows;
 
   if (mapSel !== '__ALL__') rows = rows.filter(r => r.map === mapSel);
   if (tournSel !== '__ALL__') {
@@ -1851,7 +1896,9 @@ function renderAll(){
   const mapLabel   = (el('fMap').value === '__ALL__') ? 'All maps' : el('fMap').value;
   const tournLabel = (el('fTourn').value === '__ALL__') ? 'All tournaments' : el('fTourn').value;
   const wlLabel    = (el('fWL').value === '__ALL__') ? 'All outcomes' : (el('fWL').value === 'W' ? 'Wins only' : 'Losses only');
-  el('meta').textContent = `${a} vs ${b} • ${mapLabel} • ${tournLabel} • ${wlLabel}`;
+  const h2hLabel   = HEAD_TO_HEAD_ONLY ? 'Head-to-head only' : 'All matches for selected teams';
+  syncVsButton();
+  el('meta').textContent = `${a} vs ${b} • ${h2hLabel} • ${mapLabel} • ${tournLabel} • ${wlLabel}`;
 
   const rowsA = rowsForTeam(a);
   const rowsB = rowsForTeam(b);
@@ -1948,7 +1995,8 @@ function renderAll(){
     teamB: b,
     mapLabel,
     tournamentLabel: tournLabel,
-    wlLabel
+    wlLabel,
+    comparisonMode: HEAD_TO_HEAD_ONLY ? 'head_to_head_only' : 'all_matches_for_selected_teams'
   };
 
   const exportObj = {
@@ -2100,6 +2148,18 @@ el('cmpSwap').addEventListener('click', () => {
   renderAll();
 });
 
+el('cmpVs').addEventListener('click', () => {
+  const A = el('cmpTeamA')?.value || '';
+  const B = el('cmpTeamB')?.value || '';
+  if (!A || !B || A === B){
+    alert('Pick two different teams before using VS.');
+    return;
+  }
+  HEAD_TO_HEAD_ONLY = !HEAD_TO_HEAD_ONLY;
+  syncVsButton();
+  renderAll();
+});
+
 el('copyPromptBtn').addEventListener('click', async () => {
   const ta = el('aiPrompt');
   const ok = await copyTextToClipboard(ta.value || '');
@@ -2114,12 +2174,6 @@ document.addEventListener('click', (e) => {
   if (chip){
     quickPick(chip.dataset.team);
     return;
-  }
-
-  const pair = e.target.closest('.pairbtn[data-pair]');
-  if (pair){
-    const [a,b] = pair.dataset.pair.split('|');
-    quickPair(a, b);
   }
 });
 
