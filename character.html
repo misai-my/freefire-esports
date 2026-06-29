@@ -679,6 +679,86 @@
     .chip.cat-survival{ border-color: rgba(139,226,122,.22); }
     .chip.cat-teamwork{ border-color: rgba(255,89,199,.22); }
 
+
+
+    .balance-badge{
+      position:absolute;
+      left:8px;
+      bottom:8px;
+      z-index:3;
+      max-width:calc(100% - 16px);
+      border-radius:999px;
+      padding:5px 8px;
+      font-size:.62rem;
+      font-weight:1000;
+      letter-spacing:.08em;
+      color:#10131a;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 10px 24px rgba(0,0,0,.36);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .balance-badge.buffed{ background:linear-gradient(135deg,#8dffba,#38d67b); }
+    .balance-badge.nerfed{ background:linear-gradient(135deg,#ff9a9a,#ff5a5a); }
+    .balance-badge.skill-boost{ background:linear-gradient(135deg,#8feaff,#ffbd59); }
+    .char-card.has-balance-buffed{ border-color:rgba(113,208,131,.34); }
+    .char-card.has-balance-nerfed{ border-color:rgba(255,90,90,.34); }
+    .dot.buffed{ background:#71d083; }
+    .dot.nerfed{ background:#ff5a5a; }
+    .dot.skill-boost{ background:#4dd3ff; }
+    .balance-list{
+      display:grid;
+      gap:10px;
+      margin-top:8px;
+    }
+    .balance-note{
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      color:rgba(244,246,255,.88);
+      line-height:1.35rem;
+    }
+    .balance-note.buffed{ border-color:rgba(113,208,131,.28); background:rgba(113,208,131,.08); }
+    .balance-note.nerfed{ border-color:rgba(255,90,90,.28); background:rgba(255,90,90,.08); }
+    .balance-note.skill-boost{ border-color:rgba(77,211,255,.26); background:rgba(77,211,255,.07); }
+    .balance-note-title{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      font-weight:1000;
+      margin-bottom:6px;
+      color:rgba(244,246,255,.96);
+    }
+    .balance-tag{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:3px 8px;
+      font-size:.68rem;
+      letter-spacing:.08em;
+      color:#10131a;
+      font-weight:1000;
+      border:1px solid rgba(255,255,255,.18);
+    }
+    .balance-tag.buffed{ background:#71d083; }
+    .balance-tag.nerfed{ background:#ff5a5a; }
+    .balance-tag.skill-boost{ background:#4dd3ff; }
+    .balance-change-lines{
+      margin:6px 0 0 0;
+      padding-left:18px;
+      color:rgba(244,246,255,.84);
+    }
+    .balance-change-lines li{ margin:4px 0; }
+    .balance-cs-note{
+      margin-top:8px;
+      color:rgba(170,177,197,.95);
+      font-size:.92rem;
+    }
+
     .empty-msg{
       grid-column: 1 / -1;
       padding: 12px;
@@ -1907,6 +1987,13 @@
           <p class="txt" id="infoSkillDesc">—</p>
         </div>
 
+
+
+        <div class="info-block" id="infoBalanceBlock" style="display:none;">
+          <b id="infoBalanceTitle">Balance Update</b>
+          <div id="infoBalanceList" class="balance-list"></div>
+        </div>
+
         <div class="info-block">
           <b>Role</b>
           <p class="txt" id="infoRole">—</p>
@@ -1927,11 +2014,11 @@
     const CFG = Object.freeze({
       SUPABASE_URL: (window.FF_CONFIG && window.FF_CONFIG.SUPABASE_URL) || 'https://ooutjrewmwsixghbouxi.supabase.co',
       SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6ImFub24iLCJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
-      CHAR_URL: 'https://misai-my.github.io/freefire-esports/character.json',
-      COUNTER_URL: 'https://misai-my.github.io/freefire-esports/counter.json',
-      PET_URL: 'https://misai-my.github.io/freefire-esports/pet.json',
-      LOADOUT_URL: 'https://misai-my.github.io/freefire-esports/loadout.json',
-      CACHE_KEY: 'ff_chars_cache_v2',
+      CHAR_URL: 'character.json',
+      COUNTER_URL: 'counter.json',
+      PET_URL: 'pet.json',
+      LOADOUT_URL: 'loadout.json',
+      CACHE_KEY: 'ff_chars_cache_v3_balance',
       COUNTER_CACHE_KEY: 'ff_char_counter_cache_v1',
       PET_CACHE_KEY: 'ff_pet_cache_v1',
       LOADOUT_CACHE_KEY: 'ff_loadout_cache_v1',
@@ -2200,14 +2287,72 @@
       return '';
     }
 
+
+
+    function getBalanceUpdate(c){
+      const update = c?.balance_update;
+      if (!update || !update.change_type) return null;
+      const type = tidy(update.change_type).toLowerCase();
+      if (!['buffed','nerfed'].includes(type)) return null;
+      return {
+        ...update,
+        change_type: type,
+        label: tidy(update.label) || (type === 'buffed' ? 'BUFF' : 'NERF')
+      };
+    }
+
+    function getSkillBoostUpdate(c){
+      if (c?.skill_boost_update) return c.skill_boost_update;
+      if (Array.isArray(c?.skill_boosts) && c.skill_boosts.length){
+        return {
+          label: 'SKILL BOOST',
+          change_type: 'skill_boost',
+          patch: c?.patch_version || 'OB54',
+          changes: c.skill_boosts.map(b => `Added Skill Boost option: ${tidy(b?.name)} — ${tidy(b?.effect)}`),
+          cs_note: c?.cs_perk_point_note || 'Skill Boost value depends on the match mode and upgrade timing.'
+        };
+      }
+      return null;
+    }
+
+    function balanceClass(type){
+      const t = tidy(type).toLowerCase();
+      if (t === 'buffed') return 'buffed';
+      if (t === 'nerfed') return 'nerfed';
+      return 'skill-boost';
+    }
+
+    function balanceLabel(update){
+      if (!update) return '';
+      return tidy(update.label) || (update.change_type === 'buffed' ? 'BUFF' : update.change_type === 'nerfed' ? 'NERF' : 'SKILL BOOST');
+    }
+
+    function balancePill(update){
+      const el = document.createElement('span');
+      const cls = balanceClass(update?.change_type);
+      el.className = 'pill';
+      const d = document.createElement('span');
+      d.className = 'dot ' + cls;
+      el.appendChild(d);
+      el.appendChild(document.createTextNode(balanceLabel(update)));
+      return el;
+    }
+
     function makeSearchBlob(c){
+      const balance = getBalanceUpdate(c);
+      const boost = getSkillBoostUpdate(c);
       return [
         tidy(c?.name),
         tidy(c?.role),
         tidy(c?.skill_type),
         tidy(c?.skill),
         tidy(c?.description),
-        getMSDesc(c)
+        getMSDesc(c),
+        tidy(balance?.label),
+        tidy(balance?.change_type),
+        ...(Array.isArray(balance?.changes) ? balance.changes.map(x => `${tidy(x?.field)} ${tidy(x?.before)} ${tidy(x?.after)} ${tidy(x?.note)}`) : []),
+        tidy(boost?.label),
+        ...(Array.isArray(boost?.changes) ? boost.changes : [])
       ].filter(Boolean).join(' ').toLowerCase();
     }
 
@@ -2862,7 +3007,11 @@
       const catLabel = getCategoryLabelFromClass(catCls);
 
       const card = document.createElement('div');
-      card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '');
+      const balanceUpdate = getBalanceUpdate(c);
+      const boostUpdate = getSkillBoostUpdate(c);
+      const balanceBadgeUpdate = balanceUpdate || boostUpdate;
+      card.className = 'char-card ' + (passive ? 'passive-skill' : 'active-skill') + (meta ? ' is-meta' : '')
+        + (balanceUpdate ? (' has-balance-' + balanceClass(balanceUpdate.change_type)) : '');
       card.setAttribute('tabindex','0');
       card.dataset.search = makeSearchBlob(c);
 
@@ -2886,6 +3035,14 @@
       thumb.appendChild(img);
       thumb.appendChild(metaDot);
       thumb.appendChild(roleDot);
+
+      if (balanceBadgeUpdate){
+        const balanceBadge = document.createElement('span');
+        balanceBadge.className = 'balance-badge ' + balanceClass(balanceBadgeUpdate.change_type);
+        balanceBadge.textContent = balanceLabel(balanceBadgeUpdate);
+        balanceBadge.title = balanceLabel(balanceBadgeUpdate);
+        thumb.appendChild(balanceBadge);
+      }
 
       const name = document.createElement('div');
       name.className = 'char-name';
@@ -3147,6 +3304,9 @@
     const infoSkillTitle = document.getElementById('infoSkillTitle');
     const infoSkillDesc = document.getElementById('infoSkillDesc');
     const infoRole = document.getElementById('infoRole');
+    const infoBalanceBlock = document.getElementById('infoBalanceBlock');
+    const infoBalanceTitle = document.getElementById('infoBalanceTitle');
+    const infoBalanceList = document.getElementById('infoBalanceList');
     const infoCounterBlock = document.getElementById('infoCounterBlock');
     const infoCounterTitle = document.getElementById('infoCounterTitle');
     const infoCounterCategory = document.getElementById('infoCounterCategory');
@@ -3162,6 +3322,73 @@
       el.appendChild(d);
       el.appendChild(document.createTextNode(label));
       return el;
+    }
+
+
+
+    function renderBalanceSection(character){
+      const balance = getBalanceUpdate(character);
+      const boost = getSkillBoostUpdate(character);
+
+      if (!infoBalanceBlock || !infoBalanceList || !infoBalanceTitle) return;
+
+      infoBalanceList.innerHTML = '';
+      if (!balance && !boost){
+        infoBalanceBlock.style.display = 'none';
+        return;
+      }
+
+      infoBalanceBlock.style.display = '';
+      infoBalanceTitle.textContent = balance
+        ? `${tidy(balance.patch) || 'OB54'} Balance Update — ${balanceLabel(balance)}`
+        : `${tidy(boost?.patch) || 'OB54'} Skill Boost Update`;
+
+      function addBalanceNote(update, title){
+        if (!update) return;
+        const cls = balanceClass(update.change_type);
+        const box = document.createElement('div');
+        box.className = 'balance-note ' + cls;
+
+        const head = document.createElement('div');
+        head.className = 'balance-note-title';
+        const tag = document.createElement('span');
+        tag.className = 'balance-tag ' + cls;
+        tag.textContent = balanceLabel(update);
+        head.appendChild(tag);
+        head.appendChild(document.createTextNode(title));
+        box.appendChild(head);
+
+        const list = document.createElement('ul');
+        list.className = 'balance-change-lines';
+        const changes = Array.isArray(update.changes) ? update.changes : [];
+        changes.forEach(change => {
+          const li = document.createElement('li');
+          if (typeof change === 'string'){
+            li.textContent = change;
+          } else {
+            const field = tidy(change?.field);
+            const before = tidy(change?.before);
+            const after = tidy(change?.after);
+            const note = tidy(change?.note);
+            li.textContent = `${field ? field + ': ' : ''}${before && after ? before + ' → ' + after : ''}${note ? ' — ' + note : ''}`.trim() || 'Updated.';
+          }
+          list.appendChild(li);
+        });
+        if (changes.length) box.appendChild(list);
+
+        const csNote = tidy(update.cs_note);
+        if (csNote){
+          const p = document.createElement('div');
+          p.className = 'balance-cs-note';
+          p.textContent = 'CS note: ' + csNote;
+          box.appendChild(p);
+        }
+
+        infoBalanceList.appendChild(box);
+      }
+
+      if (balance) addBalanceNote(balance, 'Compared with the previous character.json');
+      if (boost) addBalanceNote(boost, 'OB54 Skill Boost note');
     }
 
     function renderCounterSection(character){
@@ -3286,11 +3513,16 @@
       infoBadges.innerHTML = '';
       infoBadges.appendChild(badgeDot(isPassive(c) ? 'passive' : 'active', isPassive(c) ? 'Passive Skill' : 'Active Skill'));
       if (metaFlag) infoBadges.appendChild(badgeDot('meta', 'Meta'));
+      const balanceUpdate = getBalanceUpdate(c);
+      const boostUpdate = getSkillBoostUpdate(c);
+      if (balanceUpdate) infoBadges.appendChild(balancePill(balanceUpdate));
+      if (boostUpdate) infoBadges.appendChild(balancePill(boostUpdate));
 
       infoSkillTitle.textContent = 'Skill: ' + (skill || '—') + (useMS ? ' • (MS)' : '');
       infoSkillDesc.textContent = (st ? (st + ' — ') : '') + (desc || '—');
       infoRole.textContent = role;
 
+      renderBalanceSection(c);
       infoCounterTitle.textContent = 'Character Counters';
       renderCounterSection(c);
 

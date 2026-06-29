@@ -26,7 +26,7 @@
 
   const NAV_GROUPS = [
     { label: 'Command Center', items: [
-      { href:'home.html', label:'Home', title:'Home Dashboard', icon:'dashboard', aliases:['index.html','dashboard.html','x-dashboard.html'] },
+      { href:'home.html', label:'Home', title:'Home Dashboard', icon:'dashboard', aliases:['index.html','dashboard.html'] },
       { href:'ff-update.html', label:'FF Updates', title:'Patch Updates', icon:'update' },
       { href:'split-view.html', label:'Split View', title:'Split View', icon:'split' }
     ]},

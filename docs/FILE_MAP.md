@@ -6,8 +6,7 @@
 |---|---|
 | `index.html` | Login page |
 | `home.html` | Main Free Fire dashboard |
-| `dashboard.html` | Compatibility redirect to `x-dashboard.html` |
-| `x-dashboard.html` | Alternate dashboard build |
+| `dashboard.html` | Compatibility redirect to `home.html` |
 | `split-view.html` | Multi-page split view |
 
 ## Team and tournament tools
@@ -73,3 +72,6 @@
 
 ### Added Draft Layout
 - `clash-draft-team-v2.html` — live player-column Clash Squad Draft V2 page using the same draft state/save/load behavior as the original while keeping `clash-draft-team.html` untouched.
+
+- `character-balance-changes.json` — OB54 character buff/nerf comparison notes generated from previous vs updated character data.
+- `docs/CHARACTER_BALANCE_CHANGES.md` — readable table of character balance changes.

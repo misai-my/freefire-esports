@@ -7,7 +7,7 @@ This package is a static HTML/CSS/JavaScript app. Most pages are self-contained,
 ## What was improved
 
 1. **Compatibility fixes**
-   - Added `dashboard.html` because some pages referenced it while the actual file was `x-dashboard.html`.
+   - `dashboard.html` now redirects to `home.html`; legacy `home.html` was removed from this package.
    - Added `ewc-team-overview.html` because EWC navigation referenced it but the file was missing.
 
 2. **Configuration cleanup**

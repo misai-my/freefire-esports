@@ -126,3 +126,6 @@ This build restores and preserves the original `clash-draft-team.html` page with
 
 `clash-draft-team.html` now includes the pasted match JSON importer from the uploaded page. It can parse `team_stats[].player_stats[]` and auto-fill active skills, passive skills, pets, loadouts, and player names for the left/right draft sides. The page now loads `character.json`, `pet.json`, and `loadout.json` from the local package first, with the live GitHub copy as fallback.
 
+## Character Balance Indicators
+
+`character.html` now shows OB54 buff/nerf indicators for changed characters, based on a comparison between the previous `character.json` and the updated `character.json`. Details are also stored in `character-balance-changes.json` and documented in `docs/CHARACTER_BALANCE_CHANGES.md`.
