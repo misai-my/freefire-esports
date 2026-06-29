@@ -476,13 +476,15 @@
     .pBadge{
       display:grid;
       grid-template-columns:74px minmax(0,1fr);
-      gap:10px;
+      grid-template-rows:auto auto;
+      column-gap:10px;
+      row-gap:8px;
       align-items:start;
       background:rgba(255,255,255,.03);
       border:1px solid rgba(255,255,255,.08);
       border-radius:14px;
-      padding:8px 9px;
-      min-height:92px;
+      padding:8px 9px 10px;
+      min-height:116px;
       width:100%;
       max-width:100%;
       overflow:hidden;
@@ -520,22 +522,27 @@
       text-overflow:ellipsis;
     }
     .pPass{
-      display:flex;
-      gap:6px;
-      align-items:flex-start;
-      justify-content:flex-start;
-      flex-wrap:wrap;
+      display:grid;
+      grid-template-columns:repeat(4, 36px);
+      gap:8px;
+      align-items:start;
+      justify-content:start;
       min-width:0;
       max-width:100%;
-      margin-top:6px;
+      margin-top:0;
     }
     .pPass img{
-      width:28px;height:28px;border-radius:8px;
-      border:1px solid rgba(255,255,255,.10);
+      width:36px;height:36px;border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
       background:rgba(0,0,0,.18);
       object-fit:contain;
       object-position:center;
-      padding:1px;
+      padding:2px;
+      box-shadow:0 8px 18px rgba(0,0,0,.28);
+    }
+    .pPass img.petIcon{
+      border-color:rgba(255,189,89,.38);
+      background:linear-gradient(180deg, rgba(255,189,89,.12), rgba(0,0,0,.18));
     }
 
     .compare-buttons{
@@ -572,7 +579,7 @@
 
     .pPass{
       min-width:0;
-      justify-content:flex-start;
+      justify-content:start;
     }
     .pPass img, .banBox img, .icons img, .opp-logos img, .pAct{
       image-rendering:auto;
@@ -604,9 +611,10 @@
       align-self:start;
     }
     .pBadge > .pPass{
-      grid-column:2;
+      grid-column:1 / -1;
       grid-row:2;
       align-self:start;
+      padding-left:84px;
     }
 
     .caption{margin:6px 0 8px}
@@ -620,10 +628,21 @@
     }
 
     @media (max-width: 760px){
-      .pBadge{grid-template-columns:64px minmax(0,1fr); min-height:82px;}
+      .pBadge{grid-template-columns:64px minmax(0,1fr); min-height:104px;}
       .pAct{width:64px;height:64px;}
-      .pPass img{width:24px;height:24px;}
+      .pBadge > .pPass{padding-left:74px;}
+      .pPass{grid-template-columns:repeat(4, 32px); gap:7px;}
+      .pPass img{width:32px;height:32px;border-radius:9px;}
       .banBox img{width:34px;height:34px;}
+    }
+
+
+    @media (max-width: 520px){
+      .pBadge{grid-template-columns:58px minmax(0,1fr); min-height:96px; padding:7px;}
+      .pAct{width:58px;height:58px;}
+      .pBadge > .pPass{padding-left:66px;}
+      .pPass{grid-template-columns:repeat(4, 29px); gap:6px;}
+      .pPass img{width:29px;height:29px;border-radius:8px; padding:1px;}
     }
 
     @media (max-width: 640px){
@@ -1880,7 +1899,7 @@ async function copyTextToClipboard(text){
 
 /* Matches rendering */
 function playerBadge(active, trio, petLine){
-  const ico = (ps) => `<img src="${ps.img || PLACEHOLDER}" alt="${safe(ps.name || '')}" title="${safe(ps.name || '')}">`;
+  const ico = (ps) => `<img class="passiveIcon" src="${ps.img || PLACEHOLDER}" alt="${safe(ps.name || '')}" title="${safe(ps.name || '')}">`;
   const p0 = trio?.[0] || {};
   const p1 = trio?.[1] || {};
   const p2 = trio?.[2] || {};
@@ -1888,7 +1907,7 @@ function playerBadge(active, trio, petLine){
   const aName = safe(active.hero || '');
   const pName = safe(active.player || '');
   const petName = safe(pet.name || '');
-  const petIcon = pet.name ? `<img src="${pet.img || PLACEHOLDER}" alt="${petName}" title="Pet: ${petName}">` : '';
+  const petIcon = pet.name ? `<img class="petIcon" src="${pet.img || PLACEHOLDER}" alt="${petName}" title="Pet: ${petName}">` : '';
 
   return `
     <div class="pBadge" title="${pName}${aName ? (' — ' + aName) : ''}${petName ? (' — Pet: ' + petName) : ''}">
