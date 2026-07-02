@@ -346,6 +346,20 @@
       margin-top:auto;
     }
 
+
+    .live-match-status{
+      display:block;
+      margin-top:5px;
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.25;
+      font-weight:800;
+      min-height:13px;
+      white-space:normal;
+    }
+    .live-match-status.good{color:#9df3c2;}
+    .live-match-status.bad{color:#ffb0b0;}
+
     .reset-btn{
       margin: 14px auto 0;
       display:block;
@@ -1709,6 +1723,13 @@
       <datalist id="tournamentList"></datalist>
     </div>
 
+    <div class="control-group live-match-id-group">
+      <label for="liveMatchIdInput">Live Match ID</label>
+      <input type="text" id="liveMatchIdInput" placeholder="Enter CS match ID" inputmode="numeric" />
+      <small id="liveMatchStatus" class="live-match-status">Builds the Garena CS live match URL automatically.</small>
+    </div>
+
+    <button class="save-btn" type="button" onclick="loadLiveMatchById()">Load Live Match</button>
     <button class="save-btn" onclick="saveOrUpdateDraft()">Save / Update</button>
     <button class="save-btn" onclick="loadDraftRecord()">Load</button>
   </div>
@@ -1886,7 +1907,10 @@ let draftState = {
   teamLeftScore: 0,
   teamRightScore: 0,
   map: 'Bermuda',
-  tournamentName: ''
+  tournamentName: '',
+  matchId: '',
+  liveMatchUrl: '',
+  liveMatchRaw: null
 };
 
 function esc(s){
@@ -2215,6 +2239,85 @@ function jsonImportSetStatus(message, type = ''){
   el.textContent = message;
 }
 
+
+const LIVE_MATCH_CS_URL_PREFIX = 'https://suez.garenanow.com/game/freefire/tidy/v1/livematch/cs/';
+
+function setLiveMatchStatus(message, type = ''){
+  const el = document.getElementById('liveMatchStatus');
+  if (!el) return;
+  el.className = `live-match-status ${type}`.trim();
+  el.textContent = message;
+}
+
+function normalizeLiveMatchId(value){
+  return (value ?? '').toString().trim().replace(/^.*\/cs\//i, '').replace(/[^0-9A-Za-z_-]/g, '');
+}
+
+function buildLiveMatchUrl(matchId){
+  return `${LIVE_MATCH_CS_URL_PREFIX}${encodeURIComponent(normalizeLiveMatchId(matchId))}`;
+}
+
+async function loadLiveMatchById(){
+  const input = document.getElementById('liveMatchIdInput');
+  const matchId = normalizeLiveMatchId(input?.value || '');
+
+  if (!matchId) {
+    setLiveMatchStatus('Enter a Match ID first.', 'bad');
+    input?.focus();
+    return;
+  }
+
+  const url = buildLiveMatchUrl(matchId);
+  draftState.matchId = matchId;
+  draftState.liveMatchUrl = url;
+  if (input) input.value = matchId;
+
+  setLiveMatchStatus(`Loading ${url}`, '');
+  jsonImportSetStatus('Fetching live match JSON…', '');
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) throw new Error(`Garena GET failed: HTTP ${response.status}`);
+
+    const contentType = response.headers.get('content-type') || '';
+    const payload = contentType.includes('application/json')
+      ? await response.json()
+      : JSON.parse(await response.text());
+
+    draftState.liveMatchRaw = payload;
+    const jsonInput = document.getElementById('matchJsonInput');
+    if (jsonInput) jsonInput.value = JSON.stringify(payload, null, 2);
+
+    const importer = document.getElementById('jsonDraftImporter');
+    if (importer) importer.open = true;
+
+    parseMatchJsonForDraftImport();
+
+    if (PARSED_MATCH_JSON_TEAMS.length >= 2) {
+      document.getElementById('jsonLeftTeam').value = '0';
+      document.getElementById('jsonRightTeam').value = '1';
+      applyParsedJsonTeamToDraft('left');
+      applyParsedJsonTeamToDraft('right');
+      jsonImportSetStatus(`Fetched Match ID ${matchId} and auto-filled both teams.`, 'good');
+    } else {
+      jsonImportSetStatus(`Fetched Match ID ${matchId}. Parsed ${PARSED_MATCH_JSON_TEAMS.length} team(s).`, 'good');
+    }
+
+    setLiveMatchStatus(`Loaded: ${url}`, 'good');
+    await saveDraftState();
+  } catch (err) {
+    console.error('Failed to load live CS match:', err);
+    const message = err?.message || String(err);
+    setLiveMatchStatus(`Failed to load Match ID ${matchId}. ${message}`, 'bad');
+    jsonImportSetStatus(`Live match GET failed. ${message}`, 'bad');
+  }
+}
+
 async function loadMatchApiReferenceForJsonImport(){
   MATCH_API_REF_BY_ID = new Map();
   try {
@@ -2516,6 +2619,13 @@ async function initDraftPage() {
   document.getElementById('teamLeftScore').addEventListener('change', saveDraftState);
   document.getElementById('teamRightScore').addEventListener('change', saveDraftState);
   document.getElementById('tournamentInput').addEventListener('change', saveDraftState);
+  document.getElementById('liveMatchIdInput')?.addEventListener('change', saveDraftState);
+  document.getElementById('liveMatchIdInput')?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      loadLiveMatchById();
+    }
+  });
 
   await loadDraftState();
   await loadCSTeamListOptions();
@@ -3094,7 +3204,10 @@ function resetDraft() {
     teamLeftScore: 0,
     teamRightScore: 0,
     map: document.getElementById('mapSelect').value || 'Bermuda',
-    tournamentName: document.getElementById('tournamentInput').value || ''
+    tournamentName: document.getElementById('tournamentInput').value || '',
+    matchId: document.getElementById('liveMatchIdInput')?.value?.trim() || '',
+    liveMatchUrl: '',
+    liveMatchRaw: null
   };
 
   document.getElementById('teamLeftScore').value = 0;
@@ -3113,6 +3226,11 @@ function applyStateToControls() {
   document.getElementById('teamRightScore').value = draftState.teamRightScore ?? 0;
   document.getElementById('mapSelect').value = draftState.map || 'Bermuda';
   document.getElementById('tournamentInput').value = draftState.tournamentName || '';
+  const liveMatchInput = document.getElementById('liveMatchIdInput');
+  if (liveMatchInput) liveMatchInput.value = draftState.matchId || '';
+  if (draftState.matchId) {
+    setLiveMatchStatus(`Ready: ${buildLiveMatchUrl(draftState.matchId)}`, 'good');
+  }
 
   const leftTeamInput = document.getElementById('teamNameLeft');
   const rightTeamInput = document.getElementById('teamNameRight');
@@ -3129,6 +3247,8 @@ async function saveDraftState() {
   draftState.teamRightScore = parseInt(document.getElementById('teamRightScore')?.value || '0', 10);
   draftState.map = document.getElementById('mapSelect')?.value || 'Bermuda';
   draftState.tournamentName = document.getElementById('tournamentInput')?.value || '';
+  draftState.matchId = document.getElementById('liveMatchIdInput')?.value?.trim() || draftState.matchId || '';
+  draftState.liveMatchUrl = draftState.matchId ? buildLiveMatchUrl(draftState.matchId) : (draftState.liveMatchUrl || '');
 
   if (!draftState || Object.keys(draftState).length === 0) {
     console.warn('⚠️ Draft state is empty. Skipping save.');
@@ -3228,6 +3348,9 @@ async function loadDraftRecord() {
       matchDate: '',
       gameNumber: 1,
       tournamentName: '',
+      matchId: '',
+      liveMatchUrl: '',
+      liveMatchRaw: null,
       ...data.state
     };
 
