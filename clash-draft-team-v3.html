@@ -1645,6 +1645,19 @@
   background:rgba(255,255,255,.045);
 }
 .live-match-actions{margin-top:10px;}
+.json-import-static-url{
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:8px 10px;
+  color:var(--text,#f6f8ff);
+  background:rgba(0,0,0,.16);
+  font-size:11px;
+  font-weight:900;
+  word-break:break-all;
+}
 .live-match-helper,.live-match-status{
   display:block;
   margin-top:6px;
@@ -1768,10 +1781,10 @@
             <input type="text" id="liveMatchIdInput" placeholder="Enter CS match ID" inputmode="numeric" />
             <small class="live-match-helper">Builds: https://suez.garenanow.com/game/freefire/tidy/v1/livematch/cs/[MATCH ID]</small>
           </div>
-          <div class="json-import-field live-match-proxy-group">
-            <label for="liveMatchProxyInput">Proxy URL</label>
-            <input type="url" id="liveMatchProxyInput" placeholder="Paste Cloudflare Worker proxy URL" />
-            <small id="liveMatchStatus" class="live-match-status">A proxy is required on GitHub Pages because Garena blocks browser CORS.</small>
+          <div class="json-import-field live-match-function-group">
+            <label>Supabase Edge Function</label>
+            <div class="json-import-static-url" id="liveMatchFunctionUrlPreview">/functions/v1/live-match</div>
+            <small id="liveMatchStatus" class="live-match-status">Enter a Match ID, then load through the Supabase Edge Function.</small>
           </div>
         </div>
         <div class="json-import-actions live-match-actions">
@@ -2282,7 +2295,6 @@ function jsonImportSetStatus(message, type = ''){
 
 
 const LIVE_MATCH_CS_URL_PREFIX = 'https://suez.garenanow.com/game/freefire/tidy/v1/livematch/cs/';
-const LIVE_MATCH_PROXY_STORAGE_KEY = 'ffcs_live_match_proxy_url';
 
 function setLiveMatchStatus(message, type = ''){
   const el = document.getElementById('liveMatchStatus');
@@ -2295,29 +2307,23 @@ function normalizeLiveMatchId(value){
   return (value ?? '').toString().trim().replace(/^.*\/cs\//i, '').replace(/[^0-9A-Za-z_-]/g, '');
 }
 
-function normalizeProxyUrl(value){
-  return (value ?? '').toString().trim().replace(/\/+$/g, '');
+function getSupabaseUrl(){
+  return ((window.FF_CONFIG && window.FF_CONFIG.SUPABASE_URL) || 'https://ooutjrewmwsixghbouxi.supabase.co').replace(/\/+$/g, '');
+}
+
+function getSupabaseAnonKey(){
+  return (window.FF_CONFIG && window.FF_CONFIG.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg';
 }
 
 function buildLiveMatchUrl(matchId){
   return `${LIVE_MATCH_CS_URL_PREFIX}${encodeURIComponent(normalizeLiveMatchId(matchId))}`;
 }
 
-function buildLiveMatchFetchUrl(matchId){
-  const proxyInput = document.getElementById('liveMatchProxyInput');
-  const proxyUrl = normalizeProxyUrl(proxyInput?.value || localStorage.getItem(LIVE_MATCH_PROXY_STORAGE_KEY) || '');
-  const garenaUrl = buildLiveMatchUrl(matchId);
-
-  draftState.liveMatchProxyUrl = proxyUrl;
-  draftState.liveMatchUrl = garenaUrl;
-
-  if (proxyUrl) {
-    localStorage.setItem(LIVE_MATCH_PROXY_STORAGE_KEY, proxyUrl);
-    if (proxyInput) proxyInput.value = proxyUrl;
-    return `${proxyUrl}?matchId=${encodeURIComponent(normalizeLiveMatchId(matchId))}`;
-  }
-
-  return garenaUrl;
+function buildLiveMatchFunctionUrl(matchId){
+  const functionUrl = `${getSupabaseUrl()}/functions/v1/live-match?matchId=${encodeURIComponent(normalizeLiveMatchId(matchId))}`;
+  const preview = document.getElementById('liveMatchFunctionUrlPreview');
+  if (preview) preview.textContent = `${getSupabaseUrl()}/functions/v1/live-match`;
+  return functionUrl;
 }
 
 async function loadLiveMatchById(){
@@ -2331,24 +2337,23 @@ async function loadLiveMatchById(){
   }
 
   const garenaUrl = buildLiveMatchUrl(matchId);
-  const fetchUrl = buildLiveMatchFetchUrl(matchId);
-  const usingProxy = fetchUrl !== garenaUrl;
+  const fetchUrl = buildLiveMatchFunctionUrl(matchId);
 
   draftState.matchId = matchId;
   draftState.liveMatchUrl = garenaUrl;
   if (input) input.value = matchId;
 
-  if (!usingProxy && location.protocol.startsWith('http')) {
-    setLiveMatchStatus('Trying direct Garena GET. If it fails with Failed to fetch, add a Proxy URL.', '');
-  } else {
-    setLiveMatchStatus(`Loading Match ID ${matchId}${usingProxy ? ' via proxy' : ''}…`, '');
-  }
+  setLiveMatchStatus(`Loading Match ID ${matchId} through Supabase Edge Function…`, '');
   jsonImportSetStatus('Fetching live match JSON…', '');
 
   try {
     const response = await fetch(fetchUrl, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' },
+      headers: {
+        'Accept': 'application/json',
+        'apikey': getSupabaseAnonKey(),
+        'Authorization': `Bearer ${getSupabaseAnonKey()}`
+      },
       cache: 'no-store'
     });
 
@@ -2378,16 +2383,16 @@ async function loadLiveMatchById(){
       jsonImportSetStatus(`Fetched Match ID ${matchId}. Parsed ${PARSED_MATCH_JSON_TEAMS.length} team(s).`, 'good');
     }
 
-    setLiveMatchStatus(`Loaded Match ID ${matchId}${usingProxy ? ' via proxy' : ''}.`, 'good');
+    setLiveMatchStatus(`Loaded Match ID ${matchId} through Supabase Edge Function.`, 'good');
     await saveDraftState();
   } catch (err) {
     console.error('Failed to load live CS match:', err);
     const message = err?.message || String(err);
-    const corsHint = !usingProxy && /Failed to fetch|NetworkError|Load failed/i.test(message)
-      ? ' Browser CORS blocked the direct Garena request. Add a Cloudflare Worker Proxy URL, then try again.'
+    const hint = /Failed to fetch|NetworkError|Load failed/i.test(message)
+      ? ' Check that the Supabase Edge Function is deployed and CORS is enabled.'
       : '';
-    setLiveMatchStatus(`Failed to load Match ID ${matchId}. ${message}.${corsHint}`, 'bad');
-    jsonImportSetStatus(`Live match GET failed. ${message}.${corsHint}`, 'bad');
+    setLiveMatchStatus(`Failed to load Match ID ${matchId}. ${message}.${hint}`, 'bad');
+    jsonImportSetStatus(`Live match GET failed. ${message}.${hint}`, 'bad');
   }
 }
 
@@ -3304,7 +3309,8 @@ function applyStateToControls() {
   const liveMatchInput = document.getElementById('liveMatchIdInput');
   if (liveMatchInput) liveMatchInput.value = draftState.matchId || '';
   if (draftState.matchId) {
-    setLiveMatchStatus(`Ready: ${buildLiveMatchUrl(draftState.matchId)}`, 'good');
+    buildLiveMatchFunctionUrl(draftState.matchId);
+    setLiveMatchStatus(`Ready to load Match ID ${draftState.matchId} through Supabase Edge Function.`, 'good');
   }
 
   const leftTeamInput = document.getElementById('teamNameLeft');
