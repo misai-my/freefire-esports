@@ -359,6 +359,15 @@
     }
     .live-match-status.good{color:#9df3c2;}
     .live-match-status.bad{color:#ffb0b0;}
+    .live-match-helper{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:9.5px;
+      line-height:1.22;
+      font-weight:800;
+      opacity:.9;
+    }
 
     .reset-btn{
       margin: 14px auto 0;
@@ -1627,6 +1636,26 @@
 @media (max-width: 900px){.json-import-body{grid-template-columns:1fr}.json-draft-importer{margin-left:10px;margin-right:10px}}
 @media (max-width: 560px){.json-import-grid{grid-template-columns:1fr}.json-import-actions .json-import-btn{flex:1}}
 
+
+.json-live-match-panel{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  padding:12px;
+  margin:0 0 12px;
+  background:rgba(255,255,255,.045);
+}
+.live-match-actions{margin-top:10px;}
+.live-match-helper,.live-match-status{
+  display:block;
+  margin-top:6px;
+  color:var(--muted,#96a0b8);
+  font-size:11px;
+  font-weight:800;
+  line-height:1.35;
+}
+.live-match-status.good{color:var(--green,#66e5a1);}
+.live-match-status.bad{color:var(--red,#ff6262);}
+
 </style>
   <link rel="stylesheet" href="assets/css/readability-theme.css?v=20260629" />
 </head>
@@ -1723,13 +1752,6 @@
       <datalist id="tournamentList"></datalist>
     </div>
 
-    <div class="control-group live-match-id-group">
-      <label for="liveMatchIdInput">Live Match ID</label>
-      <input type="text" id="liveMatchIdInput" placeholder="Enter CS match ID" inputmode="numeric" />
-      <small id="liveMatchStatus" class="live-match-status">Builds the Garena CS live match URL automatically.</small>
-    </div>
-
-    <button class="save-btn" type="button" onclick="loadLiveMatchById()">Load Live Match</button>
     <button class="save-btn" onclick="saveOrUpdateDraft()">Save / Update</button>
     <button class="save-btn" onclick="loadDraftRecord()">Load</button>
   </div>
@@ -1739,6 +1761,23 @@
   <details class="json-draft-importer" id="jsonDraftImporter">
     <summary>Paste Match JSON → Auto Fill Active / Passive / Pet / Loadout</summary>
     <div class="json-import-body">
+      <div class="json-live-match-panel">
+        <div class="json-import-grid">
+          <div class="json-import-field live-match-id-group">
+            <label for="liveMatchIdInput">Live Match ID</label>
+            <input type="text" id="liveMatchIdInput" placeholder="Enter CS match ID" inputmode="numeric" />
+            <small class="live-match-helper">Builds: https://suez.garenanow.com/game/freefire/tidy/v1/livematch/cs/[MATCH ID]</small>
+          </div>
+          <div class="json-import-field live-match-proxy-group">
+            <label for="liveMatchProxyInput">Proxy URL</label>
+            <input type="url" id="liveMatchProxyInput" placeholder="Paste Cloudflare Worker proxy URL" />
+            <small id="liveMatchStatus" class="live-match-status">A proxy is required on GitHub Pages because Garena blocks browser CORS.</small>
+          </div>
+        </div>
+        <div class="json-import-actions live-match-actions">
+          <button class="json-import-btn primary" type="button" onclick="loadLiveMatchById()">Load Live Match</button>
+        </div>
+      </div>
       <textarea id="matchJsonInput" class="json-import-textarea" spellcheck="false" placeholder="Paste match JSON here. It will read team_stats[].player_stats[].skill_info, skill_ids, pet_skill_id, and loadouts."></textarea>
       <div class="json-import-panel">
         <div class="json-import-grid">
@@ -1910,6 +1949,7 @@ let draftState = {
   tournamentName: '',
   matchId: '',
   liveMatchUrl: '',
+  liveMatchProxyUrl: '',
   liveMatchRaw: null
 };
 
@@ -2240,7 +2280,9 @@ function jsonImportSetStatus(message, type = ''){
 }
 
 
+
 const LIVE_MATCH_CS_URL_PREFIX = 'https://suez.garenanow.com/game/freefire/tidy/v1/livematch/cs/';
+const LIVE_MATCH_PROXY_STORAGE_KEY = 'ffcs_live_match_proxy_url';
 
 function setLiveMatchStatus(message, type = ''){
   const el = document.getElementById('liveMatchStatus');
@@ -2253,8 +2295,29 @@ function normalizeLiveMatchId(value){
   return (value ?? '').toString().trim().replace(/^.*\/cs\//i, '').replace(/[^0-9A-Za-z_-]/g, '');
 }
 
+function normalizeProxyUrl(value){
+  return (value ?? '').toString().trim().replace(/\/+$/g, '');
+}
+
 function buildLiveMatchUrl(matchId){
   return `${LIVE_MATCH_CS_URL_PREFIX}${encodeURIComponent(normalizeLiveMatchId(matchId))}`;
+}
+
+function buildLiveMatchFetchUrl(matchId){
+  const proxyInput = document.getElementById('liveMatchProxyInput');
+  const proxyUrl = normalizeProxyUrl(proxyInput?.value || localStorage.getItem(LIVE_MATCH_PROXY_STORAGE_KEY) || '');
+  const garenaUrl = buildLiveMatchUrl(matchId);
+
+  draftState.liveMatchProxyUrl = proxyUrl;
+  draftState.liveMatchUrl = garenaUrl;
+
+  if (proxyUrl) {
+    localStorage.setItem(LIVE_MATCH_PROXY_STORAGE_KEY, proxyUrl);
+    if (proxyInput) proxyInput.value = proxyUrl;
+    return `${proxyUrl}?matchId=${encodeURIComponent(normalizeLiveMatchId(matchId))}`;
+  }
+
+  return garenaUrl;
 }
 
 async function loadLiveMatchById(){
@@ -2267,22 +2330,29 @@ async function loadLiveMatchById(){
     return;
   }
 
-  const url = buildLiveMatchUrl(matchId);
+  const garenaUrl = buildLiveMatchUrl(matchId);
+  const fetchUrl = buildLiveMatchFetchUrl(matchId);
+  const usingProxy = fetchUrl !== garenaUrl;
+
   draftState.matchId = matchId;
-  draftState.liveMatchUrl = url;
+  draftState.liveMatchUrl = garenaUrl;
   if (input) input.value = matchId;
 
-  setLiveMatchStatus(`Loading ${url}`, '');
+  if (!usingProxy && location.protocol.startsWith('http')) {
+    setLiveMatchStatus('Trying direct Garena GET. If it fails with Failed to fetch, add a Proxy URL.', '');
+  } else {
+    setLiveMatchStatus(`Loading Match ID ${matchId}${usingProxy ? ' via proxy' : ''}…`, '');
+  }
   jsonImportSetStatus('Fetching live match JSON…', '');
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
       cache: 'no-store'
     });
 
-    if (!response.ok) throw new Error(`Garena GET failed: HTTP ${response.status}`);
+    if (!response.ok) throw new Error(`Live match GET failed: HTTP ${response.status}`);
 
     const contentType = response.headers.get('content-type') || '';
     const payload = contentType.includes('application/json')
@@ -2308,13 +2378,16 @@ async function loadLiveMatchById(){
       jsonImportSetStatus(`Fetched Match ID ${matchId}. Parsed ${PARSED_MATCH_JSON_TEAMS.length} team(s).`, 'good');
     }
 
-    setLiveMatchStatus(`Loaded: ${url}`, 'good');
+    setLiveMatchStatus(`Loaded Match ID ${matchId}${usingProxy ? ' via proxy' : ''}.`, 'good');
     await saveDraftState();
   } catch (err) {
     console.error('Failed to load live CS match:', err);
     const message = err?.message || String(err);
-    setLiveMatchStatus(`Failed to load Match ID ${matchId}. ${message}`, 'bad');
-    jsonImportSetStatus(`Live match GET failed. ${message}`, 'bad');
+    const corsHint = !usingProxy && /Failed to fetch|NetworkError|Load failed/i.test(message)
+      ? ' Browser CORS blocked the direct Garena request. Add a Cloudflare Worker Proxy URL, then try again.'
+      : '';
+    setLiveMatchStatus(`Failed to load Match ID ${matchId}. ${message}.${corsHint}`, 'bad');
+    jsonImportSetStatus(`Live match GET failed. ${message}.${corsHint}`, 'bad');
   }
 }
 
@@ -2620,6 +2693,8 @@ async function initDraftPage() {
   document.getElementById('teamRightScore').addEventListener('change', saveDraftState);
   document.getElementById('tournamentInput').addEventListener('change', saveDraftState);
   document.getElementById('liveMatchIdInput')?.addEventListener('change', saveDraftState);
+  document.getElementById('liveMatchProxyInput')?.addEventListener('change', saveDraftState);
+  document.getElementById('liveMatchProxyInput')?.addEventListener('blur', saveDraftState);
   document.getElementById('liveMatchIdInput')?.addEventListener('keydown', event => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -3237,6 +3312,11 @@ function applyStateToControls() {
   if (leftTeamInput) leftTeamInput.value = draftState.teamNames?.[0] || 'TEAM LEFT';
   if (rightTeamInput) rightTeamInput.value = draftState.teamNames?.[1] || 'TEAM RIGHT';
 
+  const liveMatchIdInput = document.getElementById('liveMatchIdInput');
+  if (liveMatchIdInput) liveMatchIdInput.value = draftState.matchId || '';
+  const liveMatchProxyInput = document.getElementById('liveMatchProxyInput');
+  if (liveMatchProxyInput) liveMatchProxyInput.value = draftState.liveMatchProxyUrl || localStorage.getItem(LIVE_MATCH_PROXY_STORAGE_KEY) || '';
+
   refreshPlayerNameOptions();
 }
 
@@ -3247,6 +3327,9 @@ async function saveDraftState() {
   draftState.teamRightScore = parseInt(document.getElementById('teamRightScore')?.value || '0', 10);
   draftState.map = document.getElementById('mapSelect')?.value || 'Bermuda';
   draftState.tournamentName = document.getElementById('tournamentInput')?.value || '';
+  draftState.matchId = normalizeLiveMatchId(document.getElementById('liveMatchIdInput')?.value || draftState.matchId || '');
+  draftState.liveMatchProxyUrl = normalizeProxyUrl(document.getElementById('liveMatchProxyInput')?.value || draftState.liveMatchProxyUrl || '');
+  if (draftState.liveMatchProxyUrl) localStorage.setItem(LIVE_MATCH_PROXY_STORAGE_KEY, draftState.liveMatchProxyUrl);
   draftState.matchId = document.getElementById('liveMatchIdInput')?.value?.trim() || draftState.matchId || '';
   draftState.liveMatchUrl = draftState.matchId ? buildLiveMatchUrl(draftState.matchId) : (draftState.liveMatchUrl || '');
 
@@ -3350,6 +3433,7 @@ async function loadDraftRecord() {
       tournamentName: '',
       matchId: '',
       liveMatchUrl: '',
+      liveMatchProxyUrl: '',
       liveMatchRaw: null,
       ...data.state
     };
