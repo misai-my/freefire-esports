@@ -174,3 +174,8 @@ This build restores and preserves the original `clash-draft-team.html` page with
 ### Readability theme layer
 
 This package includes `assets/css/readability-theme.css`, loaded by every HTML page. It standardizes text contrast for dark mode and light mode across cards, tables, modals, picker overlays, dropdowns, and form controls. Future pages should keep this stylesheet loaded after page-specific styles so readability overrides remain active.
+
+
+## User Access Control
+
+This package now includes Supabase profile-based page access. Run `supabase/12_user_access_profiles.sql`, promote your main account to `owner` or `admin`, then manage page permissions in `admin-user-access.html`. The access guard hides unauthorized sidebar/search results and blocks direct page loads. Keep Supabase RLS enabled for real data security.
