@@ -5,5 +5,10 @@ window.FF_CONFIG = window.FF_CONFIG || {
   SUPABASE_URL: 'https://ooutjrewmwsixghbouxi.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg',
   APP_NAME: 'Free Fire Caster Command Center',
-  APP_VERSION: '1.1.0'
+  APP_VERSION: '1.1.0',
+  ACCESS_ENABLED: true,
+  ACCESS_PROFILE_TABLE: 'profiles',
+  ACCESS_DEFAULT_ROLE: 'viewer',
+  ACCESS_LOGIN_PAGE: 'index.html',
+  ACCESS_HOME_PAGE: 'home.html'
 };

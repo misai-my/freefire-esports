@@ -48,6 +48,9 @@
       { href:'clash-compare.html', label:'CS Compare', title:'CS Compare', icon:'swords' },
       { href:'clash-combo.html', label:'CS Combos', title:'CS Combos', icon:'swords' },
     ]},
+    { label: 'Admin', items: [
+      { href:'admin-user-access.html', label:'User Access', title:'User Access Control', icon:'settings' },
+    ]},
   ];
 
   function pageName(){
@@ -68,6 +71,11 @@
     return item.href === current || (item.aliases || []).includes(current);
   }
 
+  function canAccessNavItem(item){
+    if(!window.FF_ACCESS || typeof window.FF_ACCESS.canAccessPage !== 'function') return true;
+    return window.FF_ACCESS.canAccessPage(item.href);
+  }
+
   function navItemHTML(item, current){
     const active = isActive(item, current) ? ' active' : '';
     const icon = ICONS[item.icon] || ICONS.dashboard;
@@ -79,10 +87,14 @@
   }
 
   function buildNavHTML(current){
-    return NAV_GROUPS.map(group => `
+    return NAV_GROUPS.map(group => {
+      const items = group.items.filter(canAccessNavItem);
+      if(!items.length) return '';
+      return `
       <div class="ff-nav-section" role="presentation"><span>${escapeHTML(group.label)}</span></div>
-      ${group.items.map(item => navItemHTML(item, current)).join('')}
-    `).join('');
+      ${items.map(item => navItemHTML(item, current)).join('')}
+    `;
+    }).join('');
   }
 
   function ensureStyles(){
@@ -160,4 +172,5 @@
   }else{
     setupSidebar();
   }
+  document.addEventListener('ff:access-ready', setupSidebar);
 })();

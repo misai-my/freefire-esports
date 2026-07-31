@@ -103,8 +103,17 @@
     return score;
   }
 
+  function canAccessSearchItem(item){
+    try{
+      if(!window.FF_ACCESS || typeof window.FF_ACCESS.canAccessPage !== 'function') return true;
+      const url = new URL(item.url || 'home.html', location.href);
+      const page = url.pathname.split('/').pop() || 'home.html';
+      return window.FF_ACCESS.canAccessPage(page);
+    }catch(_e){ return true; }
+  }
+
   function search(q){
-    const scored = INDEX.map(item => ({item, score:scoreItem(item,q)})).filter(x => x.score > 0);
+    const scored = INDEX.filter(canAccessSearchItem).map(item => ({item, score:scoreItem(item,q)})).filter(x => x.score > 0);
     scored.sort((a,b) => b.score - a.score || String(a.item.title).localeCompare(String(b.item.title)));
     return scored.slice(0, MAX_RESULTS).map(x => x.item);
   }
@@ -479,6 +488,14 @@
           e.preventDefault(); openPalette();
         }
       }
+    });
+
+    document.addEventListener('ff:access-ready', () => {
+      if(state.paletteOpen){
+        const input=document.getElementById('ffGlobalSearchInput');
+        renderPalette(input?.value || '');
+      }
+      if(state.input) renderDropdown(state.input);
     });
 
     const mo = new MutationObserver(muts => muts.forEach(m => m.addedNodes.forEach(n => {
