@@ -102,7 +102,10 @@
     const style = document.createElement('style');
     style.id = 'ffSharedSidebarStyles';
     style.textContent = `
-      #sidebar[data-shared-sidebar="true"] .nav{overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px;}
+      @media (min-width:901px){#sidebar[data-shared-sidebar="true"]{position:sticky!important;top:18px!important;align-self:flex-start!important;height:calc(100dvh - 36px)!important;max-height:calc(100dvh - 36px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;}#sidebar[data-shared-sidebar="true"].collapsed{height:calc(100dvh - 36px)!important;max-height:calc(100dvh - 36px)!important;}}
+      @media (max-width:900px){#sidebar[data-shared-sidebar="true"]{height:calc(100dvh - 24px)!important;max-height:calc(100dvh - 24px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;}}
+      #sidebar[data-shared-sidebar="true"] .brand{flex:0 0 auto!important;}
+      #sidebar[data-shared-sidebar="true"] .nav{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;scrollbar-gutter:stable both-edges;padding-bottom:max(22px, env(safe-area-inset-bottom))!important;}
       #sidebar[data-shared-sidebar="true"] .ff-nav-section{padding:12px 10px 4px;margin-top:4px;color:var(--muted,#93a4bd);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;line-height:1.2;}
       #sidebar[data-shared-sidebar="true"].collapsed .ff-nav-section{display:none;}
       @media (max-width:900px){#sidebar[data-shared-sidebar="true"] .ff-nav-section{display:block;}}
