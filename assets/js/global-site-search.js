@@ -3,7 +3,18 @@
 (function(){
   'use strict';
 
-  const INDEX = Array.isArray(window.FF_SITE_SEARCH_INDEX) ? window.FF_SITE_SEARCH_INDEX : [];
+  const OB55_SHORTCUTS = [
+    {id:'shortcut-ob55-overview',kind:'Shortcut',title:'OB55 — Naruto Shippuden Returns',subtitle:'Patch overview and rollout timeline',url:'ff-update.html#ob55',query:'OB55 Naruto Shippuden patch notes',action:'redirect',tags:['OB55','Naruto','Patch Notes'],priority:100,terms:'OB55 Naruto Shippuden Chapter 1 returns September 10 October 1 Nine Tails Kenta M7 Skorp RPK Hawk',snippet:'Open the OB55 overview, rollout timeline, headline systems, and competitive meta read.'},
+    {id:'shortcut-ob55-br',kind:'Shortcut',title:'OB55 Battle Royale Systems',subtitle:'Random events, airdrops, devices and revival timing',url:'ff-update.html#ob55-br',query:'OB55 Battle Royale devices airdrops',action:'redirect',tags:['OB55','Battle Royale'],priority:99,terms:'Nine Tails Sharingan Control Airdrop active passive device Horizaline Jammer Portal Go Solo Revival Solara',snippet:'Caster-ready summary of OB55 Battle Royale event, utility, airdrop, and pacing changes.'},
+    {id:'shortcut-ob55-cs',kind:'Shortcut',title:'OB55 Clash Squad Changes',subtitle:'New throwables and map adjustments',url:'ff-update.html#ob55-cs',query:'OB55 Clash Squad Flame Sonar Smoke',action:'redirect',tags:['OB55','Clash Squad'],priority:98,terms:'Flame Grenade Sonar Grenade Smoke Vortex Kalahari Purgatory Bermuda Clash Squad',snippet:'Review OB55 CS throwable utility and competitive map adjustments.'},
+    {id:'shortcut-ob55-characters',kind:'Shortcut',title:'OB55 Character & Loadout Balance',subtitle:'Kenta, Morse, Luna, Wukong and Super Bonfire',url:'ff-update.html#ob55-characters',query:'OB55 character balance Kenta Morse Luna Wukong',action:'redirect',tags:['OB55','Characters','Balance'],priority:98,terms:'Kenta rework Morse nerf Luna nerf Wukong buff Super Bonfire Tactical Market',snippet:'Competitive impact table for OB55 character and loadout balance changes.'},
+    {id:'shortcut-ob55-weapons',kind:'Shortcut',title:'OB55 Weapon Reset — October 1',subtitle:'M7, Skorp, RPK, Hawk and class rebalance',url:'ff-update.html#ob55-weapons',query:'OB55 new weapons October 1',action:'redirect',tags:['OB55','Weapons','October 1'],priority:98,terms:'M7 Skorp RPK Hawk SMG shotgun assault rifle sniper marksman machine gun rebalance economy source',snippet:'Preview the four new weapons and the October 1 class-wide weapon meta reset.'},
+    {id:'shortcut-ob55-caster',kind:'Shortcut',title:'OB55 Caster Checklist',subtitle:'Production and analysis talking points',url:'ff-update.html#ob55-broadcast',query:'OB55 caster broadcast notes',action:'redirect',tags:['OB55','Caster','Broadcast'],priority:97,terms:'caster analyst broadcast drop rotation team fight map analysis roster loadout timeline',snippet:'Fast production checklist for calling OB55 drops, rotations, fights, maps, and loadouts.'}
+  ];
+  const INDEX = [
+    ...OB55_SHORTCUTS,
+    ...(Array.isArray(window.FF_SITE_SEARCH_INDEX) ? window.FF_SITE_SEARCH_INDEX : [])
+  ];
   const MAX_RESULTS = 10;
   const SEARCH_INPUT_SELECTOR = 'input[type="search"], input[id*="search" i], input[placeholder*="search" i]';
   const INPUT_SKIP_SELECTOR = '.ff-global-search-input, [data-ff-search-ignore="true"]';

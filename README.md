@@ -65,9 +65,9 @@ When moving to a new Supabase project, update `SUPABASE_URL` and `SUPABASE_ANON_
 This is still a static front-end package. Database security should be controlled in Supabase with Row Level Security policies. Do not add service-role keys to any browser file.
 
 
-## OB54 Patch Notes
+## OB55 Patch Notes
 
-The package now includes an OB54 summary on `ff-update.html`, structured data in `ob54-update.json`, and global search shortcuts for OB54 Battle Royale, Clash Squad, Skill Boost, Weapon Awakening, character balance, weapon balance, map/system updates, and broadcast notes. Official reference: https://ff.garena.com/en/article/1673/
+The package now leads with an OB55 summary on `ff-update.html`, preserves the OB51–OB54 archive, includes structured data in `ob55-update.json`, and provides global search shortcuts for OB55 Battle Royale, Clash Squad, character/loadout balance, the October 1 weapon reset, and broadcast notes. Official reference: https://ff.garena.com/en/article/1712/
 
 
 ## Latest CS Store Tables
