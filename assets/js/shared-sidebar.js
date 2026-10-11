@@ -1,7 +1,8 @@
 (function(){
   'use strict';
 
-  const SIDEBAR_VERSION = '20260801-admin-sidebar-hard-fix';
+  const SIDEBAR_VERSION = '20261011-clash-master';
+  window.FF_SHARED_SIDEBAR_VERSION = SIDEBAR_VERSION;
   const STORAGE_KEY = 'ff_sidebar_collapsed_v1';
 
   const ICONS = {
@@ -43,6 +44,7 @@
       { href:'br-team.html', label:'BR Data', title:'Battle Royale Data', icon:'chart' },
     ]},
     { label: 'Clash Squad', items: [
+      { href:'clash-master.html', label:'Clash Master', title:'Clash Squad Master Reference', icon:'swords' },
       { href:'clash-draft-team.html', label:'CS Draft', title:'CS Draft', icon:'draft' },
       { href:'clash-data.html', label:'CS Data', title:'CS Data', icon:'swords' },
       { href:'clash-compare.html', label:'CS Compare', title:'CS Compare', icon:'swords' },
@@ -80,7 +82,7 @@
     const active = isActive(item, current) ? ' active' : '';
     const icon = ICONS[item.icon] || ICONS.dashboard;
     return `
-      <a class="nav-item${active}" href="${escapeHTML(item.href)}" data-page="${escapeHTML(item.href)}" title="${escapeHTML(item.title || item.label)}">
+      <a class="nav-item${active}" href="${escapeHTML(item.href)}" data-page="${escapeHTML(item.href)}"${active ? ' aria-current="page"' : ''} title="${escapeHTML(item.title || item.label)}">
         <span class="nav-ico" aria-hidden="true">${icon}</span>
         <span class="nav-label">${escapeHTML(item.label)}</span>
       </a>`;
@@ -256,7 +258,7 @@
             <small class="muted">Caster Dashboard</small>
           </div>
         </div>
-</div>
+      </div>
       <nav class="nav" id="nav" aria-label="Main navigation">
         ${buildNavHTML(current)}
       </nav>
@@ -285,7 +287,9 @@
       });
     });
 
-    document.dispatchEvent(new CustomEvent('ff:shared-sidebar-ready', { detail:{ version: SIDEBAR_VERSION, current } }));
+    document.dispatchEvent(new CustomEvent('ff:shared-sidebar-ready', {
+      detail:{ version: SIDEBAR_VERSION, current }
+    }));
   }
 
   if(document.readyState === 'loading'){
@@ -293,5 +297,6 @@
   }else{
     setupSidebar();
   }
+
   document.addEventListener('ff:access-ready', setupSidebar);
 })();
