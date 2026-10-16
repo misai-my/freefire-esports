@@ -354,33 +354,23 @@ function recordToSides(r){const picks=Array.isArray(r.state.picks)?r.state.picks
 function buildStats(records,sides){const teams=new Map(),tournaments=new Map(),maps=new Map(),skills=new Map(),players=new Map();const touchTeam=n=>{if(!teams.has(n))teams.set(n,{name:n,matches:0,wins:0,losses:0,scoreFor:0,scoreAgainst:0,maps:new Map(),opponents:new Map(),active:new Map(),passive:new Map(),pet:new Map(),loadout:new Map(),bans:new Map(),players:new Set(),recent:[]});return teams.get(n)};const touchT=n=>{if(!tournaments.has(n))tournaments.set(n,{name:n,matches:new Set(),teams:new Set(),maps:new Map(),active:new Map(),passive:new Map(),bans:new Map(),latest:''});return tournaments.get(n)};const touchMap=n=>{if(!maps.has(n))maps.set(n,{name:n,matches:new Set(),teams:new Map(),active:new Map(),passive:new Map(),pet:new Map(),loadout:new Map(),bans:new Map(),wins:new Map()});return maps.get(n)};const touchSkill=(n,t,img)=>{if(!n)return null;const key=`${t}|${n}`;if(!skills.has(key))skills.set(key,{key,name:n,type:t,img:img||PLACEHOLDER,uses:0,wins:0,teams:new Map(),maps:new Map(),players:new Map(),bans:0});return skills.get(key)};records.forEach(r=>{const t=touchT(r.tournament);t.matches.add(r.id);if(sides.some(side=>side.rec_id===r.id&&side.team===r.team_left))t.teams.add(r.team_left||'Unknown Team');if(sides.some(side=>side.rec_id===r.id&&side.team===r.team_right))t.teams.add(r.team_right||'Unknown Team');addMapCount(t.maps,r.map);if(String(r.date)>String(t.latest))t.latest=r.date;touchMap(r.map).matches.add(r.id)});sides.forEach(side=>{const T=touchTeam(side.team);T.matches++;side.win?T.wins++:T.losses++;T.scoreFor+=side.score;T.scoreAgainst+=side.oppScore;addMapCount(T.maps,side.map);addMapCount(T.opponents,side.opponent);T.recent.push(side);const tour=touchT(side.tournament),map=touchMap(side.map);addMapCount(map.teams,side.team);if(side.win)addMapCount(map.wins,side.team);const bn=objName(side.ban);if(bn){addMapCount(T.bans,bn);addMapCount(tour.bans,bn);addMapCount(map.bans,bn);const sk=touchSkill(bn,'Ban',objImg(side.ban));sk.bans++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map)}side.players.forEach(p=>{const playerKey=p.playerId||('raw:'+side.team+':'+p.name);if(p.name){T.players.add(p.name);if(!players.has(playerKey))players.set(playerKey,{name:p.canonicalName||p.name,playerKey,teams:new Map(),maps:new Map(),active:new Map(),passive:new Map(),pet:new Map(),loadout:new Map(),matches:0,wins:0,recent:[]});const P=players.get(playerKey);P.matches++;if(side.win)P.wins++;addMapCount(P.teams,side.team);addMapCount(P.maps,side.map);P.recent.push(side)}const a=objName(p.active);if(a){addMapCount(T.active,a);addMapCount(tour.active,a);addMapCount(map.active,a);if(p.name)addMapCount(players.get(playerKey).active,a);const sk=touchSkill(a,'Active',objImg(p.active));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)}p.passives.forEach(ps=>{const n=objName(ps);if(!n)return;addMapCount(T.passive,n);addMapCount(tour.passive,n);addMapCount(map.passive,n);if(p.name)addMapCount(players.get(playerKey).passive,n);const sk=touchSkill(n,'Passive',objImg(ps));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)});const pet=objName(p.pet);if(pet){addMapCount(T.pet,pet);addMapCount(map.pet,pet);if(p.name)addMapCount(players.get(playerKey).pet,pet);const sk=touchSkill(pet,'Pet',objImg(p.pet));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)}const lo=objName(p.loadout);if(lo){addMapCount(T.loadout,lo);addMapCount(map.loadout,lo);if(p.name)addMapCount(players.get(playerKey).loadout,lo);const sk=touchSkill(lo,'Loadout',objImg(p.loadout));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)}})});teams.forEach(t=>t.recent.sort(sortSidesDesc));players.forEach(p=>p.recent.sort(sortSidesDesc));return{teams,tournaments,maps,skills,players}}
 function sortSidesDesc(a,b){return String(b.date).localeCompare(String(a.date))||(b.game||0)-(a.game||0)}
 function populateAllFilters(){fillSelect('fTourn',[...STATS.tournaments.keys()].sort(),'All tournaments');}
-// Select the newest saved match before building dependent team/player lists.
-// On subsequent Realtime/interval refreshes, keep the viewer's current filters.
+// Default to the latest tournament without narrowing team, player, or map.
+// The draft viewer may still show the newest saved match independently.
 function focusMostRecentMatch(){
  const rec=RECORDS[0];
  $('qSearch').value='';
  for(const id of ['fTourn','fTeam','fSkill','fMap'])$(id).value='__ALL__';
- if(!rec){hubMatchId='__LIVE__';syncFilterOptions();return;}
- // The fetch is explicitly ordered by match date, game number, then id.
- $('fTourn').value=rec.tournament;
- syncFilterOptions('fTourn');
- const team=rec.team_left||rec.team_right;
- if(team&&[...$('fTeam').options].some(o=>o.value===team))$('fTeam').value=team;
- syncFilterOptions('fTeam');
- if([...$('fMap').options].some(o=>o.value===rec.map))$('fMap').value=rec.map;
- syncFilterOptions('fMap');
- // Only preselect a real player from the focused team's four slots.
- const slots=Array.isArray(rec.state?.playerCards)?rec.state.playerCards:[];
- const offset=team===rec.team_right?4:0;
- const raw=cleanName(slots[offset]);
- const identity=raw?canonicalSlot(rec.id,offset+1,raw):null;
- const display=identity?.canonicalName||raw;
- const playerValue=display?'Player: '+display:'';
- if(playerValue&&[...$('fSkill').options].some(o=>o.value===playerValue)){
-   $('fSkill').value=playerValue;
-   syncFilterOptions('fSkill');
+ if(rec&&[...$('fTourn').options].some(o=>o.value===rec.tournament)){
+   $('fTourn').value=rec.tournament;
+ }else{
+   setDefaultTournament();
  }
- hubMatchId=String(rec.id);
+ syncFilterOptions('fTourn');
+ $('fTeam').value='__ALL__';
+ $('fSkill').value='__ALL__';
+ $('fMap').value='__ALL__';
+ // Keep the latest saved match selected in Section 00.
+ hubMatchId=rec?String(rec.id):'__LIVE__';
  hubRound=0;
 }
 function setDefaultTournament(){const latest=[...STATS.tournaments.values()].sort((a,b)=>String(b.latest).localeCompare(String(a.latest)))[0];if(latest)$('fTourn').value=latest.name}
