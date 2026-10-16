@@ -348,12 +348,60 @@ async function guardAuth(){try{const {data:{session}}=await client.auth.getSessi
 $('logoutBtn').addEventListener('click',async()=>{await client.auth.signOut();window.location.href='index.html'});$('refreshBtn').addEventListener('click',loadAll);$('resetBtn').addEventListener('click',()=>{focusMostRecentMatch();renderAll();hubSyncEvidenceTeam();});
 ['qSearch','fTourn','fTeam','fSkill','fMap'].forEach(id=>$(id).addEventListener(id==='qSearch'?'input':'change',debounce(()=>{if(id!=='qSearch')syncFilterOptions(id);renderAll();if(id==='fTeam'||id==='fTourn')hubSyncEvidenceTeam();},id==='qSearch'?180:0)));$('activeSkillSelect').addEventListener('change',()=>{renderAll();});$('mapSelectPanel').addEventListener('change',()=>{const v=$('mapSelectPanel').value;$('fMap').value=v||'__ALL__';syncFilterOptions('fMap');renderAll();});window.addEventListener('resize',debounce(()=>{try{const ctx=buildFilteredStats();const team=selectedOrTopTeam(ctx);if(team)drawTrend(team);}catch(_e){}},120));
 async function loadJson(path){try{const r=await fetch(path);return await r.json()}catch(e){return[]}}
-async function loadAll(){try{[CHARS,PETS,LOADOUTS,WEAPONS]=await Promise.all([loadJson('character.json'),loadJson('pet.json'),loadJson('loadout.json'),loadJson('weapon.json')]);const {data,error}=await client.from('draft_records').select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state').order('match_date',{ascending:false}).order('game_number',{ascending:false}).order('id',{ascending:false}).limit(2000);if(error)throw error;RAW=data||[];RECORDS=RAW.map(normalizeRecord).filter(Boolean);await loadCanonicalPlayerSlots();SIDES=RECORDS.flatMap(recordToSides);STATS=buildStats(RECORDS,SIDES);populateAllFilters();if(!initialLoaded){focusMostRecentMatch();initialLoaded=true;}else{syncFilterOptions();}renderAll();hubSyncEvidenceTeam();hubPopulate();}catch(e){console.error(e);alert('Failed to load Clash data: '+(e.message||e));}}
+async function loadAll(){
+ try{
+  // Capture current selections BEFORE any option list is rebuilt. A realtime
+  // refresh must not silently send the tournament back to All tournaments.
+  const previous=initialLoaded?{
+   tournament:$('fTourn').value,team:$('fTeam').value,
+   skill:$('fSkill').value,map:$('fMap').value,search:$('qSearch').value
+  }:null;
+  [CHARS,PETS,LOADOUTS,WEAPONS]=await Promise.all([
+   loadJson('character.json'),loadJson('pet.json'),
+   loadJson('loadout.json'),loadJson('weapon.json')
+  ]);
+  const {data,error}=await client.from('draft_records')
+   .select('id, match_date, game_number, team_left, team_right, team_left_score, team_right_score, map, tournament_name, state')
+   .order('match_date',{ascending:false})
+   .order('game_number',{ascending:false})
+   .order('id',{ascending:false}).limit(2000);
+  if(error)throw error;
+  RAW=data||[];
+  RECORDS=RAW.map(normalizeRecord).filter(Boolean);
+  await loadCanonicalPlayerSlots();
+  SIDES=RECORDS.flatMap(recordToSides);
+  STATS=buildStats(RECORDS,SIDES);
+  // Populate the tournament first, then dependent dropdowns in a clean state.
+  const desiredTournament=previous?.tournament||RECORDS[0]?.tournament||'__ALL__';
+  populateAllFilters(desiredTournament);
+  if(!initialLoaded){
+   focusMostRecentMatch();
+   initialLoaded=true;
+  }else{
+   // Clear stale child values before rebuilding available options.
+   $('fTeam').value='__ALL__';
+   $('fSkill').value='__ALL__';
+   $('fMap').value='__ALL__';
+   $('qSearch').value=previous.search;
+   syncFilterOptions('fTourn');
+   if(previous.team&&[...$('fTeam').options].some(o=>o.value===previous.team))$('fTeam').value=previous.team;
+   syncFilterOptions('fTeam');
+   if(previous.map&&[...$('fMap').options].some(o=>o.value===previous.map))$('fMap').value=previous.map;
+   syncFilterOptions('fMap');
+   if(previous.skill&&[...$('fSkill').options].some(o=>o.value===previous.skill))$('fSkill').value=previous.skill;
+   syncFilterOptions('fSkill');
+  }
+  renderAll();hubSyncEvidenceTeam();hubPopulate();
+ }catch(e){console.error(e);alert('Failed to load Clash data: '+(e.message||e));}
+}
 function normalizeRecord(r){const s=parseState(r.state);return{...r,state:s,date:r.match_date||'',tournament:r.tournament_name||'Unassigned Tournament',map:r.map||'Unknown Map',lScore:+(r.team_left_score||0),rScore:+(r.team_right_score||0)}}
 function recordToSides(r){const picks=Array.isArray(r.state.picks)?r.state.picks:[],pass=Array.isArray(r.state.passives)?r.state.passives:[],pets=Array.isArray(r.state.pets)?r.state.pets:[],loads=Array.isArray(r.state.loadouts)?r.state.loadouts:[],bans=Array.isArray(r.state.bans)?r.state.bans:[],names=Array.isArray(r.state.playerCards)?r.state.playerCards:[];const make=side=>{const left=side==='L',idx=left?[0,1,2,3]:[4,5,6,7],team=left?r.team_left:r.team_right,opp=left?r.team_right:r.team_left,score=left?r.lScore:r.rScore,oppScore=left?r.rScore:r.lScore,win=score>oppScore;const players=idx.map((i,k)=>({name:cleanName(names[i])||`${team||'Team'} P${k+1}`, ...canonicalSlot(r.id,i+1,cleanName(names[i])||`${team||'Team'} P${k+1}`), active:picks[i]||null,passives:(Array.isArray(pass[i])?pass[i]:[]).filter(Boolean),pet:pets[i]||null,loadout:loads[i]||null}));return{record:r,rec_id:r.id,date:r.date,tournament:r.tournament,game:r.game_number,map:r.map,team:team||'Unknown Team',opponent:opp||'Unknown Opponent',score,oppScore,win,result:win?'W':'L',ban:bans[left?0:1]||null,players}};return[make('L'),make('R')]}
 function buildStats(records,sides){const teams=new Map(),tournaments=new Map(),maps=new Map(),skills=new Map(),players=new Map();const touchTeam=n=>{if(!teams.has(n))teams.set(n,{name:n,matches:0,wins:0,losses:0,scoreFor:0,scoreAgainst:0,maps:new Map(),opponents:new Map(),active:new Map(),passive:new Map(),pet:new Map(),loadout:new Map(),bans:new Map(),players:new Set(),recent:[]});return teams.get(n)};const touchT=n=>{if(!tournaments.has(n))tournaments.set(n,{name:n,matches:new Set(),teams:new Set(),maps:new Map(),active:new Map(),passive:new Map(),bans:new Map(),latest:''});return tournaments.get(n)};const touchMap=n=>{if(!maps.has(n))maps.set(n,{name:n,matches:new Set(),teams:new Map(),active:new Map(),passive:new Map(),pet:new Map(),loadout:new Map(),bans:new Map(),wins:new Map()});return maps.get(n)};const touchSkill=(n,t,img)=>{if(!n)return null;const key=`${t}|${n}`;if(!skills.has(key))skills.set(key,{key,name:n,type:t,img:img||PLACEHOLDER,uses:0,wins:0,teams:new Map(),maps:new Map(),players:new Map(),bans:0});return skills.get(key)};records.forEach(r=>{const t=touchT(r.tournament);t.matches.add(r.id);if(sides.some(side=>side.rec_id===r.id&&side.team===r.team_left))t.teams.add(r.team_left||'Unknown Team');if(sides.some(side=>side.rec_id===r.id&&side.team===r.team_right))t.teams.add(r.team_right||'Unknown Team');addMapCount(t.maps,r.map);if(String(r.date)>String(t.latest))t.latest=r.date;touchMap(r.map).matches.add(r.id)});sides.forEach(side=>{const T=touchTeam(side.team);T.matches++;side.win?T.wins++:T.losses++;T.scoreFor+=side.score;T.scoreAgainst+=side.oppScore;addMapCount(T.maps,side.map);addMapCount(T.opponents,side.opponent);T.recent.push(side);const tour=touchT(side.tournament),map=touchMap(side.map);addMapCount(map.teams,side.team);if(side.win)addMapCount(map.wins,side.team);const bn=objName(side.ban);if(bn){addMapCount(T.bans,bn);addMapCount(tour.bans,bn);addMapCount(map.bans,bn);const sk=touchSkill(bn,'Ban',objImg(side.ban));sk.bans++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map)}side.players.forEach(p=>{const playerKey=p.playerId||('raw:'+side.team+':'+p.name);if(p.name){T.players.add(p.name);if(!players.has(playerKey))players.set(playerKey,{name:p.canonicalName||p.name,playerKey,teams:new Map(),maps:new Map(),active:new Map(),passive:new Map(),pet:new Map(),loadout:new Map(),matches:0,wins:0,recent:[]});const P=players.get(playerKey);P.matches++;if(side.win)P.wins++;addMapCount(P.teams,side.team);addMapCount(P.maps,side.map);P.recent.push(side)}const a=objName(p.active);if(a){addMapCount(T.active,a);addMapCount(tour.active,a);addMapCount(map.active,a);if(p.name)addMapCount(players.get(playerKey).active,a);const sk=touchSkill(a,'Active',objImg(p.active));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)}p.passives.forEach(ps=>{const n=objName(ps);if(!n)return;addMapCount(T.passive,n);addMapCount(tour.passive,n);addMapCount(map.passive,n);if(p.name)addMapCount(players.get(playerKey).passive,n);const sk=touchSkill(n,'Passive',objImg(ps));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)});const pet=objName(p.pet);if(pet){addMapCount(T.pet,pet);addMapCount(map.pet,pet);if(p.name)addMapCount(players.get(playerKey).pet,pet);const sk=touchSkill(pet,'Pet',objImg(p.pet));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)}const lo=objName(p.loadout);if(lo){addMapCount(T.loadout,lo);addMapCount(map.loadout,lo);if(p.name)addMapCount(players.get(playerKey).loadout,lo);const sk=touchSkill(lo,'Loadout',objImg(p.loadout));sk.uses++;if(side.win)sk.wins++;addMapCount(sk.teams,side.team);addMapCount(sk.maps,side.map);addMapCount(sk.players,p.name)}})});teams.forEach(t=>t.recent.sort(sortSidesDesc));players.forEach(p=>p.recent.sort(sortSidesDesc));return{teams,tournaments,maps,skills,players}}
 function sortSidesDesc(a,b){return String(b.date).localeCompare(String(a.date))||(b.game||0)-(a.game||0)}
-function populateAllFilters(){fillSelect('fTourn',[...STATS.tournaments.keys()].sort(),'All tournaments');}
+function populateAllFilters(preferredTournament){
+ fillSelect('fTourn',[...STATS.tournaments.keys()].sort(),'All tournaments');
+ if(preferredTournament&&[...$('fTourn').options].some(o=>o.value===preferredTournament))$('fTourn').value=preferredTournament;
+}
 // Default to the latest tournament without narrowing team, player, or map.
 // The draft viewer may still show the newest saved match independently.
 function focusMostRecentMatch(){
@@ -365,18 +413,15 @@ function focusMostRecentMatch(){
  }else{
    setDefaultTournament();
  }
- syncFilterOptions('fTourn');
  $('fTeam').value='__ALL__';
  $('fSkill').value='__ALL__';
  $('fMap').value='__ALL__';
+ syncFilterOptions('fTourn');
  // Keep the latest saved match selected in Section 00.
  hubMatchId=rec?String(rec.id):'__LIVE__';
  hubRound=0;
 }
 function setDefaultTournament(){const latest=[...STATS.tournaments.values()].sort((a,b)=>String(b.latest).localeCompare(String(a.latest)))[0];if(latest)$('fTourn').value=latest.name}
-function currentRecordsForOptions(trigger){let recs=RECORDS;const t=$('fTourn').value,team=$('fTeam').value,skill=$('fSkill').value,map=$('fMap').value;if(t!=='__ALL__')recs=recs.filter(r=>r.tournament===t);if(trigger!=='fTeam'&&team!=='__ALL__')recs=recs.filter(r=>r.team_left===team||r.team_right===team);if(trigger!=='fMap'&&map!=='__ALL__')recs=recs.filter(r=>r.map===map);if(trigger!=='fSkill'&&skill!=='__ALL__')recs=recs.filter(r=>JSON.stringify(r.state).toLowerCase().includes(skill.replace(/^(Player|Active|Passive|Pet|Loadout|Ban):\s*/,'').toLowerCase()));return recs}
-function syncFilterOptions(trigger){if(isSyncing||!STATS)return;isSyncing=true;const recs=currentRecordsForOptions(trigger),sides=recs.flatMap(recordToSides),stats=buildStats(recs,sides);const keep=(id,values,label)=>{const old=$(id).value;fillSelect(id,values,label);if(values.includes(old)||old==='__ALL__')$(id).value=old;else $(id).value='__ALL__'};keep('fTeam',[...stats.teams.keys()].sort(),'All teams');const skillOpts=[...new Set([...stats.players.values()].map(p=>p.name))].sort().map(x=>`Player: ${x}`).concat([...stats.skills.values()].filter(s=>s.type!=='Ban').sort((a,b)=>a.type.localeCompare(b.type)||b.uses-a.uses).map(s=>`${s.type}: ${s.name}`));keep('fSkill',skillOpts,'All players & skills');keep('fMap',[...stats.maps.keys()].sort(),'All maps');fillSelect('activeSkillSelect',[...stats.skills.values()].filter(s=>s.type==='Active').sort((a,b)=>b.uses-a.uses).map(s=>s.name),'Top active skill');if(!$('activeSkillSelect').value)$('activeSkillSelect').value='__ALL__';fillSelect('mapSelectPanel',[...stats.maps.keys()].sort(),'Top map');if($('fMap').value!=='__ALL__')$('mapSelectPanel').value=$('fMap').value;isSyncing=false}
-function fillSelect(id,values,label){const sel=$(id),old=sel.value;sel.innerHTML=`<option value="__ALL__">${safe(label)}</option>`+values.map(v=>`<option value="${safe(v)}">${safe(v)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
 function currentFilters(){return{q:$('qSearch').value.trim().toLowerCase(),tourn:$('fTourn').value,team:$('fTeam').value,skill:$('fSkill').value,map:$('fMap').value}}
 function optionFilters(ignore){const f=currentFilters();return RECORDS.filter(r=>{if(ignore!=='fTourn'&&f.tourn!=='__ALL__'&&r.tournament!==f.tourn)return false;if(ignore!=='fMap'&&f.map!=='__ALL__'&&r.map!==f.map)return false;if(ignore!=='fTeam'&&f.team!=='__ALL__'&&r.team_left!==f.team&&r.team_right!==f.team)return false;if(f.q){const hay=JSON.stringify([r.tournament,r.team_left,r.team_right,r.map,r.state]).toLowerCase();if(!hay.includes(f.q))return false}if(ignore!=='fSkill'&&f.skill!=='__ALL__'&&!recordMatchesSkillFilter(r,f.skill,f.team))return false;return true})}
 function filteredRecords(){return optionFilters(null)}
