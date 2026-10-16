@@ -35,6 +35,7 @@
     'clash-data.html': { title:'CS Data', group:'clash' },
     'clash-compare.html': { title:'CS Compare', group:'clash' },
     'clash-combo.html': { title:'CS Combos', group:'clash' },
+    'clash-data-player-registry.html': {title:'CS Player Registry', group:'clash'},
     'data-upload.html': { title:'BR Upload', group:'upload' },
     'match-upload.html': { title:'Match Upload', group:'upload' },
     'cs-match-upload.html': { title:'CS Upload', group:'upload' },
