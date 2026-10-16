@@ -71,6 +71,16 @@
 .hub-loadout-history{margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--line);color:var(--muted)}
 @media(max-width:600px){.hub-loadout-header{grid-template-columns:1fr}.hub-loadout-header>img{width:115px;height:115px}.hub-loadout-metadata,.hub-loadout-boosters{grid-template-columns:1fr}}
 </style>
+<style>
+/* Player comparison: secondary active-skill usage, beneath core statistics. */
+.other-active-section{margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+.other-active-section h4{margin:0 0 8px;color:var(--brand);font-size:12px;letter-spacing:.02em}
+.other-active-list{display:grid;gap:6px}
+.other-active-entry{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.035);font-size:11px}
+.other-active-entry span{min-width:0;overflow-wrap:anywhere}
+.other-active-entry b{color:var(--accent);font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.other-active-empty{font-size:11px;color:var(--muted)}
+</style>
 </head>
 <body>
 <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
@@ -481,9 +491,18 @@ function findSkillDescription(name){const all=[...CHARS,...PETS,...LOADOUTS];con
  const best=m=>m&&m.size?[...m].sort((a,b)=>b[1]-a[1])[0]:null;
  const first=m=>best(m)?.[0]||'Not recorded';const topWithCount=m=>{const b=best(m);return b?`${b[0]} (${b[1]} picks)`: 'Not recorded'};
  const fmt=n=>Number(n||0).toLocaleString();
+ function otherActives(m){
+  if(!(m instanceof Map)||!m.size)return '<div class="other-active-empty">No other active skills recorded.</div>';
+  const ordered=[...m.entries()].filter(([name,count])=>name&&Number(count)>0)
+   .sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0])));
+  if(ordered.length<=1)return '<div class="other-active-empty">No other active skills recorded.</div>';
+  return `<div class="other-active-list">${ordered.slice(1).map(([name,count])=>
+   `<div class="other-active-entry"><span>${esc(name)}</span><b>${fmt(count)} ${count===1?'instance':'instances'}</b></div>`
+  ).join('')}</div>`;
+ }
  function commonContext(){const f=currentFilters();const records=RECORDS.filter(r=>(f.tourn==='__ALL__'||r.tournament===f.tourn)&&(f.map==='__ALL__'||r.map===f.map)&&(!f.q||JSON.stringify([r.tournament,r.team_left,r.team_right,r.map,r.state]).toLowerCase().includes(f.q)));return{records,stats:buildStats(records,records.flatMap(recordToSides))};}
  function selectUpdate(id,names,preferences){const el=byId(id),old=el.value;el.innerHTML=names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');el.value=names.includes(old)?old:(preferences.find(x=>names.includes(x))||names[0]||'');}
- function comparatorCard(name,stat,type){if(!stat)return '<div class="versus-card"><strong>No data</strong></div>';const matches=stat.matches,wins=stat.wins,team=type==='team';const second=team?`<div>Round-score diff: <b>${stat.scoreFor-stat.scoreAgainst>=0?'+':''}${stat.scoreFor-stat.scoreAgainst}</b></div><div>Avg rounds won: <b>${(stat.scoreFor/(matches||1)).toFixed(1)}</b></div><div>Top opponent: <b>${esc(first(stat.opponents))}</b></div>`:`<div>Team(s): <b>${esc([...stat.teams.keys()].slice(0,3).join(', ')||'—')}</b></div><div>Team win record: <b>${wins}W–${matches-wins}L</b></div>`;return `<div class="versus-card"><strong>${esc(name)}</strong><span class="big">${percent(wins,matches)}</span><div class="sub">${wins}W–${matches-wins}L · ${fmt(matches)} recorded ${team?'matches':'appearances'}</div><div class="kv">${second}<div>Most played map: <b>${esc(first(stat.maps))}</b></div><div>Primary active: <b>${esc(topWithCount(stat.active))}</b></div><div>Top passive: <b>${esc(topWithCount(stat.passive))}</b></div><div>Top pet: <b>${esc(topWithCount(stat.pet))}</b></div><div>Top loadout: <b>${esc(topWithCount(stat.loadout))}</b></div></div></div>`;}
+ function comparatorCard(name,stat,type){if(!stat)return '<div class="versus-card"><strong>No data</strong></div>';const matches=stat.matches,wins=stat.wins,team=type==='team';const second=team?`<div>Round-score diff: <b>${stat.scoreFor-stat.scoreAgainst>=0?'+':''}${stat.scoreFor-stat.scoreAgainst}</b></div><div>Avg rounds won: <b>${(stat.scoreFor/(matches||1)).toFixed(1)}</b></div><div>Top opponent: <b>${esc(first(stat.opponents))}</b></div>`:`<div>Team(s): <b>${esc([...stat.teams.keys()].slice(0,3).join(', ')||'—')}</b></div><div>Team win record: <b>${wins}W–${matches-wins}L</b></div>`;return `<div class="versus-card"><strong>${esc(name)}</strong><span class="big">${percent(wins,matches)}</span><div class="sub">${wins}W–${matches-wins}L · ${fmt(matches)} recorded ${team?'matches':'appearances'}</div><div class="kv">${second}<div>Most played map: <b>${esc(first(stat.maps))}</b></div><div>Primary active: <b>${esc(topWithCount(stat.active))}</b></div><div>Top passive: <b>${esc(topWithCount(stat.passive))}</b></div><div>Top pet: <b>${esc(topWithCount(stat.pet))}</b></div><div>Top loadout: <b>${esc(topWithCount(stat.loadout))}</b></div></div>${team?'':`<div class="other-active-section"><h4>Other active skills used</h4>${otherActives(stat.active)}</div>`}</div>`;}
  function reading(a,b,type){if(!a||!b)return 'Select two entries with recorded appearances.';if(a.name===b.name)return 'Choose two different entries to see contrasting identities.';let higher=a.wins/a.matches-b.wins/b.matches;const lead=Math.abs(higher*100).toFixed(1);const leader=higher>0?a:b;const tail=`${a.name} most often uses ${first(a.active)}; ${b.name} most often uses ${first(b.active)}.`;return `${Math.abs(higher)<.0001?'Both have identical recorded win rates':`${leader.name} leads by ${lead} percentage points`} in this view. ${tail} ${Math.min(a.matches,b.matches)<5?'Caution: at least one sample has fewer than five records.':''}`;}
  function teamVs(ctx){const names=[...ctx.stats.teams.keys()].sort();const f=currentFilters();const ranked=[...ctx.stats.teams.values()].sort((a,b)=>b.matches-a.matches);selectUpdate('compareTeamA',names,[f.team,...ranked.map(x=>x.name)]);selectUpdate('compareTeamB',names,ranked.map(x=>x.name).filter(x=>x!==byId('compareTeamA').value));if(byId('compareTeamA').value===byId('compareTeamB').value&&names.length>1)byId('compareTeamB').value=names.find(x=>x!==byId('compareTeamA').value);const a=ctx.stats.teams.get(byId('compareTeamA').value),b=ctx.stats.teams.get(byId('compareTeamB').value);let h2h='';if(a&&b&&a.name!==b.name){const games=ctx.records.filter(r=>[r.team_left,r.team_right].includes(a.name)&&[r.team_left,r.team_right].includes(b.name));const aw=games.filter(r=>(r.team_left===a.name?r.lScore:r.rScore)>(r.team_left===a.name?r.rScore:r.lScore)).length;const bw=games.filter(r=>(r.team_left===b.name?r.lScore:r.rScore)>(r.team_left===b.name?r.rScore:r.lScore)).length;h2h=`<p class="compare-reading"><b>Direct matchup:</b> ${aw}–${bw} over ${games.length} recorded meeting(s)${games.length?'':' — no direct match recorded'}.</p>`}byId('compareTeamsResult').innerHTML=`<div class="versus">${comparatorCard(a?.name,a,'team')}${comparatorCard(b?.name,b,'team')}</div>${h2h}<p class="compare-reading">${esc(reading(a,b,'team'))}</p>`;}
  function playerVs(ctx){
