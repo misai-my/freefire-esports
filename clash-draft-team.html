@@ -1871,6 +1871,8 @@ let CS_TEAM_NAMES = [];
 let CS_TEAM_INPUT_OPTIONS = [];
 let CS_PLAYERS_BY_TEAM = {};
 let CS_ALL_PLAYERS = [];
+let CS_PLAYER_ALIAS_BY_TEAM = {};
+let CS_PLAYER_SEARCH_LABELS_BY_TEAM = {};
 let MATCH_API_REF_BY_ID = new Map();
 let PARSED_MATCH_JSON_TEAMS = [];
 
@@ -2049,68 +2051,88 @@ async function loadCSTeamListOptions(){
   refreshPlayerNameOptions();
 }
 
+// Canonical player names only. Historical aliases remain searchable via option labels,
+// and any manually entered legacy IGN resolves to its established canonical name.
+function canonicalDraftPlayer(teamIndex, typed){
+  const name=(typed||'').trim();
+  if(!name) return name;
+  const teamKey=normalizeKey(document.getElementById(teamIndex===0?'teamNameLeft':'teamNameRight')?.value || draftState.teamNames?.[teamIndex]);
+  return CS_PLAYER_ALIAS_BY_TEAM[teamKey]?.[normalizeKey(name)] || name;
+}
 function refreshPlayerNameOptions(){
-  const leftKey = normalizeKey(document.getElementById('teamNameLeft')?.value || draftState.teamNames?.[0]);
-  const rightKey = normalizeKey(document.getElementById('teamNameRight')?.value || draftState.teamNames?.[1]);
-
-  const leftPlayers = CS_PLAYERS_BY_TEAM[leftKey]?.length
-    ? CS_PLAYERS_BY_TEAM[leftKey]
-    : CS_ALL_PLAYERS;
-
-  const rightPlayers = CS_PLAYERS_BY_TEAM[rightKey]?.length
-    ? CS_PLAYERS_BY_TEAM[rightKey]
-    : CS_ALL_PLAYERS;
-
-  fillDatalist('playerNameOptionsLeft', leftPlayers);
-  fillDatalist('playerNameOptionsRight', rightPlayers);
+  for(let side=0;side<2;side++){
+    const team=normalizeKey(document.getElementById(side===0?'teamNameLeft':'teamNameRight')?.value || draftState.teamNames?.[side]);
+    const names=CS_PLAYERS_BY_TEAM[team]?.length ? CS_PLAYERS_BY_TEAM[team] : CS_ALL_PLAYERS;
+    const labels=CS_PLAYER_SEARCH_LABELS_BY_TEAM[team] || {};
+    const list=document.getElementById(side===0?'playerNameOptionsLeft':'playerNameOptionsRight');
+    if(!list) continue;
+    list.replaceChildren();
+    for(const name of [...new Set(names)].sort((a,b)=>a.localeCompare(b))){
+      const option=document.createElement('option');
+      option.value=name;
+      if(labels[normalizeKey(name)]) option.label=labels[normalizeKey(name)].join(' · ');
+      list.appendChild(option);
+    }
+  }
 }
 
-// v2: Existing-player registry suggestions, scoped to the team being drafted.
-// Historical aliases remain valid input, and unfamiliar names can be typed freely.
 async function loadRegistryDraftSuggestions(){
-  const pageSize = 750;
-  async function allRows(table, fields){
-    const results=[];
+  const pageSize=750;
+  async function allRows(table,fields){
+    const out=[];
     for(let start=0;start<12000;start+=pageSize){
       const {data,error}=await client.from(table).select(fields).range(start,start+pageSize-1);
       if(error) throw error;
-      results.push(...(data||[]));
+      out.push(...(data||[]));
       if(!data || data.length<pageSize) break;
     }
-    return results;
+    return out;
   }
-  try {
-    const [aliases, players] = await Promise.all([
+  try{
+    const [aliases,players]=await Promise.all([
       allRows('cs_player_name_aliases','team_name,raw_name_example,raw_name_key,player_id'),
       allRows('cs_players','player_id,display_name')
     ]);
-    const namesById=new Map(players.map(p=>[p.player_id,p.display_name]));
-    const teamOptions=new Set(CS_TEAM_INPUT_OPTIONS);
-    const allPlayers=new Set(CS_ALL_PLAYERS);
-    const scoped={};
-    for(const [team, names] of Object.entries(CS_PLAYERS_BY_TEAM)) scoped[team]=new Set(names);
+    const canonicalById=new Map(players.map(p=>[p.player_id,(p.display_name||'').trim()]));
+    const byTeam={}, aliasByTeam={}, labelsByTeam={};
+    const global=new Set();
     for(const alias of aliases){
-      const team=(alias.team_name||'').trim();
-      if(!team) continue;
-      teamOptions.add(team);
-      const key=normalizeKey(team);
-      if(!scoped[key]) scoped[key]=new Set();
-      for(const name of [namesById.get(alias.player_id),alias.raw_name_example]){
-        const cleaned=(name||'').trim();
-        if(!cleaned) continue;
-        scoped[key].add(cleaned);
-        allPlayers.add(cleaned);
+      const teamName=(alias.team_name||'').trim();
+      const canonical=canonicalById.get(alias.player_id);
+      if(!teamName || !canonical) continue;
+      const key=normalizeKey(CS_TEAM_TAG_LOOKUP[normalizeKey(teamName)] || teamName);
+      (byTeam[key] ||= new Set()).add(canonical);
+      global.add(canonical);
+      const aliasesForTeam=(aliasByTeam[key] ||= {});
+      const variants=[canonical,alias.raw_name_example,alias.raw_name_key];
+      for(const variant of variants){
+        if(variant && !aliasesForTeam[normalizeKey(variant)]) aliasesForTeam[normalizeKey(variant)]=canonical;
+      }
+      const variant=(alias.raw_name_example||'').trim();
+      if(variant && normalizeKey(variant)!==normalizeKey(canonical)){
+        const labelMap=(labelsByTeam[key] ||= {});
+        (labelMap[normalizeKey(canonical)] ||= new Set()).add(variant);
       }
     }
-    CS_TEAM_INPUT_OPTIONS=[...teamOptions].sort((a,b)=>a.localeCompare(b));
-    CS_ALL_PLAYERS=[...allPlayers].sort((a,b)=>a.localeCompare(b));
-    CS_PLAYERS_BY_TEAM=Object.fromEntries(Object.entries(scoped).map(([k,v])=>[k,[...v].sort((a,b)=>a.localeCompare(b))]));
-    fillDatalist('teamNameOptions',CS_TEAM_INPUT_OPTIONS);
+    // Roster rows without a registry identity remain available for new/unmapped players.
+    for(const row of CS_TEAM_ROWS){
+      const team=(row?.TEAM ?? row?.team ?? '').toString().trim();
+      const raw=(row?.PLAYER ?? row?.player ?? '').toString().trim();
+      if(!team || !raw) continue;
+      const key=normalizeKey(team);
+      const resolved=aliasByTeam[key]?.[normalizeKey(raw)] || raw;
+      (byTeam[key] ||= new Set()).add(resolved);
+      global.add(resolved);
+    }
+    CS_PLAYER_ALIAS_BY_TEAM=aliasByTeam;
+    CS_PLAYER_SEARCH_LABELS_BY_TEAM=Object.fromEntries(Object.entries(labelsByTeam).map(([team,labels])=>
+      [team,Object.fromEntries(Object.entries(labels).map(([k,v])=>[k,[...v].sort()]))]));
+    CS_PLAYERS_BY_TEAM=Object.fromEntries(Object.entries(byTeam).map(([k,v])=>[k,[...v].sort((a,b)=>a.localeCompare(b))]));
+    CS_ALL_PLAYERS=[...global].sort((a,b)=>a.localeCompare(b));
     refreshPlayerNameOptions();
-    console.info('Draft autocomplete: loaded team-specific player aliases from registry');
-  } catch(err){
-    // Existing cs_team_list suggestions remain usable if registry read is unavailable.
-    console.warn('Registry suggestions unavailable; using cs_team_list:',err);
+    console.info('Draft player suggestions: canonical names with team-specific historical alias search');
+  }catch(err){
+    console.warn('Canonical player registry unavailable; using roster suggestions:',err);
   }
 }
 
@@ -2123,9 +2145,7 @@ function wireDraftTeamAutocomplete(){
     el.addEventListener('input',()=>{
       const value=el.value;
       const key=normalizeKey(value);
-      const scoped=CS_PLAYERS_BY_TEAM[key];
-      fillDatalist(index===0?'playerNameOptionsLeft':'playerNameOptionsRight',
-        scoped && scoped.length ? scoped : CS_ALL_PLAYERS);
+      refreshPlayerNameOptions();
     });
   });
 }
@@ -2689,7 +2709,9 @@ function makeSlot(type,index){
     input.className = 'player-input';
     input.setAttribute('list', index < 4 ? 'playerNameOptionsLeft' : 'playerNameOptionsRight');
     input.onchange = () => {
-      draftState.playerCards[index] = input.value;
+      const canonical=canonicalDraftPlayer(index<4?0:1,input.value);
+      input.value=canonical;
+      draftState.playerCards[index]=canonical;
       saveDraftState();
     };
     c.appendChild(input);
