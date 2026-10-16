@@ -1746,6 +1746,7 @@
 
   <button class="reset-btn" onclick="resetDraft()">Reset All</button>
 
+  <div style="width:var(--pageW);margin:10px auto 0;padding:0 14px;color:var(--muted);font-size:11px;text-align:center">Team and player names suggest existing database entries. Select a suggestion or type a new name. Player suggestions follow the chosen team.</div>
   <div class="draft-wrapper">
     <div class="team-container glassbox">
       <input class="team-label" id="teamNameLeft" list="teamNameOptions" autocomplete="off" value="TEAM LEFT" onchange="updateTeamName(0)" />
@@ -2043,8 +2044,8 @@ async function loadCSTeamListOptions(){
 }
 
 function refreshPlayerNameOptions(){
-  const leftKey = normalizeKey(draftState.teamNames?.[0]);
-  const rightKey = normalizeKey(draftState.teamNames?.[1]);
+  const leftKey = normalizeKey(document.getElementById('teamNameLeft')?.value || draftState.teamNames?.[0]);
+  const rightKey = normalizeKey(document.getElementById('teamNameRight')?.value || draftState.teamNames?.[1]);
 
   const leftPlayers = CS_PLAYERS_BY_TEAM[leftKey]?.length
     ? CS_PLAYERS_BY_TEAM[leftKey]
@@ -2056,6 +2057,71 @@ function refreshPlayerNameOptions(){
 
   fillDatalist('playerNameOptionsLeft', leftPlayers);
   fillDatalist('playerNameOptionsRight', rightPlayers);
+}
+
+// v2: Existing-player registry suggestions, scoped to the team being drafted.
+// Historical aliases remain valid input, and unfamiliar names can be typed freely.
+async function loadRegistryDraftSuggestions(){
+  const pageSize = 750;
+  async function allRows(table, fields){
+    const results=[];
+    for(let start=0;start<12000;start+=pageSize){
+      const {data,error}=await client.from(table).select(fields).range(start,start+pageSize-1);
+      if(error) throw error;
+      results.push(...(data||[]));
+      if(!data || data.length<pageSize) break;
+    }
+    return results;
+  }
+  try {
+    const [aliases, players] = await Promise.all([
+      allRows('cs_player_name_aliases','team_name,raw_name_example,raw_name_key,player_id'),
+      allRows('cs_players','player_id,display_name')
+    ]);
+    const namesById=new Map(players.map(p=>[p.player_id,p.display_name]));
+    const teamOptions=new Set(CS_TEAM_INPUT_OPTIONS);
+    const allPlayers=new Set(CS_ALL_PLAYERS);
+    const scoped={};
+    for(const [team, names] of Object.entries(CS_PLAYERS_BY_TEAM)) scoped[team]=new Set(names);
+    for(const alias of aliases){
+      const team=(alias.team_name||'').trim();
+      if(!team) continue;
+      teamOptions.add(team);
+      const key=normalizeKey(team);
+      if(!scoped[key]) scoped[key]=new Set();
+      for(const name of [namesById.get(alias.player_id),alias.raw_name_example]){
+        const cleaned=(name||'').trim();
+        if(!cleaned) continue;
+        scoped[key].add(cleaned);
+        allPlayers.add(cleaned);
+      }
+    }
+    CS_TEAM_INPUT_OPTIONS=[...teamOptions].sort((a,b)=>a.localeCompare(b));
+    CS_ALL_PLAYERS=[...allPlayers].sort((a,b)=>a.localeCompare(b));
+    CS_PLAYERS_BY_TEAM=Object.fromEntries(Object.entries(scoped).map(([k,v])=>[k,[...v].sort((a,b)=>a.localeCompare(b))]));
+    fillDatalist('teamNameOptions',CS_TEAM_INPUT_OPTIONS);
+    refreshPlayerNameOptions();
+    console.info('Draft autocomplete: loaded team-specific player aliases from registry');
+  } catch(err){
+    // Existing cs_team_list suggestions remain usable if registry read is unavailable.
+    console.warn('Registry suggestions unavailable; using cs_team_list:',err);
+  }
+}
+
+function wireDraftTeamAutocomplete(){
+  ['teamNameLeft','teamNameRight'].forEach((id,index)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    // Update the visible player suggestions while a team is typed or selected.
+    // Do not save partial team names until the existing change handler fires.
+    el.addEventListener('input',()=>{
+      const value=el.value;
+      const key=normalizeKey(value);
+      const scoped=CS_PLAYERS_BY_TEAM[key];
+      fillDatalist(index===0?'playerNameOptionsLeft':'playerNameOptionsRight',
+        scoped && scoped.length ? scoped : CS_ALL_PLAYERS);
+    });
+  });
 }
 
 function applySlotPlaceholder(img){
@@ -2520,6 +2586,8 @@ async function initDraftPage() {
 
   await loadDraftState();
   await loadCSTeamListOptions();
+  await loadRegistryDraftSuggestions();
+  wireDraftTeamAutocomplete();
   refreshPlayerNameOptions();
   drawDraft();
 
@@ -2723,7 +2791,7 @@ function makeSlot(type,index){
 
 function updateTeamName(teamIndex) {
   const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
-  draftState.teamNames[teamIndex] = input.value;
+  draftState.teamNames[teamIndex] = input.value.trim();
   refreshPlayerNameOptions();
   drawDraft();
   saveDraftState();
