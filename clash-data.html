@@ -168,7 +168,7 @@ const SUPABASE_ANON = (window.FF_CONFIG && window.FF_CONFIG.SUPABASE_ANON_KEY) |
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const PLACEHOLDER='https://imgur.com/AdvPwAO.png';
 const TEAM_LOGOS={FLASH:'flash',BURIRAM:'bru',BRU:'bru',FLCN:'flcn',FALCONS:'flcn',EVOS:'evos',DIVINE:'evos',RRQ:'rrq',KAZU:'rrq',FLUXO:'fluxo',SOLID:'solid',WAG:'wag',AG:'ag',LOUD:'loud',MIBR:'mibr',ONIC:'onic',BTR:'btr',GOW:'gow',MEC:'mec',TWIS:'twis',HEV:'hev',PE:'pe',PESPORTS:'pe'};
-let RAW=[],RECORDS=[],SIDES=[],STATS=null,CHARS=[],PETS=[],LOADOUTS=[],WEAPONS=[],initialLoaded=false,isSyncing=false;
+let RAW=[],RECORDS=[],SIDES=[],STATS=null,CHARS=[],PETS=[],LOADOUTS=[],WEAPONS=[],initialLoaded=false,isSyncing=false,loadAllBusy=false;
 const $=id=>document.getElementById(id);const safe=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));const pct=(n,d)=>d?`${((n/d)*100).toFixed(1)}%`:'—';const num=n=>Number(n||0).toLocaleString();const cleanName=v=>String(v||'').trim();
 function imgTag(src,alt){return `<img src="${safe(src||PLACEHOLDER)}" alt="${safe(alt||'')}" loading="lazy" onerror="this.src='${PLACEHOLDER}'">`}
 function logoFor(team){const raw=cleanName(team),upper=raw.toUpperCase(),parts=upper.split(/[^A-Z0-9]+/).filter(Boolean),cands=[upper,...parts,parts[0],parts.at(-1)].filter(Boolean);for(const c of cands){if(TEAM_LOGOS[c])return `assets/logo/${TEAM_LOGOS[c]}.png`;}return `assets/logo/${(parts[0]||upper||'ff').toLowerCase()}.png`;}
@@ -349,6 +349,8 @@ $('logoutBtn').addEventListener('click',async()=>{await client.auth.signOut();wi
 ['qSearch','fTourn','fTeam','fSkill','fMap'].forEach(id=>$(id).addEventListener(id==='qSearch'?'input':'change',debounce(()=>{if(id!=='qSearch')syncFilterOptions(id);renderAll();if(id==='fTeam'||id==='fTourn')hubSyncEvidenceTeam();},id==='qSearch'?180:0)));$('activeSkillSelect').addEventListener('change',()=>{renderAll();});$('mapSelectPanel').addEventListener('change',()=>{const v=$('mapSelectPanel').value;$('fMap').value=v||'__ALL__';syncFilterOptions('fMap');renderAll();});window.addEventListener('resize',debounce(()=>{try{const ctx=buildFilteredStats();const team=selectedOrTopTeam(ctx);if(team)drawTrend(team);}catch(_e){}},120));
 async function loadJson(path){try{const r=await fetch(path);return await r.json()}catch(e){return[]}}
 async function loadAll(){
+ if(loadAllBusy)return; // Prevent concurrent startup and realtime refresh from racing.
+ loadAllBusy=true;
  try{
   // Capture current selections BEFORE any option list is rebuilt. A realtime
   // refresh must not silently send the tournament back to All tournaments.
@@ -390,17 +392,18 @@ async function loadAll(){
    $('fTeam').value='__ALL__';
    $('fSkill').value='__ALL__';
    $('fMap').value='__ALL__';
-   $('qSearch').value=previous.search;
+   $('qSearch').value=previous?.search||'';
    syncFilterOptions('fTourn');
-   if(previous.team&&[...$('fTeam').options].some(o=>o.value===previous.team))$('fTeam').value=previous.team;
+   if(previous?.team&&[...$('fTeam').options].some(o=>o.value===previous.team))$('fTeam').value=previous.team;
    syncFilterOptions('fTeam');
-   if(previous.map&&[...$('fMap').options].some(o=>o.value===previous.map))$('fMap').value=previous.map;
+   if(previous?.map&&[...$('fMap').options].some(o=>o.value===previous.map))$('fMap').value=previous.map;
    syncFilterOptions('fMap');
-   if(previous.skill&&[...$('fSkill').options].some(o=>o.value===previous.skill))$('fSkill').value=previous.skill;
+   if(previous?.skill&&[...$('fSkill').options].some(o=>o.value===previous.skill))$('fSkill').value=previous.skill;
    syncFilterOptions('fSkill');
   }
   renderAll();hubSyncEvidenceTeam();hubPopulate();
  }catch(e){console.error(e);alert('Failed to load Clash data: '+(e.message||e));}
+ finally{loadAllBusy=false;}
 }
 function normalizeRecord(r){const s=parseState(r.state);return{...r,state:s,date:r.match_date||'',tournament:r.tournament_name||'Unassigned Tournament',map:r.map||'Unknown Map',lScore:+(r.team_left_score||0),rScore:+(r.team_right_score||0)}}
 function recordToSides(r){const picks=Array.isArray(r.state.picks)?r.state.picks:[],pass=Array.isArray(r.state.passives)?r.state.passives:[],pets=Array.isArray(r.state.pets)?r.state.pets:[],loads=Array.isArray(r.state.loadouts)?r.state.loadouts:[],bans=Array.isArray(r.state.bans)?r.state.bans:[],names=Array.isArray(r.state.playerCards)?r.state.playerCards:[];const make=side=>{const left=side==='L',idx=left?[0,1,2,3]:[4,5,6,7],team=left?r.team_left:r.team_right,opp=left?r.team_right:r.team_left,score=left?r.lScore:r.rScore,oppScore=left?r.rScore:r.lScore,win=score>oppScore;const players=idx.map((i,k)=>({name:cleanName(names[i])||`${team||'Team'} P${k+1}`, ...canonicalSlot(r.id,i+1,cleanName(names[i])||`${team||'Team'} P${k+1}`), active:picks[i]||null,passives:(Array.isArray(pass[i])?pass[i]:[]).filter(Boolean),pet:pets[i]||null,loadout:loads[i]||null}));return{record:r,rec_id:r.id,date:r.date,tournament:r.tournament,game:r.game_number,map:r.map,team:team||'Unknown Team',opponent:opp||'Unknown Opponent',score,oppScore,win,result:win?'W':'L',ban:bans[left?0:1]||null,players}};return[make('L'),make('R')]}
