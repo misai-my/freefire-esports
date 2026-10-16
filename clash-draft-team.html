@@ -1866,6 +1866,7 @@ let ALL_DRAFT_RECORDS = [];
 let LAST_MATCHED_RECORDS = [];
 
 let CS_TEAM_ROWS = [];
+let CS_TEAM_TAG_LOOKUP = {};
 let CS_TEAM_NAMES = [];
 let CS_TEAM_INPUT_OPTIONS = [];
 let CS_PLAYERS_BY_TEAM = {};
@@ -1978,6 +1979,7 @@ function fillDatalist(id, values){
 function parseCSTeamListRows(rows){
   const teamNames = new Set();
   const teamInputOptions = new Set();
+  const tagMatches = {};
   const playersByTeam = {};
   const allPlayers = new Set();
 
@@ -1990,8 +1992,10 @@ function parseCSTeamListRows(rows){
       teamNames.add(teamName);
       teamInputOptions.add(teamName);
     }
-    if (tag) {
-      teamInputOptions.add(tag);
+    if (tag && teamName) {
+      const key=normalizeKey(tag);
+      if (!tagMatches[key]) tagMatches[key]=new Set();
+      tagMatches[key].add(teamName);
     }
     if (player) {
       allPlayers.add(player);
@@ -2010,6 +2014,7 @@ function parseCSTeamListRows(rows){
     }
   });
 
+  CS_TEAM_TAG_LOOKUP = Object.fromEntries(Object.entries(tagMatches).filter(([,v])=>v.size===1).map(([k,v])=>[k,[...v][0]]));
   CS_TEAM_NAMES = [...teamNames].sort((a,b) => a.localeCompare(b));
   CS_TEAM_INPUT_OPTIONS = [...teamInputOptions].sort((a,b) => a.localeCompare(b));
   CS_ALL_PLAYERS = [...allPlayers].sort((a,b) => a.localeCompare(b));
@@ -2027,6 +2032,7 @@ async function loadCSTeamListOptions(){
   if (error) {
     console.warn('⚠️ Failed to load cs_team_list:', error);
     CS_TEAM_ROWS = [];
+    CS_TEAM_TAG_LOOKUP = {};
     CS_TEAM_NAMES = [];
     CS_TEAM_INPUT_OPTIONS = [];
     CS_PLAYERS_BY_TEAM = {};
@@ -2791,7 +2797,10 @@ function makeSlot(type,index){
 
 function updateTeamName(teamIndex) {
   const input = document.getElementById(teamIndex === 0 ? 'teamNameLeft' : 'teamNameRight');
-  draftState.teamNames[teamIndex] = input.value.trim();
+  const typed = input.value.trim();
+  const canonical = CS_TEAM_TAG_LOOKUP[normalizeKey(typed)] || typed;
+  input.value = canonical;
+  draftState.teamNames[teamIndex] = canonical;
   refreshPlayerNameOptions();
   drawDraft();
   saveDraftState();
