@@ -217,14 +217,22 @@ function hubPopulateMatches(){
  const arr = RECORDS
   .filter(r =>
     (t === '__ALL__' || r.tournament === t) &&
-    (team === '__ALL__' || r.team_left === team || r.team_right === team) &&
+    (team === '__ALL__' ||
+      r.team_left === team ||
+      r.team_right === team) &&
     (map === '__ALL__' || r.map === map)
   )
-  .sort((a, b) =>
-    String(b.date || '').localeCompare(String(a.date || '')) ||
-    Number(b.game_number || 0) - Number(a.game_number || 0) ||
-    Number(b.id || 0) - Number(a.id || 0)
-  );
+  .sort((a, b) => {
+    // Most recent date first.
+    const dateOrder = String(b.date || '')
+      .localeCompare(String(a.date || ''));
+
+    if (dateOrder !== 0) return dateOrder;
+
+    // Same date: newest saved record first.
+    // Game numbers reset for each series.
+    return Number(b.id || 0) - Number(a.id || 0);
+  });
  const notice=team!=='__ALL__'?` · ${team}`:'';
  select.innerHTML=`<option value="__LIVE__">● LIVE — current draft${safe(notice)}</option>`+arr.map(r=>`<option value="${safe(r.id)}">${safe(r.date||'No date')} • G${safe(r.game_number||'?')} • ${safe(r.map)} • ${safe(r.team_left)} vs ${safe(r.team_right)}</option>`).join('');
  const preserved=old==='__LIVE__'||arr.some(r=>String(r.id)===String(old));
