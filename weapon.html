@@ -1,26 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
-  <!-- Browser tab / app icons -->
-  <link rel="icon" href="favicon.ico?v=20260620" sizes="any" />
-  <link rel="icon" type="image/png" sizes="96x96" href="favicon.png?v=20260620" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20260620" />
-  <link rel="manifest" href="site.webmanifest?v=20260620" />
-  <meta name="theme-color" content="#ffbd59" />
-<meta charset="UTF-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Weapon Gallery</title>
-
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Supabase JS v2 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/js/app-config.js"></script>
-
-    <script src="assets/js/access-control.js?v=20260801-profile-access-v1"></script>
-<!-- Theme pre-load -->
+  <!-- Theme pre-load -->
   <script>
     (function(){
       const KEY = 'ff_theme_v1';
@@ -29,7 +18,6 @@
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
-
   <style>
     :root{
       --bg:#07090f;
@@ -39,33 +27,25 @@
       --line: rgba(255,255,255,.08);
       --ink:#f4f6ff;
       --muted:#aab1c5;
-
       --brand:#ffbd59;
       --brand2:#ff7733;
       --accent:#4dd3ff;
-
       --radius:16px;
       --radius-lg:22px;
       --shadow: 0 22px 70px rgba(0,0,0,.55);
-
       --sb-w: 260px;
       --sb-w-collapsed: 82px;
-
       --wep-min: 140px;
       --wep-gap: 10px;
       --wep-pad: 8px;
       --wep-radius: 14px;
       --wep-thumb-radius: 12px;
-
       --chip-bg: rgba(0,0,0,.18);
       --chip-bd: rgba(255,255,255,.12);
-
       --cs:#4dd3ff;
     }
-
     html[data-theme="dark"]{ color-scheme: dark; }
     html[data-theme="light"]{ color-scheme: light; }
-
     html[data-theme="light"]{
       --bg:#f6f7fb;
       --bg2:#e9ecf5;
@@ -75,16 +55,13 @@
       --ink:#121428;
       --muted:#5b647a;
       --shadow: 0 18px 60px rgba(0,0,0,.14);
-
       --chip-bg: rgba(255,255,255,.74);
       --chip-bd: rgba(0,0,0,.12);
     }
-
     html[data-theme="light"] body::before,
     html[data-theme="light"] body::after{
       border-color: rgba(77,211,255,.18);
     }
-
     html[data-theme="light"] .nav-item:hover{
       background: rgba(0,0,0,.04);
       border-color: rgba(0,0,0,.08);
@@ -170,7 +147,6 @@
     html[data-theme="light"] .multi-option:hover{
       background: rgba(0,0,0,.04);
     }
-
     *{box-sizing:border-box}
     html,body{min-height:100%}
     body{
@@ -185,7 +161,6 @@
       overflow-x:hidden;
       overflow-y:auto;
     }
-
     body::before, body::after{
       content:"";
       position:fixed;
@@ -203,7 +178,6 @@
       border:10px solid rgba(77,211,255,.10);
       transform: translate(38%, 0%);
     }
-
     a{color:inherit}
     select, input{
       color-scheme: inherit;
@@ -217,7 +191,6 @@
     }
     select option{ background:#0b1020; color:var(--ink); }
     html[data-theme="light"] select option{ background:#ffffff; color:var(--ink); }
-
     .app{
       min-height: 100vh;
       display:flex;
@@ -227,7 +200,6 @@
       margin: 0 auto;
       align-items:flex-start;
     }
-
     .sb-overlay{
       position: fixed;
       inset: 0;
@@ -239,7 +211,6 @@
     }
     .sb-overlay.show{display:block;}
     body.sb-open{overflow:hidden;}
-
     .sidebar{
       width: var(--sb-w);
       background: var(--panel2);
@@ -259,7 +230,6 @@
       z-index: 10;
     }
     .sidebar.collapsed{ width: var(--sb-w-collapsed); }
-
     .brand{
       display:flex;
       align-items:center;
@@ -299,13 +269,11 @@
       text-overflow:ellipsis;
       max-width: 150px;
     }
-
     .sb-close{
       margin-left:auto;
       width:40px;height:40px;border-radius:14px;
       display:none;
     }
-
     .nav{
       padding: 12px;
       display:flex;
@@ -316,7 +284,6 @@
     .nav::-webkit-scrollbar{width:10px}
     .nav::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:10px}
     .nav::-webkit-scrollbar-track{background: transparent}
-
     .nav-item{
       display:flex;
       align-items:center;
@@ -354,7 +321,6 @@
       text-overflow:ellipsis;
       min-width:0;
     }
-
     .sidebar.collapsed .brand h1,
     .sidebar.collapsed .brand small,
     .sidebar.collapsed .nav-label{display:none;}
@@ -365,7 +331,6 @@
       gap:0;
       padding:10px 8px;
     }
-
     .main{
       flex:1;
       display:flex;
@@ -373,7 +338,6 @@
       min-width: 0;
       gap: 14px;
     }
-
     .topbar{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -390,7 +354,6 @@
       z-index: 60;
       min-width: 0;
     }
-
     .search{
       flex:1;
       display:flex;
@@ -412,7 +375,6 @@
       min-width: 0;
     }
     .search input::placeholder{color: rgba(170,177,197,.75)}
-
     .icon-btn{
       width:42px;height:42px;border-radius:14px;
       background: rgba(255,255,255,.06);
@@ -428,7 +390,6 @@
     .icon-btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08)}
     .icon-btn svg{width:18px;height:18px;opacity:.92}
     #themeIcon svg{ width:18px; height:18px; opacity:.92; display:block; }
-
     .top-actions{
       display:flex;
       align-items:center;
@@ -436,7 +397,6 @@
       flex:0 0 auto;
       min-width: 0;
     }
-
     .userchip{
       display:flex;
       align-items:center;
@@ -473,7 +433,6 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
-
     .logout{
       color: rgba(255,255,255,.70);
       text-decoration:none;
@@ -492,7 +451,6 @@
       color: #ff8d8d;
       box-shadow: 0 0 0 3px rgba(255,77,77,.10);
     }
-
     .card{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -503,7 +461,6 @@
       overflow:hidden;
     }
     .card-inner{padding:14px}
-
     .hero{
       position:relative;
       height: 150px;
@@ -541,7 +498,6 @@
       overflow:hidden;
       text-overflow: ellipsis;
     }
-
     .controls{
       display:flex;
       gap:10px;
@@ -563,7 +519,6 @@
       align-items:center;
       flex-wrap:wrap;
     }
-
     .pill{
       display:inline-flex;
       align-items:center;
@@ -578,7 +533,6 @@
       white-space:nowrap;
     }
     html[data-theme="light"] .pill{ color: rgba(18,20,40,.88); }
-
     .dot{
       width:9px;height:9px;border-radius:50%;
       display:inline-block;
@@ -586,7 +540,6 @@
       background: var(--accent);
     }
     .dot.cs{ background: var(--cs); }
-
     .field{
       display:flex;
       align-items:center;
@@ -598,7 +551,6 @@
       position: relative;
     }
     html[data-theme="light"] .field{ border-color: rgba(0,0,0,.10); }
-
     .field label{
       font-size:.82rem;
       font-weight:900;
@@ -606,7 +558,6 @@
       white-space: nowrap;
     }
     html[data-theme="light"] .field label{ color: rgba(18,20,40,.82); }
-
     .field select{
       border:0;
       outline:none;
@@ -615,22 +566,15 @@
       background: rgba(0,0,0,.18);
       border: 1px solid rgba(255,255,255,.10);
     }
-
     .field input[type="checkbox"]{
       width:16px;height:16px;
       accent-color: var(--brand);
       cursor:pointer;
     }
-
-    .type-field{
-      align-items: center;
-    }
-
     .multi-select{
       position: relative;
       min-width: 180px;
     }
-
     .multi-btn{
       min-width: 180px;
       height: 38px;
@@ -645,19 +589,15 @@
       gap: 10px;
       cursor: pointer;
       font-weight: 700;
-      white-space: nowrap;
     }
-
     .multi-btn:hover{
       border-color: rgba(77,211,255,.24);
     }
-
     .multi-caret{
       opacity: .8;
       font-size: .85rem;
       flex: 0 0 auto;
     }
-
     .multi-menu{
       position: absolute;
       top: calc(100% + 8px);
@@ -673,11 +613,9 @@
       display: none;
       z-index: 200;
     }
-
     .multi-menu.show{
       display: block;
     }
-
     .multi-option{
       display: flex;
       align-items: center;
@@ -687,11 +625,9 @@
       cursor: pointer;
       font-size: .85rem;
     }
-
     .multi-option:hover{
       background: rgba(255,255,255,.06);
     }
-
     .multi-option input{
       width: 16px;
       height: 16px;
@@ -699,7 +635,6 @@
       margin: 0;
       flex: 0 0 auto;
     }
-
     .btn{
       padding: 9px 12px;
       border-radius: 12px;
@@ -721,7 +656,6 @@
       box-shadow: 0 0 0 3px rgba(77,211,255,.10);
       border-color: rgba(77,211,255,.22);
     }
-
     .section-title{
       margin: 16px 0 10px 0;
       font-family: Orbitron, sans-serif;
@@ -738,13 +672,11 @@
       margin-left: 8px;
       letter-spacing: 0;
     }
-
     .grid{
       display:grid;
       grid-template-columns: repeat(auto-fill, minmax(var(--wep-min), 1fr));
       gap: var(--wep-gap);
     }
-
     .wep-card{
       position:relative;
       padding: var(--wep-pad);
@@ -764,7 +696,6 @@
       transform: translateY(-1px);
       border-color: rgba(255,189,89,.18);
     }
-
     .wep-thumb{
       width:100%;
       aspect-ratio: 16 / 9;
@@ -784,7 +715,6 @@
       display:block;
       background: rgba(255,255,255,.02);
     }
-
     .cs-dot{
       position:absolute;
       top:8px; right:8px;
@@ -796,7 +726,6 @@
       display:none;
     }
     .wep-card.is-cs .cs-dot{ display:block; background: var(--cs); }
-
     .wep-name{
       font-size:.82rem;
       font-weight:1000;
@@ -808,7 +737,6 @@
       padding: 0 2px;
     }
     html[data-theme="light"] .wep-name{ color: rgba(18,20,40,.92); }
-
     .wep-sub{
       display:flex;
       justify-content:center;
@@ -837,7 +765,6 @@
       border-color: rgba(77,211,255,.26);
       background: rgba(77,211,255,.10);
     }
-
     .empty-msg{
       grid-column: 1 / -1;
       padding: 12px;
@@ -848,7 +775,6 @@
       font-weight: 800;
       text-align: center;
     }
-
     .grid.list-view{
       display:flex;
       flex-direction:column;
@@ -890,7 +816,6 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
-
     .modal{
       position: fixed;
       inset: 0;
@@ -904,7 +829,6 @@
       z-index: 1000;
     }
     .modal.show{display:flex;}
-
     .modal-card{
       width: min(620px, 100%);
       background: rgba(14, 18, 28, .92);
@@ -915,7 +839,6 @@
       display:flex;
       flex-direction:column;
     }
-
     .modal-top{
       display:flex;
       align-items:flex-start;
@@ -940,7 +863,6 @@
       letter-spacing:.2px;
       white-space:normal;
     }
-
     .modal-body{
       padding: 12px 14px 14px 14px;
       display:flex;
@@ -948,7 +870,6 @@
       gap: 10px;
       justify-content:flex-start;
     }
-
     .badge-row{
       display:flex;
       gap:10px;
@@ -957,7 +878,6 @@
       margin: 0;
       padding: 0;
     }
-
     .info-block{
       background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.10);
@@ -972,7 +892,6 @@
       font-weight:1000;
     }
     html[data-theme="light"] .info-block b{ color: rgba(18,20,40,.92); }
-
     .info-block .txt{
       margin:0;
       color: rgba(244,246,255,.86);
@@ -981,7 +900,6 @@
       white-space: normal;
     }
     html[data-theme="light"] .info-block .txt{ color: rgba(18,20,40,.86); }
-
     .kv{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -998,33 +916,14 @@
       font-size:.92rem;
       font-weight:900;
       color: rgba(244,246,255,.92);
-      word-break: normal;
-      overflow-wrap: normal;
+      word-break: break-word;
     }
     html[data-theme="light"] .kv .v{ color: rgba(18,20,40,.92); }
-
-    @media (min-width: 981px){
-      .type-field{
-        flex: 0 0 auto;
-      }
-      .multi-select{
-        min-width: 170px;
-      }
-      .multi-btn{
-        min-width: 170px;
-        max-width: 210px;
-      }
-      .multi-menu{
-        width: 230px;
-      }
-    }
-
     @media (max-width: 980px){
       .app{
         padding:12px;
         max-width:none;
       }
-
       .topbar{
         top: env(safe-area-inset-top);
         border-radius: 0;
@@ -1039,15 +938,12 @@
         scrollbar-width: none;
       }
       .topbar::-webkit-scrollbar{ display:none; }
-
       .search{ min-width: 240px; flex: 1 1 auto; }
       .top-actions{ flex: 0 0 auto; }
       .userchip{ max-width: 220px; min-width: 0; }
       .usertext b{ max-width: 150px; font-size: .88rem; }
       .usertext span{ display:none; }
-
       :root{ --wep-min: 130px; }
-
       .sidebar{
         position: fixed;
         left: 12px;
@@ -1059,15 +955,12 @@
       }
       .sidebar.open{ transform: translateX(0); }
       .sidebar.collapsed{ width: min(86vw, 320px); }
-
       .sb-close{display:grid;}
       .sidebar .brand{padding-right:10px;}
-
       .sidebar.collapsed .brand h1,
       .sidebar.collapsed .brand small,
       .sidebar.collapsed .nav-label{display:block;}
       .sidebar.collapsed .nav-item{justify-content:flex-start; gap:10px; padding:10px 10px;}
-
       .controls-left{
         flex-wrap:nowrap;
         overflow:auto;
@@ -1078,57 +971,32 @@
       .controls-left::-webkit-scrollbar{height:8px}
       .controls-left::-webkit-scrollbar-thumb{background: rgba(255,255,255,.08); border-radius:999px}
       .controls-left .pill{flex:0 0 auto;}
-
       .controls-right{width:100%;}
       .grid.list-view .wep-thumb{width: 140px;}
-
-      .multi-select{
-        min-width: 160px;
-        width: 100%;
-      }
-      .multi-btn{
-        width: 100%;
-        min-width: 0;
-      }
-      .multi-menu{
-        width: 100%;
-        min-width: 0;
-      }
     }
-
     @media (max-width: 620px){
       .search{ min-width: 220px; }
       .userchip{ max-width: 180px; }
       .usertext b{ max-width: 120px; }
-
       .field{flex:1 1 160px;}
       .btn{flex: 1 1 160px;}
-
       .hero{height: 132px;}
       .hero-title h2{font-size: 1.2rem;}
-
       .multi-btn{ min-width: 150px; }
       .multi-menu{ min-width: 200px; }
     }
-
     @media (max-width: 420px){
       :root{ --wep-min: 118px; }
       .grid.list-view .wep-thumb{width: 120px;}
       .grid.list-view .wep-mini{-webkit-line-clamp: 3;}
-
       .topbar{ padding:10px; }
       .search{ min-width: 200px; }
-
       .multi-btn{ min-width: 140px; }
     }
   </style>
-<style id="sidebarCleanGuardStyle">/* sidebar clean guard */ #sidebar .sb-close,#sbClose{display:none!important}</style>
-  <link rel="stylesheet" href="assets/css/readability-theme.css?v=20260629" />
 </head>
-
 <body>
   <div class="sb-overlay" id="sbOverlay" aria-hidden="true"></div>
-
   <div class="app">
     <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
       <div class="brand">
@@ -1139,153 +1007,181 @@
             <small class="muted">Caster Dashboard</small>
           </div>
         </div>
-</div>
-
+        <button class="icon-btn sb-close" id="sbClose" aria-label="Close sidebar" title="Close">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
       <nav class="nav" id="nav">
-        <a class="nav-item active" href="home.html" data-page="home.html" title="Dashboard">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </span>
-          <span class="nav-label">Dashboard</span>
-        </a>
+  <a class="nav-item" href="home.html" data-page="home.html" title="Dashboard">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 4h7v7H4V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M13 4h7v4h-7V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M13 10h7v10h-7V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M4 13h7v7H4v-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Dashboard</span>
+  </a>
 
-        <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Character Skills</span>
-        </a>
+  <a class="nav-item" href="character.html" data-page="character.html" title="Character Skills">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M17 5l1.5-2M19 8h2M17 11l1.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Character Skills</span>
+  </a>
 
-        <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14c-1.7 0-3-1.3-3-3S5.3 8 7 8s3 1.3 3 3-1.3 3-3 3Zm10 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3ZM7 20c-2.8 0-5-1.8-5-4v-1h6v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-1h6v1c0 2.2-2.2 4-5 4H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Pets</span>
-        </a>
+  <a class="nav-item" href="pet.html" data-page="pet.html" title="Pets">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 10a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M20 10a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M10 7a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M18 7a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M7 18c0-2.2 2.2-4 5-4s5 1.8 5 4c0 1.4-1 2.5-2.4 2.5-.9 0-1.6-.5-2.6-.5s-1.7.5-2.6.5C8 20.5 7 19.4 7 18Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Pets</span>
+  </a>
 
-        <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21l6-6m0 0 2 2 8-8-2-2-8 8Zm0 0-2-2 4-4 2 2-4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Weapons</span>
-        </a>
+  <a class="nav-item" href="weapon.html" data-page="weapon.html" title="Weapons">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 14h8l2-3h8v4h-5l-2 3H8l-2 3H3v-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M14 11V8h5l2 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 14v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Weapons</span>
+  </a>
 
-        <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadout">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M9 7V6a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M6 20V11a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M8 20v-4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">Loadout</span>
-        </a>
+  <a class="nav-item" href="loadout.html" data-page="loadout.html" title="Loadout">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 7V6a4 4 0 0 1 8 0v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M6 8h12l1 12H5L6 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M9 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Loadout</span>
+  </a>
 
-        <a class="nav-item" href="preset.html" data-page="preset.html" title="Preset Builder">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M14.5 4.5a5 5 0 0 0-6.7 6.7l-4.3 4.3a2 2 0 0 0 2.8 2.8l4.3-4.3A5 5 0 0 0 19.5 9.5l-3 3-2-2 3-3Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M19 4l1-1M20 6h1M18 5V4"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">Preset Builder</span>
-        </a>
+  <a class="nav-item" href="preset.html" data-page="preset.html" title="Preset Builder">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M18 7h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 17h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M10 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 15v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15 11l1.2 2.4L19 14l-2.1 1.9.5 2.8L15 17.3l-2.4 1.4.5-2.8L11 14l2.8-.6L15 11Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Preset Builder</span>
+  </a>
 
-        <a class="nav-item" href="map.html" data-page="map.html" title="Map">
-          <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6 4 8v14l6-2 4 2 6-2V6l-6 2-4-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <span class="nav-label">Map</span>
-        </a>
+  <a class="nav-item" href="map.html" data-page="map.html" title="Map">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 18l-5 2V6l5-2 6 2 5-2v14l-5 2-6-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9 4v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15 6v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </span>
+    <span class="nav-label">Map</span>
+  </a>
 
-        <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M4 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M8 17V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M12 17V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M16 17V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M7 11l4-3 4 5 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">BR Data</span>
-        </a>
+  <a class="nav-item" href="br-team.html" data-page="br-team.html" title="BR Data">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 16v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 16V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 16v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M7 10l4-3 4 5 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">BR Data</span>
+  </a>
 
-        <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft-team.html" title="CS Draft">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 3h7l3 3v15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M14 3v4a2 2 0 0 0 2 2h4"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M11 16l1-3 6-6 2 2-6 6-3 1Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">CS Draft</span>
-        </a>
+  <a class="nav-item" href="clash-draft-team.html" data-page="clash-draft-team.html" title="CS Draft">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9 4V2h6v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 10h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15 18l1-3 4-4 2 2-4 4-3 1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">CS Draft</span>
+  </a>
 
-        <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 16l6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 16l-6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13.5 8.5l2-2 2 2-2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M10.5 8.5l-2-2-2 2 2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M7.2 17.8l2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16.8 17.8l-2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">CS Data</span>
-        </a>
+  <a class="nav-item" href="clash-data.html" data-page="clash-data.html" title="CS Data">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" stroke="currentColor" stroke-width="2"/>
+        <path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" stroke="currentColor" stroke-width="2"/>
+        <path d="M9 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">CS Data</span>
+  </a>
 
-        <a class="nav-item" href="clash-compare.html" data-page="clash-compare.html" title="CS Compare">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 16l6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 16l-6-6"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13.5 8.5l2-2 2 2-2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M10.5 8.5l-2-2-2 2 2 2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M7.2 17.8l2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16.8 17.8l-2-2"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">CS Compare</span>
-        </a>
+  <a class="nav-item" href="clash-compare.html" data-page="clash-compare.html" title="CS Compare">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 5h6v14H5V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M13 5h6v14h-6V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M7 9h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15 9h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M7 14h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15 14h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M11 12h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">CS Compare</span>
+  </a>
 
-        <a class="nav-item active" href="store.html" data-page="store.html" title="Stores">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16M6 7l1 12h10l1-12M9 11h6M10 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">Stores</span>
-        </a>
+  <a class="nav-item" href="store.html" data-page="store.html" title="Stores">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 10h16l-1-5H5l-1 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M5 10v10h14V10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9 20v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M8 10v2a2 2 0 0 1-4 0v-2" stroke="currentColor" stroke-width="2"/>
+        <path d="M14 10v2a2 2 0 0 1-4 0v-2" stroke="currentColor" stroke-width="2"/>
+        <path d="M20 10v2a2 2 0 0 1-4 0v-2" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </span>
+    <span class="nav-label">Stores</span>
+  </a>
 
-        <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
-          <span class="nav-ico">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 5h7v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13 5h7v14h-7V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="nav-label">Split View</span>
-        </a>
-      </nav>
+  <a class="nav-item" href="split-view.html" data-page="split-view.html" title="Split View">
+    <span class="nav-ico">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 5h7v14H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M13 5h7v14h-7V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M11 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M7 9h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 9h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="nav-label">Split View</span>
+  </a>
+</nav>
     </aside>
-
     <main class="main">
       <header class="topbar">
         <button class="icon-btn" id="sbToggle" aria-label="Sidebar" title="Sidebar">
@@ -1293,14 +1189,12 @@
             <path id="sbTogglePath" d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;opacity:.85">
             <path d="M21 21l-4.3-4.3m1.3-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
           <input id="searchInput" placeholder="Search weapons (name / type / armory / attributes)..." />
         </div>
-
         <button class="icon-btn" id="themeToggle"
               type="button"
               title="Toggle Light/Dark"
@@ -1308,7 +1202,6 @@
               aria-pressed="false">
           <span id="themeIcon" aria-hidden="true"></span>
         </button>
-
         <div class="top-actions">
           <div class="userchip">
             <div class="avatar"></div>
@@ -1317,11 +1210,9 @@
               <span id="userEmail" class="muted">loading…</span>
             </div>
           </div>
-
           <a class="logout" href="#" id="logoutBtn">Logout</a>
         </div>
       </header>
-
       <section class="card">
         <div class="hero">
           <div class="hero-content">
@@ -1330,7 +1221,6 @@
             </div>
           </div>
         </div>
-
         <div class="card-inner">
           <div class="controls">
             <div class="controls-left">
@@ -1338,79 +1228,41 @@
               <span class="pill"><span class="dot cs"></span>CS Weapons</span>
               <span class="pill" id="countPill" style="display:none;"></span>
             </div>
-
             <div class="controls-right">
-              <div class="field type-field">
+              <div class="field">
                 <label for="filterTypeBtn">Type</label>
                 <div class="multi-select" id="typeMulti">
                   <button class="multi-btn" id="filterTypeBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
                     <span id="filterTypeLabel">All</span>
                     <span class="multi-caret">▾</span>
                   </button>
-
                   <div class="multi-menu" id="filterTypeMenu" role="listbox" aria-multiselectable="true">
                     <label class="multi-option">
                       <input type="checkbox" value="__all__" checked />
                       <span>All</span>
                     </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Assault Rifle" data-type-option="1" />
-                      <span>Assault Rifle</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="SMG" data-type-option="1" />
-                      <span>SMG</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Shotgun" data-type-option="1" />
-                      <span>Shotgun</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Sniper Rifle" data-type-option="1" />
-                      <span>Sniper Rifle</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Marksman Rifle" data-type-option="1" />
-                      <span>Marksman Rifle</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Pistol" data-type-option="1" />
-                      <span>Pistol</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Light Machine Gun" data-type-option="1" />
-                      <span>Light Machine Gun</span>
-                    </label>
-                    <label class="multi-option">
-                      <input type="checkbox" value="Launcher" data-type-option="1" />
-                      <span>Launcher</span>
-                    </label>
+                  
                   </div>
                 </div>
               </div>
-
               <div class="field">
                 <label for="filterArmory">Armory</label>
                 <select id="filterArmory">
                   <option value="">All</option>
                 </select>
               </div>
-
               <div class="field">
                 <label for="filterCSOnly">CS</label>
                 <input type="checkbox" id="filterCSOnly" />
               </div>
-
               <button class="btn" id="toggleView" type="button">📃 List View</button>
-              <a class="btn" href="dashboard.html">← Dashboard</a>
+              <a class="btn" href="home.html">← Dashboard</a>
             </div>
           </div>
-
           <div class="section-title">Weapons <span class="hint">(tap a weapon for details)</span></div>
           <div class="grid" id="weaponGrid">
             <div class="empty-msg">Loading…</div>
           </div>
-
           <div class="muted" style="font-size:.8rem; padding: 14px 2px 2px 2px;">
             Free Fire Caster © 2025 — Misai Productions Sdn. Bhd.
           </div>
@@ -1418,7 +1270,6 @@
       </section>
     </main>
   </div>
-
   <div class="modal" id="infoModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Weapon Info">
       <div class="modal-top">
@@ -1430,10 +1281,8 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
-
       <div class="modal-body">
         <div class="badge-row" id="infoBadges"></div>
-
         <div class="info-block">
           <b>Stats</b>
           <div class="kv">
@@ -1455,12 +1304,10 @@
             </div>
           </div>
         </div>
-
         <div class="info-block">
           <b>Special Attributes</b>
           <p class="txt" id="infoAttrs">—</p>
         </div>
-
         <div class="info-block">
           <b>Description</b>
           <p class="txt" id="infoDesc">—</p>
@@ -1468,7 +1315,6 @@
       </div>
     </div>
   </div>
-
   <script>
     /***********************
      * Theme toggle
@@ -1476,7 +1322,6 @@
     const THEME_KEY = 'ff_theme_v1';
     const themeToggleBtn = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
-
     const ICON_SUN = `
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
@@ -1487,7 +1332,6 @@
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `;
-
     const ICON_MOON = `
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
@@ -1495,22 +1339,17 @@
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `;
-
     function getTheme(){
       return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     }
-
     function renderThemeIcon(theme){
       if (!themeIcon) return;
       themeIcon.innerHTML = (theme === 'dark') ? ICON_SUN : ICON_MOON;
     }
-
     function applyTheme(theme){
       document.documentElement.setAttribute('data-theme', theme);
       try{ localStorage.setItem(THEME_KEY, theme); }catch(_){}
-
       renderThemeIcon(theme);
-
       if (themeToggleBtn){
         const nextLabel = (theme === 'dark') ? 'Switch to light mode' : 'Switch to dark mode';
         themeToggleBtn.setAttribute('title', nextLabel);
@@ -1518,22 +1357,18 @@
         themeToggleBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
       }
     }
-
     themeToggleBtn?.addEventListener('click', () => {
       const next = (getTheme() === 'dark') ? 'light' : 'dark';
       applyTheme(next);
     });
-
     applyTheme(getTheme());
-
     /***********************
      * Supabase Auth
      ***********************/
     const client = supabase.createClient(
-      (window.FF_CONFIG && window.FF_CONFIG.SUPABASE_URL) || 'https://ooutjrewmwsixghbouxi.supabase.co',
-      (window.FF_CONFIG && window.FF_CONFIG.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
+      'https://ooutjrewmwsixghbouxi.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdXRqcmV3bXdzaXhnaGJvdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjg3NTMsImV4cCI6MjA4MjYwNDc1M30.13WkdGiQH39lZH3iDgVDd_tZrHlI0twhGeiZNdwaMSg'
     );
-
     async function ensureSession(){
       const { data: { session } } = await client.auth.getSession();
       if (!session) {
@@ -1542,21 +1377,17 @@
       }
       return session;
     }
-
     async function logout(){
       await client.auth.signOut();
       window.location.href = "index.html";
     }
-
     /***********************
      * Sidebar
      ***********************/
     const sidebar = document.getElementById('sidebar');
     const sbOverlay = document.getElementById('sbOverlay');
     const sbClose = document.getElementById('sbClose');
-
     function isMobile(){ return window.matchMedia('(max-width: 980px)').matches; }
-
     function openMobileSidebar(){
       sidebar.classList.add('open');
       sbOverlay.classList.add('show');
@@ -1576,21 +1407,15 @@
       if (sidebar.classList.contains('open')) closeMobileSidebar();
       else openMobileSidebar();
     }
-
-    let setToggleIcon = () => {};
-
     (function initSidebarControls(){
       const key = 'ff_sidebar_collapsed_v1';
       const btn = document.getElementById('sbToggle');
       const path = document.getElementById('sbTogglePath');
-
-      setToggleIcon = function(){
+      window.setToggleIcon = function setToggleIcon(){
         if (!path) return;
-
         const mobile = isMobile();
         const open = sidebar.classList.contains('open');
         const collapsed = sidebar.classList.contains('collapsed');
-
         if (mobile){
           path.setAttribute('d', open
             ? 'M6 6l12 12M18 6 6 18'
@@ -1603,14 +1428,11 @@
             : 'M14 7l-5 5 5 5'
           );
         }
-      };
-
+      }
       const saved = localStorage.getItem(key);
       if (saved === '1') sidebar.classList.add('collapsed');
       if (isMobile()) sidebar.classList.remove('collapsed');
-
       setToggleIcon();
-
       btn?.addEventListener('click', () => {
         if (isMobile()){
           toggleMobileSidebar();
@@ -1620,16 +1442,13 @@
         localStorage.setItem(key, sidebar.classList.contains('collapsed') ? '1' : '0');
         setToggleIcon();
       });
-
       sbClose?.addEventListener('click', closeMobileSidebar);
       sbOverlay?.addEventListener('click', closeMobileSidebar);
-
       document.querySelectorAll('.nav-item').forEach(a => {
         a.addEventListener('click', () => {
           if (isMobile()) closeMobileSidebar();
         });
       });
-
       window.addEventListener('resize', () => {
         if (isMobile()){
           sidebar.classList.remove('collapsed');
@@ -1640,12 +1459,10 @@
         }
         setToggleIcon();
       });
-
       window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && sidebar.classList.contains('open')) closeMobileSidebar();
       });
     })();
-
     (function setActiveNav(){
       const here = (location.pathname.split('/').pop() || 'weapon.html').toLowerCase();
       document.querySelectorAll('.nav-item').forEach(a => {
@@ -1653,7 +1470,6 @@
         a.classList.toggle('active', page === here);
       });
     })();
-
     /***********************
      * Helpers
      ***********************/
@@ -1670,7 +1486,6 @@
       if (!currentCsOnly) return 'CS';
       return p ? `CS ₱${p}` : 'CS';
     }
-
     function isCS(w){
       const v = tidy(w?.clash_squad).toLowerCase();
       return v === 'cs' || v === 'yes' || v === 'true';
@@ -1685,66 +1500,109 @@
         .map(s => tidy(s))
         .filter(Boolean);
     }
-
     /***********************
      * Data + State
      ***********************/
     const WEAPON_URL = 'https://misai-my.github.io/freefire-esports/weapon.json';
 
+    // Weapon Image Collection: ZIP provides local PNG icons; weapon.json retains verified descriptions/stats.
+    const WEAPON_ZIP_URL = 'assets/weapons.zip';
+    const weaponCollectionObjectUrls = [];
+    function weaponKey(value){ return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+    function weaponImageLabel(file){
+      return file.split('/').pop().replace(/-img-1\.png$/i, '').split('-').map(s => s.toUpperCase()).join(' ');
+    }
+    async function applyWeaponCollection(weapons){
+      if (!window.JSZip) {
+        console.warn('JSZip did not load; using existing weapon.json images.');
+        return weapons;
+      }
+      try {
+        const res = await fetch(WEAPON_ZIP_URL, {cache:'no-store'});
+        if (!res.ok) throw new Error('Weapon Collection ZIP HTTP '+res.status);
+        const zip = await JSZip.loadAsync(await res.arrayBuffer());
+        const images = new Map();
+        for (const name of Object.keys(zip.files)) {
+          if (!/^weapons\/[^/]+-img-1\.png$/i.test(name)) continue;
+          const key = weaponKey(name.split('/').pop().replace(/-img-1\.png$/i, ''));
+          if (!key || images.has(key)) continue;
+          const bytes = await zip.file(name).async('blob');
+          const url = URL.createObjectURL(new Blob([bytes], {type:'image/png'}));
+          weaponCollectionObjectUrls.push(url);
+          images.set(key, {url, name});
+        }
+        const found = new Set();
+        const merged = weapons.map(w => {
+          const names = [w.name, ...(Array.isArray(w.aliases) ? w.aliases : [])];
+          const image = names.map(weaponKey).map(k => [k,images.get(k)]).find(pair=>pair[1]);
+          if (!image) return w;
+          found.add(image[0]);
+          return {...w, image_url:image[1].url, image_source:'Weapon Image Collection ZIP'};
+        });
+        // Show image-only ZIP weapons, but never invent their unavailable stats.
+        for (const [key,item] of images) {
+          if (found.has(key)) continue;
+          merged.push({
+            name:weaponImageLabel(item.name), image_url:item.url,
+            type:'Unclassified',
+            description:'The image is in the Weapon Image Collection, but this weapon has no matching stats in weapon.json.',
+            image_source:'Weapon Image Collection ZIP',
+            source_notes:['Image-only entry; statistics not verified']
+          });
+        }
+        console.info('Weapon Image Collection:',images.size,'icons,',found.size,'matched weapon entries.');
+        return merged;
+      } catch(e) {
+        console.warn('Weapon Image Collection unavailable; using existing image URLs.',e);
+        return weapons;
+      }
+    }
+
     let allWeapons = [];
     let isListView = false;
-
     let currentSearch = '';
     let currentTypeFilter = [];
     let currentArmoryFilter = '';
     let currentCsOnly = false;
-
     const weaponGrid = document.getElementById('weaponGrid');
     const countPill = document.getElementById('countPill');
-
     const searchInput = document.getElementById('searchInput');
     const filterArmory = document.getElementById('filterArmory');
     const filterCSOnly = document.getElementById('filterCSOnly');
     const toggleViewBtn = document.getElementById('toggleView');
-
     const filterTypeBtn = document.getElementById('filterTypeBtn');
     const filterTypeMenu = document.getElementById('filterTypeMenu');
     const filterTypeLabel = document.getElementById('filterTypeLabel');
-
     function getTypeInputs(){
       return [...filterTypeMenu.querySelectorAll('input[data-type-option="1"]')];
     }
-
     function getAllTypeInput(){
       return filterTypeMenu.querySelector('input[value="__all__"]');
     }
-
     function syncTypeDropdownLabel(){
       const selected = getTypeInputs().filter(i => i.checked).map(i => i.value);
       currentTypeFilter = selected;
-
       if (!selected.length){
         filterTypeLabel.textContent = 'All';
-        getAllTypeInput().checked = true;
+        if (getAllTypeInput()) getAllTypeInput().checked = true;
       } else if (selected.length === 1){
         filterTypeLabel.textContent = selected[0];
-        getAllTypeInput().checked = false;
+        if (getAllTypeInput()) getAllTypeInput().checked = false;
       } else {
         filterTypeLabel.textContent = `${selected.length} selected`;
-        getAllTypeInput().checked = false;
+        if (getAllTypeInput()) getAllTypeInput().checked = false;
       }
     }
-
     function closeTypeMenu(){
+      if (!filterTypeMenu || !filterTypeBtn) return;
       filterTypeMenu.classList.remove('show');
       filterTypeBtn.setAttribute('aria-expanded', 'false');
     }
-
     function openTypeMenu(){
+      if (!filterTypeMenu || !filterTypeBtn) return;
       filterTypeMenu.classList.add('show');
       filterTypeBtn.setAttribute('aria-expanded', 'true');
     }
-
     function typeSortIndex(type){
       const order = [
         'Pistol',
@@ -1759,7 +1617,6 @@
       const i = order.indexOf(type);
       return i === -1 ? order.length : i;
     }
-
     function weaponSearchBlob(w){
       return [
         tidy(w?.name),
@@ -1769,7 +1626,6 @@
         tidy(w?.description)
       ].filter(Boolean).join(' ').toLowerCase();
     }
-
     function ensureEmptyMsg(){
       let msg = weaponGrid.querySelector('.empty-msg');
       if (!msg){
@@ -1780,59 +1636,29 @@
       }
       return msg;
     }
-
-    function makeWeaponCard(w){
-      const el = document.createElement('div');
-      const name = tidy(w?.name) || 'Unknown';
-      const type = tidy(w?.type) || '—';
-      const armory = splitArmory(w?.armory);
-      const cs = isCS(w);
-      const price = tidy(w?.price);
-
-      el.className = 'wep-card' + (cs ? ' is-cs' : '');
-      el.tabIndex = 0;
-
-      const thumb = document.createElement('div');
-      thumb.className = 'wep-thumb';
-
-      const img = document.createElement('img');
-      img.src = w?.image_url || '';
-      img.alt = name;
-      img.loading = 'lazy';
-      img.referrerPolicy = 'no-referrer';
-
-      const csDot = document.createElement('span');
-      csDot.className = 'cs-dot';
-
-      thumb.appendChild(img);
-      thumb.appendChild(csDot);
-
+    function makeChip(label, cls = ''){
+      const chip = document.createElement('span');
+      chip.className = `chip${cls ? ' ' + cls : ''}`;
+      chip.textContent = label;
+      return chip;
+    }
+    function makeNameNode(name){
       const nm = document.createElement('div');
       nm.className = 'wep-name';
       nm.textContent = name;
-
+      return nm;
+    }
+    function makeSubNode(w){
+      const type = tidy(w?.type) || '—';
+      const cs = isCS(w);
+      const price = tidy(w?.price);
       const sub = document.createElement('div');
       sub.className = 'wep-sub';
-
-      if (type){
-        const chipType = document.createElement('span');
-        chipType.className = 'chip';
-        chipType.textContent = type;
-        sub.appendChild(chipType);
-      }
-
-      if (cs){
-        const chipCS = document.createElement('span');
-        chipCS.className = 'chip cs';
-        chipCS.textContent = csChipLabel(price);
-        sub.appendChild(chipCS);
-      }
-
-      const row = document.createElement('div');
-      row.className = 'wep-row';
-      row.appendChild(nm);
-      row.appendChild(sub);
-
+      if (type) sub.appendChild(makeChip(type));
+      if (cs) sub.appendChild(makeChip(csChipLabel(price), 'cs'));
+      return sub;
+    }
+    function makeMiniNode(w){
       const mini = document.createElement('div');
       mini.className = 'wep-mini';
       const dmg = tidy(w?.damage);
@@ -1840,6 +1666,7 @@
       const rng = tidy(w?.range);
       const mag = tidy(w?.magazine_size);
       const attrs = tidy(w?.special_attributes);
+      const armory = splitArmory(w?.armory);
       const arm = armory.length ? armory.join(', ') : '';
       mini.textContent = [
         dmg ? `DMG ${dmg}` : '',
@@ -1849,18 +1676,64 @@
         arm ? `Armory: ${arm}` : '',
         attrs ? `• ${attrs}` : ''
       ].filter(Boolean).join(' • ');
-      row.appendChild(mini);
-
-      el.appendChild(thumb);
-      el.appendChild(nm);
-      el.appendChild(sub);
-
+      return mini;
+    }
+    function makeThumbNode(w, name){
+      const thumb = document.createElement('div');
+      thumb.className = 'wep-thumb';
+      const img = document.createElement('img');
+      img.src = w?.image_url || '';
+      img.alt = name;
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = () => {
+        img.style.display = 'none';
+        thumb.dataset.missing = '1';
+        thumb.setAttribute('title', 'Image unavailable');
+      };
+      const csDot = document.createElement('span');
+      csDot.className = 'cs-dot';
+      thumb.appendChild(img);
+      thumb.appendChild(csDot);
+      return thumb;
+    }
+    function rebuildCardContent(card){
+      const w = card._weapon;
+      if (!w) return;
+      const name = tidy(w?.name) || 'Unknown';
+      const thumb = card._thumb || makeThumbNode(w, name);
+      card._thumb = thumb;
+      card.innerHTML = '';
+      if (isListView){
+        const row = document.createElement('div');
+        row.className = 'wep-row';
+        row.appendChild(makeNameNode(name));
+        row.appendChild(makeSubNode(w));
+        row.appendChild(makeMiniNode(w));
+        card._row = row;
+        card.appendChild(thumb);
+        card.appendChild(row);
+      } else {
+        card.appendChild(thumb);
+        card.appendChild(makeNameNode(name));
+        card.appendChild(makeSubNode(w));
+      }
+    }
+    function makeWeaponCard(w){
+      const el = document.createElement('div');
+      const name = tidy(w?.name) || 'Unknown';
+      const type = tidy(w?.type) || '—';
+      const armory = splitArmory(w?.armory);
+      const cs = isCS(w);
+      el.className = 'wep-card' + (cs ? ' is-cs' : '');
+      el.tabIndex = 0;
       el.dataset.search = weaponSearchBlob(w);
       el.dataset.type = type;
       el.dataset.cs = cs ? '1' : '0';
       el.dataset.armory = armory.map(a => a.toLowerCase()).join('|');
       el._weapon = w;
-
+      el._thumb = makeThumbNode(w, name);
+      rebuildCardContent(el);
       el.addEventListener('click', () => openInfo(w));
       el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -1868,117 +1741,54 @@
           openInfo(w);
         }
       });
-
-      el._row = row;
-      el._thumb = thumb;
-
       return el;
     }
-
     function applyViewMode(){
-      if (isListView){
-        weaponGrid.classList.add('list-view');
-        toggleViewBtn.textContent = '🔳 Grid View';
-        [...weaponGrid.querySelectorAll('.wep-card')].forEach(card => {
-          const thumb = card._thumb || card.querySelector('.wep-thumb');
-          const row = card._row;
-          if (!row) return;
-          card.innerHTML = '';
-          card.appendChild(thumb);
-          card.appendChild(row);
-        });
-      } else {
-        weaponGrid.classList.remove('list-view');
-        toggleViewBtn.textContent = '📃 List View';
-        [...weaponGrid.querySelectorAll('.wep-card')].forEach(card => {
-          const w = card._weapon;
-          if (!w) return;
-          const thumb = card._thumb;
-          const name = tidy(w?.name) || 'Unknown';
-          const type = tidy(w?.type) || '—';
-          const cs = isCS(w);
-          const price = tidy(w?.price);
-
-          const nm = document.createElement('div');
-          nm.className = 'wep-name';
-          nm.textContent = name;
-
-          const sub = document.createElement('div');
-          sub.className = 'wep-sub';
-
-          if (type){
-            const chipType = document.createElement('span');
-            chipType.className = 'chip';
-            chipType.textContent = type;
-            sub.appendChild(chipType);
-          }
-          if (cs){
-            const chipCS = document.createElement('span');
-            chipCS.className = 'chip cs';
-            chipCS.textContent = csChipLabel(price);
-            sub.appendChild(chipCS);
-          }
-
-          card.innerHTML = '';
-          card.appendChild(thumb);
-          card.appendChild(nm);
-          card.appendChild(sub);
-        });
-      }
+      weaponGrid.classList.toggle('list-view', isListView);
+      toggleViewBtn.textContent = isListView ? '🔳 Grid View' : '📃 List View';
+      [...weaponGrid.querySelectorAll('.wep-card')].forEach(rebuildCardContent);
     }
-
     function applyFilters(){
       const q = (currentSearch || '').toLowerCase().trim();
       const selectedTypes = Array.isArray(currentTypeFilter) ? currentTypeFilter : [];
       const armory = (currentArmoryFilter || '').toLowerCase().trim();
       const csOnly = !!currentCsOnly;
-
       const cards = [...weaponGrid.querySelectorAll('.wep-card')];
       let visible = 0;
-
       cards.forEach(el => {
         const blob = el.dataset.search || '';
         const t = el.dataset.type || '';
         const iscs = el.dataset.cs === '1';
         const arms = el.dataset.armory || '';
-
         const ok =
           (!q || blob.includes(q)) &&
           (!selectedTypes.length || selectedTypes.includes(t)) &&
           (!csOnly || iscs) &&
           (!armory || arms.split('|').includes(armory));
-
         el.style.display = ok ? '' : 'none';
         if (ok) visible++;
       });
-
       const empty = ensureEmptyMsg();
       empty.style.display = visible ? 'none' : '';
-
       countPill.style.display = '';
       countPill.textContent = `Showing: ${visible} weapon${visible===1?'':'s'}`;
     }
-
     function renderWeapons(){
       weaponGrid.innerHTML = '';
-
       const selectedTypes = Array.isArray(currentTypeFilter) ? currentTypeFilter : [];
       const armory = (currentArmoryFilter || '').toLowerCase().trim();
       const csOnly = !!currentCsOnly;
       const q = (currentSearch || '').toLowerCase().trim();
-
       let filtered = (Array.isArray(allWeapons) ? allWeapons.slice() : []).filter(w => {
         const t = tidy(w?.type);
         const cs = isCS(w);
         const arms = splitArmory(w?.armory).map(a => a.toLowerCase());
         const blob = weaponSearchBlob(w);
-
         return (!selectedTypes.length || selectedTypes.includes(t)) &&
                (!csOnly || cs) &&
                (!armory || arms.includes(armory)) &&
                (!q || blob.includes(q));
       });
-
       if (csOnly){
         filtered.sort((a,b) => {
           const pa = toPriceNum(a?.price);
@@ -1995,28 +1805,57 @@
           return ia - ib || tidy(a?.name).localeCompare(tidy(b?.name));
         });
       }
-
       if (!filtered.length){
         weaponGrid.innerHTML = '<div class="empty-msg">No weapons match your filters.</div>';
         countPill.style.display = '';
         countPill.textContent = 'Showing: 0 weapons';
         return;
       }
-
       filtered.forEach(w => weaponGrid.appendChild(makeWeaponCard(w)));
-
       applyViewMode();
       applyFilters();
     }
+    function populateTypeOptions(weapons){
+      const previous = new Set(currentTypeFilter || []);
+      const types = [...new Set((weapons || [])
+        .map(w => tidy(w?.type))
+        .filter(Boolean)
+      )].sort((a,b) => typeSortIndex(a) - typeSortIndex(b) || a.localeCompare(b));
 
+      filterTypeMenu.innerHTML = '';
+
+      const allLabel = document.createElement('label');
+      allLabel.className = 'multi-option';
+      allLabel.innerHTML = '<input type="checkbox" value="__all__" checked /> <span>All</span>';
+      filterTypeMenu.appendChild(allLabel);
+
+      types.forEach(type => {
+        const label = document.createElement('label');
+        label.className = 'multi-option';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = type;
+        input.dataset.typeOption = '1';
+        input.checked = previous.has(type);
+        const span = document.createElement('span');
+        span.textContent = type;
+        label.appendChild(input);
+        label.appendChild(span);
+        filterTypeMenu.appendChild(label);
+      });
+
+      const typeInputs = getTypeInputs();
+      const allInput = getAllTypeInput();
+      const hasSelected = typeInputs.some(i => i.checked);
+      if (allInput) allInput.checked = !hasSelected;
+      syncTypeDropdownLabel();
+    }
     function populateArmoryOptions(weapons){
       const set = new Set();
       (weapons || []).forEach(w => {
         splitArmory(w?.armory).forEach(a => set.add(a));
       });
-
       filterArmory.innerHTML = '<option value="">All</option>';
-
       [...set].sort((a,b) => a.localeCompare(b)).forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
@@ -2024,39 +1863,31 @@
         filterArmory.appendChild(opt);
       });
     }
-
     async function loadWeapons(){
       weaponGrid.innerHTML = '<div class="empty-msg">Loading…</div>';
-
       const url = `${WEAPON_URL}?ts=${Date.now()}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
-      allWeapons = Array.isArray(data) ? data : [];
+      allWeapons = await applyWeaponCollection(Array.isArray(data) ? data : []);
+      populateTypeOptions(allWeapons);
       populateArmoryOptions(allWeapons);
-      syncTypeDropdownLabel();
       renderWeapons();
     }
-
     /***********************
      * Modal
      ***********************/
     const infoModal = document.getElementById('infoModal');
     const infoClose = document.getElementById('infoClose');
-
     const infoName = document.getElementById('infoName');
     const infoSub = document.getElementById('infoSub');
     const infoBadges = document.getElementById('infoBadges');
-
     const infoDamage = document.getElementById('infoDamage');
     const infoROF = document.getElementById('infoROF');
     const infoRange = document.getElementById('infoRange');
     const infoMag = document.getElementById('infoMag');
-
     const infoAttrs = document.getElementById('infoAttrs');
     const infoDesc = document.getElementById('infoDesc');
-
     function badge(label, cls){
       const el = document.createElement('span');
       el.className = 'pill';
@@ -2066,47 +1897,41 @@
       el.appendChild(document.createTextNode(label));
       return el;
     }
-
     function openInfo(w){
       const name = tidy(w?.name) || '—';
       const type = tidy(w?.type) || '—';
       const cs = isCS(w);
       const price = tidy(w?.price);
       const armory = splitArmory(w?.armory);
-
       infoName.textContent = name;
       infoSub.textContent = [
         type ? type.toUpperCase() : null,
         cs ? (currentCsOnly && price ? `CS ₱${price}` : 'CS') : null,
         armory.length ? `ARMORY: ${armory.join(', ')}` : null
       ].filter(Boolean).join(' • ');
-
       infoBadges.innerHTML = '';
       infoBadges.appendChild(badge(type || 'TYPE', ''));
       if (cs) infoBadges.appendChild(badge('CLASH SQUAD', 'cs'));
-
       infoDamage.textContent = tidy(w?.damage) || '—';
       infoROF.textContent = tidy(w?.rate_of_fire) || '—';
       infoRange.textContent = tidy(w?.range) || '—';
       infoMag.textContent = tidy(w?.magazine_size) || '—';
-
       infoAttrs.textContent = tidy(w?.special_attributes) || '—';
       infoDesc.textContent = tidy(w?.description) || '—';
-
       infoModal.classList.add('show');
       infoModal.setAttribute('aria-hidden','false');
     }
-
     function closeInfo(){
       infoModal.classList.remove('show');
       infoModal.setAttribute('aria-hidden','true');
     }
-
     infoClose?.addEventListener('click', closeInfo);
     infoModal?.addEventListener('click', (e) => { if (e.target === infoModal) closeInfo(); });
-
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && infoModal.classList.contains('show')) closeInfo();
+    });
     /***********************
-     * Type dropdown events
+     * Events
      ***********************/
     filterTypeBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2114,18 +1939,14 @@
       if (isOpen) closeTypeMenu();
       else openTypeMenu();
     });
-
     filterTypeMenu?.addEventListener('click', (e) => {
       e.stopPropagation();
     });
-
     filterTypeMenu?.addEventListener('change', (e) => {
       const target = e.target;
       if (!target || target.tagName !== 'INPUT') return;
-
       const allInput = getAllTypeInput();
       const typeInputs = getTypeInputs();
-
       if (target.value === '__all__'){
         if (target.checked){
           typeInputs.forEach(i => i.checked = false);
@@ -2134,67 +1955,47 @@
         }
       } else {
         if (target.checked){
-          allInput.checked = false;
+          if (allInput) allInput.checked = false;
         } else if (!typeInputs.some(i => i.checked)){
-          allInput.checked = true;
+          if (allInput) allInput.checked = true;
         }
       }
-
       syncTypeDropdownLabel();
       renderWeapons();
     });
-
     document.addEventListener('click', () => {
       closeTypeMenu();
     });
-
-    /***********************
-     * Other events
-     ***********************/
     searchInput?.addEventListener('input', (e) => {
       currentSearch = e.target.value || '';
       renderWeapons();
     });
-
     filterArmory?.addEventListener('change', (e) => {
       currentArmoryFilter = e.target.value || '';
       renderWeapons();
     });
-
     filterCSOnly?.addEventListener('change', (e) => {
       currentCsOnly = !!e.target.checked;
       renderWeapons();
     });
-
     toggleViewBtn?.addEventListener('click', () => {
       isListView = !isListView;
       applyViewMode();
     });
-
     document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
       e.preventDefault();
       logout();
     });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape'){
-        if (infoModal.classList.contains('show')) closeInfo();
-        closeTypeMenu();
-      }
-    });
-
     /***********************
      * Init
      ***********************/
     window.addEventListener('DOMContentLoaded', async () => {
       const session = await ensureSession();
       if (!session) return;
-
       const email = session.user?.email || '';
       document.getElementById('userEmail').textContent = email || 'signed in';
       const username = email ? email.split('@')[0] : 'PlayerOne';
       document.getElementById('gamertag').textContent = username;
-
       try{
         await loadWeapons();
       }catch(err){
@@ -2204,11 +2005,5 @@
       }
     });
   </script>
-
-  <!-- Global full-site search -->
-  <script src="assets/js/global-search-index.js" defer></script>
-  <script src="assets/js/global-site-search.js" defer></script>
-  <script src="assets/js/shared-sidebar.js?v=20260629-sidebar-clean-v2" defer></script>
-  <script src="assets/js/sidebar-cleanup-guard.js?v=20260629-sidebar-clean-v2" defer></script>
 </body>
 </html>
