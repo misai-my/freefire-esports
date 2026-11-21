@@ -158,6 +158,69 @@
       overscroll-behavior:contain;
     }
 
+    .roster-heading{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:6px;
+    }
+    .roster-heading h2{ margin:0; font-size:.85rem; }
+    #edit-team-logo, .logo-actions button{
+      min-height:38px;
+      padding:5px 10px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#161e2c;
+      color:var(--ink);
+      font:inherit;
+      font-size:.82rem;
+      cursor:pointer;
+    }
+    .logo-actions button[type="submit"]{
+      background:var(--brand);
+      color:#111522;
+      font-weight:700;
+    }
+    .logo-actions button:disabled{ opacity:.55; cursor:default; }
+    #team-logo-dialog{
+      width:min(400px, calc(100% - 24px));
+      max-height:calc(100dvh - 24px);
+      padding:16px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#141c2a;
+      color:var(--ink);
+      overflow:auto;
+    }
+    #team-logo-dialog::backdrop{ background:rgba(0,0,0,.65); }
+    #team-logo-dialog h2{ margin:0 0 14px; font-size:1.05rem; }
+    #team-logo-form{ display:grid; gap:10px; }
+    #team-logo-form label{ display:grid; gap:5px; font-size:.83rem; }
+    #team-logo-form input, #team-logo-form select{
+      width:100%;
+      min-height:40px;
+      padding:6px 9px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#090e17;
+      color:var(--ink);
+      font:inherit;
+      font-size:16px;
+      user-select:text;
+    }
+    .logo-preview{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:56px;
+      margin:0;
+      color:var(--muted);
+      font-size:.8rem;
+    }
+    #team-logo-preview{ width:56px; height:56px; object-fit:contain; border-radius:8px; }
+    .logo-actions{ display:flex; justify-content:flex-end; gap:8px; }
+
     /* Team icons */
     .icon-grid{
       display:grid;
@@ -452,6 +515,10 @@
     </div>
 
     <div id="sidebar" inert>
+      <div class="roster-heading">
+        <h2>Teams</h2>
+        <button id="edit-team-logo" type="button" aria-haspopup="dialog" hidden>Update Logo</button>
+      </div>
       <div class="icon-grid" id="teamIcons"></div>
 
       <div id="controls">
@@ -484,6 +551,26 @@
       </div>
     </div>
   </div>
+
+  <dialog id="team-logo-dialog" aria-labelledby="team-logo-heading">
+    <h2 id="team-logo-heading">Update Team Logo</h2>
+    <form id="team-logo-form">
+      <label>Team
+        <select id="team-logo-select"></select>
+      </label>
+      <label>Image URL
+        <input id="team-logo-url" type="url" inputmode="url" placeholder="https://…" autocomplete="off" spellcheck="false" required />
+      </label>
+      <p class="logo-preview">
+        <img id="team-logo-preview" alt="Team logo preview" referrerpolicy="no-referrer" hidden />
+        <span id="team-logo-status" role="status"></span>
+      </p>
+      <div class="logo-actions">
+        <button id="team-logo-cancel" type="button">Cancel</button>
+        <button id="team-logo-save" type="submit">Save Logo</button>
+      </div>
+    </form>
+  </dialog>
 
   <script>
     /***********************
@@ -563,6 +650,7 @@
     const teamPaths = {};     // logical points
     const teamIcons = {};     // Map markers
     const teamChoices = new Map();
+    const TEAM_TABLE = "teams_pathplanner";
     const circles = [];       // logical
     const notesData = [];     // logical
 
@@ -897,7 +985,7 @@
       grid.innerHTML = "";
 
       const { data, error } = await client
-        .from("teams_pathplanner")
+        .from(TEAM_TABLE)
         .select("id, team_name, team_tag, logo_url")
         .order("id", { ascending: true });
 
@@ -930,12 +1018,14 @@
         button.className = "team-pick";
         button.dataset.id = teamId;
         button.dataset.teamTag = team.team_tag || "";
+        button.dataset.teamDbId = team.id;
         button.style.setProperty("--team-color", teamColors[i]);
         button.title = team.team_name || team.team_tag || teamId;
         button.setAttribute("aria-label", button.title);
         button.setAttribute("aria-pressed", "false");
 
         const img = document.createElement("img");
+        img.referrerPolicy = "no-referrer";
         if (team.logo_url) img.src = team.logo_url;
         img.alt = "";
         img.className = "team-icon";
@@ -960,7 +1050,128 @@
         fragment.appendChild(button);
       });
       grid.appendChild(fragment);
+      updateLogoButton();
     }
+
+    const editLogoBtn = document.getElementById("edit-team-logo");
+    const logoDialog = document.getElementById("team-logo-dialog");
+    const logoForm = document.getElementById("team-logo-form");
+    const logoSelect = document.getElementById("team-logo-select");
+    const logoUrl = document.getElementById("team-logo-url");
+    const logoPreview = document.getElementById("team-logo-preview");
+    const logoStatus = document.getElementById("team-logo-status");
+    const logoCancel = document.getElementById("team-logo-cancel");
+    const logoSave = document.getElementById("team-logo-save");
+
+    function canEditLogos(){
+      return window.FF_ACCESS?.canAccessPage("team_settings.html") === true;
+    }
+
+    function updateLogoButton(){
+      editLogoBtn.hidden = !teamChoices.size || !canEditLogos();
+    }
+
+    function getLogoUrl(){
+      try {
+        const url = new URL(logoUrl.value.trim());
+        if (url.protocol === "https:" && !url.username && !url.password) return url.href;
+      } catch {}
+      return "";
+    }
+
+    async function previewLogo(url){
+      logoPreview.hidden = true;
+      logoStatus.textContent = url ? "Loading preview…" : "Enter a direct HTTPS image link.";
+      if (!url){
+        logoPreview.removeAttribute("src");
+        return false;
+      }
+
+      try {
+        if (logoPreview.src !== url) logoPreview.src = url;
+        await logoPreview.decode();
+        if (logoPreview.src !== url) return false;
+        logoPreview.hidden = false;
+        logoStatus.textContent = "";
+        return true;
+      } catch {
+        if (logoPreview.src === url) logoStatus.textContent = "Could not load this image. Check the link and try again.";
+        return false;
+      }
+    }
+
+    function loadLogoField(){
+      const image = teamChoices.get(logoSelect.value)?.querySelector("img");
+      logoUrl.value = image?.getAttribute("src") || "";
+      previewLogo(getLogoUrl());
+    }
+
+    document.addEventListener("ff:access-ready", updateLogoButton);
+    editLogoBtn.onclick = () => {
+      if (!canEditLogos() || !teamChoices.size) return;
+      const options = [];
+      for (const [id, button] of teamChoices){
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = button.title;
+        options.push(option);
+      }
+      logoSelect.replaceChildren(...options);
+      if (teamChoices.has(activeTeam)) logoSelect.value = activeTeam;
+      loadLogoField();
+      logoDialog.showModal();
+    };
+
+    logoSelect.onchange = loadLogoField;
+    logoUrl.onchange = () => previewLogo(getLogoUrl());
+    logoCancel.onclick = () => logoDialog.close();
+    logoDialog.addEventListener("cancel", event => {
+      if (logoSave.disabled) event.preventDefault();
+    });
+
+    logoForm.onsubmit = async event => {
+      event.preventDefault();
+      const choice = teamChoices.get(logoSelect.value);
+      if (logoSave.disabled || !choice || !canEditLogos()) return;
+
+      const url = getLogoUrl();
+      if (!url){
+        previewLogo("");
+        logoUrl.focus();
+        return;
+      }
+
+      const teamId = logoSelect.value;
+      const fields = [logoSelect, logoUrl, logoSave, logoCancel];
+      fields.forEach(field => field.disabled = true);
+      try {
+        if (!await previewLogo(url)) return;
+        logoStatus.textContent = "Saving logo…";
+        const { data, error } = await client
+          .from(TEAM_TABLE)
+          .update({ logo_url:url })
+          .eq("id", choice.dataset.teamDbId)
+          .select("logo_url")
+          .maybeSingle();
+
+        if (error || !data?.logo_url) throw error || new Error("No team was updated");
+        for (const element of [choice, teamIcons[teamId]]){
+          const image = element?.querySelector("img");
+          if (image){
+            image.referrerPolicy = "no-referrer";
+            image.src = data.logo_url;
+          }
+        }
+        plannerStatus.textContent = choice.title + " logo updated.";
+        fields.forEach(field => field.disabled = false);
+        logoDialog.close();
+      } catch (error) {
+        console.error("Failed to update team logo:", error);
+        logoStatus.textContent = "The logo could not be saved. Try again.";
+      } finally {
+        fields.forEach(field => field.disabled = false);
+      }
+    };
 
     function setSelection(icon){
       selectedIcon?.setAttribute("aria-pressed", "false");
