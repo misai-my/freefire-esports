@@ -209,6 +209,7 @@
       font-size:16px;
       user-select:text;
     }
+    #team-logo-formats{ margin:0; color:var(--muted); font-size:.8rem; }
     .logo-preview{
       display:flex;
       align-items:center;
@@ -558,16 +559,17 @@
       <label>Team
         <select id="team-logo-select"></select>
       </label>
-      <label>Image URL
-        <input id="team-logo-url" type="url" inputmode="url" placeholder="https://…" autocomplete="off" spellcheck="false" required />
+      <label>Logo image
+        <input id="team-logo-file" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" aria-describedby="team-logo-formats" required />
       </label>
+      <p id="team-logo-formats">PNG, JPEG or WebP. Up to 10 MB.</p>
       <p class="logo-preview">
         <img id="team-logo-preview" alt="Team logo preview" referrerpolicy="no-referrer" hidden />
         <span id="team-logo-status" role="status"></span>
       </p>
       <div class="logo-actions">
         <button id="team-logo-cancel" type="button">Cancel</button>
-        <button id="team-logo-save" type="submit">Save Logo</button>
+        <button id="team-logo-save" type="submit" disabled>Save Logo</button>
       </div>
     </form>
   </dialog>
@@ -1057,53 +1059,54 @@
     const logoDialog = document.getElementById("team-logo-dialog");
     const logoForm = document.getElementById("team-logo-form");
     const logoSelect = document.getElementById("team-logo-select");
-    const logoUrl = document.getElementById("team-logo-url");
+    const logoFile = document.getElementById("team-logo-file");
     const logoPreview = document.getElementById("team-logo-preview");
     const logoStatus = document.getElementById("team-logo-status");
     const logoCancel = document.getElementById("team-logo-cancel");
     const logoSave = document.getElementById("team-logo-save");
+    const LOGO_BUCKET = "team-logos";
+    const LOGO_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+    const MAX_LOGO_BYTES = 10 * 1024 * 1024;
+    const MAX_LOGO_EDGE = 512;
+    let storageAdmin = false;
+    let logoSaving = false;
+    let previewObjectUrl = "";
 
     function canEditLogos(){
-      return window.FF_ACCESS?.canAccessPage("team_settings.html") === true;
+      return storageAdmin && window.FF_ACCESS?.canAccessPage("team_settings.html") === true;
     }
 
     function updateLogoButton(){
       editLogoBtn.hidden = !teamChoices.size || !canEditLogos();
     }
 
-    function getLogoUrl(){
-      try {
-        const url = new URL(logoUrl.value.trim());
-        if (url.protocol === "https:" && !url.username && !url.password) return url.href;
-      } catch {}
-      return "";
+    async function loadLogoUploadAccess(){
+      const { data, error } = await client.rpc("is_app_admin");
+      storageAdmin = !error && data === true;
+      updateLogoButton();
     }
 
-    async function previewLogo(url){
+    function setLogoPreview(url){
+      if (previewObjectUrl){
+        URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = "";
+      }
       logoPreview.hidden = true;
-      logoStatus.textContent = url ? "Loading preview…" : "Enter a direct HTTPS image link.";
-      if (!url){
-        logoPreview.removeAttribute("src");
-        return false;
-      }
-
-      try {
-        if (logoPreview.src !== url) logoPreview.src = url;
-        await logoPreview.decode();
-        if (logoPreview.src !== url) return false;
-        logoPreview.hidden = false;
-        logoStatus.textContent = "";
-        return true;
-      } catch {
-        if (logoPreview.src === url) logoStatus.textContent = "Could not load this image. Check the link and try again.";
-        return false;
-      }
+      if (url) logoPreview.src = url;
+      else logoPreview.removeAttribute("src");
     }
 
-    function loadLogoField(){
+    function showCurrentLogo(message = "Choose a new logo to preview it."){
+      logoSave.disabled = true;
       const image = teamChoices.get(logoSelect.value)?.querySelector("img");
-      logoUrl.value = image?.getAttribute("src") || "";
-      previewLogo(getLogoUrl());
+      const currentUrl = image?.src;
+      setLogoPreview(currentUrl);
+      if (currentUrl){
+        logoPreview.decode().then(() => {
+          if (logoPreview.src === currentUrl) logoPreview.hidden = false;
+        }).catch(() => {});
+      }
+      logoStatus.textContent = message;
     }
 
     document.addEventListener("ff:access-ready", updateLogoButton);
@@ -1118,57 +1121,116 @@
       }
       logoSelect.replaceChildren(...options);
       if (teamChoices.has(activeTeam)) logoSelect.value = activeTeam;
-      loadLogoField();
+      logoFile.value = "";
+      showCurrentLogo();
       logoDialog.showModal();
     };
 
-    logoSelect.onchange = loadLogoField;
-    logoUrl.onchange = () => previewLogo(getLogoUrl());
-    logoCancel.onclick = () => logoDialog.close();
-    logoDialog.addEventListener("cancel", event => {
-      if (logoSave.disabled) event.preventDefault();
-    });
-
-    logoForm.onsubmit = async event => {
-      event.preventDefault();
-      const choice = teamChoices.get(logoSelect.value);
-      if (logoSave.disabled || !choice || !canEditLogos()) return;
-
-      const url = getLogoUrl();
-      if (!url){
-        previewLogo("");
-        logoUrl.focus();
+    logoSelect.onchange = () => {
+      logoFile.value = "";
+      showCurrentLogo();
+    };
+    logoFile.onchange = async () => {
+      logoSave.disabled = true;
+      const file = logoFile.files[0];
+      if (!file){
+        showCurrentLogo();
+        return;
+      }
+      const supportedType = file.type ? LOGO_TYPES.has(file.type) : /\.(png|jpe?g|webp)$/i.test(file.name);
+      if (!supportedType || file.size > MAX_LOGO_BYTES){
+        showCurrentLogo("Choose a PNG, JPEG or WebP image up to 10 MB.");
         return;
       }
 
+      const url = URL.createObjectURL(file);
+      setLogoPreview(url);
+      previewObjectUrl = url;
+      logoStatus.textContent = "Loading preview…";
+      try {
+        await logoPreview.decode();
+        if (previewObjectUrl !== url) return;
+        logoPreview.hidden = false;
+        logoStatus.textContent = file.name;
+        logoSave.disabled = false;
+      } catch {
+        if (previewObjectUrl === url) showCurrentLogo("This image could not be opened. Choose another file.");
+      }
+    };
+
+    logoCancel.onclick = () => logoDialog.close();
+    logoDialog.addEventListener("cancel", event => {
+      if (logoSaving) event.preventDefault();
+    });
+    logoDialog.addEventListener("close", () => {
+      setLogoPreview("");
+      logoFile.value = "";
+    });
+
+    async function prepareLogoImage(){
+      const { naturalWidth, naturalHeight } = logoPreview;
+      if (!naturalWidth || !naturalHeight) throw new Error("Logo image is empty");
+      const ratio = Math.min(1, MAX_LOGO_EDGE / Math.max(naturalWidth, naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(naturalWidth * ratio));
+      canvas.height = Math.max(1, Math.round(naturalHeight * ratio));
+      canvas.getContext("2d").drawImage(logoPreview, 0, 0, canvas.width, canvas.height);
+      const image = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      if (!image) throw new Error("PNG conversion failed");
+      return image;
+    }
+
+    async function linkUploadedLogo(storage, path, dbId){
+      const { data:{ publicUrl } } = storage.getPublicUrl(path);
+      const teams = client.from(TEAM_TABLE);
+      let saveError;
+      try {
+        const result = await teams.update({ logo_url:publicUrl }).eq("id", dbId).select("logo_url").maybeSingle();
+        if (!result.error && result.data?.logo_url === publicUrl) return publicUrl;
+        saveError = result.error || new Error("No team was updated");
+      } catch (error) {
+        saveError = error;
+      }
+
+      // Check the row before removing a file after an ambiguous write failure.
+      const current = await client.from(TEAM_TABLE).select("logo_url").eq("id", dbId).maybeSingle();
+      if (!current.error && current.data?.logo_url === publicUrl) return publicUrl;
+      if (!current.error){
+        const { error } = await storage.remove([path]);
+        if (error) console.error("Failed to remove an unused logo:", error);
+      }
+      throw saveError;
+    }
+
+    logoForm.onsubmit = async event => {
+      event.preventDefault();
       const teamId = logoSelect.value;
-      const fields = [logoSelect, logoUrl, logoSave, logoCancel];
+      const choice = teamChoices.get(teamId);
+      if (logoSaving || logoSave.disabled || !choice || !canEditLogos()) return;
+
+      logoSaving = true;
+      const fields = [logoSelect, logoFile, logoSave, logoCancel];
       fields.forEach(field => field.disabled = true);
       try {
-        if (!await previewLogo(url)) return;
-        logoStatus.textContent = "Saving logo…";
-        const { data, error } = await client
-          .from(TEAM_TABLE)
-          .update({ logo_url:url })
-          .eq("id", choice.dataset.teamDbId)
-          .select("logo_url")
-          .maybeSingle();
+        logoStatus.textContent = "Uploading logo…";
+        const image = await prepareLogoImage();
+        const storage = client.storage.from(LOGO_BUCKET);
+        const path = "map-planner/" + choice.dataset.teamDbId + "/" + crypto.randomUUID() + ".png";
+        const { error } = await storage.upload(path, image, { contentType:"image/png", cacheControl:"3600" });
+        if (error) throw error;
+        const logo = await linkUploadedLogo(storage, path, choice.dataset.teamDbId);
 
-        if (error || !data?.logo_url) throw error || new Error("No team was updated");
         for (const element of [choice, teamIcons[teamId]]){
-          const image = element?.querySelector("img");
-          if (image){
-            image.referrerPolicy = "no-referrer";
-            image.src = data.logo_url;
-          }
+          const marker = element?.querySelector("img");
+          if (marker) marker.src = logo;
         }
         plannerStatus.textContent = choice.title + " logo updated.";
-        fields.forEach(field => field.disabled = false);
         logoDialog.close();
       } catch (error) {
-        console.error("Failed to update team logo:", error);
+        console.error("Failed to upload team logo:", error);
         logoStatus.textContent = "The logo could not be saved. Try again.";
       } finally {
+        logoSaving = false;
         fields.forEach(field => field.disabled = false);
       }
     };
@@ -1718,6 +1780,7 @@
       const session = await ensureSession();
       if (!session) return;
 
+      loadLogoUploadAccess().catch(error => console.error("Could not check logo upload access:", error));
       document.getElementById("user-info").textContent =
         "Logged in as " + (session.user?.email || "unknown");
       await loadTeamIcons();
