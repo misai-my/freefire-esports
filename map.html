@@ -222,7 +222,8 @@
       font-size:.8rem;
     }
     #team-logo-preview{ width:56px; height:56px; object-fit:contain; border-radius:8px; }
-    .logo-actions{ display:flex; justify-content:flex-end; gap:8px; }
+    .logo-actions{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+    .logo-actions .danger-action{ color:#ffaaa9; }
 
     /* Team icons */
     .icon-grid{
@@ -385,6 +386,7 @@
       display:block;
       pointer-events:none;
     }
+    .unit img[hidden]{ display:none; }
     .unit-label{
       position:absolute;
       top:-18px; left:50%;
@@ -522,7 +524,7 @@
         <h2>Teams</h2>
         <div class="roster-actions">
           <button id="add-map-team" type="button" aria-haspopup="dialog" hidden>Add Team</button>
-          <button id="edit-team-logo" type="button" aria-haspopup="dialog" hidden>Update Logo</button>
+          <button id="edit-team-logo" type="button" aria-haspopup="dialog" hidden>Manage Teams</button>
         </div>
       </div>
       <div class="icon-grid" id="teamIcons"></div>
@@ -559,7 +561,7 @@
   </div>
 
   <dialog id="team-logo-dialog" aria-labelledby="team-logo-heading">
-    <h2 id="team-logo-heading">Update Team Logo</h2>
+    <h2 id="team-logo-heading">Manage Team</h2>
     <form id="team-logo-form">
       <div id="existing-team-field">
         <label>Team
@@ -583,6 +585,8 @@
         <span id="team-logo-status" role="status"></span>
       </p>
       <div class="logo-actions">
+        <button id="team-logo-remove" class="danger-action" type="button">Remove Logo</button>
+        <button id="map-team-delete" class="danger-action" type="button">Delete Team</button>
         <button id="team-logo-cancel" type="button">Cancel</button>
         <button id="team-logo-save" type="submit" disabled>Save Logo</button>
       </div>
@@ -668,7 +672,8 @@
     const teamIcons = {};     // Map markers
     const teamChoices = new Map();
     const TEAM_TABLE = "teams_pathplanner";
-    const TEAM_COLUMNS = "id, team_name, team_tag, logo_url";
+    const TEAM_COLUMNS = "id, team_name, team_tag, logo_url, map_archived_at";
+    const teamsHiddenFromFinalsPicker = new Set(["AVD", "DRS", "FLCN", "GOW", "KAGE", "TAG"]);
     const circles = [];       // logical
     const notesData = [];     // logical
 
@@ -690,6 +695,10 @@
     function teamIndex(id){
       const n = parseInt(String(id).replace("team",""), 10);
       return Number.isFinite(n) ? (n-1) : 0;
+    }
+
+    function teamColor(id){
+      return teamColors[teamIndex(id) % teamColors.length];
     }
 
     /***********************
@@ -830,10 +839,10 @@
       const draft = gesture?.trace;
       for (const id in teamPaths){
         const path = draft?.team === id ? teamPaths[id].concat(draft.points) : teamPaths[id];
-        drawRoute(path, teamColors[teamIndex(id)] || "#fff", sx, sy, Boolean(teamIcons[id]));
+        drawRoute(path, teamColor(id), sx, sy, Boolean(teamIcons[id]));
       }
       if (draft && !teamPaths[draft.team]){
-        drawRoute(draft.points, teamColors[teamIndex(draft.team)] || "#fff", sx, sy, false);
+        drawRoute(draft.points, teamColor(draft.team), sx, sy, false);
       }
     }
 
@@ -1036,7 +1045,7 @@
       const previousTeam = selectedIcon?.dataset.teamDbId;
       teamChoices.clear();
       const fragment = document.createDocumentFragment();
-      teams.slice(0, teamColors.length).forEach((team, i) => {
+      teams.forEach((team, i) => {
         const teamId = "team" + (i + 1);
         const button = document.createElement("button");
         button.type = "button";
@@ -1044,14 +1053,15 @@
         button.dataset.id = teamId;
         button.dataset.teamTag = team.team_tag || "";
         button.dataset.teamDbId = team.id;
-        button.style.setProperty("--team-color", teamColors[i]);
+        button.dataset.archived = String(Boolean(team.map_archived_at));
+        button.style.setProperty("--team-color", teamColor(teamId));
         button.title = team.team_name || team.team_tag || teamId;
         button.setAttribute("aria-label", button.title);
         button.setAttribute("aria-pressed", "false");
 
         const img = document.createElement("img");
         img.referrerPolicy = "no-referrer";
-        if (team.logo_url) img.src = team.logo_url;
+        setTeamImage(img, team.logo_url);
         img.alt = "";
         img.className = "team-icon";
         img.loading = "lazy";
@@ -1072,9 +1082,16 @@
         };
 
         teamChoices.set(teamId, button);
-        fragment.appendChild(button);
+        // Keep the original roster slots so saved and imported routes still identify the same teams.
+        if (!team.map_archived_at && !teamsHiddenFromFinalsPicker.has(team.team_tag)) fragment.appendChild(button);
       });
-      grid.replaceChildren(fragment);
+      if (!fragment.childElementCount){
+        const message = document.createElement("p");
+        message.textContent = "No teams in the map picker.";
+        grid.replaceChildren(message);
+      } else {
+        grid.replaceChildren(fragment);
+      }
       setSelection([...teamChoices.values()].find(button => button.dataset.teamDbId === previousTeam) || null);
       updateTeamActions();
     }
@@ -1094,6 +1111,8 @@
     const logoStatus = document.getElementById("team-logo-status");
     const logoCancel = document.getElementById("team-logo-cancel");
     const logoSave = document.getElementById("team-logo-save");
+    const logoRemove = document.getElementById("team-logo-remove");
+    const teamDelete = document.getElementById("map-team-delete");
     const LOGO_BUCKET = "team-logos";
     const LOGO_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
     const MAX_LOGO_BYTES = 10 * 1024 * 1024;
@@ -1110,7 +1129,17 @@
     function updateTeamActions(){
       const allowed = canEditLogos();
       addTeamBtn.hidden = !allowed;
-      editLogoBtn.hidden = !teamChoices.size || !allowed;
+      editLogoBtn.hidden = ![...teamChoices.values()].some(isActiveMapTeam) || !allowed;
+    }
+
+    function isActiveMapTeam(button){
+      return Boolean(button && button.dataset.archived !== "true");
+    }
+
+    function setTeamImage(image, url){
+      if (url) image.src = url;
+      else image.removeAttribute("src");
+      image.hidden = !url;
     }
 
     async function loadLogoUploadAccess(){
@@ -1132,29 +1161,33 @@
     function showCurrentLogo(message = "Choose a new logo to preview it."){
       logoSave.disabled = true;
       const image = addingTeam ? null : teamChoices.get(logoSelect.value)?.querySelector("img");
-      const currentUrl = image?.src;
+      const currentUrl = image?.hasAttribute("src") ? image.src : "";
+      logoRemove.disabled = !currentUrl;
+      teamDelete.disabled = !image;
       setLogoPreview(currentUrl);
       if (currentUrl){
         logoPreview.decode().then(() => {
           if (logoPreview.src === currentUrl) logoPreview.hidden = false;
         }).catch(() => {});
       }
-      logoStatus.textContent = message;
+      logoStatus.textContent = !addingTeam && !currentUrl ? "No logo is set. Choose an image to add one." : message;
     }
 
     document.addEventListener("ff:access-ready", updateTeamActions);
 
     function openTeamDialog(add){
       if (!canEditLogos() || (!add && !teamChoices.size)) return;
-      if (add && teamChoices.size >= teamColors.length){
+      if (add && [...teamChoices.values()].filter(isActiveMapTeam).length >= teamColors.length){
         plannerStatus.textContent = "This map supports up to " + teamColors.length + " teams.";
         return;
       }
 
       addingTeam = add;
-      logoHeading.textContent = add ? "Add Team" : "Update Team Logo";
+      logoHeading.textContent = add ? "Add Team" : "Manage Team";
       logoSave.textContent = add ? "Add Team" : "Save Logo";
       existingTeamField.hidden = add;
+      logoRemove.hidden = add;
+      teamDelete.hidden = add;
       newTeamFields.hidden = !add;
       logoSelect.disabled = add;
       newTeamName.disabled = !add;
@@ -1166,13 +1199,14 @@
       if (!add){
         const options = [];
         for (const [id, button] of teamChoices){
+          if (!isActiveMapTeam(button)) continue;
           const option = document.createElement("option");
           option.value = id;
           option.textContent = button.title;
           options.push(option);
         }
         logoSelect.replaceChildren(...options);
-        if (teamChoices.has(activeTeam)) logoSelect.value = activeTeam;
+        if (isActiveMapTeam(teamChoices.get(activeTeam))) logoSelect.value = activeTeam;
       }
       showCurrentLogo();
       logoDialog.showModal();
@@ -1180,6 +1214,62 @@
 
     addTeamBtn.onclick = () => openTeamDialog(true);
     editLogoBtn.onclick = () => openTeamDialog(false);
+    logoRemove.onclick = () => removeMapTeamOrLogo(false);
+    teamDelete.onclick = () => removeMapTeamOrLogo(true);
+
+    function updateMapTeamLogo(teamId, url){
+      for (const element of [teamChoices.get(teamId), teamIcons[teamId]]){
+        const image = element?.querySelector("img");
+        if (image) setTeamImage(image, url);
+      }
+    }
+
+    async function removeMapTeamOrLogo(deleteTeam){
+      const teamId = logoSelect.value;
+      const choice = teamChoices.get(teamId);
+      if (logoSaving || addingTeam || !isActiveMapTeam(choice) || !canEditLogos()) return;
+
+      const logo = choice.querySelector("img").getAttribute("src");
+      if (!deleteTeam && !logo) return;
+      const prompt = deleteTeam
+        ? `Delete ${choice.title} from the map picker? Saved routes will keep this team's marker.`
+        : `Remove the logo for ${choice.title}?`;
+      if (!confirm(prompt)) return;
+
+      const fields = [logoSelect, logoFile, logoSave, logoCancel, logoRemove, teamDelete];
+      const previousDisabled = fields.map(field => field.disabled);
+      fields.forEach(field => field.disabled = true);
+      logoSaving = true;
+      logoStatus.textContent = deleteTeam ? "Deleting team…" : "Removing logo…";
+      try {
+        const change = deleteTeam ? { map_archived_at:new Date().toISOString() } : { logo_url:null };
+        let update = client.from(TEAM_TABLE).update(change).eq("id", choice.dataset.teamDbId).is("map_archived_at", null);
+        if (!deleteTeam) update = update.eq("logo_url", logo);
+        const { data, error } = await update.select("id").maybeSingle();
+        if (error) throw error;
+        if (!data){
+          logoStatus.textContent = "This team changed. Reload the map and try again.";
+          return;
+        }
+
+        if (deleteTeam){
+          choice.dataset.archived = "true";
+          choice.remove();
+          if (activeTeam === teamId) setSelection(null);
+          updateTeamActions();
+        } else {
+          updateMapTeamLogo(teamId, "");
+        }
+        plannerStatus.textContent = deleteTeam ? `${choice.title} removed from the map picker.` : `${choice.title} logo removed.`;
+        logoDialog.close();
+      } catch (error) {
+        console.error("Failed to remove map team or logo:", error);
+        logoStatus.textContent = deleteTeam ? "Could not delete the team. Try again." : "Could not remove the logo. Try again.";
+      } finally {
+        logoSaving = false;
+        fields.forEach((field, index) => field.disabled = previousDisabled[index]);
+      }
+    }
 
     logoSelect.onchange = () => {
       logoFile.value = "";
@@ -1240,7 +1330,8 @@
       const teams = client.from(TEAM_TABLE);
       let saveError;
       try {
-        const result = await teams.update({ logo_url:publicUrl }).eq("id", dbId).select("logo_url").maybeSingle();
+        const result = await teams.update({ logo_url:publicUrl }).eq("id", dbId)
+          .is("map_archived_at", null).select("logo_url").maybeSingle();
         if (!result.error && result.data?.logo_url === publicUrl) return publicUrl;
         saveError = result.error || new Error("No team was updated");
       } catch (error) {
@@ -1260,10 +1351,12 @@
     }
 
     function teamEntryProblem(teams, tag){
-      if (teams.length >= teamColors.length) return "This map supports up to " + teamColors.length + " teams.";
+      const activeTeams = teams.filter(team => !team.map_archived_at);
+      if (activeTeams.length >= teamColors.length) return "This map supports up to " + teamColors.length + " teams.";
       const normalizedTag = tag.toLowerCase();
-      if (teams.some(team => team.team_tag.trim().toLowerCase() === normalizedTag)){
-        return "That team tag is already on the roster.";
+      const existingTeam = teams.find(team => team.team_tag.trim().toLowerCase() === normalizedTag);
+      if (existingTeam){
+        return existingTeam.map_archived_at ? "That tag belongs to a deleted team." : "That team tag is already on the roster.";
       }
       return "";
     }
@@ -1310,7 +1403,7 @@
       const teamId = logoSelect.value;
       const choice = teamChoices.get(teamId);
       const add = addingTeam;
-      if (logoSaving || logoSave.disabled || (!add && !choice) || !canEditLogos()) return;
+      if (logoSaving || logoSave.disabled || (!add && !isActiveMapTeam(choice)) || !canEditLogos()) return;
 
       const name = newTeamName.value.trim();
       const tag = newTeamTag.value.trim();
@@ -1321,7 +1414,8 @@
       }
 
       logoSaving = true;
-      const fields = [add ? newTeamName : logoSelect, ...(add ? [newTeamTag] : []), logoFile, logoSave, logoCancel];
+      const fields = [add ? newTeamName : logoSelect, ...(add ? [newTeamTag] : []), logoFile, logoSave, logoCancel, logoRemove, teamDelete];
+      const previousDisabled = fields.map(field => field.disabled);
       fields.forEach(field => field.disabled = true);
       try {
         let roster;
@@ -1347,23 +1441,16 @@
           logoStatus.textContent = "Saving team…";
           const saved = await insertMapTeam(storage, path, roster, name, tag);
           if (!saved) return;
-          const rendered = saved.roster.slice(0, teamColors.length);
-          renderMapTeams(rendered);
-          const index = rendered.findIndex(team => String(team.id) === String(saved.team.id));
-          if (index >= 0){
-            const button = teamChoices.get("team" + (index + 1));
+          renderMapTeams(saved.roster);
+          const button = [...teamChoices.values()].find(team => team.dataset.teamDbId === String(saved.team.id));
+          if (button?.isConnected){
             setSelection(button);
             if (panMode || drawCircleMode || noteMode) setMode(routeMode);
-            plannerStatus.textContent = saved.team.team_name + " added to the map roster.";
-          } else {
-            plannerStatus.textContent = saved.team.team_name + " was saved in Team Settings. The map roster is full.";
           }
+          plannerStatus.textContent = saved.team.team_name + " added to the map roster.";
         } else {
           const logo = await linkUploadedLogo(storage, path, choice.dataset.teamDbId);
-          for (const element of [choice, teamIcons[teamId]]){
-            const marker = element?.querySelector("img");
-            if (marker) marker.src = logo;
-          }
+          updateMapTeamLogo(teamId, logo);
           plannerStatus.textContent = choice.title + " logo updated.";
         }
         logoDialog.close();
@@ -1372,14 +1459,14 @@
         logoStatus.textContent = add ? "The team could not be saved. Try again." : "The logo could not be saved. Try again.";
       } finally {
         logoSaving = false;
-        fields.forEach(field => field.disabled = false);
+        fields.forEach((field, index) => field.disabled = previousDisabled[index]);
       }
     };
 
     function setSelection(icon){
       selectedIcon?.setAttribute("aria-pressed", "false");
-      selectedIcon = icon;
-      activeTeam = icon?.dataset.id || null;
+      selectedIcon = isActiveMapTeam(icon) ? icon : null;
+      activeTeam = selectedIcon?.dataset.id || null;
       selectedIcon?.setAttribute("aria-pressed", "true");
       updateRouteInstructions();
     }
